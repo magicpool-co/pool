@@ -58,8 +58,10 @@ jobs:
     strategy:
       matrix:
         app: [pool]
-        prefix: [ae-, cfx-, ctxc-, ergo-, etc-, firo-, flux-, rvn-]
+        region: [us-west-2, eu-central-1, ap-southeast-1]
+        prefix: [cfx-, ctxc-, ergo-, etc-, firo-, flux-, rvn-]
         include:
+          - region: eu-west-1
           - app: worker
 
     steps:
@@ -70,10 +72,10 @@ jobs:
         with:
           app: ${{ matrix.app }}
           env-prefix: ${{ matrix.prefix }}
-          env: dev
+          env: prod
           arch: arm64
           tag: ${{ needs.init.outputs.short_hash }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_REGION: ${{ matrix.region }}
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
