@@ -127,7 +127,6 @@ CREATE TABLE workers (
 );
 
 CREATE TABLE ip_addresses (
-	id				bigint         	UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	miner_id		int				UNSIGNED NOT NULL,
 
 	ip_address		varchar(40)		NOT NULL,
@@ -140,9 +139,9 @@ CREATE TABLE ip_addresses (
 	CONSTRAINT fk_ip_addresses_miner_id
 	FOREIGN KEY (miner_id)			REFERENCES	miners(id),
 
+	PRIMARY KEY (miner_id, ip_address),
 	INDEX idx_ip_addresses_miner_id (miner_id),
-	INDEX idx_ip_addresses_last_share (last_share),
-	UNIQUE INDEX idx_uq_ip_addresses_miner_id_ip_address (miner_id, ip_address)
+	INDEX idx_ip_addresses_last_share (last_share)
 );
 
 CREATE TABLE rounds (
@@ -163,6 +162,8 @@ CREATE TABLE rounds (
 
 	accepted_shares	bigint			UNSIGNED NOT NULL,
 	rejected_shares	bigint			UNSIGNED NOT NULL,
+	invalid_shares 	bigint 			UNSIGNED NOT NULL,
+
 	difficulty		bigint			UNSIGNED NOT NULL,
 	luck			float			NOT NULL,
 

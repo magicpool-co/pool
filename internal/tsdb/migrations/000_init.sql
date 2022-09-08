@@ -12,7 +12,6 @@ CREATE TABLE raw_blocks (
 );
 
 CREATE TABLE blocks (
-	id						bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	chain_id				varchar(5)		NOT NULL,
 
 	value					double			NOT NULL,
@@ -31,11 +30,10 @@ CREATE TABLE blocks (
 	start_time				datetime		NOT NULL,
 	end_time				datetime		NOT NULL,
 
-	UNIQUE INDEX idx_uq_blocks_end_time_chain_id_period (end_time, chain_id, period)
+	PRIMARY KEY (end_time, chain_id, period)
 );
 
 CREATE TABLE rounds (
-	id						bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	chain_id				varchar(5)		NOT NULL,
 
 	value					double			NOT NULL,
@@ -43,6 +41,7 @@ CREATE TABLE rounds (
 	round_time				double			NOT NULL,
 	accepted_shares			double			NOT NULL,
 	rejected_shares			double			NOT NULL,
+	invalid_shares 			double 			NOT NULL,
 	hashrate				double			NOT NULL,
 	uncle_rate				double			NOT NULL,
 	luck					double			NOT NULL,
@@ -57,18 +56,18 @@ CREATE TABLE rounds (
 	start_time				datetime		NOT NULL,
 	end_time				datetime		NOT NULL,
 
-	UNIQUE INDEX idx_uq_rounds_end_time_chain_id_period (end_time, chain_id, period)
+	PRIMARY KEY (end_time, chain_id, period)
 );
 
 
 CREATE TABLE global_shares (
-	id						bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	chain_id				varchar(5)		NOT NULL,
 
 	miners					int				UNSIGNED NOT NULL,
 	workers					int				UNSIGNED NOT NULL,
 	accepted_shares			bigint			UNSIGNED NOT NULL,
 	rejected_shares			bigint			UNSIGNED NOT NULL,
+	invalid_shares 			bigint 			UNSIGNED NOT NULL,
 	hashrate				double			NOT NULL,
 	avg_hashrate			double			NOT NULL,
 	reported_hashrate		double			NOT NULL,
@@ -79,17 +78,17 @@ CREATE TABLE global_shares (
 	start_time				datetime		NOT NULL,
 	end_time				datetime		NOT NULL,
 
-	UNIQUE INDEX idx_uq_global_shares_end_time_chain_id_period (end_time, chain_id, period)
+	PRIMARY KEY (end_time, chain_id, period)
 );
 
 CREATE TABLE miner_shares (
-	id						bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	chain_id				varchar(5)		NOT NULL,
 	miner_id				int				UNSIGNED NOT NULL,
 
 	workers					int				UNSIGNED NOT NULL,
 	accepted_shares			bigint			UNSIGNED NOT NULL,
 	rejected_shares			bigint			UNSIGNED NOT NULL,
+	invalid_shares 			bigint 			UNSIGNED NOT NULL,
 	hashrate				double			NOT NULL,
 	avg_hashrate			double			NOT NULL,
 	reported_hashrate		double			NOT NULL,
@@ -100,17 +99,17 @@ CREATE TABLE miner_shares (
 	start_time				datetime		NOT NULL,
 	end_time				datetime		NOT NULL,
 
-	INDEX idx_miner_shares_miner_id_chain_id_period (miner_id, chain_id, period),
-	UNIQUE INDEX idx_miner_shares_miner_id_end_time_chain_id_period (miner_id, end_time, chain_id, period)
+	PRIMARY KEY (end_time, miner_id, chain_id, period),
+	INDEX idx_miner_shares_miner_id_chain_id_period (miner_id, chain_id, period)
 );
 
 CREATE TABLE worker_shares (
-	id						bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	chain_id				varchar(5)		NOT NULL,
 	worker_id				int				UNSIGNED NOT NULL,
 
 	accepted_shares			bigint			UNSIGNED NOT NULL,
 	rejected_shares			bigint			UNSIGNED NOT NULL,
+	invalid_shares 			bigint 			UNSIGNED NOT NULL,
 	hashrate				double			NOT NULL,
 	avg_hashrate			double			NOT NULL,
 	reported_hashrate		double			NOT NULL,
@@ -121,6 +120,6 @@ CREATE TABLE worker_shares (
 	start_time				datetime		NOT NULL,
 	end_time				datetime		NOT NULL,
 
-	INDEX idx_worker_shares_worker_id_chain_id_period (worker_id, chain_id, period),
-	UNIQUE INDEX idx_worker_shares_worker_id_end_time_chain_id_period (worker_id, end_time, chain_id, period)
+	PRIMARY KEY (end_time, worker_id, chain_id, period),
+	INDEX idx_worker_shares_worker_id_chain_id_period (worker_id, chain_id, period)
 );
