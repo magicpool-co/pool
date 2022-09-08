@@ -1,0 +1,10 @@
+.DS_Store
+.env
+
+magicpool-worker
+magicpool-pool
+magicpool-api
+
+*.txt
+*.pem
+*.json
