@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	backupPath = "s3://@TODO"
-	zoneName   = "@TODO"
+	backupPath = "s3://magicpool-prod/node-backups/"
+	zoneName   = "privmagicpool.co"
 )
 
 func getNodeClusterName(chain string, mainnet bool) string {
@@ -43,7 +43,7 @@ func getNodeBackupPath(chain string, mainnet bool) string {
 }
 
 func getNodeBackupCommands(s3Path string) []string {
-	cmd := fmt.Sprintf("aws s3 --region us-west-2 sync /data/ %s --only-show-errors --delete", s3Path)
+	cmd := fmt.Sprintf("aws s3 --region eu-west-1 sync /data/ %s --only-show-errors --delete", s3Path)
 	return []string{cmd}
 }
 
