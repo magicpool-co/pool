@@ -3,7 +3,6 @@ package worker
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -148,7 +147,7 @@ func (j *NodeCheckJob) Run() {
 	const volumeThreshold = 80
 	for _, node := range nodes {
 		cluster := getNodeClusterName(node.ChainID, j.env, j.mainnet)
-		instanceID, _, err := getNodeContainer(j.aws, zoneID, cluster, node.URL)
+		_, _, err := getNodeContainer(j.aws, zoneID, cluster, node.URL)
 		if err != nil {
 			j.logger.Error(err)
 			continue
@@ -186,7 +185,7 @@ func (j *NodeCheckJob) Run() {
 			}
 		} */
 
-		// check for resize
+		/*// check for resize
 		cmds := []string{"df /dev/nvme0n1p1 | awk 'END{print $5;}'"}
 		commandID, err := ec2.SendCommandToInstance(j.aws, instanceID, cmds)
 		if err != nil {
@@ -208,7 +207,7 @@ func (j *NodeCheckJob) Run() {
 			continue
 		} else if volumeUsage >= volumeThreshold {
 			node.NeedsResize = true
-		}
+		}*/
 
 		cols := []string{"needs_backup", "pending_backup", "needs_update",
 			"pending_update", "needs_resize", "pending_resize"}
