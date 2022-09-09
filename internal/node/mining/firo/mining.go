@@ -155,28 +155,30 @@ func (node Node) parseBlockTemplate(template *BlockTemplate) (*types.StratumJob,
 
 	txHashes := [][]byte{coinbaseHash}
 	txHexes := [][]byte{coinbaseHex}
-	for _, tx := range template.Transactions {
-		txid := tx.TxID
-		if txid == "" {
-			txid = tx.Hash
-		}
+	if node.mocked {
+		for _, tx := range template.Transactions {
+			txid := tx.TxID
+			if txid == "" {
+				txid = tx.Hash
+			}
 
-		if blacklistTxIDs[txid] {
-			continue
-		}
+			if blacklistTxIDs[txid] {
+				continue
+			}
 
-		byteHash, err := hex.DecodeString(txid)
-		if err != nil {
-			return nil, err
-		}
+			byteHash, err := hex.DecodeString(txid)
+			if err != nil {
+				return nil, err
+			}
 
-		byteHex, err := hex.DecodeString(tx.Data)
-		if err != nil {
-			return nil, err
-		}
+			byteHex, err := hex.DecodeString(tx.Data)
+			if err != nil {
+				return nil, err
+			}
 
-		txHashes = append(txHashes, byteHash)
-		txHexes = append(txHexes, byteHex)
+			txHashes = append(txHashes, byteHash)
+			txHexes = append(txHexes, byteHex)
+		}
 	}
 
 	builder, err := blkbuilder.NewProgPowBuilder(template.Version, template.CurTime, uint32(template.Height),
