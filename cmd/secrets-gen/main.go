@@ -66,10 +66,12 @@ func main() {
 	var rawPriv, obscuredPriv []byte
 	var err error
 	switch chain {
-	case "BTC", "RVN", "FLUX", "FIRO":
+	case "AE":
+		rawPriv, err = generateEd25519Priv(*argObscure)
+	case "BTC", "ERGO", "FIRO", "FLUX", "RVN":
 		rawPriv, obscuredPriv, err = generateSecp256k1Priv(*argObscure)
 		rawPriv = obscuredPriv
-	case "ETH", "ETC", "CTXC":
+	case "CTXC", "ETC", "ETH":
 		rawPriv, obscuredPriv, err = generateSecp256k1Priv(*argObscure)
 		rawPriv = obscuredPriv
 	case "CFX":
@@ -82,10 +84,6 @@ func main() {
 				break
 			}
 		}
-	case "AE":
-		rawPriv, err = generateEd25519Priv(*argObscure)
-	case "ERGO":
-		err = ErrNotImplemented
 	default:
 		err = ErrNotImplemented
 	}

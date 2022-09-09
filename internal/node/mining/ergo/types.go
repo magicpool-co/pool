@@ -3,9 +3,12 @@ package ergo
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
+	"github.com/brianium/mnemonic"
 	"github.com/sencha-dev/powkit/autolykos2"
 
+	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/hostpool"
 	"github.com/magicpool-co/pool/pkg/sshtunnel"
 )
@@ -41,8 +44,20 @@ func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPoo
 	return host, nil
 }
 
-func New(mainnet bool, urls []string, mnemonic string, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
+func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
 	httpHost, err := generateHost(urls, tunnel)
+	if err != nil {
+		return nil, err
+	}
+
+	obscuredPriv, err := crypto.ObscureHex(rawPriv)
+	if err != nil {
+		return nil, err
+	} else if len(obscuredPriv) < 20 {
+		return nil, fmt.Errorf("obscured priv too short")
+	}
+
+	mnemonicPhrase, err := mnemonic.New(obscuredPriv[:20], mnemonic.English)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +65,7 @@ func New(mainnet bool, urls []string, mnemonic string, tunnel *sshtunnel.SSHTunn
 	node := &Node{
 		mocked:   httpHost == nil,
 		mainnet:  mainnet,
-		mnemonic: mnemonic,
+		mnemonic: mnemonicPhrase.Sentence(),
 		httpHost: httpHost,
 		pow:      autolykos2.NewErgo(),
 	}
