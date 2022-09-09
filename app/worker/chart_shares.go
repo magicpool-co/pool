@@ -46,51 +46,22 @@ func parseInterval(interval string) (time.Time, error) {
 }
 
 func getInitialAverages(q dbcl.Querier, ts time.Time, chain string, period types.PeriodType) (float64, map[uint64]float64, map[uint64]float64, error) {
-	// important to note that with the fast averaging mechanism, though it reduces the load
-	// drastically (by avoiding large windowed AVG calls), it comes with a caveat: floating point
-	// errors will compound - the upside is hashrate is such a massive number that it may not be
-	// noticable, but it definitely occurs.
-
-	window := period.Window()
-	duration := period.Average()
-
-	globalAvg, err := tsdb.GetGlobalSharesAverageFast(q, ts, chain, int(period), window, duration)
-	if err != nil {
-		return 0, nil, nil, err
-	} else if globalAvg == 0 {
-		globalAvg, err = tsdb.GetGlobalSharesAverageSlow(q, ts, chain, int(period), duration)
-		if err != nil {
-			return 0, nil, nil, err
-		}
-	}
-
-	minerAvg, err := tsdb.GetMinerSharesAverageFast(q, ts, chain, int(period), window, duration)
+	globalAvg, err := tsdb.GetGlobalSharesAverage(q, ts, chain, int(period), period.Average())
 	if err != nil {
 		return 0, nil, nil, err
 	}
 
-	workerAvg, err := tsdb.GetWorkerSharesAverageFast(q, ts, chain, int(period), window, duration)
+	minerAvg, err := tsdb.GetMinerSharesAverage(q, ts, chain, int(period), period.Average())
+	if err != nil {
+		return 0, nil, nil, err
+	}
+
+	workerAvg, err := tsdb.GetWorkerSharesAverage(q, ts, chain, int(period), period.Average())
 	if err != nil {
 		return 0, nil, nil, err
 	}
 
 	return globalAvg, minerAvg, workerAvg, nil
-}
-
-func getAverageFromIdx(q dbcl.Querier, idx map[uint64]float64, minerID, workerID uint64, ts time.Time, chain string, period types.PeriodType) (float64, error) {
-	id := workerID
-	if minerID != 0 {
-		id = minerID
-	}
-
-	avg, ok := idx[id]
-	if ok {
-		return avg, nil
-	} else if minerID != 0 {
-		return tsdb.GetMinerSharesAverageSlow(q, minerID, ts, chain, int(period), period.Average())
-	}
-
-	return tsdb.GetWorkerSharesAverageSlow(q, workerID, ts, chain, int(period), period.Average())
 }
 
 func (j *ChartShareJob) rollup(node types.MiningNode, interval string) error {
@@ -163,16 +134,11 @@ func (j *ChartShareJob) rollup(node types.MiningNode, interval string) error {
 		if err != nil {
 			return err
 		} else if _, ok := minerSharesIdx[minerID]; !ok {
-			avgHashrate, err := getAverageFromIdx(j.tsdb.Reader(), minerAvg, minerID, 0, endTime, node.Chain(), sharePeriod)
-			if err != nil {
-				return err
-			}
-
 			minerSharesIdx[minerID] = &tsdb.Share{
 				ChainID:     node.Chain(),
 				MinerID:     types.Uint64Ptr(minerID),
 				Miners:      1,
-				AvgHashrate: avgHashrate,
+				AvgHashrate: minerAvg[minerID],
 				Count:       1,
 				Period:      int(sharePeriod),
 				StartTime:   endTime.Add(sharePeriod.Rollup() * -1),
@@ -190,18 +156,13 @@ func (j *ChartShareJob) rollup(node types.MiningNode, interval string) error {
 		} else if workerID == 0 {
 			continue
 		} else if _, ok := workerSharesIdx[workerID]; !ok {
-			avgHashrate, err := getAverageFromIdx(j.tsdb.Reader(), workerAvg, 0, workerID, endTime, node.Chain(), sharePeriod)
-			if err != nil {
-				return err
-			}
-
 			// add miner shares worker count
 			minerSharesIdx[minerID].Workers++
 			workerSharesIdx[workerID] = &tsdb.Share{
 				ChainID:     node.Chain(),
 				WorkerID:    types.Uint64Ptr(workerID),
 				Workers:     1,
-				AvgHashrate: avgHashrate,
+				AvgHashrate: workerAvg[workerID],
 				Count:       1,
 				Period:      int(sharePeriod),
 				StartTime:   endTime.Add(sharePeriod.Rollup() * -1),
@@ -346,18 +307,11 @@ func (j *ChartShareJob) finalize(node types.MiningNode, endTime time.Time) error
 			globalShare.AvgHashrate = globalAvg
 		}
 		for _, minerShare := range minerShares {
-			minerShare.AvgHashrate, err = getAverageFromIdx(j.tsdb.Reader(), minerAvg,
-				types.Uint64Value(minerShare.MinerID), 0, endTime, node.Chain(), rollupPeriod)
-			if err != nil {
-				return err
-			}
+			minerShare.AvgHashrate = minerAvg[types.Uint64Value(minerShare.MinerID)]
 		}
 		for _, workerShare := range workerShares {
-			workerShare.AvgHashrate, err = getAverageFromIdx(j.tsdb.Reader(), workerAvg, 0,
-				types.Uint64Value(workerShare.WorkerID), endTime, node.Chain(), rollupPeriod)
-			if err != nil {
-				return err
-			}
+			workerShare.AvgHashrate = workerAvg[types.Uint64Value(workerShare.WorkerID)]
+
 		}
 
 		if err := tsdb.InsertFinalGlobalShares(j.tsdb.Writer(), globalShares...); err != nil {

@@ -384,6 +384,19 @@ func GetRoundsAverageProfitabilitySlow(q dbcl.Querier, timestamp time.Time, chai
 	return dbcl.GetFloat64(q, query, timestamp, timestamp, chain, period)
 }
 
+func GetGlobalSharesAverage(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (float64, error) {
+	var query = fmt.Sprintf(`SELECT IFNULL(AVG(hashrate), 0)
+	FROM global_shares
+    WHERE
+    	end_time BETWEEN DATE_SUB(?, %s) AND ?
+	AND
+		chain_id = ?
+	AND
+		period = ?;`, dbcl.ConvertDurationToInterval(duration))
+
+	return dbcl.GetFloat64(q, query, timestamp, timestamp, chain, period)
+}
+
 func GetGlobalSharesAverageSlow(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (float64, error) {
 	var query = fmt.Sprintf(`SELECT IFNULL(AVG(hashrate), 0)
 	FROM global_shares
@@ -395,6 +408,34 @@ func GetGlobalSharesAverageSlow(q dbcl.Querier, timestamp time.Time, chain strin
 		period = ?;`, dbcl.ConvertDurationToInterval(duration))
 
 	return dbcl.GetFloat64(q, query, timestamp, timestamp, chain, period)
+}
+
+func GetMinerSharesAverage(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (map[uint64]float64, error) {
+	var query = fmt.Sprintf(`SELECT miner_id, IFNULL(AVG(hashrate), 0) avg_hashrate
+	FROM miner_shares
+    WHERE
+    	end_time BETWEEN DATE_SUB(?, %s) AND ?
+	AND
+		chain_id = ?
+	AND
+		period = ?
+	GROUP BY miner_id`, dbcl.ConvertDurationToInterval(duration))
+
+	items := []*Share{}
+	err := q.Select(&items, query, timestamp, timestamp, chain, period)
+	if err != nil {
+		return nil, err
+	}
+
+	output := make(map[uint64]float64, len(items))
+	for _, item := range items {
+		if item.MinerID == nil {
+			return nil, fmt.Errorf("empty minerID")
+		}
+		output[*item.MinerID] = item.AvgHashrate
+	}
+
+	return output, err
 }
 
 func GetMinerSharesAverageSlow(q dbcl.Querier, minerID uint64, timestamp time.Time, chain string, period int, duration time.Duration) (float64, error) {
@@ -410,6 +451,34 @@ func GetMinerSharesAverageSlow(q dbcl.Querier, minerID uint64, timestamp time.Ti
 		period = ?;`, dbcl.ConvertDurationToInterval(duration))
 
 	return dbcl.GetFloat64(q, query, timestamp, timestamp, minerID, chain, period)
+}
+
+func GetWorkerSharesAverage(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (map[uint64]float64, error) {
+	var query = fmt.Sprintf(`SELECT worker_id, IFNULL(AVG(hashrate), 0) avg_hashrate
+	FROM worker_shares
+    WHERE
+    	end_time BETWEEN DATE_SUB(?, %s) AND ?
+	AND
+		chain_id = ?
+	AND
+		period = ?
+	GROUP BY worker_id`, dbcl.ConvertDurationToInterval(duration))
+
+	items := []*Share{}
+	err := q.Select(&items, query, timestamp, timestamp, chain, period)
+	if err != nil {
+		return nil, err
+	}
+
+	output := make(map[uint64]float64, len(items))
+	for _, item := range items {
+		if item.WorkerID == nil {
+			return nil, fmt.Errorf("empty workerID")
+		}
+		output[*item.WorkerID] = item.AvgHashrate
+	}
+
+	return output, err
 }
 
 func GetWorkerSharesAverageSlow(q dbcl.Querier, workerID uint64, timestamp time.Time, chain string, period int, duration time.Duration) (float64, error) {
