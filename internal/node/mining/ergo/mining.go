@@ -65,9 +65,11 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 		hashes, err := node.getBlocksAtHeight(height)
 		if err != nil {
 			return nil, err
+		} else if len(hashes) == 0 {
+			continue
 		}
 
-		for _, hash := range hashes {
+		for _, hash := range hashes[:1] {
 			rawBlock, err := node.getBlock(hash)
 			if err != nil {
 				return nil, err
