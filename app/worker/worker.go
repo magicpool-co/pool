@@ -57,6 +57,7 @@ func (w *Worker) Start() {
 		})
 
 		w.cron.AddJob("*/5 * * * *", &NodeCheckJob{
+			env:     w.env,
 			mainnet: w.mainnet,
 			locker:  locker,
 			logger:  w.logger,
@@ -65,6 +66,7 @@ func (w *Worker) Start() {
 		})
 
 		w.cron.AddJob("*/5 * * * *", &NodeBackupJob{
+			env:     w.env,
 			mainnet: w.mainnet,
 			locker:  locker,
 			logger:  w.logger,
@@ -73,6 +75,7 @@ func (w *Worker) Start() {
 		})
 
 		w.cron.AddJob("*/5 * * * *", &NodeUpdateJob{
+			env:     w.env,
 			mainnet: w.mainnet,
 			locker:  locker,
 			logger:  w.logger,
@@ -81,6 +84,7 @@ func (w *Worker) Start() {
 		})
 
 		w.cron.AddJob("*/5 * * * *", &NodeResizeJob{
+			env:     w.env,
 			mainnet: w.mainnet,
 			locker:  locker,
 			logger:  w.logger,

@@ -24,13 +24,13 @@ const (
 	zoneName   = "privmagicpool.co"
 )
 
-func getNodeClusterName(chain string, mainnet bool) string {
+func getNodeClusterName(chain, env string, mainnet bool) string {
 	chain = strings.ToLower(chain)
 	if mainnet {
-		return chain + "-full-nodes"
+		return chain + "-full-nodes-" + env
 	}
 
-	return chain + "-testnet-full-nodes"
+	return chain + "-testnet-full-nodes-" + env
 }
 
 func getNodeBackupPath(chain string, mainnet bool) string {
@@ -111,6 +111,7 @@ func (j *NodeStatusJob) Run() {
 }
 
 type NodeCheckJob struct {
+	env     string
 	mainnet bool
 	locker  *redislock.Client
 	logger  *log.Logger
@@ -146,7 +147,7 @@ func (j *NodeCheckJob) Run() {
 	var backupPeriod = time.Hour * 24 * 7
 	const volumeThreshold = 80
 	for _, node := range nodes {
-		cluster := getNodeClusterName(node.ChainID, j.mainnet)
+		cluster := getNodeClusterName(node.ChainID, j.env, j.mainnet)
 		instanceID, _, err := getNodeContainer(j.aws, zoneID, cluster, node.URL)
 		if err != nil {
 			j.logger.Error(err)
@@ -220,6 +221,7 @@ func (j *NodeCheckJob) Run() {
 }
 
 type NodeBackupJob struct {
+	env     string
 	mainnet bool
 	locker  *redislock.Client
 	logger  *log.Logger
@@ -253,7 +255,7 @@ func (j *NodeBackupJob) Run() {
 	}
 
 	for _, node := range pendingNodes {
-		cluster := getNodeClusterName(node.ChainID, j.mainnet)
+		cluster := getNodeClusterName(node.ChainID, j.env, j.mainnet)
 		s3Path := getNodeBackupPath(node.ChainID, j.mainnet)
 		cmds := getNodeBackupCommands(s3Path)
 		start := time.Now()
@@ -307,6 +309,7 @@ func (j *NodeBackupJob) Run() {
 }
 
 type NodeUpdateJob struct {
+	env     string
 	mainnet bool
 	locker  *redislock.Client
 	logger  *log.Logger
@@ -340,7 +343,7 @@ func (j *NodeUpdateJob) Run() {
 	}
 
 	for _, node := range pendingNodes {
-		cluster := getNodeClusterName(node.ChainID, j.mainnet)
+		cluster := getNodeClusterName(node.ChainID, j.env, j.mainnet)
 		start := time.Now()
 
 		j.logger.Info(fmt.Sprintf("updating %s (%s)", node.URL, cluster))
@@ -378,6 +381,7 @@ func (j *NodeUpdateJob) Run() {
 }
 
 type NodeResizeJob struct {
+	env     string
 	mainnet bool
 	locker  *redislock.Client
 	logger  *log.Logger
@@ -411,7 +415,7 @@ func (j *NodeResizeJob) Run() {
 	}
 
 	for _, node := range pendingNodes {
-		cluster := getNodeClusterName(node.ChainID, j.mainnet)
+		cluster := getNodeClusterName(node.ChainID, j.env, j.mainnet)
 		start := time.Now()
 
 		j.logger.Info(fmt.Sprintf("resizing %s (%s)", node.URL, cluster))
