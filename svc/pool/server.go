@@ -79,7 +79,7 @@ func newPool(secrets map[string]string, mainnet bool, opts *pool.Options, metric
 		}
 	}
 
-	miningNode, err := node.GetMiningNode(mainnet, opts.Chain, secrets[opts.Chain+"_WALLET_PRIV"], urls, tunnel)
+	miningNode, err := node.GetMiningNode(mainnet, opts.Chain, secrets[opts.Chain+"_PRIVATE_KEY"], urls, tunnel)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -104,7 +104,7 @@ func newWorker(secrets map[string]string, mainnet bool) (*worker.Worker, *log.Lo
 			}
 		}
 
-		node, err := node.GetMiningNode(mainnet, chain, secrets[chain+"_WALLET_PRIV"], urls, tunnel)
+		node, err := node.GetMiningNode(mainnet, chain, secrets[chain+"_PRIVATE_KEY"], urls, tunnel)
 		if err != nil {
 			return nil, nil, err
 		}
