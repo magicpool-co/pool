@@ -30,7 +30,7 @@ func (node Node) GetStatus() (uint64, bool, error) {
 	}
 
 	height := info.Blocks
-	syncing := info.VerificationProgress < 0.99999 || info.Blocks != info.Headers
+	syncing := info.VerificationProgress < 0.9999 || info.Blocks != info.Headers
 
 	return height, syncing, nil
 }
