@@ -123,8 +123,11 @@ func (p *TCPPool) AddHost(url string, port int) error {
 				}
 			}
 		}()
-		// @TODO: wait for handshake instead of sleeping
-		time.Sleep(time.Second * 5)
+
+		err = p.index[id].client.WaitForHandshake(time.Second * 5)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

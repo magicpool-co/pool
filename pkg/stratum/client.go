@@ -41,6 +41,9 @@ type Client struct {
 	requests        map[string]chan *rpc.Response
 	requestsCounter uint64
 	requestsMu      sync.RWMutex
+	waiting         bool
+	waitingMu       sync.Mutex
+	waitingErr      chan error
 }
 
 func NewClient(ctx context.Context, host string, timeout, reconnect time.Duration) *Client {
@@ -52,6 +55,7 @@ func NewClient(ctx context.Context, host string, timeout, reconnect time.Duratio
 		reconnect:       reconnect,
 		requests:        make(map[string]chan *rpc.Response),
 		requestsCounter: 1,
+		waitingErr:      make(chan error),
 	}
 
 	return client
@@ -77,6 +81,12 @@ func (c *Client) connect(handshakeReqs []*rpc.Request, reqCh chan *rpc.Request, 
 			errCh <- err
 			c.quit <- struct{}{}
 		}
+
+		c.waitingMu.Lock()
+		if c.waiting {
+			c.waitingErr <- err
+		}
+		c.waitingMu.Unlock()
 	}()
 
 	scanner := bufio.NewScanner(c.conn)
@@ -156,6 +166,26 @@ func (c *Client) Start(handshakeReqs []*rpc.Request) (chan *rpc.Request, chan *r
 
 func (c *Client) ForceReconnect() {
 	c.quit <- struct{}{}
+}
+
+func (c *Client) WaitForHandshake(timeout time.Duration) error {
+	c.waitingMu.Lock()
+	if c.waiting {
+		c.waitingMu.Unlock()
+		return fmt.Errorf("wait already active")
+	}
+	c.waiting = true
+	c.waitingMu.Unlock()
+
+	timer := time.NewTimer(timeout)
+	for {
+		select {
+		case <-timer.C:
+			return fmt.Errorf("wait timeout for handshake")
+		case err := <-c.waitingErr:
+			return err
+		}
+	}
 }
 
 func (c *Client) registerRequest(req *rpc.Request) (string, chan *rpc.Response, error) {

@@ -11,19 +11,24 @@ import (
 
 /* helpers */
 
-func PrivateKeyFile(file string) (ssh.AuthMethod, error) {
+func PrivateKeyFile(file, password string) (ssh.AuthMethod, error) {
 	var method ssh.AuthMethod
 	buffer, err := ioutil.ReadFile(file)
 	if err != nil {
 		return method, err
 	}
 
-	key, err := ssh.ParsePrivateKey(buffer)
+	var signer ssh.Signer
+	if password == "" {
+		signer, err = ssh.ParsePrivateKey(buffer)
+	} else {
+		signer, err = ssh.ParsePrivateKeyWithPassphrase(buffer, []byte(password))
+	}
 	if err != nil {
 		return method, err
 	}
 
-	return ssh.PublicKeys(key), nil
+	return ssh.PublicKeys(signer), nil
 }
 
 /* tunnel */

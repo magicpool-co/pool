@@ -33,7 +33,7 @@ func initTunnel(secrets map[string]string) (*sshtunnel.SSHTunnel, error) {
 		return nil, fmt.Errorf("tunnelling should not be used in any environment other than local")
 	}
 
-	keyFile, err := sshtunnel.PrivateKeyFile(secrets["TUNNEL_KEYPAIR"])
+	keyFile, err := sshtunnel.PrivateKeyFile(secrets["TUNNEL_KEYPAIR"], secrets["TUNNEL_KEYPAIR_PASSWORD"])
 	if err != nil {
 		return nil, err
 	}
