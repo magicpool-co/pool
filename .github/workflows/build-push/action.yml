@@ -75,6 +75,6 @@ runs:
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
         service: ${{ inputs.app }}-cluster-${{ inputs.env-prefix }}${{ inputs.env }}-service
-        cluster: ${{ inputs.app }}-cluster-${{ inputs.env-prefix }}${{ inputs.env }}
+        cluster: ${{ inputs.app }}-cluster-${{ inputs.env }}
         # wait-for-service-stability: true
         force-new-deployment: true
