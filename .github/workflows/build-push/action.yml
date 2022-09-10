@@ -74,7 +74,7 @@ runs:
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ${{ inputs.app }}-cluster-${{ inputs.env-prefix }}${{ inputs.env }}-service
+        service: ${{ inputs.app }}-cluster-${{ inputs.env }}${{ inputs.env-prefix }}-service
         cluster: ${{ inputs.app }}-cluster-${{ inputs.env }}
         # wait-for-service-stability: true
         force-new-deployment: true
