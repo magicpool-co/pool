@@ -99,9 +99,11 @@ func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunne
 		return nil, err
 	}
 
-	err = node.initWallets()
-	if err != nil {
-		return nil, err
+	if !node.mocked {
+		err = node.initWallets()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return node, nil
