@@ -121,19 +121,19 @@ func (node Node) postMiningSolution(hostID, nonce string) error {
 	return nil
 }
 
-func (node Node) getWalletStatus() (*WalletStatus, error) {
+func (node Node) getWalletStatus(hostID string) (*WalletStatus, error) {
 	var status *WalletStatus
 	var err error
 	if node.mocked {
 		err = json.Unmarshal(mock.GetWalletStatus(), &status)
 	} else {
-		err = node.httpHost.ExecHTTP("GET", "/wallet/status", nil, &status)
+		_, err = node.httpHost.ExecHTTPSticky(hostID, "GET", "/wallet/status", nil, &status)
 	}
 
 	return status, err
 }
 
-func (node Node) postWalletRestore() error {
+func (node Node) postWalletRestore(hostID string) error {
 	if node.mocked {
 		return nil
 	}
@@ -145,7 +145,7 @@ func (node Node) postWalletRestore() error {
 	}
 
 	var result string
-	err := node.httpHost.ExecHTTP("POST", "/wallet/restore", body, &result)
+	_, err := node.httpHost.ExecHTTPSticky(hostID, "POST", "/wallet/restore", body, &result)
 	if err != nil {
 		return err
 	} else if result != "OK" {
@@ -155,7 +155,7 @@ func (node Node) postWalletRestore() error {
 	return nil
 }
 
-func (node Node) postWalletUnlock() error {
+func (node Node) postWalletUnlock(hostID string) error {
 	if node.mocked {
 		return nil
 	}
@@ -165,7 +165,7 @@ func (node Node) postWalletUnlock() error {
 	}
 
 	var result string
-	err := node.httpHost.ExecHTTP("POST", "/wallet/unlock", body, &result)
+	_, err := node.httpHost.ExecHTTPSticky(hostID, "POST", "/wallet/unlock", body, &result)
 	if err != nil {
 		return err
 	} else if result != "OK" {

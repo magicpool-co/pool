@@ -109,6 +109,20 @@ type HTTPHostOptions struct {
 	Headers  map[string]string
 }
 
+func (p *HTTPPool) GetAllHosts() []string {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	hosts := make([]string, 0)
+	for id, client := range p.index {
+		if client.enabled && client.healthy {
+			hosts = append(hosts, id)
+		}
+	}
+
+	return hosts
+}
+
 // Adds a host to the pool. If the host already exists, nothing happens.
 func (p *HTTPPool) AddHost(url string, port int, opt *HTTPHostOptions) error {
 	finalURL, id, err := parseURL(url, port, p.tunnel)

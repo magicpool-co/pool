@@ -29,32 +29,6 @@ func (node Node) GetBlockExplorerURL(round *pooldb.Round) string {
 	return ""
 }
 
-// @TODO: this needs to be in a more reasonable place
-// since a) on node reboots this gets reset (i think), b)
-// it will only execute on the top node, not all of them (which could be
-// solved by spread RPC call), c) if a new node comes into the mix it
-// wont be initialized until the pool reboots
-func (node Node) InitMining() error {
-	status, err := node.getWalletStatus()
-	if err != nil {
-		return err
-	} else if !status.IsInitialized {
-		err = node.postWalletRestore()
-		if err != nil {
-			return err
-		}
-	}
-
-	if !status.IsUnlocked {
-		err = node.postWalletUnlock()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 	if start > end {
 		return nil, fmt.Errorf("invalid range")

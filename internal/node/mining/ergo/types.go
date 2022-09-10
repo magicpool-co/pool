@@ -44,6 +44,30 @@ func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPoo
 	return host, nil
 }
 
+func (node Node) initWallets() error {
+	hostIDs := node.httpHost.GetAllHosts()
+	for _, hostID := range hostIDs {
+		status, err := node.getWalletStatus(hostID)
+		if err != nil {
+			return err
+		} else if !status.IsInitialized {
+			err = node.postWalletRestore(hostID)
+			if err != nil {
+				return err
+			}
+		}
+
+		if !status.IsUnlocked {
+			err = node.postWalletUnlock(hostID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
 	httpHost, err := generateHost(urls, tunnel)
 	if err != nil {
@@ -75,7 +99,7 @@ func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunne
 		return nil, err
 	}
 
-	err = node.InitMining()
+	err = node.initWallets()
 	if err != nil {
 		return nil, err
 	}
