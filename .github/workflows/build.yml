@@ -62,8 +62,8 @@ jobs:
         # region: [us-west-2, eu-central-1, ap-southeast-1]
         prefix: [cfx-, ctxc-, ergo-, etc-, flux-, rvn-]
         include:
-         - region: eu-west-1
-         - app: worker
+          - region: eu-west-1
+            app: worker
 
     steps:
       - name: Checkout Repository
