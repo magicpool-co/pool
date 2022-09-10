@@ -146,12 +146,12 @@ func (j *NodeCheckJob) Run() {
 	var backupPeriod = time.Hour * 24 * 7
 	const volumeThreshold = 80
 	for _, node := range nodes {
-		cluster := getNodeClusterName(node.ChainID, j.env, j.mainnet)
+		/*cluster := getNodeClusterName(node.ChainID, j.env, j.mainnet)
 		_, _, err := getNodeContainer(j.aws, zoneID, cluster, node.URL)
 		if err != nil {
 			j.logger.Error(err)
 			continue
-		}
+		}*/
 
 		// check for backup
 		if node.Backup {
