@@ -35,6 +35,7 @@ runs:
   steps:
     - name: Set Variables
       id: set-vars
+      shell: bash
       run: |
           echo "::set-output name=cluster::${{ inputs.app }}-cluster-${{ inputs.env }}"
 
