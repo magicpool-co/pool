@@ -59,7 +59,7 @@ runs:
     - name: Download task definition
       shell: bash
       run: |
-        aws ecs describe-task-definition --task-definition ${{ inputs.app }}-cluster-${{ inputs.env-prefix }}${{ inputs.env }} \
+        aws ecs describe-task-definition --task-definition ${{ inputs.app }}-cluster-${{ inputs.env }} \
         --query taskDefinition > task-definition.json
 
     - name: Fill in the new image ID in the Amazon ECS task definition
