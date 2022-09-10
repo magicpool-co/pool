@@ -137,11 +137,11 @@ func (j *NodeCheckJob) Run() {
 		return
 	}
 
-	zoneID, err := route53.GetZoneIDByName(j.aws, zoneName)
+	/*zoneID, err := route53.GetZoneIDByName(j.aws, zoneName)
 	if err != nil {
 		j.logger.Error(err)
 		return
-	}
+	}*/
 
 	var backupPeriod = time.Hour * 24 * 7
 	const volumeThreshold = 80
