@@ -57,13 +57,13 @@ jobs:
     runs-on: [self-hosted, linux, ARM64]
     strategy:
       matrix:
-        app: [worker]
-        region: [eu-west-1]
+        app: [pool]
+        region: [us-west-2]
         # region: [us-west-2, eu-central-1, ap-southeast-1]
-        # prefix: [cfx-, ctxc-, ergo-, etc-, firo-, flux-, rvn-]
-        # include:
-        #  - region: eu-west-1
-        #  - app: worker
+        prefix: [cfx-, ctxc-, ergo-, etc-, firo-, flux-, rvn-]
+        include:
+         - region: eu-west-1
+         - app: worker
 
     steps:
       - name: Checkout Repository
