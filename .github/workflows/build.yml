@@ -59,7 +59,7 @@ jobs:
       matrix:
         app: [pool]
         region: [us-west-2, eu-central-1]
-        prefix: [cfx-, ctxc-, ergo-, etc-, firo-, flux-, rvn-]
+        chain: [cfx, ctxc, ergo, etc, firo, flux, rvn]
         include:
           - region: eu-west-1
             app: worker
@@ -71,7 +71,7 @@ jobs:
       - uses: ./.github/workflows/build-push
         with:
           app: ${{ matrix.app }}
-          env-prefix: ${{ matrix.prefix }}
+          chain: ${{ matrix.chain }}
           env: prod
           arch: arm64
           tag: ${{ needs.init.outputs.short_hash }}

@@ -5,8 +5,8 @@ inputs:
   app:
     description: "The app to build"
     required: true
-  env-prefix:
-    description: "The env prefix to use"
+  chain:
+    description: "The chain to use"
     required: false
   env:
     description: "The environment to use"
@@ -33,6 +33,23 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Set Variables
+      id: set-vars
+      run: |
+          echo "::set-output name=cluster::${{ inputs.app }}-cluster-${{ inputs.env }}"
+
+          if [[ "${{ inputs.chain }}" != "" ]]; then
+            echo "::set-output name=task::${{ inputs.app }}-cluster-${{ inputs.env }}-${{ inputs.chain }}"
+            echo "::set-output name=service::${{ inputs.app }}-cluster-${{ inputs.env }}-${{ inputs.chain }}-service"
+            echo "::set-output name=container::${{ inputs.app }}-${{ inputs.chain }}-container"
+          fi
+
+          if [[ "${{ inputs.chain }}" == "" ]]; then
+            echo "::set-output name=task::${{ inputs.app }}-cluster-${{ inputs.env }}"
+            echo "::set-output name=service::${{ inputs.app }}-cluster-${{ inputs.env }}-service"
+            echo "::set-output name=container::${{ inputs.app }}-container"
+          fi
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -59,7 +76,7 @@ runs:
     - name: Download task definition
       shell: bash
       run: |
-        aws ecs describe-task-definition --task-definition ${{ inputs.app }}-cluster-${{ inputs.env }} \
+        aws ecs describe-task-definition --task-definition ${{ steps.set-vars.outputs.task }} \
         --query taskDefinition > task-definition.json
 
     - name: Fill in the new image ID in the Amazon ECS task definition
@@ -67,14 +84,14 @@ runs:
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
         task-definition: task-definition.json
-        container-name: ${{ inputs.env-prefix }}${{ inputs.app }}-container
+        container-name: ${{ steps.set-vars.outputs.container }}
         image: ${{ steps.build-image.outputs.image }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
+        cluster: ${{ steps.set-vars.outputs.cluster }}
+        service: ${{ steps.set-vars.outputs.service }}
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ${{ inputs.app }}-cluster-${{ inputs.env }}-${{ inputs.env-prefix }}service
-        cluster: ${{ inputs.app }}-cluster-${{ inputs.env }}
         # wait-for-service-stability: true
         force-new-deployment: true
