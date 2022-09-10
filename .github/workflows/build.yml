@@ -59,8 +59,7 @@ jobs:
       matrix:
         app: [pool]
         region: [us-west-2, eu-central-1]
-        # region: [us-west-2, eu-central-1, ap-southeast-1]
-        prefix: [cfx-, ctxc-, ergo-, etc-, flux-, rvn-]
+        prefix: [cfx-, ctxc-, ergo-, etc-, firo-, flux-, rvn-]
         include:
           - region: eu-west-1
             app: worker
