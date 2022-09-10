@@ -81,7 +81,8 @@ func main() {
 	argChain := flag.String("chain", "ETC", "The chain to run the pool for")
 	argMainnet := flag.Bool("mainnet", true, "Whether or not to run on the mainnet")
 	argSecretVar := flag.String("secret", "", "ENV variable defined by ECS")
-	argPort := flag.Int("port", 3333, "The port to use")
+	argPort := flag.Int("port", 3333, "The pool port to use")
+	argMetricsPort := flag.Int("metrics-port", 6060, "The metrics port to use")
 
 	flag.Parse()
 
@@ -96,7 +97,7 @@ func main() {
 		panic(err)
 	}
 
-	metricsClient, err := initMetrics(secrets["ENVIRONMENT"], 6060)
+	metricsClient, err := initMetrics(secrets["ENVIRONMENT"], *argMetricsPort)
 	if err != nil {
 		panic(err)
 	}
