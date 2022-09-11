@@ -66,52 +66,73 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case path == "/":
 		method = "GET"
 		handler = rtr.ctx.getBase()
+
 	case rtr.match(path, "/healthcheck"):
 		method = "GET"
 		handler = rtr.ctx.getBase()
+
 	case rtr.match(path, "/global/dashboard"):
 		method = "GET"
 		handler = rtr.ctx.getDashboard(dashboardArgs{})
-	case rtr.match(path, "/global/charts"):
+
+	case rtr.match(path, "/global/charts/shares"):
 		method = "GET"
 		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getCharts(chartArgs{period: period})
+		handler = rtr.ctx.getShareCharts(shareChartArgs{period: period})
+
+	case rtr.match(path, "/global/charts/blocks"):
+		method = "GET"
+		period := r.URL.Query().Get("period")
+		handler = rtr.ctx.getBlockCharts(blockChartArgs{period: period})
+
 	case rtr.match(path, "/global/blocks"):
 		method = "GET"
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
 		handler = rtr.ctx.getBlocks(blockArgs{page: page, size: size})
+
 	case rtr.match(path, "/global/payouts"):
 		method = "GET"
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
 		handler = rtr.ctx.getPayouts(payoutArgs{page: page, size: size})
+
 	case rtr.match(path, "/miner/+/dashboard", &miner):
 		method = "GET"
 		handler = rtr.ctx.getDashboard(dashboardArgs{miner: miner})
-	case rtr.match(path, "/miner/+/charts", &miner):
+
+	case rtr.match(path, "/miner/+/charts/shares", &miner):
 		method = "GET"
 		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getCharts(chartArgs{period: period, miner: miner})
+		handler = rtr.ctx.getShareCharts(shareChartArgs{period: period, miner: miner})
+
 	case rtr.match(path, "/miner/+/blocks", &miner):
 		method = "GET"
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
 		handler = rtr.ctx.getBlocks(blockArgs{page: page, size: size, miner: miner})
+
 	case rtr.match(path, "/miner/+/payouts", &miner):
 		method = "GET"
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
 		handler = rtr.ctx.getPayouts(payoutArgs{page: page, size: size, miner: miner})
+
 	case rtr.match(path, "/worker/+/+/dashboard", &miner, &worker):
 		method = "GET"
 		handler = rtr.ctx.getDashboard(dashboardArgs{miner: miner, worker: worker})
-	case rtr.match(path, "/worker/+/+/charts", &miner, &worker):
+
+	case rtr.match(path, "/worker/+/+/charts/shares", &miner, &worker):
 		method = "GET"
 		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getCharts(chartArgs{period: period, miner: miner, worker: worker})
+		handler = rtr.ctx.getShareCharts(shareChartArgs{period: period, miner: miner, worker: worker})
+
 	default:
 		rtr.ctx.writeErrorResponse(w, errRouteNotFound)
 		return
 	}
 
-	if r.Method != method {
+	if r.Method == "HEAD" {
+		w.Header().Set("Allow", method)
+		rtr.ctx.writeOkResponse(w, nil)
+		return
+	} else if r.Method != method {
 		w.Header().Set("Allow", method)
 		rtr.ctx.writeErrorResponse(w, errMethodNotAllowed)
 		return

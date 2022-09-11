@@ -9,16 +9,15 @@ import (
 )
 
 type Round struct {
-	Miners           uint64  `db:"miners"`
-	Workers          uint64  `db:"workers"`
-	AcceptedShares   uint64  `db:"acceptedShares"`
-	RejectedShares   uint64  `db:"rejectedShares"`
-	InvalidShares    uint64  `db:"invalidShares"`
-	Hashrate         float64 `db:"hashrate"`
-	AvgHashrate      float64 `db:"avgHashrate"`
-	ReportedHashrate float64 `db:"reportedHashrate"`
-
-	Timestamp time.Time `db:"timestamp"`
+	Timestamp        time.Time `json:"timestamp"`
+	Miners           uint64    `json:"miners"`
+	Workers          uint64    `json:"workers"`
+	AcceptedShares   uint64    `json:"acceptedShares"`
+	RejectedShares   uint64    `json:"rejectedShares"`
+	InvalidShares    uint64    `json:"invalidShares"`
+	Hashrate         float64   `json:"hashrate"`
+	AvgHashrate      float64   `json:"avgHashrate"`
+	ReportedHashrate float64   `json:"reportedHashrate"`
 }
 
 func processRawRounds(rawRounds []*tsdb.Round) []*Round {

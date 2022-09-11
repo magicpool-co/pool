@@ -59,8 +59,8 @@ func (ctx *Context) writeOkResponse(w http.ResponseWriter, body interface{}) {
 		Data:   body,
 	}
 
+	w.WriteHeader(200)
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
 	json.NewEncoder(w).Encode(res)
 }
 
@@ -121,13 +121,35 @@ func (ctx *Context) getDashboard(args dashboardArgs) http.Handler {
 	})
 }
 
-type chartArgs struct {
+type blockChartArgs struct {
+	period string
+}
+
+func (ctx *Context) getBlockCharts(args blockChartArgs) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		period, err := types.ParsePeriodType(args.period)
+		if err != nil {
+			ctx.writeErrorResponse(w, errPeriodNotFound)
+			return
+		}
+
+		data, err := charter.FetchBlocks(ctx.tsdb, period)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		ctx.writeOkResponse(w, data)
+	})
+}
+
+type shareChartArgs struct {
 	period string
 	miner  string
 	worker string
 }
 
-func (ctx *Context) getCharts(args chartArgs) http.Handler {
+func (ctx *Context) getShareCharts(args shareChartArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		period, err := types.ParsePeriodType(args.period)
 		if err != nil {
