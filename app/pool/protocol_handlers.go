@@ -68,7 +68,8 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 	}
 
 	// address formatting is {address:chain}
-	partial := strings.Split(args[0], ":")
+	addressChain := args[0]
+	partial := strings.Split(addressChain, ":")
 	if len(partial) != 2 {
 		return nil, fmt.Errorf("invalid address:chain formatting: %v", username)
 	} else if valid := validateAddress(partial[0], strings.ToUpper(partial[1])); !valid {
@@ -76,15 +77,16 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 	} else if len(workerName) > 32 {
 		return nil, fmt.Errorf("invalid worker name: %s", username)
 	}
-
 	address := partial[0]
 	chain := partial[1]
 
-	var err error
-	minerID, err := pooldb.GetMinerID(p.db.Reader(), address, chain)
-	if err != nil {
-		return nil, err
-	} else if minerID == 0 {
+	// fetch minerID from redis
+	minerID, err := p.redis.GetMinerID(addressChain)
+	if minerID == 0 {
+		if err != nil {
+			p.logger.Error(err)
+		}
+
 		miner := &pooldb.Miner{
 			ChainID:   chain,
 			Address:   address,
@@ -92,37 +94,51 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 			LastLogin: types.TimePtr(time.Now()),
 		}
 
+		// attempt to insert the minerID
 		minerID, err = pooldb.InsertMiner(p.db.Writer(), miner)
 		if err != nil {
-			return nil, err
+			p.logger.Error(err)
+
+			// finally check the db directly, if no minerID exists then bail
+			minerID, err = pooldb.GetMinerID(p.db.Reader(), address, chain)
+			if err != nil {
+				return nil, err
+			}
 		}
-	} else {
-		miner := &pooldb.Miner{
-			ID:        minerID,
-			LastLogin: types.TimePtr(time.Now()),
-		}
-		err = pooldb.UpdateMiner(p.db.Writer(), miner, []string{"last_login"})
-		if err != nil {
-			return nil, err
+
+		// set the minerID in redis
+		if err := p.redis.SetMinerID(addressChain, minerID); err != nil {
+			p.logger.Error(err)
 		}
 	}
 
-	// set new ip address in redis if does not exist yet
-	ipAddress, err := pooldb.GetIPAddressByMinerID(p.db.Reader(), minerID, c.GetIP())
-	if err != nil {
-		return nil, err
-	} else if ipAddress == nil {
-		if err := p.redis.SetNewMinerIPAddress(minerID, c.GetIP()); err != nil {
-			return nil, err
+	// add ip address if does not exist
+	if exists, err := p.redis.GetMinerIPAddressExists(minerID, c.GetIP()); !exists {
+		if err != nil {
+			p.logger.Error(err)
+		}
+
+		address := &pooldb.IPAddress{
+			MinerID:   minerID,
+			IPAddress: c.GetIP(),
+		}
+
+		// insert the IP address and set in redis
+		if err := pooldb.InsertIPAddresses(p.db.Writer(), address); err != nil {
+			p.logger.Error(err)
+		} else if err := p.redis.AddMinerIPAddress(minerID, c.GetIP()); err != nil {
+			p.logger.Error(err)
 		}
 	}
 
 	var workerID uint64
 	if workerName != "" {
-		workerID, err = pooldb.GetWorkerID(p.db.Reader(), minerID, workerName)
-		if err != nil {
-			return nil, err
-		} else if workerID == 0 {
+		workerID, err = p.redis.GetWorkerID(minerID, workerName)
+		if workerID == 0 {
+			if err != nil {
+				p.logger.Error(err)
+			}
+
 			worker := &pooldb.Worker{
 				MinerID:   minerID,
 				Name:      workerName,
@@ -130,18 +146,21 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 				LastLogin: types.TimePtr(time.Now()),
 			}
 
+			// attempt to insert the workerID
 			workerID, err = pooldb.InsertWorker(p.db.Writer(), worker)
 			if err != nil {
-				return nil, err
+				p.logger.Error(err)
+
+				// finally check the db directly, if no workerID exists then bail
+				workerID, err = pooldb.GetWorkerID(p.db.Reader(), minerID, workerName)
+				if err != nil {
+					return nil, err
+				}
 			}
-		} else {
-			worker := &pooldb.Worker{
-				ID:        workerID,
-				LastLogin: types.TimePtr(time.Now()),
-			}
-			err = pooldb.UpdateWorker(p.db.Writer(), worker, []string{"last_login"})
-			if err != nil {
-				return nil, err
+
+			// set the workerID in redis
+			if err := p.redis.SetWorkerID(minerID, workerName, workerID); err != nil {
+				p.logger.Error(err)
 			}
 		}
 	}
@@ -358,26 +377,6 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			}
 			p.ipAddressIndex[minerID][ipAddress] = submitTime
 			p.ipAddressMu.Unlock()
-
-			// if the ip address is fresh, insert it immediately
-			newIP, err := p.redis.GetNewMinerIPAddress(minerID, ipAddress)
-			if err != nil {
-				p.logger.Error(err)
-			} else if newIP {
-				address := &pooldb.IPAddress{
-					MinerID: minerID,
-
-					IPAddress: ipAddress,
-					Active:    true,
-					LastShare: submitTime,
-				}
-
-				if err := pooldb.InsertIPAddresses(p.db.Writer(), address); err != nil {
-					p.logger.Error(err)
-				} else if err := p.redis.UnsetNewMinerIPAddress(minerID, ipAddress); err != nil {
-					p.logger.Error(err)
-				}
-			}
 		case types.RejectedShare:
 			err := p.redis.AddRejectedShare(p.chain, interval, c.GetCompoundID())
 			if err != nil {

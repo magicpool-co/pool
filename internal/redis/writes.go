@@ -8,14 +8,19 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-func (c *Client) SetNewMinerIPAddress(minerID uint64, ipAddress string) error {
-	key := c.getKey("mnr", strconv.FormatUint(minerID, 10), "ip", ipAddress)
-	return c.writeClient.Set(context.Background(), key, "1", 0).Err()
+func (c *Client) SetMinerID(addressChain string, minerID uint64) error {
+	key := c.getKey("mnr", "id", addressChain)
+	return c.writeClient.Set(context.Background(), key, strconv.FormatUint(minerID, 10), 0).Err()
 }
 
-func (c *Client) UnsetNewMinerIPAddress(minerID uint64, ipAddress string) error {
+func (c *Client) SetWorkerID(minerID uint64, workerName string, workerID uint64) error {
+	key := c.getKey("wkr", "id", strconv.FormatUint(minerID, 10), workerName)
+	return c.writeClient.Set(context.Background(), key, strconv.FormatUint(workerID, 10), 0).Err()
+}
+
+func (c *Client) AddMinerIPAddress(minerID uint64, ipAddress string) error {
 	key := c.getKey("mnr", strconv.FormatUint(minerID, 10), "ip", ipAddress)
-	return c.writeClient.Del(context.Background(), key).Err()
+	return c.writeClient.SAdd(context.Background(), key, ipAddress).Err()
 }
 
 func (c *Client) SetChartSharesLastTime(chain string, period int, value time.Time) error {
