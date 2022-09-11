@@ -1,6 +1,8 @@
 package types
 
 import (
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -21,8 +23,27 @@ const (
 	Period1d
 )
 
-func (t PeriodType) Window() int {
+func ParsePeriodType(raw string) (PeriodType, error) {
+	switch strings.ToLower(raw) {
+	case "15m":
+		return Period15m, nil
+	case "1h":
+		return Period1h, nil
+	case "4h":
+		return Period4h, nil
+	case "1d":
+		return Period1d, nil
+	default:
+		return 0, fmt.Errorf("invalid period type")
+	}
+}
+
+func (t PeriodType) AverageWindow() int {
 	return int(t.Average() / t.Rollup())
+}
+
+func (t PeriodType) RetentionWindow() int {
+	return int(t.Retention() / t.Rollup())
 }
 
 func (t PeriodType) Rollup() time.Duration {
@@ -68,4 +89,14 @@ func (t PeriodType) Retention() time.Duration {
 	default:
 		return time.Hour
 	}
+}
+
+func (t PeriodType) GenerateRange(endTime time.Time) map[time.Time]bool {
+	index := make(map[time.Time]bool)
+	for i := t.RetentionWindow() - 3; i >= 0; i-- {
+		entry := endTime.Add(-t.Rollup() * time.Duration(i))
+		index[entry] = false
+	}
+
+	return index
 }

@@ -22,6 +22,16 @@ func (r httpResponse) Error() string {
 	return fmt.Sprintf("%s (%d): %s", *r.ErrorName, r.Status, *r.Message)
 }
 
+func (r httpResponse) Equals(r2 httpResponse) bool {
+	if (r.ErrorName == nil) != (r2.ErrorName == nil) {
+		return false
+	} else if r.ErrorName == nil && r2.ErrorName == nil {
+		return false
+	}
+
+	return *r.ErrorName == *r2.ErrorName
+}
+
 func newHttpError(status int, name, msg string) httpResponse {
 	res := httpResponse{
 		Status:    status,
@@ -36,6 +46,8 @@ var (
 	errInvalidParameters   = newHttpError(400, "InvalidParameters", "Invalid parameters")
 	errRouteNotFound       = newHttpError(404, "RouteNotFound", "Route not found")
 	errPeriodNotFound      = newHttpError(404, "PeriodNotFound", "Period not found")
+	errMinerNotFound       = newHttpError(404, "MinerNotFound", "Miner not found")
+	errWorkerNotFound      = newHttpError(404, "WorkerNotFound", "Worker not found")
 	errMethodNotAllowed    = newHttpError(405, "MethodNotAllowed", "Method not allowed")
 	errInternalServerError = newHttpError(500, "InternalServerError", "Internal server error")
 )

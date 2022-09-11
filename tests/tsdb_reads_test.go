@@ -36,6 +36,11 @@ func (suite *TsdbReadsSuite) TestReadRawBlocks() {
 func (suite *TsdbReadsSuite) TestReadBlocks() {
 	var err error
 
+	_, err = tsdb.GetBlocks(tsdbClient.Reader(), "ETH", 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetBlocks: %v", err)
+	}
+
 	_, err = tsdb.GetPendingBlocksAtEndTime(tsdbClient.Reader(), time.Now(), "ETH", 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetPendingBlocksAtEndTime: %v", err)
@@ -54,6 +59,11 @@ func (suite *TsdbReadsSuite) TestReadBlocks() {
 
 func (suite *TsdbReadsSuite) TestReadRounds() {
 	var err error
+
+	_, err = tsdb.GetRounds(tsdbClient.Reader(), "ETH", 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetRounds: %v", err)
+	}
 
 	_, err = tsdb.GetPendingRoundsAtEndTime(tsdbClient.Reader(), time.Now(), "ETH", 1)
 	if err != nil {

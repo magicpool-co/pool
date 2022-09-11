@@ -8,6 +8,38 @@ import (
 	"github.com/magicpool-co/pool/pkg/dbcl"
 )
 
+func GetBlocks(q dbcl.Querier, chain string, period int) ([]*Block, error) {
+	const query = `SELECT *
+	FROM blocks
+	WHERE
+		chain_id = ?
+	AND
+		period = ?
+	AND
+		pending = FALSE;`
+
+	output := []*Block{}
+	err := q.Select(&output, query, chain, period)
+
+	return output, err
+}
+
+func GetRounds(q dbcl.Querier, chain string, period int) ([]*Round, error) {
+	const query = `SELECT *
+	FROM rounds
+	WHERE
+		chain_id = ?
+	AND
+		period = ?
+	AND
+		pending = FALSE;`
+
+	output := []*Round{}
+	err := q.Select(&output, query, chain, period)
+
+	return output, err
+}
+
 func GetGlobalShares(q dbcl.Querier, chain string, period int) ([]*Share, error) {
 	const query = `SELECT *
 	FROM global_shares
@@ -16,7 +48,7 @@ func GetGlobalShares(q dbcl.Querier, chain string, period int) ([]*Share, error)
 	AND
 		period = ?
 	AND
-		pending = TRUE;`
+		pending = FALSE;`
 
 	output := []*Share{}
 	err := q.Select(&output, query, chain, period)
@@ -53,7 +85,7 @@ func GetMinerShares(q dbcl.Querier, minerID uint64, chain string, period int) ([
 	AND
 		period = ?
 	AND
-		pending = TRUE;`
+		pending = FALSE;`
 
 	output := []*Share{}
 	err := q.Select(&output, query, minerID, chain, period)
@@ -70,7 +102,9 @@ func GetPendingMinerSharesByEndTime(q dbcl.Querier, timestamp time.Time, chain s
 	AND
 		chain_id = ?
 	AND
-		period = ?;`
+		period = ?
+	AND
+		pending = TRUE;`
 
 	output := []*Share{}
 	err := q.Select(&output, query, timestamp, chain, period)
@@ -86,7 +120,9 @@ func GetWorkerShares(q dbcl.Querier, workerID uint64, chain string, period int) 
 	AND
 		chain_id = ?
 	AND
-		period = ?;`
+		period = ?
+	AND
+		pending = FALSE;`
 
 	output := []*Share{}
 	err := q.Select(&output, query, workerID, chain, period)
@@ -103,7 +139,9 @@ func GetPendingWorkerSharesByEndTime(q dbcl.Querier, timestamp time.Time, chain 
 	AND
 		chain_id = ?
 	AND
-		period = ?;`
+		period = ?
+	AND
+		pending = TRUE;`
 
 	output := []*Share{}
 	err := q.Select(&output, query, timestamp, chain, period)

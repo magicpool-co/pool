@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"regexp"
+	"strings"
 	"sync"
 )
 
@@ -36,8 +37,8 @@ func (rtr router) compileExpr(pattern string) *regexp.Regexp {
 	return regex
 }
 
-func (rtr router) match(path, pattern string, vars ...*string) bool {
-	expr := rtr.compileExpr(pattern)
+func (rtr router) match(path, pattern string, vars ...interface{}) bool {
+	expr := rtr.compileExpr(strings.ReplaceAll(pattern, "+", "([^/]+)"))
 	matches := expr.FindStringSubmatch(path)
 	if len(matches) == 0 {
 		return false
@@ -46,7 +47,10 @@ func (rtr router) match(path, pattern string, vars ...*string) bool {
 	}
 
 	for i, match := range matches[1:] {
-		vars[i] = &match
+		switch p := vars[i].(type) {
+		case *string:
+			*p = match
+		}
 	}
 
 	return true
@@ -55,7 +59,7 @@ func (rtr router) match(path, pattern string, vars ...*string) bool {
 func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var handler http.Handler
 	var method string
-	var miner, worker *string
+	var miner, worker string
 
 	path := r.URL.Path
 	switch {
@@ -71,7 +75,7 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case rtr.match(path, "/global/charts"):
 		method = "GET"
 		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getCharts(chartArgs{period: period, miner: miner})
+		handler = rtr.ctx.getCharts(chartArgs{period: period})
 	case rtr.match(path, "/global/blocks"):
 		method = "GET"
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
@@ -80,25 +84,25 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		method = "GET"
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
 		handler = rtr.ctx.getPayouts(payoutArgs{page: page, size: size})
-	case rtr.match(path, "/miner/:/dashboard", miner):
+	case rtr.match(path, "/miner/+/dashboard", &miner):
 		method = "GET"
 		handler = rtr.ctx.getDashboard(dashboardArgs{miner: miner})
-	case rtr.match(path, "/miner/:/charts", miner):
+	case rtr.match(path, "/miner/+/charts", &miner):
 		method = "GET"
 		period := r.URL.Query().Get("period")
 		handler = rtr.ctx.getCharts(chartArgs{period: period, miner: miner})
-	case rtr.match(path, "/miner/:/blocks", miner):
+	case rtr.match(path, "/miner/+/blocks", &miner):
 		method = "GET"
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
 		handler = rtr.ctx.getBlocks(blockArgs{page: page, size: size, miner: miner})
-	case rtr.match(path, "/miner/:/payouts", miner):
+	case rtr.match(path, "/miner/+/payouts", &miner):
 		method = "GET"
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
 		handler = rtr.ctx.getPayouts(payoutArgs{page: page, size: size, miner: miner})
-	case rtr.match(path, "/worker/:/:/dashboard", miner, worker):
+	case rtr.match(path, "/worker/+/+/dashboard", &miner, &worker):
 		method = "GET"
 		handler = rtr.ctx.getDashboard(dashboardArgs{miner: miner, worker: worker})
-	case rtr.match(path, "/worker/:/:/charts", miner, worker):
+	case rtr.match(path, "/worker/+/+/charts", &miner, &worker):
 		method = "GET"
 		period := r.URL.Query().Get("period")
 		handler = rtr.ctx.getCharts(chartArgs{period: period, miner: miner, worker: worker})

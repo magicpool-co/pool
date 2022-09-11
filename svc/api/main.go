@@ -7,7 +7,10 @@ import (
 
 	"github.com/magicpool-co/pool/app/api"
 	"github.com/magicpool-co/pool/internal/log"
+	"github.com/magicpool-co/pool/internal/pooldb"
+	"github.com/magicpool-co/pool/internal/redis"
 	"github.com/magicpool-co/pool/internal/telegram"
+	"github.com/magicpool-co/pool/internal/tsdb"
 	"github.com/magicpool-co/pool/svc"
 )
 
@@ -22,7 +25,26 @@ func newAPI(secrets map[string]string, port int) (*http.Server, *log.Logger, err
 		return nil, nil, err
 	}
 
-	ctx := api.NewContext(logger, nil)
+	pooldbClient, err := pooldb.New(secrets)
+	if err != nil {
+		return nil, nil, err
+	} else if err := pooldbClient.UpgradeMigrations(); err != nil {
+		return nil, nil, err
+	}
+
+	tsdbClient, err := tsdb.New(secrets)
+	if err != nil {
+		return nil, nil, err
+	} else if err := tsdbClient.UpgradeMigrations(); err != nil {
+		return nil, nil, err
+	}
+
+	redisClient, err := redis.New(secrets)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ctx := api.NewContext(logger, nil, pooldbClient, tsdbClient, redisClient)
 	server := api.New(ctx, port)
 
 	return server, logger, nil
