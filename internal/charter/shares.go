@@ -66,7 +66,7 @@ func processRawShares(items []*tsdb.Share, period types.PeriodType) []*Share {
 		return shares[i].Timestamp < shares[j].Timestamp
 	})
 
-	return nil
+	return shares
 }
 
 func FetchGlobalShares(tsdbClient *dbcl.Client, period types.PeriodType) (map[string][]*Share, error) {
