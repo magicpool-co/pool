@@ -39,18 +39,17 @@ func convertShare(item *tsdb.Share) []interface{} {
 }
 
 func processRawShares(items []*tsdb.Share, period types.PeriodType) [][]interface{} {
-	var index map[time.Time]bool
+	var endTime time.Time
 	if len(items) == 0 {
-		index = period.GenerateRange(time.Now())
+		endTime = time.Now()
 	} else {
-		endTime := items[0].EndTime
+		endTime = items[0].EndTime
 		if newEndTime := items[len(items)-1].EndTime; newEndTime.After(endTime) {
 			endTime = newEndTime
 		}
-
-		index = period.GenerateRange(endTime)
 	}
 
+	index := period.GenerateRange(common.NormalizeDate(endTime, period.Rollup(), true))
 	shares := make([][]interface{}, 0)
 	for _, item := range items {
 		if exists := index[item.EndTime]; !exists {

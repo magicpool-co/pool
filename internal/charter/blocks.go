@@ -43,21 +43,20 @@ func convertBlock(block *tsdb.Block) []interface{} {
 }
 
 func processRawBlocks(items []*tsdb.Block, period types.PeriodType) [][]interface{} {
-	var index map[time.Time]bool
+	var endTime time.Time
 	if len(items) == 0 {
-		index = period.GenerateRange(time.Now())
+		endTime = time.Now()
 	} else {
-		endTime := items[0].EndTime
+		endTime = items[0].EndTime
 		if newEndTime := items[len(items)-1].EndTime; newEndTime.After(endTime) {
 			endTime = newEndTime
 		}
-
-		index = period.GenerateRange(endTime)
 	}
 
+	index := period.GenerateRange(common.NormalizeDate(endTime, period.Rollup(), true))
 	blocks := make([][]interface{}, 0)
 	for _, item := range items {
-		if exists := index[item.EndTime]; exists {
+		if exists := index[item.EndTime]; !exists {
 			blocks = append(blocks, convertBlock(item))
 			index[item.EndTime] = true
 		}

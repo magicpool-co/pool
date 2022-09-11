@@ -93,7 +93,7 @@ func (t PeriodType) Retention() time.Duration {
 
 func (t PeriodType) GenerateRange(endTime time.Time) map[time.Time]bool {
 	index := make(map[time.Time]bool)
-	for i := t.RetentionWindow() - 3; i >= 0; i-- {
+	for i := t.RetentionWindow(); i >= 0; i-- {
 		entry := endTime.Add(-t.Rollup() * time.Duration(i))
 		index[entry] = false
 	}
