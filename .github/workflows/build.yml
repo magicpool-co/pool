@@ -63,6 +63,8 @@ jobs:
         include:
           - region: eu-west-1
             app: worker
+          - region: eu-west-1
+            app: api
 
     steps:
       - name: Checkout Repository
