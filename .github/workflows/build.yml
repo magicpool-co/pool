@@ -65,6 +65,8 @@ jobs:
             app: worker
           - region: eu-west-1
             app: api
+          - region: us-west-2
+            app: api
 
     steps:
       - name: Checkout Repository
