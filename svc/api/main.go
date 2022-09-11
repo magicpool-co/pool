@@ -20,7 +20,7 @@ func newAPI(secrets map[string]string, port int) (*http.Server, *log.Logger, err
 		return nil, nil, err
 	}
 
-	logger, err := log.New(secrets, "worker", telegramClient)
+	logger, err := log.New(secrets, "api", telegramClient)
 	if err != nil {
 		return nil, nil, err
 	}
