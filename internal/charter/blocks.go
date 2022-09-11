@@ -9,21 +9,39 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
-type Block struct {
-	Timestamp        int64   `json:"timestamp"`
-	Value            float64 `json:"value"`
-	Difficulty       float64 `json:"difficulty"`
-	BlockTime        float64 `json:"blockTime"`
-	Hashrate         float64 `json:"hashrate"`
-	UncleRate        float64 `json:"uncleRate"`
-	Profitability    float64 `json:"profitability"`
-	AvgProfitability float64 `json:"avgProfitability"`
-	BlockCount       uint64  `json:"blockCount"`
-	UncleCount       uint64  `json:"uncleCount"`
-	TxCount          uint64  `json:"txCount"`
+var blockKeys = []string{
+	"timestamp",
+	"value",
+	"difficulty",
+	"blockTime",
+	"hashrate",
+	"uncleRate",
+	"profitability",
+	"avgProfitability",
+	"blockCount",
+	"uncleCount",
+	"txCount",
 }
 
-func processRawBlocks(items []*tsdb.Block, period types.PeriodType) []*Block {
+func convertBlock(block *tsdb.Block) []interface{} {
+	data := []interface{}{
+		block.EndTime.Unix(),
+		processFloat(block.Value),
+		processFloat(block.Difficulty),
+		processFloat(block.BlockTime),
+		processFloat(block.Hashrate),
+		processFloat(block.UncleRate),
+		processFloat(block.Profitability),
+		processFloat(block.AvgProfitability),
+		block.Count,
+		block.UncleCount,
+		block.TxCount,
+	}
+
+	return data
+}
+
+func processRawBlocks(items []*tsdb.Block, period types.PeriodType) [][]interface{} {
 	var index map[time.Time]bool
 	if len(items) == 0 {
 		index = period.GenerateRange(time.Now())
@@ -36,45 +54,29 @@ func processRawBlocks(items []*tsdb.Block, period types.PeriodType) []*Block {
 		index = period.GenerateRange(endTime)
 	}
 
-	blocks := make([]*Block, 0)
+	blocks := make([][]interface{}, 0)
 	for _, item := range items {
 		if exists := index[item.EndTime]; exists {
-			continue
+			blocks = append(blocks, convertBlock(item))
+			index[item.EndTime] = true
 		}
-
-		index[item.EndTime] = true
-		block := &Block{
-			Timestamp:        item.EndTime.Unix(),
-			Value:            processFloat(item.Value),
-			Difficulty:       processFloat(item.Difficulty),
-			BlockTime:        processFloat(item.BlockTime),
-			Hashrate:         processFloat(item.Hashrate),
-			UncleRate:        processFloat(item.UncleRate),
-			Profitability:    processFloat(item.Profitability),
-			AvgProfitability: processFloat(item.AvgProfitability),
-			BlockCount:       item.Count,
-			UncleCount:       item.UncleCount,
-			TxCount:          item.TxCount,
-		}
-
-		blocks = append(blocks, block)
 	}
 
 	for timestamp, exists := range index {
 		if !exists {
-			blocks = append(blocks, &Block{Timestamp: timestamp.Unix()})
+			blocks = append(blocks, convertBlock(&tsdb.Block{EndTime: timestamp}))
 		}
 	}
 
 	sort.Slice(blocks, func(i, j int) bool {
-		return blocks[i].Timestamp < blocks[j].Timestamp
+		return blocks[i][0].(int64) < blocks[j][0].(int64)
 	})
 
 	return blocks
 }
 
-func FetchBlocks(tsdbClient *dbcl.Client, period types.PeriodType) (map[string][]*Block, error) {
-	idx := make(map[string][]*Block)
+func FetchBlocks(tsdbClient *dbcl.Client, period types.PeriodType) (interface{}, error) {
+	idx := make(map[string][][]interface{})
 	for _, chain := range chains {
 		raw, err := tsdb.GetBlocks(tsdbClient.Reader(), chain, int(period))
 		if err != nil {
@@ -84,5 +86,10 @@ func FetchBlocks(tsdbClient *dbcl.Client, period types.PeriodType) (map[string][
 		idx[chain] = processRawBlocks(raw, period)
 	}
 
-	return idx, nil
+	data := map[string]interface{}{
+		"keys":   blockKeys,
+		"chains": idx,
+	}
+
+	return data, nil
 }

@@ -59,8 +59,8 @@ func (ctx *Context) writeOkResponse(w http.ResponseWriter, body interface{}) {
 		Data:   body,
 	}
 
-	w.WriteHeader(200)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
 	json.NewEncoder(w).Encode(res)
 }
 

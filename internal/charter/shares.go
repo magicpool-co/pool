@@ -9,19 +9,35 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
-type Share struct {
-	Timestamp        int64   `json:"timestamp"`
-	Miners           uint64  `json:"miners"`
-	Workers          uint64  `json:"workers"`
-	AcceptedShares   uint64  `json:"acceptedShares"`
-	RejectedShares   uint64  `json:"rejectedShares"`
-	InvalidShares    uint64  `json:"invalidShares"`
-	Hashrate         float64 `json:"hashrate"`
-	AvgHashrate      float64 `json:"avgHashrate"`
-	ReportedHashrate float64 `json:"reportedHashrate"`
+var shareKeys = []string{
+	"timestamp",
+	"miners",
+	"workers",
+	"acceptedShares",
+	"rejectedShares",
+	"invalidShares",
+	"hashrate",
+	"avgHashrate",
+	"reportedHashrate",
 }
 
-func processRawShares(items []*tsdb.Share, period types.PeriodType) []*Share {
+func convertShare(item *tsdb.Share) []interface{} {
+	data := []interface{}{
+		item.EndTime.Unix(),
+		item.Miners,
+		item.Workers,
+		item.AcceptedShares,
+		item.RejectedShares,
+		item.InvalidShares,
+		processFloat(item.Hashrate),
+		processFloat(item.AvgHashrate),
+		processFloat(item.ReportedHashrate),
+	}
+
+	return data
+}
+
+func processRawShares(items []*tsdb.Share, period types.PeriodType) [][]interface{} {
 	var index map[time.Time]bool
 	if len(items) == 0 {
 		index = period.GenerateRange(time.Now())
@@ -34,43 +50,29 @@ func processRawShares(items []*tsdb.Share, period types.PeriodType) []*Share {
 		index = period.GenerateRange(endTime)
 	}
 
-	shares := make([]*Share, 0)
+	shares := make([][]interface{}, 0)
 	for _, item := range items {
-		if exists := index[item.EndTime]; exists {
-			continue
+		if exists := index[item.EndTime]; !exists {
+			shares = append(shares, convertShare(item))
+			index[item.EndTime] = true
 		}
-
-		index[item.EndTime] = true
-		share := &Share{
-			Timestamp:        item.EndTime.Unix(),
-			Miners:           item.Miners,
-			Workers:          item.Workers,
-			AcceptedShares:   item.AcceptedShares,
-			RejectedShares:   item.RejectedShares,
-			InvalidShares:    item.InvalidShares,
-			Hashrate:         processFloat(item.Hashrate),
-			AvgHashrate:      processFloat(item.AvgHashrate),
-			ReportedHashrate: processFloat(item.ReportedHashrate),
-		}
-
-		shares = append(shares, share)
 	}
 
 	for timestamp, exists := range index {
 		if !exists {
-			shares = append(shares, &Share{Timestamp: timestamp.Unix()})
+			shares = append(shares, convertShare(&tsdb.Share{EndTime: timestamp}))
 		}
 	}
 
 	sort.Slice(shares, func(i, j int) bool {
-		return shares[i].Timestamp < shares[j].Timestamp
+		return shares[i][0].(int64) < shares[j][0].(int64)
 	})
 
 	return shares
 }
 
-func FetchGlobalShares(tsdbClient *dbcl.Client, period types.PeriodType) (map[string][]*Share, error) {
-	idx := make(map[string][]*Share)
+func FetchGlobalShares(tsdbClient *dbcl.Client, period types.PeriodType) (interface{}, error) {
+	idx := make(map[string][][]interface{})
 	for _, chain := range chains {
 		raw, err := tsdb.GetGlobalShares(tsdbClient.Reader(), chain, int(period))
 		if err != nil {
@@ -80,11 +82,16 @@ func FetchGlobalShares(tsdbClient *dbcl.Client, period types.PeriodType) (map[st
 		idx[chain] = processRawShares(raw, period)
 	}
 
-	return idx, nil
+	data := map[string]interface{}{
+		"keys":   shareKeys,
+		"chains": idx,
+	}
+
+	return data, nil
 }
 
-func FetchMinerShares(tsdbClient *dbcl.Client, minerID uint64, period types.PeriodType) (map[string][]*Share, error) {
-	idx := make(map[string][]*Share)
+func FetchMinerShares(tsdbClient *dbcl.Client, minerID uint64, period types.PeriodType) (interface{}, error) {
+	idx := make(map[string][][]interface{})
 	for _, chain := range chains {
 		raw, err := tsdb.GetMinerShares(tsdbClient.Reader(), minerID, chain, int(period))
 		if err != nil {
@@ -94,11 +101,16 @@ func FetchMinerShares(tsdbClient *dbcl.Client, minerID uint64, period types.Peri
 		idx[chain] = processRawShares(raw, period)
 	}
 
-	return idx, nil
+	data := map[string]interface{}{
+		"keys":   shareKeys,
+		"chains": idx,
+	}
+
+	return data, nil
 }
 
-func FetchWorkerShares(tsdbClient *dbcl.Client, workerID uint64, period types.PeriodType) (map[string][]*Share, error) {
-	idx := make(map[string][]*Share)
+func FetchWorkerShares(tsdbClient *dbcl.Client, workerID uint64, period types.PeriodType) (interface{}, error) {
+	idx := make(map[string][][]interface{})
 	for _, chain := range chains {
 		raw, err := tsdb.GetWorkerShares(tsdbClient.Reader(), workerID, chain, int(period))
 		if err != nil {
@@ -108,5 +120,10 @@ func FetchWorkerShares(tsdbClient *dbcl.Client, workerID uint64, period types.Pe
 		idx[chain] = processRawShares(raw, period)
 	}
 
-	return idx, nil
+	data := map[string]interface{}{
+		"keys":   shareKeys,
+		"chains": idx,
+	}
+
+	return data, nil
 }
