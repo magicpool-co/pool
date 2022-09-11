@@ -122,6 +122,7 @@ func (ctx *Context) getDashboard(args dashboardArgs) http.Handler {
 }
 
 type blockChartArgs struct {
+	chain  string
 	period string
 }
 
@@ -131,9 +132,12 @@ func (ctx *Context) getBlockCharts(args blockChartArgs) http.Handler {
 		if err != nil {
 			ctx.writeErrorResponse(w, errPeriodNotFound)
 			return
+		} else if !validateChain(args.chain) {
+			ctx.writeErrorResponse(w, errChainNotFound)
+			return
 		}
 
-		data, err := charter.FetchBlocks(ctx.tsdb, period)
+		data, err := charter.FetchBlocks(ctx.tsdb, args.chain, period)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
@@ -144,6 +148,7 @@ func (ctx *Context) getBlockCharts(args blockChartArgs) http.Handler {
 }
 
 type shareChartArgs struct {
+	chain  string
 	period string
 	miner  string
 	worker string
@@ -154,6 +159,9 @@ func (ctx *Context) getShareCharts(args shareChartArgs) http.Handler {
 		period, err := types.ParsePeriodType(args.period)
 		if err != nil {
 			ctx.writeErrorResponse(w, errPeriodNotFound)
+			return
+		} else if !validateChain(args.chain) {
+			ctx.writeErrorResponse(w, errChainNotFound)
 			return
 		}
 
@@ -174,7 +182,7 @@ func (ctx *Context) getShareCharts(args shareChartArgs) http.Handler {
 				return
 			}
 
-			data, err = charter.FetchWorkerShares(ctx.tsdb, workerID, period)
+			data, err = charter.FetchWorkerShares(ctx.tsdb, workerID, args.chain, period)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
@@ -186,14 +194,14 @@ func (ctx *Context) getShareCharts(args shareChartArgs) http.Handler {
 				return
 			}
 
-			data, err = charter.FetchMinerShares(ctx.tsdb, minerID, period)
+			data, err = charter.FetchMinerShares(ctx.tsdb, minerID, args.chain, period)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
 			}
 		} else {
 			var err error
-			data, err = charter.FetchGlobalShares(ctx.tsdb, period)
+			data, err = charter.FetchGlobalShares(ctx.tsdb, args.chain, period)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return

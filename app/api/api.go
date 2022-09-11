@@ -3,8 +3,18 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
+
+func validateChain(chain string) bool {
+	switch strings.ToUpper(chain) {
+	case "CFX", "CTXC", "ERGO", "ETC", "FIRO", "FLUX", "RVN":
+		return true
+	default:
+		return false
+	}
+}
 
 func New(ctx *Context, port int) *http.Server {
 	mw := []middleware{

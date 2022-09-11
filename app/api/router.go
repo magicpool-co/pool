@@ -77,13 +77,15 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	case rtr.match(path, "/global/charts/shares"):
 		method = "GET"
+		chain := r.URL.Query().Get("chain")
 		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getShareCharts(shareChartArgs{period: period})
+		handler = rtr.ctx.getShareCharts(shareChartArgs{chain: chain, period: period})
 
 	case rtr.match(path, "/global/charts/blocks"):
 		method = "GET"
+		chain := r.URL.Query().Get("chain")
 		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getBlockCharts(blockChartArgs{period: period})
+		handler = rtr.ctx.getBlockCharts(blockChartArgs{chain: chain, period: period})
 
 	case rtr.match(path, "/global/blocks"):
 		method = "GET"
@@ -101,8 +103,9 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	case rtr.match(path, "/miner/+/charts/shares", &miner):
 		method = "GET"
+		chain := r.URL.Query().Get("chain")
 		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getShareCharts(shareChartArgs{period: period, miner: miner})
+		handler = rtr.ctx.getShareCharts(shareChartArgs{chain: chain, period: period, miner: miner})
 
 	case rtr.match(path, "/miner/+/blocks", &miner):
 		method = "GET"
@@ -120,8 +123,9 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	case rtr.match(path, "/worker/+/+/charts/shares", &miner, &worker):
 		method = "GET"
+		chain := r.URL.Query().Get("chain")
 		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getShareCharts(shareChartArgs{period: period, miner: miner, worker: worker})
+		handler = rtr.ctx.getShareCharts(shareChartArgs{chain: chain, period: period, miner: miner, worker: worker})
 
 	default:
 		rtr.ctx.writeErrorResponse(w, errRouteNotFound)

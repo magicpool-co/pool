@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/magicpool-co/pool/internal/tsdb"
+	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
@@ -26,13 +27,13 @@ var blockKeys = []string{
 func convertBlock(block *tsdb.Block) []interface{} {
 	data := []interface{}{
 		block.EndTime.Unix(),
-		processFloat(block.Value),
-		processFloat(block.Difficulty),
-		processFloat(block.BlockTime),
-		processFloat(block.Hashrate),
-		processFloat(block.UncleRate),
-		processFloat(block.Profitability),
-		processFloat(block.AvgProfitability),
+		common.SafeRoundedFloat(block.Value),
+		common.SafeRoundedFloat(block.Difficulty),
+		common.SafeRoundedFloat(block.BlockTime),
+		common.SafeRoundedFloat(block.Hashrate),
+		common.SafeRoundedFloat(block.UncleRate),
+		common.SafeRoundedFloat(block.Profitability),
+		common.SafeRoundedFloat(block.AvgProfitability),
 		block.Count,
 		block.UncleCount,
 		block.TxCount,
@@ -75,20 +76,15 @@ func processRawBlocks(items []*tsdb.Block, period types.PeriodType) [][]interfac
 	return blocks
 }
 
-func FetchBlocks(tsdbClient *dbcl.Client, period types.PeriodType) (interface{}, error) {
-	idx := make(map[string][][]interface{})
-	for _, chain := range chains {
-		raw, err := tsdb.GetBlocks(tsdbClient.Reader(), chain, int(period))
-		if err != nil {
-			return nil, err
-		}
-
-		idx[chain] = processRawBlocks(raw, period)
+func FetchBlocks(tsdbClient *dbcl.Client, chain string, period types.PeriodType) (interface{}, error) {
+	raw, err := tsdb.GetBlocks(tsdbClient.Reader(), chain, int(period))
+	if err != nil {
+		return nil, err
 	}
 
 	data := map[string]interface{}{
 		"keys":   blockKeys,
-		"chains": idx,
+		"points": processRawBlocks(raw, period),
 	}
 
 	return data, nil

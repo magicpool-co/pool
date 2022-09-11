@@ -20,20 +20,20 @@ type Round struct {
 	ReportedHashrate float64   `json:"reportedHashrate"`
 }
 
-func processRawRounds(rawRounds []*tsdb.Round) []*Round {
+func processRawRounds(rawRounds []*tsdb.Round) [][]interface{} {
 	return nil
 }
 
-func FetchRounds(tsdbClient *dbcl.Client, period types.PeriodType) (map[string][]*Round, error) {
-	idx := make(map[string][]*Round)
-	for _, chain := range chains {
-		raw, err := tsdb.GetRounds(tsdbClient.Reader(), chain, int(period))
-		if err != nil {
-			return nil, err
-		}
-
-		idx[chain] = processRawRounds(raw)
+func FetchRounds(tsdbClient *dbcl.Client, chain string, period types.PeriodType) (interface{}, error) {
+	raw, err := tsdb.GetRounds(tsdbClient.Reader(), chain, int(period))
+	if err != nil {
+		return nil, err
 	}
 
-	return idx, nil
+	data := map[string]interface{}{
+		"keys":   nil,
+		"points": processRawRounds(raw),
+	}
+
+	return data, nil
 }
