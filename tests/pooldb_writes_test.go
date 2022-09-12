@@ -3,11 +3,13 @@
 package tests
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/stretchr/testify/suite"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
+	"github.com/magicpool-co/pool/pkg/dbcl"
 )
 
 type PooldbWritesSuite struct {
@@ -127,7 +129,6 @@ func (suite *PooldbWritesSuite) TestWriteRound() {
 	}{
 		{
 			&pooldb.Round{
-				ID:      1,
 				ChainID: "ETC",
 				MinerID: 1,
 			},
@@ -169,7 +170,40 @@ func (suite *PooldbWritesSuite) TestWriteShare() {
 			suite.T().Errorf("failed on %d: insert: %v", i, err)
 		}
 
-		err = pooldb.InsertShares(pooldbClient.Writer(), &pooldb.Share{RoundID: 1, MinerID: 1}, &pooldb.Share{RoundID: 1, MinerID: 1})
+		err = pooldb.InsertShares(pooldbClient.Writer(), tt.share, tt.share)
+		if err != nil {
+			suite.T().Errorf("failed on %d: bulk insert: %v", i, err)
+		}
+
+	}
+}
+
+func (suite *PooldbWritesSuite) TestWriteBalanceInput() {
+	tests := []struct {
+		input *pooldb.BalanceInput
+	}{
+		{
+			&pooldb.BalanceInput{
+				ChainID: "ETC",
+				Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+			},
+		},
+	}
+
+	minerID, err := pooldb.InsertMiner(pooldbClient.Writer(), &pooldb.Miner{ChainID: "ETH"})
+	if err != nil {
+		suite.T().Errorf("failed on preliminary miner insert: %v", err)
+	}
+
+	roundID, err := pooldb.InsertRound(pooldbClient.Writer(), &pooldb.Round{ChainID: "ETH", MinerID: minerID})
+	if err != nil {
+		suite.T().Errorf("failed on preliminary round insert: %v", err)
+	}
+
+	for i, tt := range tests {
+		tt.input.RoundID = roundID
+		tt.input.MinerID = minerID
+		err = pooldb.InsertBalanceInputs(pooldbClient.Writer(), tt.input, tt.input)
 		if err != nil {
 			suite.T().Errorf("failed on %d: bulk insert: %v", i, err)
 		}

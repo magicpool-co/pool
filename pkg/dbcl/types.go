@@ -14,6 +14,7 @@ type Querier interface {
 	Select(dest interface{}, query string, args ...interface{}) error
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	NamedExec(query string, arg interface{}) (sql.Result, error)
+	Rebind(query string) string
 }
 
 type Tx struct {

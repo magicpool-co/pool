@@ -108,3 +108,15 @@ func InsertShares(q dbcl.Querier, objects ...*Share) error {
 
 	return dbcl.ExecBulkInsert(q, table, cols, rawObjects)
 }
+
+func InsertBalanceInputs(q dbcl.Querier, objects ...*BalanceInput) error {
+	const table = "balance_inputs"
+	cols := []string{"round_id", "chain_id", "miner_id", "output_balance_id", "value", "pending"}
+
+	rawObjects := make([]interface{}, len(objects))
+	for i, object := range objects {
+		rawObjects[i] = object
+	}
+
+	return dbcl.ExecBulkInsert(q, table, cols, rawObjects)
+}

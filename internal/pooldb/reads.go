@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+
 	"github.com/magicpool-co/pool/pkg/dbcl"
 )
 
@@ -109,7 +111,7 @@ func GetMiner(q dbcl.Querier, id uint64) (*Miner, error) {
 	const query = `SELECT *
 	FROM miners
 	WHERE
-		id = ?`
+		id = ?;`
 
 	output := new(Miner)
 	err := q.Get(output, query, id)
@@ -126,24 +128,38 @@ func GetMinerID(q dbcl.Querier, address, chain string) (uint64, error) {
 	WHERE
 		address = ?
 	AND
-		chain_id = ?`
+		chain_id = ?;`
 
 	return dbcl.GetUint64(q, query, address, chain)
 }
 
-func GetMiners(q dbcl.Querier) ([]*Miner, error) {
-	const query = `SELECT *
-	FROM miners`
+func GetMiners(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error) {
+	const rawQuery = `SELECT *
+	FROM miners
+	WHERE
+		id IN (?);`
+
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs)
+	if err != nil {
+		return nil, err
+	}
 
 	output := []*Miner{}
-	err := q.Select(&output, query)
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
 
 	return output, err
 }
 
 func GetMinerIDs(q dbcl.Querier) ([]uint64, error) {
 	const query = `SELECT id
-	FROM miners`
+	FROM miners
+	WHERE
+		recipient_fee_percent IS NULL;`
 
 	output := []uint64{}
 	err := q.Select(&output, query)
@@ -155,9 +171,25 @@ func GetMinerIDsActive(q dbcl.Querier) ([]uint64, error) {
 	const query = `SELECT id 
 	FROM miners 
 	WHERE
-		active IS TRUE`
+		active IS TRUE
+	AND
+		recipient_fee_percent IS NULL;`
 
 	output := []uint64{}
+	err := q.Select(&output, query)
+
+	return output, err
+}
+
+/* recipients */
+
+func GetRecipients(q dbcl.Querier) ([]*Miner, error) {
+	const query = `SELECT *
+	FROM miners
+	WHERE
+		recipient_fee_percent IS NULL;`
+
+	output := []*Miner{}
 	err := q.Select(&output, query)
 
 	return output, err

@@ -100,6 +100,13 @@ func (w *Worker) Start() {
 		nodes:  w.nodes,
 	})
 
+	w.cron.AddJob("* * * * *", &BlockCreditJob{
+		locker: locker,
+		logger: w.logger,
+		pooldb: w.pooldb,
+		nodes:  w.nodes,
+	})
+
 	w.cron.AddJob("* * * * *", &ChartBlockJob{
 		locker: locker,
 		logger: w.logger,
