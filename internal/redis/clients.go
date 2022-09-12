@@ -3,8 +3,6 @@ package redis
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/bsm/redislock"
@@ -18,11 +16,11 @@ type Client struct {
 	writeClient *redis.Client
 }
 
-func newClient(addr string, db int) *redis.Client {
+func newClient(addr string) *redis.Client {
 	client := redis.NewClient(&redis.Options{
 		Addr:         addr,
 		Password:     "",
-		DB:           db,
+		DB:           0,
 		PoolSize:     25,
 		PoolTimeout:  2 * time.Minute,
 		IdleTimeout:  10 * time.Minute,
@@ -34,7 +32,7 @@ func newClient(addr string, db int) *redis.Client {
 }
 
 func New(args map[string]string) (*Client, error) {
-	var argKeys = []string{"REDIS_WRITE_HOST", "REDIS_READ_HOST", "REDIS_PORT", "REDIS_DB"}
+	var argKeys = []string{"REDIS_WRITE_HOST", "REDIS_READ_HOST", "REDIS_PORT"}
 	for _, k := range argKeys {
 		if _, ok := args[k]; !ok {
 			return nil, fmt.Errorf("%s is a required argument", k)
@@ -49,30 +47,14 @@ func New(args map[string]string) (*Client, error) {
 	writeHost := args["REDIS_WRITE_HOST"]
 	readHost := args["REDIS_READ_HOST"]
 	port := args["REDIS_PORT"]
-	db, err := strconv.Atoi(args["REDIS_DB"])
-	if err != nil {
-		return nil, err
-	}
-
-	writeClient := newClient(writeHost+":"+port, db)
-	readClient := newClient(readHost+":"+port, db)
 
 	client := &Client{
 		env:         env,
-		readClient:  readClient,
-		writeClient: writeClient,
+		readClient:  newClient(readHost + ":" + port),
+		writeClient: newClient(writeHost + ":" + port),
 	}
 
 	return client, client.Ping()
-}
-
-func (c *Client) getKey(args ...string) string {
-	key := c.env
-	for _, arg := range args {
-		key += ":" + strings.ToLower(arg)
-	}
-
-	return key
 }
 
 func (c *Client) Ping() error {
