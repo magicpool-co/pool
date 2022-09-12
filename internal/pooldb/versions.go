@@ -17,12 +17,20 @@ var sql001balanceInputsUp string
 //go:embed migrations/001_balance_inputs.down.sql
 var sql001balanceInputsDown string
 
+//go:embed migrations/002_ip_addresses.sql
+var sql002ipAddressesUp string
+
+//go:embed migrations/002_ip_addresses.down.sql
+var sql002ipAddressesDown string
+
 func getMigrationVersions() (map[string]string, error) {
 	migrations := map[string]string{
 		"000_init.sql":                sql000initUp,
 		"000_init.down.sql":           sql000initDown,
 		"001_balance_inputs.sql":      sql001balanceInputsUp,
 		"001_balance_inputs.down.sql": sql001balanceInputsDown,
+		"002_ip_addresses.sql":        sql002ipAddressesUp,
+		"002_ip_addresses.down.sql":   sql002ipAddressesDown,
 	}
 
 	for k, v := range migrations {

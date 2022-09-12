@@ -51,12 +51,9 @@ type Miner struct {
 	ID      uint64 `db:"id"`
 	ChainID string `db:"chain_id"`
 	Address string `db:"address"`
+	Active  bool   `db:"active"`
 
 	RecipientFeePercent *uint64 `db:"recipient_fee_percent"`
-
-	Active    bool       `db:"active"`
-	LastLogin *time.Time `db:"last_login"`
-	LastShare *time.Time `db:"last_share"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
@@ -66,17 +63,16 @@ type Worker struct {
 	ID      uint64 `db:"id"`
 	MinerID uint64 `db:"miner_id"`
 	Name    string `db:"name"`
-
-	Active    bool       `db:"active"`
-	LastLogin *time.Time `db:"last_login"`
-	LastShare *time.Time `db:"last_share"`
+	Active  bool   `db:"active"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
 type IPAddress struct {
+	ChainID   string `db:"chain_id"`
 	MinerID   uint64 `db:"miner_id"`
+	WorkerID  uint64 `db:"worker_id"`
 	IPAddress string `db:"ip_address"`
 
 	Active    bool      `db:"active"`
@@ -87,10 +83,9 @@ type IPAddress struct {
 }
 
 type Round struct {
-	ID       uint64  `db:"id"`
-	ChainID  string  `db:"chain_id"`
-	MinerID  uint64  `db:"miner_id"`
-	WorkerID *uint64 `db:"worker_id"`
+	ID      uint64 `db:"id"`
+	ChainID string `db:"chain_id"`
+	MinerID uint64 `db:"miner_id"`
 
 	Height      uint64  `db:"height"`
 	UncleHeight *uint64 `db:"uncle_height"`
@@ -120,10 +115,9 @@ type Round struct {
 }
 
 type Share struct {
-	ID       uint64  `db:"id"`
-	RoundID  uint64  `db:"round_id"`
-	MinerID  uint64  `db:"miner_id"`
-	WorkerID *uint64 `db:"worker_id"`
+	ID      uint64 `db:"id"`
+	RoundID uint64 `db:"round_id"`
+	MinerID uint64 `db:"miner_id"`
 
 	Count uint64 `db:"count"`
 

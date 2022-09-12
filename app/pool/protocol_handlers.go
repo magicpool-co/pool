@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/rand"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -40,7 +39,7 @@ func validateAddress(address, chain string) bool {
 	switch strings.ToUpper(chain) {
 	case "BTC":
 		return btcRegex.MatchString(address)
-	case "ETH", "USDC":
+	case "ETH":
 		return ethRegex.MatchString(address)
 	}
 
@@ -88,10 +87,9 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 		}
 
 		miner := &pooldb.Miner{
-			ChainID:   chain,
-			Address:   address,
-			Active:    false,
-			LastLogin: types.TimePtr(time.Now()),
+			ChainID: chain,
+			Address: address,
+			Active:  false,
 		}
 
 		// attempt to insert the minerID
@@ -112,25 +110,6 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 		}
 	}
 
-	// add ip address if does not exist
-	if exists, err := p.redis.GetMinerIPAddressExists(minerID, c.GetIP()); !exists {
-		if err != nil {
-			p.logger.Error(err)
-		}
-
-		address := &pooldb.IPAddress{
-			MinerID:   minerID,
-			IPAddress: c.GetIP(),
-		}
-
-		// insert the IP address and set in redis
-		if err := pooldb.InsertIPAddresses(p.db.Writer(), address); err != nil {
-			p.logger.Error(err)
-		} else if err := p.redis.AddMinerIPAddress(minerID, c.GetIP()); err != nil {
-			p.logger.Error(err)
-		}
-	}
-
 	var workerID uint64
 	if workerName != "" {
 		workerID, err = p.redis.GetWorkerID(minerID, workerName)
@@ -140,10 +119,9 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 			}
 
 			worker := &pooldb.Worker{
-				MinerID:   minerID,
-				Name:      workerName,
-				Active:    false,
-				LastLogin: types.TimePtr(time.Now()),
+				MinerID: minerID,
+				Name:    workerName,
+				Active:  false,
 			}
 
 			// attempt to insert the workerID
@@ -232,38 +210,15 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			defer p.wg.Done()
 
 			p.logger.Info("found valid block")
-			roundShares, err := p.redis.FetchShares(p.chain)
+			sharesIdx, err := p.redis.GetRoundShares(p.chain)
 			if err != nil {
 				p.logger.Error(err)
 				return
 			}
 
-			// number of accepted shares since last block (not PPLNS share number)
-			round.AcceptedShares, err = p.redis.FetchRoundAcceptedShares(p.chain)
+			// number of accepted, rejected, and invalid shares since last block (not PPLNS share number)
+			round.AcceptedShares, round.RejectedShares, round.InvalidShares, err = p.redis.GetRoundShareCounts(p.chain)
 			if err != nil {
-				p.logger.Error(err)
-				return
-			} else if err := p.redis.ResetRoundAcceptedShares(p.chain); err != nil {
-				p.logger.Error(err)
-				return
-			}
-
-			// number of rejected shares since last block (not PPLNS share number)
-			round.RejectedShares, err = p.redis.FetchRoundRejectedShares(p.chain)
-			if err != nil {
-				p.logger.Error(err)
-				return
-			} else if err := p.redis.ResetRoundRejectedShares(p.chain); err != nil {
-				p.logger.Error(err)
-				return
-			}
-
-			// number of invalid shares since last block (not PPLNS share number)
-			round.InvalidShares, err = p.redis.FetchRoundInvalidShares(p.chain)
-			if err != nil {
-				p.logger.Error(err)
-				return
-			} else if err := p.redis.ResetRoundInvalidShares(p.chain); err != nil {
 				p.logger.Error(err)
 				return
 			}
@@ -281,63 +236,26 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			minedDiff := shareDiff * (round.AcceptedShares + 1)
 			round.Luck = 100 * (float32(roundDiff) / float32(minedDiff))
 			round.MinerID = c.GetMinerID()
-			if workerID := c.GetWorkerID(); workerID != 0 {
-				round.WorkerID = types.Uint64Ptr(workerID)
-			}
-
 			roundID, err := pooldb.InsertRound(p.db.Writer(), round)
 			if err != nil {
 				p.logger.Error(err)
 				return
 			}
 
-			minerCuts := make(map[string]uint64)
-			for _, val := range roundShares {
-				if _, ok := minerCuts[val]; ok {
-					minerCuts[val]++
-				} else {
-					minerCuts[val] = 1
-				}
-			}
-
 			shares := make([]*pooldb.Share, 0)
-			for compoundID, shareCount := range minerCuts {
-				parts := strings.Split(compoundID, ":")
-				if len(parts) != 2 {
-					p.logger.Info(fmt.Sprintf("invalid compoundID: %s", compoundID))
-					continue
-				}
-
-				minerID, err := strconv.ParseUint(parts[0], 10, 64)
-				if err != nil {
-					p.logger.Error(err)
-					continue
-				}
-
-				var workerID *uint64
-				rawWorkerID, err := strconv.ParseUint(parts[1], 10, 64)
-				if err != nil {
-					p.logger.Error(err)
-					continue
-				} else if rawWorkerID != 0 {
-					workerID = types.Uint64Ptr(rawWorkerID)
-				}
-
+			for minerID, shareCount := range sharesIdx {
 				share := &pooldb.Share{
-					RoundID:  roundID,
-					MinerID:  minerID,
-					WorkerID: workerID,
-					Count:    shareCount,
+					RoundID: roundID,
+					MinerID: minerID,
+					Count:   shareCount,
 				}
 
 				shares = append(shares, share)
 			}
 
-			for _, share := range shares {
-				if _, err := pooldb.InsertShare(p.db.Writer(), share); err != nil {
-					p.logger.Error(err)
-					return
-				}
+			if err := pooldb.InsertShares(p.db.Writer(), shares...); err != nil {
+				p.logger.Error(err)
+				return
 			}
 
 			if p.telegram != nil {
@@ -367,16 +285,12 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 				p.metrics.IncrementCounter("accepted_shares_total", p.chain)
 			}
 
-			minerID := c.GetMinerID()
-			ipAddress := c.GetIP()
-
-			// add last share for IP address to local index
-			p.ipAddressMu.Lock()
-			if _, ok := p.ipAddressIndex[minerID]; !ok {
-				p.ipAddressIndex[minerID] = make(map[string]time.Time)
+			p.lastShareMu.Lock()
+			if _, ok := p.lastShareIndex[c.GetCompoundID()]; !ok {
+				p.lastShareIndex[c.GetCompoundID()] = make(map[string]time.Time)
 			}
-			p.ipAddressIndex[minerID][ipAddress] = submitTime
-			p.ipAddressMu.Unlock()
+			p.lastShareIndex[c.GetCompoundID()][c.GetIP()] = submitTime
+			p.lastShareMu.Unlock()
 		case types.RejectedShare:
 			err := p.redis.AddRejectedShare(p.chain, interval, c.GetCompoundID())
 			if err != nil {

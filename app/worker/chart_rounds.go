@@ -32,7 +32,7 @@ type ChartRoundJob struct {
 }
 
 func (j *ChartRoundJob) fetchIntervals(chain string) ([]time.Time, error) {
-	lastTime, err := j.redis.GetChartRoundsLastTime(chain, int(roundPeriod))
+	lastTime, err := j.redis.GetChartRoundsLastTime(chain)
 	if err != nil || lastTime.IsZero() {
 		lastTime, err = tsdb.GetRoundMaxEndTime(j.tsdb.Reader(), chain, int(roundPeriod))
 		if err != nil {
@@ -322,7 +322,7 @@ func (j *ChartRoundJob) Run() {
 				break
 			}
 
-			if err := j.redis.SetChartRoundsLastTime(node.Chain(), int(roundPeriod), interval); err != nil {
+			if err := j.redis.SetChartRoundsLastTime(node.Chain(), interval); err != nil {
 				j.logger.Error(fmt.Errorf("round: delete: %s: %v", node.Chain(), err))
 				break
 			}

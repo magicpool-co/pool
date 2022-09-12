@@ -66,16 +66,6 @@ func (suite *PooldbReadsSuite) TestReadMiner() {
 		suite.T().Errorf("failed: GetMiners: %v", err)
 	}
 
-	_, err = pooldb.GetMinerIDs(pooldbClient.Reader())
-	if err != nil {
-		suite.T().Errorf("failed: GetMinerIDs: %v", err)
-	}
-
-	_, err = pooldb.GetMinerIDsActive(pooldbClient.Reader())
-	if err != nil {
-		suite.T().Errorf("failed: GetMinerIDsActive: %v", err)
-	}
-
 	_, err = pooldb.GetRecipients(pooldbClient.Reader())
 	if err != nil {
 		suite.T().Errorf("failed: GetRecipients: %v", err)
@@ -85,34 +75,19 @@ func (suite *PooldbReadsSuite) TestReadMiner() {
 func (suite *PooldbReadsSuite) TestReadWorker() {
 	var err error
 
-	_, err = pooldb.GetWorkers(pooldbClient.Reader())
+	_, err = pooldb.GetWorkersByMinerID(pooldbClient.Reader(), 0)
 	if err != nil {
-		suite.T().Errorf("failed: GetWorkers: %v", err)
+		suite.T().Errorf("failed: GetWorkersByMinerID: %v", err)
 	}
 
 	_, err = pooldb.GetWorkerID(pooldbClient.Reader(), 0, "ETH")
 	if err != nil {
 		suite.T().Errorf("failed: GetWorkerID: %v", err)
 	}
-
-	_, err = pooldb.GetWorkersActive(pooldbClient.Reader())
-	if err != nil {
-		suite.T().Errorf("failed: GetWorkersActive: %v", err)
-	}
-
-	_, err = pooldb.GetWorkerIDs(pooldbClient.Reader())
-	if err != nil {
-		suite.T().Errorf("failed: GetWorkerIDs: %v", err)
-	}
 }
 
 func (suite *PooldbReadsSuite) TestReadIPAddress() {
 	var err error
-
-	_, err = pooldb.GetIPAddressByMinerID(pooldbClient.Reader(), 0, "")
-	if err != nil {
-		suite.T().Errorf("failed: GetIPAddressByMinerID: %v", err)
-	}
 
 	_, err = pooldb.GetOldestActiveIPAddress(pooldbClient.Reader(), 0)
 	if err != nil {

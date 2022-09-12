@@ -155,32 +155,6 @@ func GetMiners(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error) {
 	return output, err
 }
 
-func GetMinerIDs(q dbcl.Querier) ([]uint64, error) {
-	const query = `SELECT id
-	FROM miners
-	WHERE
-		recipient_fee_percent IS NULL;`
-
-	output := []uint64{}
-	err := q.Select(&output, query)
-
-	return output, err
-}
-
-func GetMinerIDsActive(q dbcl.Querier) ([]uint64, error) {
-	const query = `SELECT id 
-	FROM miners 
-	WHERE
-		active IS TRUE
-	AND
-		recipient_fee_percent IS NULL;`
-
-	output := []uint64{}
-	err := q.Select(&output, query)
-
-	return output, err
-}
-
 /* recipients */
 
 func GetRecipients(q dbcl.Querier) ([]*Miner, error) {
@@ -197,12 +171,14 @@ func GetRecipients(q dbcl.Querier) ([]*Miner, error) {
 
 /* workers */
 
-func GetWorkers(q dbcl.Querier) ([]*Worker, error) {
+func GetWorkersByMinerID(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
 	const query = `SELECT *
-	FROM workers`
+	FROM workers
+	WHERE
+		miner_id = ?;`
 
 	output := []*Worker{}
-	err := q.Select(&output, query)
+	err := q.Select(&output, query, minerID)
 
 	return output, err
 }
@@ -218,46 +194,7 @@ func GetWorkerID(q dbcl.Querier, minerID uint64, name string) (uint64, error) {
 	return dbcl.GetUint64(q, query, minerID, name)
 }
 
-func GetWorkersActive(q dbcl.Querier) ([]*Worker, error) {
-	const query = `SELECT *
-	FROM workers
-	WHERE
-		active IS TRUE`
-
-	output := []*Worker{}
-	err := q.Select(&output, query)
-
-	return output, err
-}
-
-func GetWorkerIDs(q dbcl.Querier) ([]uint64, error) {
-	const query = `SELECT id
-	FROM workers`
-
-	output := []uint64{}
-	err := q.Select(&output, query)
-
-	return output, err
-}
-
 /* ip addresses */
-
-func GetIPAddressByMinerID(q dbcl.Querier, minerID uint64, ipAddress string) (*IPAddress, error) {
-	const query = `SELECT *
-	FROM ip_addresses
-	WHERE
-		miner_id = ?
-	AND
-		ip_address = ?;`
-
-	output := new(IPAddress)
-	err := q.Get(output, query, minerID, ipAddress)
-	if err != nil && err != sql.ErrNoRows {
-		return output, err
-	}
-
-	return output, nil
-}
 
 func GetOldestActiveIPAddress(q dbcl.Querier, minerID uint64) (*IPAddress, error) {
 	const query = `SELECT *

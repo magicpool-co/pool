@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math/big"
 	"runtime/debug"
-	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -58,8 +58,8 @@ type Pool struct {
 	reportedMu    sync.Mutex
 	reportedIndex map[string]string
 
-	ipAddressMu    sync.Mutex
-	ipAddressIndex map[uint64]map[string]time.Time
+	lastShareMu    sync.Mutex
+	lastShareIndex map[string]map[string]time.Time
 
 	db       *dbcl.Client
 	redis    *redis.Client
@@ -90,7 +90,7 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 		jobManager:    newJobManager(ctx, node, logger, opt.JobListSize, opt.JobListAgeLimit),
 
 		reportedIndex:  make(map[string]string),
-		ipAddressIndex: make(map[uint64]map[string]time.Time),
+		lastShareIndex: make(map[string]map[string]time.Time),
 
 		db:       dbClient,
 		redis:    redisClient,
@@ -178,7 +178,7 @@ func (p *Pool) startReportedHashratePusher() {
 			}
 
 			// process set miner reported in bulk
-			err := p.redis.SetReportedHashrateBulk(p.chain, interval, reported)
+			err := p.redis.SetIntervalReportedHashrateBatch(p.chain, interval, reported)
 			if err != nil {
 				p.logger.Error(err)
 			}
@@ -189,37 +189,52 @@ func (p *Pool) startReportedHashratePusher() {
 func (p *Pool) startIPAddressPusher() {
 	defer p.recoverPanic()
 
-	ticker := time.NewTicker(time.Minute * 15)
+	ticker := time.NewTicker(time.Minute * 5)
 	for {
 		select {
 		case <-p.ctx.Done():
 			return
 		case <-ticker.C:
-			// copy and replace address index
-			p.ipAddressMu.Lock()
-			ipAddressIndex := p.ipAddressIndex
-			p.ipAddressIndex = make(map[uint64]map[string]time.Time)
-			p.ipAddressMu.Unlock()
+			// copy and replace last share index
+			p.lastShareMu.Lock()
+			lastShareIndex := p.lastShareIndex
+			p.lastShareIndex = make(map[string]map[string]time.Time)
+			p.lastShareMu.Unlock()
 
 			// process the index into a slice of addresses
 			addresses := make([]*pooldb.IPAddress, 0)
-			for minerID, index := range ipAddressIndex {
-				for ipAddress, lastShare := range index {
-					address := &pooldb.IPAddress{
-						MinerID: minerID,
+			for compoundID, index := range lastShareIndex {
+				parts := strings.Split(compoundID, ":")
+				if len(parts) != 2 {
+					p.logger.Error(fmt.Errorf("invalid compoundID: %s", compoundID))
+					continue
+				}
 
-						IPAddress: ipAddress,
+				minerID, err := strconv.ParseUint(parts[0], 10, 64)
+				if err != nil {
+					p.logger.Error(fmt.Errorf("invalid compoundID: %s", compoundID))
+					continue
+				}
+
+				workerID, err := strconv.ParseUint(parts[1], 10, 64)
+				if err != nil {
+					p.logger.Error(fmt.Errorf("invalid compoundID: %s", compoundID))
+					continue
+				}
+
+				for ip, lastShare := range index {
+					address := &pooldb.IPAddress{
+						MinerID:   minerID,
+						WorkerID:  workerID,
+						ChainID:   p.chain,
+						IPAddress: ip,
+
 						Active:    true,
 						LastShare: lastShare,
 					}
 					addresses = append(addresses, address)
 				}
 			}
-			// sort IP addresses by LastShare to make sure the auto increment ID
-			// is aligned with the create time (if the address doesn't already exist)
-			sort.Slice(addresses, func(i, j int) bool {
-				return addresses[i].LastShare.Before(addresses[j].LastShare)
-			})
 
 			// insert the ip addresses and set old addresses to inactive
 			// @TODO: UpdateIPAddressesSetInactive should be run on the worker, where it will run once

@@ -24,7 +24,7 @@ func UpdateNode(q dbcl.Querier, obj *Node, updateCols []string) error {
 
 func InsertMiner(q dbcl.Querier, obj *Miner) (uint64, error) {
 	const table = "miners"
-	cols := []string{"chain_id", "address", "active", "last_login", "last_share"}
+	cols := []string{"chain_id", "address", "active"}
 
 	return dbcl.ExecInsert(q, table, cols, obj)
 }
@@ -38,7 +38,7 @@ func UpdateMiner(q dbcl.Querier, obj *Miner, updateCols []string) error {
 
 func InsertWorker(q dbcl.Querier, obj *Worker) (uint64, error) {
 	const table = "workers"
-	cols := []string{"miner_id", "name", "active", "last_login", "last_share"}
+	cols := []string{"miner_id", "name", "active"}
 
 	return dbcl.ExecInsert(q, table, cols, obj)
 }
@@ -52,7 +52,7 @@ func UpdateWorker(q dbcl.Querier, obj *Worker, updateCols []string) error {
 
 func InsertIPAddresses(q dbcl.Querier, objects ...*IPAddress) error {
 	const table = "ip_addresses"
-	insertCols := []string{"miner_id", "ip_address", "active", "last_share"}
+	insertCols := []string{"miner_id", "worker_id", "chain_id", "ip_address", "active", "last_share"}
 	updateCols := []string{"active", "last_share"}
 
 	rawObjects := make([]interface{}, len(objects))
@@ -76,7 +76,7 @@ func UpdateIPAddressesSetInactive(q dbcl.Querier, duration time.Duration) error 
 
 func InsertRound(q dbcl.Querier, obj *Round) (uint64, error) {
 	const table = "rounds"
-	cols := []string{"chain_id", "miner_id", "worker_id", "height", "epoch_height", "uncle_height", "hash",
+	cols := []string{"chain_id", "miner_id", "height", "epoch_height", "uncle_height", "hash",
 		"nonce", "mix_digest", "coinbase_txid", "value", "difficulty", "luck", "accepted_shares", "rejected_shares",
 		"invalid_shares", "mature", "pending", "uncle", "orphan", "spent"}
 
@@ -90,16 +90,9 @@ func UpdateRound(q dbcl.Querier, obj *Round, updateCols []string) error {
 	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
 }
 
-func InsertShare(q dbcl.Querier, obj *Share) (uint64, error) {
-	const table = "shares"
-	cols := []string{"round_id", "miner_id", "worker_id", "count"}
-
-	return dbcl.ExecInsert(q, table, cols, obj)
-}
-
 func InsertShares(q dbcl.Querier, objects ...*Share) error {
 	const table = "shares"
-	cols := []string{"round_id", "miner_id", "worker_id", "count"}
+	cols := []string{"round_id", "miner_id", "count"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {

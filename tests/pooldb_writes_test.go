@@ -54,7 +54,7 @@ func (suite *PooldbWritesSuite) TestWriteMiner() {
 			suite.T().Errorf("failed on %d: insert: %v", i, err)
 		}
 
-		cols := []string{"active", "last_login", "last_share"}
+		cols := []string{"active"}
 		err = pooldb.UpdateMiner(pooldbClient.Writer(), tt.miner, cols)
 		if err != nil {
 			suite.T().Errorf("failed on %d: update %v", i, err)
@@ -83,7 +83,7 @@ func (suite *PooldbWritesSuite) TestWriteWorker() {
 			suite.T().Errorf("failed on %d: insert: %v", i, err)
 		}
 
-		cols := []string{"active", "last_login", "last_share"}
+		cols := []string{"active"}
 		err = pooldb.UpdateWorker(pooldbClient.Writer(), tt.worker, cols)
 		if err != nil {
 			suite.T().Errorf("failed on %d: update %v", i, err)
@@ -97,6 +97,7 @@ func (suite *PooldbWritesSuite) TestWriteIPAddress() {
 	}{
 		{
 			&pooldb.IPAddress{
+				ChainID:   "ETC",
 				IPAddress: "192.168.1.1",
 				Active:    true,
 				LastShare: time.Now(),
@@ -165,11 +166,6 @@ func (suite *PooldbWritesSuite) TestWriteShare() {
 
 	var err error
 	for i, tt := range tests {
-		_, err = pooldb.InsertShare(pooldbClient.Writer(), tt.share)
-		if err != nil {
-			suite.T().Errorf("failed on %d: insert: %v", i, err)
-		}
-
 		err = pooldb.InsertShares(pooldbClient.Writer(), tt.share, tt.share)
 		if err != nil {
 			suite.T().Errorf("failed on %d: bulk insert: %v", i, err)

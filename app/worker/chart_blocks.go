@@ -69,7 +69,7 @@ func getMarketRate(chain string, timestamp time.Time) float64 {
 }
 
 func (j *ChartBlockJob) fetchIntervals(chain string) ([]time.Time, error) {
-	lastTime, err := j.redis.GetChartBlocksLastTime(chain, int(blockPeriod))
+	lastTime, err := j.redis.GetChartBlocksLastTime(chain)
 	if err != nil || lastTime.IsZero() {
 		lastTime, err = tsdb.GetBlockMaxEndTime(j.tsdb.Reader(), chain, int(blockPeriod))
 		if err != nil {
@@ -80,7 +80,7 @@ func (j *ChartBlockJob) fetchIntervals(chain string) ([]time.Time, error) {
 	// handle initialization of intervals when there are no blocks in tsdb
 	if lastTime.IsZero() {
 		lastTime = common.NormalizeDate(time.Now(), blockPeriod.Rollup(), false)
-		err := j.redis.SetChartBlocksLastTime(chain, int(blockPeriod), lastTime)
+		err := j.redis.SetChartBlocksLastTime(chain, lastTime)
 
 		return nil, err
 	}
@@ -307,7 +307,7 @@ func (j *ChartBlockJob) Run() {
 				break
 			}
 
-			if err := j.redis.SetChartBlocksLastTime(node.Chain(), int(blockPeriod), interval); err != nil {
+			if err := j.redis.SetChartBlocksLastTime(node.Chain(), interval); err != nil {
 				j.logger.Error(fmt.Errorf("block: delete: %s: %v", node.Chain(), err))
 				break
 			}

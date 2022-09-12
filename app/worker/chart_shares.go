@@ -70,26 +70,27 @@ func (j *ChartShareJob) rollup(node types.MiningNode, interval string) error {
 		return err
 	}
 
-	lastTime, err := j.redis.GetChartSharesLastTime(node.Chain(), int(sharePeriod))
+	// @TODO: we should probs check the db just in case if its not set
+	lastTime, err := j.redis.GetChartSharesLastTime(node.Chain())
 	if err != nil {
 		return err
 	} else if !lastTime.Before(endTime) {
 		return nil
 	}
 
-	accepted, err := j.redis.FetchMinerAcceptedShares(node.Chain(), interval)
+	accepted, err := j.redis.GetIntervalAcceptedShares(node.Chain(), interval)
 	if err != nil {
 		return err
 	}
-	rejected, err := j.redis.FetchMinerRejectedShares(node.Chain(), interval)
+	rejected, err := j.redis.GetIntervalRejectedShares(node.Chain(), interval)
 	if err != nil {
 		return err
 	}
-	invalid, err := j.redis.FetchMinerInvalidShares(node.Chain(), interval)
+	invalid, err := j.redis.GetIntervalInvalidShares(node.Chain(), interval)
 	if err != nil {
 		return err
 	}
-	reported, err := j.redis.FetchMinerReportedHashrates(node.Chain(), interval)
+	reported, err := j.redis.GetIntervalReportedHashrates(node.Chain(), interval)
 	if err != nil {
 		return err
 	}
@@ -247,7 +248,7 @@ func (j *ChartShareJob) rollup(node types.MiningNode, interval string) error {
 		}
 	}
 
-	if err := j.redis.SetChartSharesLastTime(node.Chain(), int(sharePeriod), endTime); err != nil {
+	if err := j.redis.SetChartSharesLastTime(node.Chain(), endTime); err != nil {
 		return err
 	}
 
