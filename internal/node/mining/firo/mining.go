@@ -6,14 +6,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"strconv"
 	"time"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/tsdb"
-	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/crypto/blkbuilder"
+	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 	"github.com/magicpool-co/pool/types"
 )
@@ -69,16 +70,9 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 		return nil, err
 	}
 
-	devRewards := make([]uint64, len(node.devWalletAmounts))
-	for i, reward := range node.devWalletAmounts {
-		devRewards[i] = reward
-	}
-	_, template, err := node.getBlockTemplate()
+	devRewards, err := node.getCurrentDevRewards()
 	if err != nil {
 		return nil, err
-	}
-	for _, znode := range template.ZNode {
-		devRewards = append(devRewards, znode.Amount)
 	}
 
 	blocks := make([]*tsdb.RawBlock, len(rawBlocks))
@@ -96,7 +90,7 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 		blocks[i] = &tsdb.RawBlock{
 			ChainID:    node.Chain(),
 			Height:     start + uint64(i),
-			Value:      value,
+			Value:      float64(value),
 			Difficulty: block.Difficulty,
 			TxCount:    uint64(len(block.Transactions)),
 			Timestamp:  time.Unix(block.Time, 0),
@@ -106,19 +100,35 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 	return blocks, nil
 }
 
-func (node Node) getRewardsFromTX(tx *Transaction, devRewards []uint64) (float64, error) {
-	var amount float64
+func (node Node) getCurrentDevRewards() ([]uint64, error) {
+	devRewards := make([]uint64, len(node.devWalletAmounts))
+	for i, reward := range node.devWalletAmounts {
+		devRewards[i] = reward
+	}
+	_, template, err := node.getBlockTemplate()
+	if err != nil {
+		return nil, err
+	}
+	for _, znode := range template.ZNode {
+		devRewards = append(devRewards, znode.Amount)
+	}
+
+	return devRewards, nil
+}
+
+func (node Node) getRewardsFromTX(tx *Transaction, devRewards []uint64) (uint64, error) {
+	var amount uint64
 	for _, input := range tx.Inputs {
 		if len(input.Coinbase) > 0 {
 			for _, out := range tx.Outputs {
-				valBig, err := common.StringDecimalToBigint(out.Value.String(), node.GetUnits().Big())
+				val, err := out.Value.Int64()
 				if err != nil {
 					return amount, err
 				}
 
 				var isReward bool
 				for i, devReward := range devRewards {
-					if valBig.Uint64() == devReward {
+					if uint64(val) == devReward {
 						isReward = true
 						devRewards = append(devRewards[:i], devRewards[i+1:]...)
 						break
@@ -126,11 +136,7 @@ func (node Node) getRewardsFromTX(tx *Transaction, devRewards []uint64) (float64
 				}
 
 				if !isReward {
-					valFloat64, err := out.Value.Float64()
-					if err != nil {
-						return amount, err
-					}
-					amount += valFloat64
+					amount += uint64(val)
 				}
 			}
 		}
@@ -378,6 +384,22 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 
 	coinbaseTxID := types.StringValue(round.CoinbaseTxID)
 	if len(block.Transactions) > 0 && block.Transactions[0] == coinbaseTxID {
+		coinbaseTx, err := node.getSpecialTxesCoinbase(block.Hash)
+		if err != nil {
+			return err
+		}
+
+		devRewards, err := node.getCurrentDevRewards()
+		if err != nil {
+			return err
+		}
+
+		value, err := node.getRewardsFromTX(coinbaseTx, devRewards)
+		if err != nil {
+			return err
+		}
+
+		round.Value = dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(value)}
 		round.Hash = block.Hash
 		round.Orphan = false
 		round.CreatedAt = time.Unix(block.Time, 0)
