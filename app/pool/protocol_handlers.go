@@ -80,10 +80,8 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 	chain := partial[1]
 
 	// fetch minerID from redis
-	start := time.Now()
 	minerID, err := p.redis.GetMinerID(addressChain)
 	if minerID == 0 {
-		p.logger.Info(fmt.Sprintf("minerID %s not found", addressChain))
 		if err != nil {
 			p.logger.Error(err)
 		}
@@ -111,14 +109,11 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 			p.logger.Error(err)
 		}
 	}
-	p.logger.Info(fmt.Sprintf("find minerID took %s", time.Since(start)))
 
-	start = time.Now()
 	var workerID uint64
 	if workerName != "" {
 		workerID, err = p.redis.GetWorkerID(minerID, workerName)
 		if workerID == 0 {
-			p.logger.Info(fmt.Sprintf("workerID %s %s not found", addressChain, workerName))
 			if err != nil {
 				p.logger.Error(err)
 			}
@@ -147,7 +142,6 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 			}
 		}
 	}
-	p.logger.Info(fmt.Sprintf("find workerID took %s", time.Since(start)))
 
 	c.SetUsername(username)
 	c.SetMinerID(minerID)
