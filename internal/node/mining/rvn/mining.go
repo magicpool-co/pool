@@ -12,6 +12,7 @@ import (
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/tsdb"
+	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/crypto/blkbuilder"
 	"github.com/magicpool-co/pool/pkg/dbcl"
@@ -91,11 +92,11 @@ func (node Node) getRewardsFromTX(tx *Transaction) (uint64, error) {
 	for _, input := range tx.Inputs {
 		if len(input.Coinbase) > 0 {
 			for _, out := range tx.Outputs {
-				val, err := out.Value.Int64()
+				valBig, err := common.StringDecimalToBigint(out.Value.String(), node.GetUnits().Big())
 				if err != nil {
 					return amount, err
 				}
-				amount += uint64(val)
+				amount += valBig.Uint64()
 			}
 		}
 	}
