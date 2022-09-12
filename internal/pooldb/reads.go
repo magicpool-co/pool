@@ -187,7 +187,7 @@ func GetRecipients(q dbcl.Querier) ([]*Miner, error) {
 	const query = `SELECT *
 	FROM miners
 	WHERE
-		recipient_fee_percent IS NULL;`
+		recipient_fee_percent IS NOT NULL;`
 
 	output := []*Miner{}
 	err := q.Select(&output, query)
