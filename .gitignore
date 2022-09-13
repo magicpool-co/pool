@@ -4,7 +4,7 @@
 magicpool-worker
 magicpool-pool
 magicpool-api
-secrets-gen
+magicpool-keygen
 
 *.txt
 *.pem

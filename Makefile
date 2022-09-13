@@ -27,8 +27,8 @@ worker:
 api:
 	go build -o magicpool-api ./svc/api
 
-secrets-gen:
-	go build -o secrets-gen ./cmd/secrets-gen
+keygen:
+	go build -o magicpool-keygen ./cmd/keygen
 
 clean:
 	rm -rf magicpool-pool magicpool-worker magicpool-api secrets-gen
