@@ -3,8 +3,7 @@ name: Test + Build
 on:
   push:
     branches:
-      - production
-      - dev
+      - prod
     paths-ignore:
       - "**/*.md"
 
@@ -28,7 +27,7 @@ jobs:
             echo "::set-output name=env::dev"
           fi
 
-          if [[ "${{github.base_ref}}" == "production" || "${{github.ref}}" == "refs/heads/production" ]]; then
+          if [[ "${{github.base_ref}}" == "prod" || "${{github.ref}}" == "refs/heads/prod" ]]; then
             echo "::set-output name=env::prod"
           fi
 
@@ -76,7 +75,7 @@ jobs:
         with:
           app: ${{ matrix.app }}
           chain: ${{ matrix.chain }}
-          env: prod
+          env: ${{ needs.init.outputs.env }}
           arch: arm64
           tag: ${{ needs.init.outputs.short_hash }}
           AWS_REGION: ${{ matrix.region }}
