@@ -1,3 +1,4 @@
+DROP TABLE balance_inputs;
 DROP TABLE shares;
 DROP TABLE rounds;
 DROP TABLE ip_addresses;

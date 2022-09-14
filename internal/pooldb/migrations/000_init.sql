@@ -116,10 +116,9 @@ CREATE TABLE miners (
 	id				int         	UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	chain_id		varchar(4)		NOT NULL,
 	address			varchar(100)	NOT NULL,
-
 	active			bool			NOT NULL,
-	last_login		datetime,
-	last_share		datetime,
+
+	recipient_fee_percent 	int UNSIGNED,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -135,10 +134,7 @@ CREATE TABLE workers (
 	id				int         	UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	miner_id		int				UNSIGNED NOT NULL,
 	name			varchar(32)		NOT NULL,
-
 	active			bool			NOT NULL,
-	last_login		datetime,
-	last_share		datetime,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -152,18 +148,23 @@ CREATE TABLE workers (
 
 CREATE TABLE ip_addresses (
 	miner_id		int				UNSIGNED NOT NULL,
-
+	worker_id		int				NOT NULL,
+	chain_id		varchar(4)		NOT NULL,
 	ip_address		varchar(40)		NOT NULL,
+
 	active			bool			NOT NULL,
 	last_share		datetime		NOT NULL,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
+	CONSTRAINT fk_ip_addresses_chain_id
+	FOREIGN KEY (chain_id)			REFERENCES	chains(id),
 	CONSTRAINT fk_ip_addresses_miner_id
 	FOREIGN KEY (miner_id)			REFERENCES	miners(id),
 
-	PRIMARY KEY (miner_id, ip_address),
+	PRIMARY KEY (miner_id, worker_id, chain_id, ip_address),
+	INDEX idx_ip_addresses_chain_id (chain_id),
 	INDEX idx_ip_addresses_miner_id (miner_id),
 	INDEX idx_ip_addresses_last_share (last_share)
 );
@@ -172,7 +173,6 @@ CREATE TABLE rounds (
 	id				int				UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	chain_id		varchar(4)		NOT NULL,
 	miner_id		int				UNSIGNED NOT NULL,
-	worker_id		int				UNSIGNED,
 
 	height			bigint			UNSIGNED NOT NULL,
 	uncle_height	bigint			UNSIGNED,
@@ -204,12 +204,9 @@ CREATE TABLE rounds (
 	FOREIGN KEY (chain_id)			REFERENCES	chains(id),
 	CONSTRAINT fk_rounds_miner_id
 	FOREIGN KEY (miner_id)			REFERENCES	miners(id),
-	CONSTRAINT fk_rounds_worker_id
-	FOREIGN KEY (worker_id)			REFERENCES	workers(id),
 
 	INDEX idx_rounds_chain_id (chain_id),
 	INDEX idx_rounds_miner_id (miner_id),
-	INDEX idx_rounds_worker_id (worker_id),
 	INDEX idx_rounds_chain_id_height (chain_id, height DESC)
 );
 
@@ -217,7 +214,6 @@ CREATE TABLE shares (
 	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	round_id		int         	UNSIGNED NOT NULL,
 	miner_id		int				UNSIGNED NOT NULL,
-	worker_id		int				UNSIGNED,
 
 	count			bigint			UNSIGNED NOT NULL,
 
@@ -227,10 +223,34 @@ CREATE TABLE shares (
 	FOREIGN KEY (round_id)			REFERENCES	rounds(id),
 	CONSTRAINT fk_shares_miner_id
 	FOREIGN KEY (miner_id)			REFERENCES	miners(id),
-	CONSTRAINT fk_shares_worker_id
-	FOREIGN KEY (worker_id)			REFERENCES	workers(id),
 
 	INDEX idx_shares_round_id (round_id),
-	INDEX idx_shares_miner_id (miner_id),
-	INDEX idx_shares_worker_id (worker_id)
+	INDEX idx_shares_miner_id (miner_id)
+);
+
+CREATE TABLE balance_inputs (
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	round_id		int         	UNSIGNED NOT NULL,
+	chain_id		varchar(4)		NOT NULL,
+	miner_id		int				UNSIGNED NOT NULL,
+	
+	output_balance_id	bigint UNSIGNED,
+
+	value			decimal(25,0)	NOT NULL,
+	pending			bool			NOT NULL,
+
+	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	CONSTRAINT fk_balance_inputs_round_id
+	FOREIGN KEY (round_id)			REFERENCES	rounds(id),
+	CONSTRAINT fk_balance_inputs_chain_id
+	FOREIGN KEY (chain_id)			REFERENCES	chains(id),
+	CONSTRAINT fk_balance_inputs_miner_id
+	FOREIGN KEY (miner_id)			REFERENCES	miners(id),
+
+	INDEX idx_balance_inputs_round_id (round_id),
+	INDEX idx_balance_inputs_chain_id (chain_id),
+	INDEX idx_balance_inputs_miner_id (miner_id),
+	INDEX idx_balance_inputs_output_balance_id (output_balance_id)
 );
