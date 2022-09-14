@@ -71,7 +71,7 @@ func main() {
 	case "BTC", "ERGO", "FIRO", "FLUX", "RVN":
 		rawPriv, obscuredPriv, err = generateSecp256k1Priv(*argObscure)
 		rawPriv = obscuredPriv
-	case "CTXC", "ETC", "ETH":
+	case "CTXC", "BSC", "ETC", "ETH":
 		rawPriv, obscuredPriv, err = generateSecp256k1Priv(*argObscure)
 		rawPriv = obscuredPriv
 	case "CFX":
