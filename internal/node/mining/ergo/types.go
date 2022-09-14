@@ -176,10 +176,11 @@ type TransactionOutput struct {
 }
 
 type Transaction struct {
-	ID      string               `json:"id"`
-	Inputs  []*TransactionInput  `json:"inputs"`
-	Outputs []*TransactionOutput `json:"outputs"`
-	Size    uint64               `json:"size"`
+	ID            string               `json:"id"`
+	Inputs        []*TransactionInput  `json:"inputs"`
+	Outputs       []*TransactionOutput `json:"outputs"`
+	Size          uint64               `json:"size"`
+	Confirmations uint64               `json:"numConfirmations"`
 }
 
 type BlockTransactions struct {

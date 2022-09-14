@@ -21,14 +21,18 @@ func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 }
 
 func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, error) {
-	if len(inputs) != 1 || len(outputs) != 1 {
-		return "", fmt.Errorf("must have exactly one input and output")
-	} else if inputs[0].Value.Cmp(outputs[0].Value) != 0 {
-		return "", fmt.Errorf("inputs and outputs must have same value")
+	if len(outputs) == 0 {
+		return "", fmt.Errorf("need at least one output")
 	}
-	output := outputs[0]
 
-	return node.postWalletPaymentSend(output.Address, output.Value.Uint64())
+	addresses := make([]string, len(outputs))
+	amounts := make([]uint64, len(outputs))
+	for i, output := range outputs {
+		addresses[i] = output.Address
+		amounts[i] = output.Value.Uint64()
+	}
+
+	return node.postWalletPaymentSend(addresses, amounts)
 }
 
 func (node Node) BroadcastTx(txid string) (string, error) {

@@ -47,6 +47,18 @@ func (node Node) getWalletBalances() (*Balance, error) {
 	return balance, err
 }
 
+func (node Node) getWalletBalancesUnconfirmed() (*Balance, error) {
+	var balance *Balance
+	var err error
+	if node.mocked {
+		err = json.Unmarshal(mock.GetWalletBalances(), &balance)
+	} else {
+		err = node.httpHost.ExecHTTP("GET", "/wallet/balances/withUnconfirmed", nil, &balance)
+	}
+
+	return balance, err
+}
+
 func (node Node) getBlocksAtHeight(height uint64) ([]string, error) {
 	var headers []string
 	var err error
@@ -89,6 +101,18 @@ func (node Node) getRewardAddress() (string, error) {
 	}
 
 	return address.RewardAddress, nil
+}
+
+func (node Node) getWalletTransactionByID(txid string) (*Transaction, error) {
+	var tx *Transaction
+	var err error
+	if node.mocked {
+		err = json.Unmarshal(mock.GetWalletStatus(), &tx)
+	} else {
+		err = node.httpHost.ExecHTTP("POST", "/wallet/transactionById?id="+txid, nil, &tx)
+	}
+
+	return tx, err
 }
 
 func (node Node) getMiningCandidate() (string, *MiningCandidate, error) {
@@ -175,16 +199,21 @@ func (node Node) postWalletUnlock(hostID string) error {
 	return nil
 }
 
-func (node Node) postWalletPaymentSend(address string, amount uint64) (string, error) {
+func (node Node) postWalletPaymentSend(addresses []string, amounts []uint64) (string, error) {
 	if node.mocked {
 		return "", nil
+	} else if len(addresses) != len(amounts) {
+		return "", fmt.Errorf("address and amount length mismatch")
+	} else if len(addresses) == 0 {
+		return "", fmt.Errorf("need at least one output")
 	}
 
-	body := []map[string]interface{}{
-		map[string]interface{}{
+	body := make([]map[string]interface{}, len(addresses))
+	for i, address := range addresses {
+		body[i] = map[string]interface{}{
 			"address": address,
-			"amount":  amount,
-		},
+			"value":   amounts[i],
+		}
 	}
 
 	var txid string
