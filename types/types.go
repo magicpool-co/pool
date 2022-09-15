@@ -108,7 +108,7 @@ type MiningNode interface {
 
 	// mining helpers
 	GetStatus() (uint64, bool, error)
-	PingHosts() ([]uint64, []uint64, []bool, []error)
+	PingHosts() ([]string, []uint64, []bool, []error)
 	GetBlocks(uint64, uint64) ([]*tsdb.RawBlock, error)
 	JobNotify(context.Context, time.Duration, chan *StratumJob, chan error)
 	SubmitWork(*StratumJob, *StratumWork) (ShareStatus, *pooldb.Round, error)

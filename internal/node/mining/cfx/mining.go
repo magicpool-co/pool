@@ -39,9 +39,9 @@ func parseBlockReward(blockReward *BlockRewardInfo) (*big.Int, error) {
 	return baseReward, nil
 }
 
-func (node Node) GetStatus() (uint64, bool, error) {
+func (node Node) getStatusByHost(hostID string) (uint64, bool, error) {
 	now := time.Now()
-	block, err := node.getLatestBlock()
+	block, err := node.getLatestBlock(hostID)
 	if err != nil {
 		return 0, false, err
 	}
@@ -61,8 +61,21 @@ func (node Node) GetStatus() (uint64, bool, error) {
 	return epochNumber, syncing, nil
 }
 
-func (node Node) PingHosts() ([]uint64, []uint64, []bool, []error) {
-	return nil, nil, nil, nil
+func (node Node) GetStatus() (uint64, bool, error) {
+	return node.getStatusByHost("")
+}
+
+func (node Node) PingHosts() ([]string, []uint64, []bool, []error) {
+	hostIDs := node.rpcHost.GetAllHosts()
+	heights := make([]uint64, len(hostIDs))
+	statuses := make([]bool, len(hostIDs))
+	errs := make([]error, len(hostIDs))
+
+	for i, hostID := range hostIDs {
+		heights[i], statuses[i], errs[i] = node.getStatusByHost(hostID)
+	}
+
+	return hostIDs, heights, statuses, errs
 }
 
 func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {

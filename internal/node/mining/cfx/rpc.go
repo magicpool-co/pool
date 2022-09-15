@@ -33,7 +33,7 @@ func (node Node) getBalance(address string) (*big.Int, error) {
 	return common.HexToBig(hexBalance)
 }
 
-func (node Node) getLatestBlock() (*Block, error) {
+func (node Node) getLatestBlock(hostID string) (*Block, error) {
 	var res *rpc.Response
 	var err error
 	if node.mocked {

@@ -9,7 +9,7 @@ import (
 )
 
 func parseURL(url string, port int, tunnel *sshtunnel.SSHTunnel) (string, string, error) {
-	id := generateID(url)
+	id := url
 	url = fmt.Sprintf("%s:%d", url, port)
 
 	// tunnel the host if required (and active tunnel exists)
