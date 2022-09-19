@@ -6,6 +6,7 @@ import (
 
 	"github.com/magicpool-co/pool/app/worker"
 	"github.com/magicpool-co/pool/internal/log"
+	"github.com/magicpool-co/pool/internal/metrics"
 	"github.com/magicpool-co/pool/internal/node"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/redis"
@@ -46,7 +47,7 @@ func initTunnel(secrets map[string]string) (*sshtunnel.SSHTunnel, error) {
 	return tunnel, nil
 }
 
-func newWorker(secrets map[string]string, mainnet bool) (*worker.Worker, *log.Logger, error) {
+func newWorker(secrets map[string]string, mainnet bool, metricsClient *metrics.Client) (*worker.Worker, *log.Logger, error) {
 	telegramClient, err := telegram.New(secrets)
 	if err != nil {
 		return nil, nil, err
@@ -111,11 +112,6 @@ func newWorker(secrets map[string]string, mainnet bool) (*worker.Worker, *log.Lo
 		nodes = append(nodes, node)
 	}
 
-	metricsClient, err := initMetrics(secrets["ENVIRONMENT"], 6060)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	workerClient := worker.NewWorker(secrets["ENVIRONMENT"], mainnet, logger, nodes, pooldbClient, tsdbClient, redisClient, awsClient, metricsClient)
 
 	return workerClient, logger, nil
@@ -124,6 +120,7 @@ func newWorker(secrets map[string]string, mainnet bool) (*worker.Worker, *log.Lo
 func main() {
 	argMainnet := flag.Bool("mainnet", true, "Whether or not to run on the mainnet")
 	argSecretVar := flag.String("secret", "", "ENV variable defined by ECS")
+	argMetricsPort := flag.Int("metrics-port", 6060, "The metrics port to use")
 
 	flag.Parse()
 
@@ -132,7 +129,12 @@ func main() {
 		panic(err)
 	}
 
-	workerServer, logger, err := newWorker(secrets, *argMainnet)
+	metricsClient, err := initMetrics(secrets["ENVIRONMENT"], *argMetricsPort)
+	if err != nil {
+		panic(err)
+	}
+
+	workerServer, logger, err := newWorker(secrets, *argMainnet, metricsClient)
 	if err != nil {
 		panic(err)
 	}
@@ -141,5 +143,6 @@ func main() {
 
 	runner := svc.NewRunner(logger)
 	runner.AddWorker(workerServer)
+	runner.AddHTTPServer(metricsClient.Server())
 	runner.Run()
 }
