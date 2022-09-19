@@ -217,7 +217,7 @@ func (p *Pool) startIPAddressPusher() {
 				}
 
 				workerID, err := strconv.ParseUint(parts[1], 10, 64)
-				if err != nil || workerID == 0 {
+				if err != nil {
 					p.logger.Error(fmt.Errorf("invalid compoundID: %s", compoundID))
 					continue
 				}
