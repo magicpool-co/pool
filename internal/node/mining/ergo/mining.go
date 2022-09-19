@@ -82,8 +82,8 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 	return blocks, nil
 }
 
-func (node Node) GetStatus() (uint64, bool, error) {
-	info, err := node.getInfo()
+func (node Node) getStatusByHost(hostID string) (uint64, bool, error) {
+	info, err := node.getInfo(hostID)
 	if err != nil {
 		return 0, false, err
 	}
@@ -94,12 +94,25 @@ func (node Node) GetStatus() (uint64, bool, error) {
 	return height, syncing, nil
 }
 
+func (node Node) GetStatus() (uint64, bool, error) {
+	return node.getStatusByHost("")
+}
+
 func (node Node) PingHosts() ([]string, []uint64, []bool, []error) {
-	return nil, nil, nil, nil
+	hostIDs := node.httpHost.GetAllHosts()
+	heights := make([]uint64, len(hostIDs))
+	statuses := make([]bool, len(hostIDs))
+	errs := make([]error, len(hostIDs))
+
+	for i, hostID := range hostIDs {
+		heights[i], statuses[i], errs[i] = node.getStatusByHost(hostID)
+	}
+
+	return hostIDs, heights, statuses, errs
 }
 
 func (node Node) getBlockTemplate() (*types.StratumJob, error) {
-	info, err := node.getInfo()
+	info, err := node.getInfo("")
 	if err != nil {
 		return nil, err
 	}

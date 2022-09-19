@@ -24,13 +24,13 @@ func (node Node) GetBlockExplorerURL(round *pooldb.Round) string {
 	return fmt.Sprintf("https://blockscout.com/etc/mordor/block/%d", round.Height)
 }
 
-func (node Node) GetStatus() (uint64, bool, error) {
-	height, err := node.getBlockNumber()
+func (node Node) getStatusByHost(hostID string) (uint64, bool, error) {
+	height, err := node.getBlockNumber(hostID)
 	if err != nil {
 		return 0, false, err
 	}
 
-	syncing, err := node.getSyncing()
+	syncing, err := node.getSyncing(hostID)
 	if err != nil {
 		return 0, false, err
 	}
@@ -38,8 +38,21 @@ func (node Node) GetStatus() (uint64, bool, error) {
 	return height, syncing, nil
 }
 
+func (node Node) GetStatus() (uint64, bool, error) {
+	return node.getStatusByHost("")
+}
+
 func (node Node) PingHosts() ([]string, []uint64, []bool, []error) {
-	return nil, nil, nil, nil
+	hostIDs := node.rpcHost.GetAllHosts()
+	heights := make([]uint64, len(hostIDs))
+	statuses := make([]bool, len(hostIDs))
+	errs := make([]error, len(hostIDs))
+
+	for i, hostID := range hostIDs {
+		heights[i], statuses[i], errs[i] = node.getStatusByHost(hostID)
+	}
+
+	return hostIDs, heights, statuses, errs
 }
 
 func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {

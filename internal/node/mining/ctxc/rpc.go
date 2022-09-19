@@ -158,13 +158,17 @@ func (node Node) getPendingNonce(address string) (uint64, error) {
 	return common.HexToUint64(hexNonce)
 }
 
-func (node Node) getBlockNumber() (uint64, error) {
+func (node Node) getBlockNumber(hostID string) (uint64, error) {
 	var res *rpc.Response
-	var err error
 	if node.mocked {
 		res = mock.GetBlockNumber()
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("eth_blockNumber")
+		req, err := rpc.NewRequestWithHostID(hostID, "eth_blockNumber")
+		if err != nil {
+			return 0, err
+		}
+
+		res, err = node.rpcHost.ExecRPC(req)
 		if err != nil {
 			return 0, err
 		}
@@ -178,13 +182,17 @@ func (node Node) getBlockNumber() (uint64, error) {
 	return common.HexToUint64(rawHeight)
 }
 
-func (node Node) getSyncing() (bool, error) {
+func (node Node) getSyncing(hostID string) (bool, error) {
 	var res *rpc.Response
-	var err error
 	if node.mocked {
 		res = mock.GetSyncing()
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("eth_syncing")
+		req, err := rpc.NewRequestWithHostID(hostID, "eth_syncing")
+		if err != nil {
+			return false, err
+		}
+
+		res, err = node.rpcHost.ExecRPC(req)
 		if err != nil {
 			return false, err
 		}

@@ -8,13 +8,17 @@ import (
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 )
 
-func (node Node) getBlockchainInfo() (*BlockchainInfo, error) {
+func (node Node) getBlockchainInfo(hostID string) (*BlockchainInfo, error) {
 	var res *rpc.Response
-	var err error
 	if node.mocked {
 		res = mock.GetBlockchainInfo()
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("getblockchaininfo")
+		req, err := rpc.NewRequestWithHostID(hostID, "getblockchaininfo")
+		if err != nil {
+			return nil, err
+		}
+
+		res, err = node.rpcHost.ExecRPC(req)
 		if err != nil {
 			return nil, err
 		}

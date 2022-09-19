@@ -23,13 +23,13 @@ func (node Node) getAddressFromErgoTree(ergoTree string) (string, error) {
 	return address.Address, nil
 }
 
-func (node Node) getInfo() (*NodeInfo, error) {
+func (node Node) getInfo(hostID string) (*NodeInfo, error) {
 	var info *NodeInfo
 	var err error
 	if node.mocked {
 		err = json.Unmarshal(mock.GetInfo(), &info)
 	} else {
-		err = node.httpHost.ExecHTTP("GET", "/info", nil, &info)
+		hostID, err = node.httpHost.ExecHTTPSticky(hostID, "GET", "/info", nil, &info)
 	}
 
 	return info, err
