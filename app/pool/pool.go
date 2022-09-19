@@ -211,13 +211,13 @@ func (p *Pool) startIPAddressPusher() {
 				}
 
 				minerID, err := strconv.ParseUint(parts[0], 10, 64)
-				if err != nil {
+				if err != nil || minerID == 0 {
 					p.logger.Error(fmt.Errorf("invalid compoundID: %s", compoundID))
 					continue
 				}
 
 				workerID, err := strconv.ParseUint(parts[1], 10, 64)
-				if err != nil {
+				if err != nil || workerID == 0 {
 					p.logger.Error(fmt.Errorf("invalid compoundID: %s", compoundID))
 					continue
 				}

@@ -81,24 +81,26 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 
 	// fetch minerID from redis
 	minerID, err := p.redis.GetMinerID(addressChain)
-	if minerID == 0 {
+	if err != nil || minerID == 0 {
 		if err != nil {
 			p.logger.Error(err)
 		}
 
-		miner := &pooldb.Miner{
-			ChainID: chain,
-			Address: address,
-			Active:  false,
-		}
+		// check the writer db directly
+		minerID, err = pooldb.GetMinerID(p.db.Writer(), address, chain)
+		if err != nil || minerID == 0 {
+			if err != nil {
+				p.logger.Error(err)
+			}
 
-		// attempt to insert the minerID
-		minerID, err = pooldb.InsertMiner(p.db.Writer(), miner)
-		if err != nil {
-			p.logger.Error(err)
+			miner := &pooldb.Miner{
+				ChainID: chain,
+				Address: address,
+				Active:  false,
+			}
 
-			// finally check the db directly, if no minerID exists then bail
-			minerID, err = pooldb.GetMinerID(p.db.Reader(), address, chain)
+			// attempt to insert the minerID
+			minerID, err = pooldb.InsertMiner(p.db.Writer(), miner)
 			if err != nil {
 				return nil, err
 			}
@@ -113,24 +115,26 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 	var workerID uint64
 	if workerName != "" {
 		workerID, err = p.redis.GetWorkerID(minerID, workerName)
-		if workerID == 0 {
+		if err != nil || workerID == 0 {
 			if err != nil {
 				p.logger.Error(err)
 			}
 
-			worker := &pooldb.Worker{
-				MinerID: minerID,
-				Name:    workerName,
-				Active:  false,
-			}
+			// check the writer db directly
+			workerID, err = pooldb.GetWorkerID(p.db.Writer(), minerID, workerName)
+			if err != nil || workerID == 0 {
+				if err != nil {
+					p.logger.Error(err)
+				}
 
-			// attempt to insert the workerID
-			workerID, err = pooldb.InsertWorker(p.db.Writer(), worker)
-			if err != nil {
-				p.logger.Error(err)
+				worker := &pooldb.Worker{
+					MinerID: minerID,
+					Name:    workerName,
+					Active:  false,
+				}
 
-				// finally check the db directly, if no workerID exists then bail
-				workerID, err = pooldb.GetWorkerID(p.db.Reader(), minerID, workerName)
+				// attempt to insert the workerID
+				workerID, err = pooldb.InsertWorker(p.db.Writer(), worker)
 				if err != nil {
 					return nil, err
 				}
