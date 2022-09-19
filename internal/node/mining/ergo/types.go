@@ -94,16 +94,16 @@ func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunne
 		pow:      autolykos2.NewErgo(),
 	}
 
-	node.address, err = node.getRewardAddress()
-	if err != nil {
-		return nil, err
-	}
-
 	if !node.mocked {
 		err = node.initWallets()
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	node.address, err = node.getRewardAddress()
+	if err != nil {
+		return nil, err
 	}
 
 	return node, nil
