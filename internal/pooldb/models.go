@@ -18,11 +18,10 @@ type Chain struct {
 }
 
 type Node struct {
-	ID uint64 `db:"id"`
+	URL string `db:"url"`
 
 	ChainID string  `db:"chain_id"`
 	Region  string  `db:"region"`
-	URL     string  `db:"url"`
 	Version *string `db:"version"`
 
 	Mainnet bool    `db:"mainnet"`

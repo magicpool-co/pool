@@ -9,6 +9,7 @@ import (
 	"github.com/bsm/redislock"
 
 	"github.com/magicpool-co/pool/internal/log"
+	"github.com/magicpool-co/pool/internal/metrics"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/aws"
 	"github.com/magicpool-co/pool/pkg/aws/ec2"
@@ -66,10 +67,11 @@ func getNodeContainer(awsClient *aws.Client, zoneID, cluster, url string) (strin
 }
 
 type NodeStatusJob struct {
-	locker *redislock.Client
-	logger *log.Logger
-	pooldb *dbcl.Client
-	nodes  []types.MiningNode
+	locker  *redislock.Client
+	logger  *log.Logger
+	pooldb  *dbcl.Client
+	nodes   []types.MiningNode
+	metrics *metrics.Client
 }
 
 func (j *NodeStatusJob) Run() {
@@ -93,17 +95,27 @@ func (j *NodeStatusJob) Run() {
 				continue
 			}
 
-			node := &pooldb.Node{
-				ID:     hostIDs[i],
+			var region string
+			parts := strings.Split(hostIDs[i], ".")
+			if len(parts) == 5 {
+				region = parts[3]
+			}
+
+			poolNode := &pooldb.Node{
+				URL:    hostIDs[i],
 				Active: true,
 				Height: types.Uint64Ptr(heights[i]),
 				Synced: !syncings[i],
 			}
 
 			cols := []string{"active", "synced", "height"}
-			err := pooldb.UpdateNode(j.pooldb.Writer(), node, cols)
+			err := pooldb.UpdateNode(j.pooldb.Writer(), poolNode, cols)
 			if err != nil {
 				j.logger.Error(err)
+			}
+
+			if j.metrics != nil {
+				j.metrics.SetGauge("node_height", float64(heights[i]), hostIDs[i], node.Chain(), region)
 			}
 		}
 	}

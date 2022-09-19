@@ -6,6 +6,7 @@ import (
 	"github.com/robfig/cron/v3"
 
 	"github.com/magicpool-co/pool/internal/log"
+	"github.com/magicpool-co/pool/internal/metrics"
 	"github.com/magicpool-co/pool/internal/redis"
 	"github.com/magicpool-co/pool/pkg/aws"
 	"github.com/magicpool-co/pool/pkg/dbcl"
@@ -22,9 +23,10 @@ type Worker struct {
 	tsdb    *dbcl.Client
 	redis   *redis.Client
 	aws     *aws.Client
+	metrics *metrics.Client
 }
 
-func NewWorker(env string, mainnet bool, logger *log.Logger, nodes []types.MiningNode, pooldbClient, tsdbClient *dbcl.Client, redisClient *redis.Client, awsClient *aws.Client) *Worker {
+func NewWorker(env string, mainnet bool, logger *log.Logger, nodes []types.MiningNode, pooldbClient, tsdbClient *dbcl.Client, redisClient *redis.Client, awsClient *aws.Client, metricsClient *metrics.Client) *Worker {
 	cronClient := cron.New(
 		cron.WithParser(
 			cron.NewParser(
@@ -40,6 +42,7 @@ func NewWorker(env string, mainnet bool, logger *log.Logger, nodes []types.Minin
 		pooldb:  pooldbClient,
 		tsdb:    tsdbClient,
 		aws:     awsClient,
+		metrics: metricsClient,
 	}
 
 	return worker
@@ -50,10 +53,11 @@ func (w *Worker) Start() {
 
 	if w.env != "local" {
 		w.cron.AddJob("* * * * *", &NodeStatusJob{
-			locker: locker,
-			logger: w.logger,
-			nodes:  w.nodes,
-			pooldb: w.pooldb,
+			locker:  locker,
+			logger:  w.logger,
+			nodes:   w.nodes,
+			pooldb:  w.pooldb,
+			metrics: w.metrics,
 		})
 
 		w.cron.AddJob("*/5 * * * *", &NodeCheckJob{

@@ -111,7 +111,12 @@ func newWorker(secrets map[string]string, mainnet bool) (*worker.Worker, *log.Lo
 		nodes = append(nodes, node)
 	}
 
-	workerClient := worker.NewWorker(secrets["ENVIRONMENT"], mainnet, logger, nodes, pooldbClient, tsdbClient, redisClient, awsClient)
+	metricsClient, err := initMetrics(secrets["ENVIRONMENT"], 6060)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	workerClient := worker.NewWorker(secrets["ENVIRONMENT"], mainnet, logger, nodes, pooldbClient, tsdbClient, redisClient, awsClient, metricsClient)
 
 	return workerClient, logger, nil
 }

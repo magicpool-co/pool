@@ -40,7 +40,7 @@ func (node Node) GetStatus() (uint64, bool, error) {
 	return height, syncing, nil
 }
 
-func (node Node) PingHosts() ([]uint64, []uint64, []bool, []error) {
+func (node Node) PingHosts() ([]string, []uint64, []bool, []error) {
 	return nil, nil, nil, nil
 }
 

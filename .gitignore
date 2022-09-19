@@ -6,6 +6,7 @@ magicpool-pool
 magicpool-api
 magicpool-keygen
 
+*.py
 *.txt
 *.pem
 *.json

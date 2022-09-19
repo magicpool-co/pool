@@ -9,7 +9,7 @@ import (
 
 func InsertNode(q dbcl.Querier, obj *Node) (uint64, error) {
 	const table = "nodes"
-	cols := []string{"chain_id", "region", "url", "version", "mainnet", "enabled", "backup",
+	cols := []string{"url", "chain_id", "region", "version", "mainnet", "enabled", "backup",
 		"active", "synced", "height", "down_at", "backup_at"}
 
 	return dbcl.ExecInsert(q, table, cols, obj)
@@ -17,7 +17,7 @@ func InsertNode(q dbcl.Querier, obj *Node) (uint64, error) {
 
 func UpdateNode(q dbcl.Querier, obj *Node, updateCols []string) error {
 	const table = "nodes"
-	whereCols := []string{"id"}
+	whereCols := []string{"url"}
 
 	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
 }
