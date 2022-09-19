@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	backupPath = "s3://magicpool-prod/node-backups/"
-	zoneName   = "privmagicpool.co"
+	backupPath = "s3://magicpool-devops-prod/node-backups/"
+	zoneName   = "privatemagicpool.co"
 )
 
 func getNodeClusterName(chain, env string, mainnet bool) string {
