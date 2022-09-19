@@ -71,7 +71,7 @@ func (suite *PooldbWritesSuite) TestWriteWorker() {
 		},
 	}
 
-	minerID, err := pooldb.InsertMiner(pooldbClient.Writer(), &pooldb.Miner{ChainID: "ETH"})
+	minerID, err := pooldb.InsertMiner(pooldbClient.Writer(), &pooldb.Miner{ChainID: "ETH", Address: "0"})
 	if err != nil {
 		suite.T().Errorf("failed on preliminary miner insert: %v", err)
 	}
@@ -105,7 +105,7 @@ func (suite *PooldbWritesSuite) TestWriteIPAddress() {
 		},
 	}
 
-	minerID, err := pooldb.InsertMiner(pooldbClient.Writer(), &pooldb.Miner{ChainID: "ETH"})
+	minerID, err := pooldb.InsertMiner(pooldbClient.Writer(), &pooldb.Miner{ChainID: "ETH", Address: "1"})
 	if err != nil {
 		suite.T().Errorf("failed on preliminary miner insert: %v", err)
 	}
@@ -186,7 +186,7 @@ func (suite *PooldbWritesSuite) TestWriteBalanceInput() {
 		},
 	}
 
-	minerID, err := pooldb.InsertMiner(pooldbClient.Writer(), &pooldb.Miner{ChainID: "ETH"})
+	minerID, err := pooldb.InsertMiner(pooldbClient.Writer(), &pooldb.Miner{ChainID: "ETH", Address: "2"})
 	if err != nil {
 		suite.T().Errorf("failed on preliminary miner insert: %v", err)
 	}
