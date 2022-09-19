@@ -98,7 +98,7 @@ func (j *NodeStatusJob) Run() {
 			var region string
 			parts := strings.Split(hostIDs[i], ".")
 			if len(parts) == 5 {
-				region = parts[3]
+				region = parts[2]
 			}
 
 			poolNode := &pooldb.Node{
