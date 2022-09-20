@@ -50,6 +50,21 @@ func (j *BlockCreditJob) credit(round *pooldb.Round, shares []*pooldb.Share) err
 		return err
 	}
 
+	// merge the two values maps since miners and recipients are globally
+	// unique (since recipients are stored as miners)
+	compoundValues := make(map[uint64]*big.Int)
+	for minerID, value := range minerValues {
+		compoundValues[minerID] = value
+	}
+
+	for recipientID, value := range recipientValues {
+		if _, ok := compoundValues[recipientID]; ok {
+			compoundValues[recipientID].Add(compoundValues[recipientID], value)
+		} else {
+			compoundValues[recipientID] = value
+		}
+	}
+
 	// fetch miners to check their payout chain
 	minerIDs := make([]uint64, 0)
 	for minerID := range minerValues {
@@ -61,24 +76,19 @@ func (j *BlockCreditJob) credit(round *pooldb.Round, shares []*pooldb.Share) err
 		return err
 	}
 
-	// merge the two values maps since miners and recipients are globally
-	// unique (since recipients are stored as miners)
-	compoundValues := make(map[uint64]*big.Int)
-	for minerID, value := range minerValues {
-		compoundValues[minerID] = value
-	}
-
-	for recipientID, value := range recipientValues {
-		compoundValues[recipientID] = value
+	// create compound index for miners and recipients
+	compoundIdx := make(map[uint64]*pooldb.Miner)
+	for _, miner := range append(miners, recipients...) {
+		compoundIdx[miner.ID] = miner
 	}
 
 	// process the balance inputs for all round distributions
 	usedValue := new(big.Int)
 	inputs := make([]*pooldb.BalanceInput, 0)
-	for _, miner := range append(miners, recipients...) {
-		value, ok := compoundValues[miner.ID]
+	for minerID, value := range compoundValues {
+		miner, ok := compoundIdx[minerID]
 		if !ok {
-			return fmt.Errorf("no balance for miner %d", miner.ID)
+			return fmt.Errorf("no miner found for %d", minerID)
 		} else if value == nil || value.Cmp(common.Big0) == 0 {
 			continue
 		}
@@ -93,11 +103,14 @@ func (j *BlockCreditJob) credit(round *pooldb.Round, shares []*pooldb.Share) err
 			Pending: miner.ChainID != round.ChainID,
 		}
 		inputs = append(inputs, input)
+		delete(compoundIdx, miner.ID)
 		delete(compoundValues, miner.ID)
 	}
 
-	if len(compoundValues) > 0 {
-		return fmt.Errorf("unable to find %d miners", len(compoundValues))
+	if len(compoundIdx) > 0 {
+		return fmt.Errorf("unable to find %d miners in idx", len(compoundIdx))
+	} else if len(compoundValues) > 0 {
+		return fmt.Errorf("unable to find %d miners in values", len(compoundValues))
 	} else if usedValue.Cmp(round.Value.BigInt) != 0 {
 		return fmt.Errorf("crediting mismatch: have %s, want %s", usedValue, round.Value.BigInt)
 	}

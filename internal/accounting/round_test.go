@@ -15,6 +15,22 @@ func TestCreditRound(t *testing.T) {
 		recipientValues map[uint64]*big.Int
 	}{
 		{
+			roundValue: new(big.Int).SetUint64(1992800000000000000),
+			minerIdx: map[uint64]uint64{
+				1: 5, 2: 1367,
+			},
+			recipientIdx: map[uint64]uint64{
+				1: 50,
+				2: 50,
+			},
+			minerValues: map[uint64]*big.Int{
+				1: new(big.Int).SetUint64(7189766763848396), 2: new(big.Int).SetUint64(1965682233236151603),
+			},
+			recipientValues: map[uint64]*big.Int{
+				1: new(big.Int).SetUint64(9964000000000001), 2: new(big.Int).SetUint64(9964000000000000),
+			},
+		},
+		{
 			roundValue: new(big.Int).SetUint64(250002379571),
 			minerIdx: map[uint64]uint64{
 				1: 106019, 2: 34068, 3: 20906, 4: 16317,
