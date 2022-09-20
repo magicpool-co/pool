@@ -63,3 +63,7 @@ func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 	}
 	return difficulty * (diffFactor / blockTime)
 }
+
+func (node Node) ValidateAddress(address string) bool {
+	return true
+}

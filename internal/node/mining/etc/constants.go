@@ -2,6 +2,7 @@ package etc
 
 import (
 	"math/big"
+	"regexp"
 
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/types"
@@ -12,6 +13,8 @@ var (
 	shareDiffBig = common.MustParseBigHex("7e00000007e00000007e00000007e00000007e00000007e00000007e")
 	shareDiff    = new(types.Difficulty).SetFromBig(shareDiffBig, maxDiffBig)
 	units        = new(types.Number).SetFromValue(1e18)
+
+	addressExpr = regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 )
 
 func (node Node) Chain() string {
@@ -55,4 +58,8 @@ func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 		return 0
 	}
 	return difficulty / blockTime
+}
+
+func (node Node) ValidateAddress(address string) bool {
+	return addressExpr.MatchString(address)
 }

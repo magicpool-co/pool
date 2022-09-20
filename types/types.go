@@ -80,6 +80,7 @@ type PayoutNode interface {
 	Chain() string
 	Address() string
 	GetUnits() *Number
+	ValidateAddress(string) bool
 
 	// tx helpers
 	GetBalance(string) (*big.Int, error)
