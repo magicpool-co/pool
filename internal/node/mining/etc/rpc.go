@@ -199,7 +199,7 @@ func (node Node) getSyncing(hostID string) (bool, error) {
 
 	var syncing bool
 	if err := json.Unmarshal(res.Result, &syncing); err != nil {
-		return false, err
+		return true, nil
 	}
 
 	return syncing, nil
