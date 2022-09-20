@@ -65,7 +65,7 @@ func GenerateRawTx(baseTx *transaction, inputs []*types.TxInput, outputs []*type
 	}
 
 	for _, out := range outputs {
-		outputScript, err := AddressToScript(out.Address, tx.PrefixP2PKH, tx.PrefixP2SH)
+		outputScript, err := AddressToScript(out.Address, tx.PrefixP2PKH, tx.PrefixP2SH, tx.SegwitEnabled)
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +83,7 @@ func GenerateSignedTx(privKey *secp256k1.PrivateKey, baseTx *transaction, inputs
 	signedTx := baseTx.shallowCopy()
 
 	address := privKeyToAddress(privKey, signedTx.PrefixP2PKH)
-	inputScript, err := AddressToScript(address, signedTx.PrefixP2PKH, signedTx.PrefixP2SH)
+	inputScript, err := AddressToScript(address, signedTx.PrefixP2PKH, signedTx.PrefixP2SH, signedTx.SegwitEnabled)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func GenerateSignedTx(privKey *secp256k1.PrivateKey, baseTx *transaction, inputs
 	}
 
 	for _, out := range outputs {
-		outputScript, err := AddressToScript(out.Address, signedTx.PrefixP2PKH, signedTx.PrefixP2SH)
+		outputScript, err := AddressToScript(out.Address, signedTx.PrefixP2PKH, signedTx.PrefixP2SH, signedTx.SegwitEnabled)
 		if err != nil {
 			return nil, err
 		}

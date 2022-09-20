@@ -133,12 +133,16 @@ func encodeScriptData(data []byte) []byte {
 	return data
 }
 
-func AddressToScript(addr string, p2pkhPrefix, p2shPrefix []byte) ([]byte, error) {
+func AddressToScript(addr string, p2pkhPrefix, p2shPrefix []byte, segwit bool) ([]byte, error) {
 	// segwit (P2WPKH or P2WSH)
 	oneIndex := strings.LastIndexByte(addr, '1')
 	if oneIndex > 1 {
 		prefix := addr[:oneIndex+1]
 		if strings.ToLower(prefix) == "bc1" {
+			if !segwit {
+				return nil, fmt.Errorf("segwit not supported")
+			}
+
 			witnessVer, witnessProg, err := decodeSegWitAddress(addr)
 			if err != nil {
 				return nil, err
@@ -194,9 +198,9 @@ func AddressToScript(addr string, p2pkhPrefix, p2shPrefix []byte) ([]byte, error
 		return nil, err
 	}
 
-	if bytes.Compare(prefix, p2pkhPrefix) == 0 {
+	if p2pkhPrefix != nil && bytes.Compare(prefix, p2pkhPrefix) == 0 {
 		return compileP2PKH(pubKeyHash), nil
-	} else if bytes.Compare(prefix, p2shPrefix) == 0 {
+	} else if p2shPrefix != nil && bytes.Compare(prefix, p2shPrefix) == 0 {
 		return compileP2SH(pubKeyHash), nil
 	}
 

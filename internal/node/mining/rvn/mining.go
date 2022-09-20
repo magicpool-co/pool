@@ -119,7 +119,7 @@ func (node Node) getRewardsFromTX(tx *Transaction) (uint64, error) {
 
 func (node Node) parseBlockTemplate(template *BlockTemplate) (*types.StratumJob, error) {
 	coinbaseHex, coinbaseHash, err := GenerateCoinbase(node.address, template.CoinbaseValue,
-		template.Height, "", template.DefaultWitnessCommitment, node.prefixP2PKH, node.prefixP2SH)
+		template.Height, "", template.DefaultWitnessCommitment, node.prefixP2PKH)
 	if err != nil {
 		return nil, err
 	}

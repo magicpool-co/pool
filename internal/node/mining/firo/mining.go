@@ -168,7 +168,7 @@ func (node Node) parseBlockTemplate(template *BlockTemplate) (*types.StratumJob,
 	}
 
 	coinbaseHex, coinbaseHash, err := GenerateCoinbase(addresses, amounts, template.Height,
-		uint64(template.CurTime), nil, template.CoinbasePayload, node.prefixP2PKH, node.prefixP2SH)
+		uint64(template.CurTime), nil, template.CoinbasePayload, node.prefixP2PKH)
 	if err != nil {
 		return nil, err
 	}
