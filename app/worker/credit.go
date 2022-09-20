@@ -45,40 +45,25 @@ func (j *BlockCreditJob) credit(round *pooldb.Round, shares []*pooldb.Share) err
 	}
 
 	// distribute the proceeds to miners and recipients
-	minerValues, recipientValues, err := accounting.CreditRound(round.Value.BigInt, minerIdx, recipientIdx)
+	compoundValues, err := accounting.CreditRound(round.Value.BigInt, minerIdx, recipientIdx)
 	if err != nil {
 		return err
 	}
 
-	// merge the two values maps since miners and recipients are globally
-	// unique (since recipients are stored as miners)
-	compoundValues := make(map[uint64]*big.Int)
-	for minerID, value := range minerValues {
-		compoundValues[minerID] = value
+	// fetch miners and recipients to check their payout chain
+	compoundIDs := make([]uint64, 0)
+	for compoundID := range compoundValues {
+		compoundIDs = append(compoundIDs, compoundID)
 	}
 
-	for recipientID, value := range recipientValues {
-		if _, ok := compoundValues[recipientID]; ok {
-			compoundValues[recipientID].Add(compoundValues[recipientID], value)
-		} else {
-			compoundValues[recipientID] = value
-		}
-	}
-
-	// fetch miners to check their payout chain
-	minerIDs := make([]uint64, 0)
-	for minerID := range minerValues {
-		minerIDs = append(minerIDs, minerID)
-	}
-
-	miners, err := pooldb.GetMiners(j.pooldb.Reader(), minerIDs)
+	miners, err := pooldb.GetMiners(j.pooldb.Reader(), compoundIDs)
 	if err != nil {
 		return err
 	}
 
 	// create compound index for miners and recipients
 	compoundIdx := make(map[uint64]*pooldb.Miner)
-	for _, miner := range append(miners, recipients...) {
+	for _, miner := range miners {
 		compoundIdx[miner.ID] = miner
 	}
 

@@ -8,11 +8,10 @@ import (
 
 func TestCreditRound(t *testing.T) {
 	tests := []struct {
-		roundValue      *big.Int
-		minerIdx        map[uint64]uint64
-		recipientIdx    map[uint64]uint64
-		minerValues     map[uint64]*big.Int
-		recipientValues map[uint64]*big.Int
+		roundValue   *big.Int
+		minerIdx     map[uint64]uint64
+		recipientIdx map[uint64]uint64
+		outputValues map[uint64]*big.Int
 	}{
 		{
 			roundValue: new(big.Int).SetUint64(1992800000000000000),
@@ -20,14 +19,14 @@ func TestCreditRound(t *testing.T) {
 				1: 5, 2: 1367,
 			},
 			recipientIdx: map[uint64]uint64{
-				1: 50,
-				2: 50,
+				500: 50,
+				501: 50,
 			},
-			minerValues: map[uint64]*big.Int{
+			outputValues: map[uint64]*big.Int{
+				// miners
 				1: new(big.Int).SetUint64(7189766763848396), 2: new(big.Int).SetUint64(1965682233236151603),
-			},
-			recipientValues: map[uint64]*big.Int{
-				1: new(big.Int).SetUint64(9964000000000001), 2: new(big.Int).SetUint64(9964000000000000),
+				// recipients
+				500: new(big.Int).SetUint64(9964000000000001), 501: new(big.Int).SetUint64(9964000000000000),
 			},
 		},
 		{
@@ -40,9 +39,10 @@ func TestCreditRound(t *testing.T) {
 				17: 3944, 18: 3899, 19: 2714, 20: 1713,
 			},
 			recipientIdx: map[uint64]uint64{
-				1: 100,
+				500: 100,
 			},
-			minerValues: map[uint64]*big.Int{
+			outputValues: map[uint64]*big.Int{
+				// miners
 				1: new(big.Int).SetUint64(87466507523), 2: new(big.Int).SetUint64(28106367521),
 				3: new(big.Int).SetUint64(17247614166), 4: new(big.Int).SetUint64(13461653130),
 				5: new(big.Int).SetUint64(13140725076), 6: new(big.Int).SetUint64(11303432588),
@@ -53,9 +53,8 @@ func TestCreditRound(t *testing.T) {
 				15: new(big.Int).SetUint64(3731510517), 16: new(big.Int).SetUint64(3391607281),
 				17: new(big.Int).SetUint64(3253830970), 18: new(big.Int).SetUint64(3216705617),
 				19: new(big.Int).SetUint64(2239071311), 20: new(big.Int).SetUint64(1413238451),
-			},
-			recipientValues: map[uint64]*big.Int{
-				1: new(big.Int).SetUint64(2500023807),
+				// recipients
+				500: new(big.Int).SetUint64(2500023807),
 			},
 		},
 		{
@@ -76,10 +75,11 @@ func TestCreditRound(t *testing.T) {
 				49: 59,
 			},
 			recipientIdx: map[uint64]uint64{
-				1: 50,
-				2: 50,
+				500: 50,
+				501: 50,
 			},
-			minerValues: map[uint64]*big.Int{
+			outputValues: map[uint64]*big.Int{
+				// miners
 				1: new(big.Int).SetUint64(956474882728166097), 2: new(big.Int).SetUint64(778700910627193978),
 				3: new(big.Int).SetUint64(87571626127444812), 4: new(big.Int).SetUint64(24774664218575186),
 				5: new(big.Int).SetUint64(21257335811600208), 6: new(big.Int).SetUint64(18628854876025018),
@@ -105,10 +105,8 @@ func TestCreditRound(t *testing.T) {
 				45: new(big.Int).SetUint64(129856809423646), 46: new(big.Int).SetUint64(78361867755648),
 				47: new(big.Int).SetUint64(73884046741040), 48: new(big.Int).SetUint64(68286770472779),
 				49: new(big.Int).SetUint64(66047859965475),
-			},
-			recipientValues: map[uint64]*big.Int{
-				1: new(big.Int).SetUint64(10212615010821569),
-				2: new(big.Int).SetUint64(10212615010821568),
+				// recipients
+				500: new(big.Int).SetUint64(10212615010821569), 501: new(big.Int).SetUint64(10212615010821568),
 			},
 		},
 		{
@@ -137,12 +135,11 @@ func TestCreditRound(t *testing.T) {
 				82: 58, 83: 43,
 			},
 			recipientIdx: map[uint64]uint64{
-				1: 9,
-				2: 31,
-				3: 45,
-				4: 15,
+				500: 9, 501: 31,
+				502: 45, 503: 15,
 			},
-			minerValues: map[uint64]*big.Int{
+			outputValues: map[uint64]*big.Int{
+				// miners
 				1: new(big.Int).SetUint64(750132046676893599), 2: new(big.Int).SetUint64(620938691766229468),
 				3: new(big.Int).SetUint64(70240360162350860), 4: new(big.Int).SetUint64(19491452221089679),
 				5: new(big.Int).SetUint64(16457718406641106), 6: new(big.Int).SetUint64(14640486194661704),
@@ -184,24 +181,19 @@ func TestCreditRound(t *testing.T) {
 				78: new(big.Int).SetUint64(110591054769924), 79: new(big.Int).SetUint64(109706326331765),
 				80: new(big.Int).SetUint64(60161533794839), 81: new(big.Int).SetUint64(51314249413245),
 				82: new(big.Int).SetUint64(51314249413245), 83: new(big.Int).SetUint64(38043322840854),
-			},
-			recipientValues: map[uint64]*big.Int{
-				1: new(big.Int).SetUint64(1575000000000005),
-				2: new(big.Int).SetUint64(5425000000000011),
-				3: new(big.Int).SetUint64(7875000000000017),
-				4: new(big.Int).SetUint64(2625000000000005),
+				// recipients
+				500: new(big.Int).SetUint64(1575000000000005), 501: new(big.Int).SetUint64(5425000000000011),
+				502: new(big.Int).SetUint64(7875000000000017), 503: new(big.Int).SetUint64(2625000000000005),
 			},
 		},
 	}
 
 	for i, tt := range tests {
-		minerValues, recipientValues, err := CreditRound(tt.roundValue, tt.minerIdx, tt.recipientIdx)
+		outputValues, err := CreditRound(tt.roundValue, tt.minerIdx, tt.recipientIdx)
 		if err != nil {
 			t.Errorf("failed on %d: %v", i, err)
-		} else if !reflect.DeepEqual(minerValues, tt.minerValues) {
-			t.Errorf("failed on %d: miner values mismatch: have %v, want %v", i, minerValues, tt.minerValues)
-		} else if !reflect.DeepEqual(recipientValues, tt.recipientValues) {
-			t.Errorf("failed on %d: recipient values mismatch: have %v, want %v", i, recipientValues, tt.recipientValues)
+		} else if !reflect.DeepEqual(outputValues, tt.outputValues) {
+			t.Errorf("failed on %d: output values mismatch: have %v, want %v", i, outputValues, tt.outputValues)
 		}
 	}
 }

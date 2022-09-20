@@ -38,13 +38,15 @@ func splitValue(value *big.Int, idx map[uint64]uint64) (map[uint64]*big.Int, *bi
 	return values, remainder, nil
 }
 
-func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) (map[uint64]*big.Int, map[uint64]*big.Int, error) {
+// credits a round based off of the share index and the fee recipient distributions. the output is a merged
+// map of miners and recipients since we can safely assume that miner ids and recipient ids are globally unique.
+func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) (map[uint64]*big.Int, error) {
 	if roundValue == nil {
-		return nil, nil, fmt.Errorf("empty round value")
+		return nil, fmt.Errorf("empty round value")
 	} else if len(minerIdx) == 0 {
-		return nil, nil, fmt.Errorf("empty miner index")
+		return nil, fmt.Errorf("empty miner index")
 	} else if len(recipientIdx) == 0 {
-		return nil, nil, fmt.Errorf("empty recipient index")
+		return nil, fmt.Errorf("empty recipient index")
 	}
 
 	// copy value to avoid overwriting it elsewhere
@@ -57,14 +59,14 @@ func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) 
 	// calculate the miner distributions and remainder
 	minerValues, remainder, err := splitValue(roundValue, minerIdx)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	feeValue.Add(feeValue, remainder)
 
 	// calculate the fee recipients distributions and remainder
 	recipientValues, remainder, err := splitValue(feeValue, recipientIdx)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// add the remainder to the fee recipient recieving the lowest quantity
@@ -91,5 +93,14 @@ func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) 
 	}
 	lowestValue.Add(lowestValue, remainder)
 
-	return minerValues, recipientValues, nil
+	compoundValues := minerValues
+	for recipientID, value := range recipientValues {
+		if _, ok := compoundValues[recipientID]; ok {
+			compoundValues[recipientID].Add(compoundValues[recipientID], value)
+		} else {
+			compoundValues[recipientID] = value
+		}
+	}
+
+	return compoundValues, nil
 }
