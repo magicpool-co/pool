@@ -66,12 +66,10 @@ func (p *Pool) routeRequest(req *rpc.Request) ProtocolHandler {
 /* protocol functions */
 
 func (p *Pool) subscribe(c *stratum.Conn, req *rpc.Request) error {
-	if c.GetSubscribed() {
-		return fmt.Errorf("client already subscribed")
+	if !c.GetSubscribed() {
+		c.SetExtraNonce(generateExtraNonce(p.extraNonce1Size, p.node.Mocked()))
+		c.SetSubscribed(true)
 	}
-
-	c.SetExtraNonce(generateExtraNonce(p.extraNonce1Size, p.node.Mocked()))
-	c.SetSubscribed(true)
 
 	subID := strconv.FormatUint(c.GetID(), 16)
 	subRes, err := p.node.GetSubscribeResponse(req.ID, subID, c.GetExtraNonce())
@@ -99,24 +97,24 @@ func (p *Pool) extraNonce(c *stratum.Conn, req *rpc.Request) error {
 }
 
 func (p *Pool) submitHashrate(c *stratum.Conn, req *rpc.Request) error {
-	if len(req.Params) != 2 {
-		return fmt.Errorf("invalid request formatting")
-	}
-
-	// store reported hashrate locally in a mutex protected map to
-	// avoid an unnecessary of Redis calls, periodically push (in server.Serve)
-	var rawHashrate string
-	if err := json.Unmarshal(req.Params[0], &rawHashrate); err == nil {
-		p.reportedMu.Lock()
-		p.reportedIndex[c.GetCompoundID()] = rawHashrate
-		p.reportedMu.Unlock()
-	}
-
 	var res interface{}
-	if p.forceErrorOnResponse {
-		res = rpc.NewResponseForcedFromJSON(req.ID, common.JsonTrue)
+	if len(req.Params) != 2 {
+		res = errInvalidRequest(req.ID)
 	} else {
-		res = rpc.NewResponseFromJSON(req.ID, common.JsonTrue)
+		// store reported hashrate locally in a mutex protected map to
+		// avoid an unnecessary of Redis calls, periodically push (in server.Serve)
+		var rawHashrate string
+		if err := json.Unmarshal(req.Params[0], &rawHashrate); err == nil {
+			p.reportedMu.Lock()
+			p.reportedIndex[c.GetCompoundID()] = rawHashrate
+			p.reportedMu.Unlock()
+		}
+
+		if p.forceErrorOnResponse {
+			res = rpc.NewResponseForcedFromJSON(req.ID, common.JsonTrue)
+		} else {
+			res = rpc.NewResponseFromJSON(req.ID, common.JsonTrue)
+		}
 	}
 
 	return c.Write(res)
@@ -137,11 +135,7 @@ func (p *Pool) getWork(c *stratum.Conn, req *rpc.Request) error {
 }
 
 func (p *Pool) login(c *stratum.Conn, req *rpc.Request) error {
-	msgs, err := p.handleLogin(c, req)
-	if err != nil {
-		p.logger.Error(err)
-	}
-
+	msgs := p.handleLogin(c, req)
 	for _, msg := range msgs {
 		err := c.Write(msg)
 		if err != nil {

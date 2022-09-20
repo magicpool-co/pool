@@ -33,32 +33,32 @@ func generateExtraNonce(size int, mocked bool) string {
 	return hex.EncodeToString(extraNonce1)
 }
 
-func (p *Pool) validateAddress(address, chain string) bool {
+func (p *Pool) validateAddress(address, chain string) (bool, bool) {
 	var ethRegex = regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 
 	switch strings.ToUpper(chain) {
 	case "BTC":
 		_, err := btctx.AddressToScript(address, []byte{0x00}, []byte{0x05}, true)
-		return err == nil
+		return true, err == nil
 	case "ETH":
-		return ethRegex.MatchString(address)
+		return true, ethRegex.MatchString(address)
 	case p.chain:
-		return p.node.ValidateAddress(address)
+		return true, p.node.ValidateAddress(address)
 	}
 
-	return false
+	return false, false
 }
 
-func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, error) {
+func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 	if c.GetAuthorized() {
-		return nil, nil
+		return errInvalidAuthRequest(req.ID)
 	}
 
 	var username string
 	if len(req.Params) < 1 {
-		return nil, fmt.Errorf("invalid login parameters")
+		return errInvalidAuthRequest(req.ID)
 	} else if err := json.Unmarshal(req.Params[0], &username); err != nil || len(username) == 0 {
-		return nil, fmt.Errorf("invalid username %s", req.Params[0])
+		return errInvalidAuthRequest(req.ID)
 	}
 
 	var workerName string
@@ -73,11 +73,17 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 	addressChain := args[0]
 	partial := strings.Split(addressChain, ":")
 	if len(partial) != 2 {
-		return nil, fmt.Errorf("invalid address:chain formatting: %v", username)
-	} else if valid := p.validateAddress(partial[0], strings.ToUpper(partial[1])); !valid {
-		return nil, fmt.Errorf("invalid address: %s", args[0])
+		return errInvalidAddressFormatting(req.ID)
+	}
+
+	// check for chain and address validity
+	validChain, validAddress := p.validateAddress(partial[0], strings.ToUpper(partial[1]))
+	if !validChain {
+		return errInvalidChain(req.ID)
+	} else if !validAddress {
+		return errInvalidAddress(req.ID)
 	} else if len(workerName) > 32 {
-		return nil, fmt.Errorf("invalid worker name: %s", username)
+		return errWorkerNameTooLong(req.ID)
 	}
 	address := partial[0]
 	chain := partial[1]
@@ -105,7 +111,8 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 			// attempt to insert the minerID
 			minerID, err = pooldb.InsertMiner(p.db.Writer(), miner)
 			if err != nil {
-				return nil, err
+				p.logger.Error(err)
+				return nil
 			}
 		}
 
@@ -139,7 +146,8 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 				// attempt to insert the workerID
 				workerID, err = pooldb.InsertWorker(p.db.Writer(), worker)
 				if err != nil {
-					return nil, err
+					p.logger.Error(err)
+					return nil
 				}
 			}
 
@@ -153,6 +161,8 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 	c.SetUsername(username)
 	c.SetMinerID(minerID)
 	c.SetWorkerID(workerID)
+	c.SetSubscribed(true)
+	c.SetAuthorized(true)
 	c.SetReadDeadline(time.Time{})
 
 	var msgs []interface{}
@@ -164,7 +174,8 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 
 	diffReq, err := p.node.GetDifficultyRequest()
 	if err != nil {
-		return msgs, err
+		p.logger.Error(err)
+		return msgs
 	} else if diffReq != nil {
 		msgs = append(msgs, diffReq)
 	}
@@ -173,14 +184,15 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 	if job != nil {
 		msg, err := p.node.MarshalJob(0, job, true)
 		if err != nil {
-			return msgs, err
+			p.logger.Error(err)
+			return msgs
 		}
 		msgs = append(msgs, msg)
 	}
 
 	go p.jobManager.AddConn(c)
 
-	return msgs, nil
+	return msgs
 }
 
 func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
