@@ -1,11 +1,15 @@
 package eth
 
 import (
+	"regexp"
+
 	"github.com/magicpool-co/pool/types"
 )
 
 var (
 	units = new(types.Number).SetFromValue(1e18)
+
+	addressExpr = regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 )
 
 func (node Node) Chain() string {
@@ -30,4 +34,8 @@ func (node Node) GetUnits() *types.Number {
 	}
 
 	return units
+}
+
+func (node Node) ValidateAddress(address string) bool {
+	return addressExpr.MatchString(address)
 }

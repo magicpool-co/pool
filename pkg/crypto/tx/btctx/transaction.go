@@ -10,6 +10,7 @@ import (
 type transaction struct {
 	PrefixP2PKH    []byte
 	PrefixP2SH     []byte
+	SegwitEnabled  bool
 	Version        uint32
 	VersionGroupID *uint32
 	LockTime       uint32
@@ -18,12 +19,13 @@ type transaction struct {
 	Outputs        []*output
 }
 
-func NewTransaction(version, lockTime uint32, prefixP2PKH, prefixP2SH []byte) *transaction {
+func NewTransaction(version, lockTime uint32, prefixP2PKH, prefixP2SH []byte, segwitEnabled bool) *transaction {
 	tx := &transaction{
-		PrefixP2PKH: prefixP2PKH,
-		PrefixP2SH:  prefixP2SH,
-		Version:     version,
-		LockTime:    lockTime,
+		PrefixP2PKH:   prefixP2PKH,
+		PrefixP2SH:    prefixP2SH,
+		SegwitEnabled: segwitEnabled,
+		Version:       version,
+		LockTime:      lockTime,
 	}
 
 	return tx
@@ -169,6 +171,7 @@ func (tx *transaction) shallowCopy() *transaction {
 	txCopy := &transaction{
 		PrefixP2PKH:    tx.PrefixP2PKH,
 		PrefixP2SH:     tx.PrefixP2SH,
+		SegwitEnabled:  tx.SegwitEnabled,
 		Version:        tx.Version,
 		VersionGroupID: tx.VersionGroupID,
 		Inputs:         make([]*input, len(tx.Inputs)),

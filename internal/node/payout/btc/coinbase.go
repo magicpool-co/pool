@@ -14,7 +14,7 @@ var (
 )
 
 func GenerateCoinbase(version, lockTime uint32, address string, amount, blockHeight, nTime uint64, extraData, defaultWitness string, prefixP2PKH, prefixP2SH []byte) ([]byte, []byte, error) {
-	tx := btctx.NewTransaction(version, lockTime, addressPrefixP2PKH, addressPrefixP2PKH)
+	tx := btctx.NewTransaction(version, lockTime, addressPrefixP2PKH, addressPrefixP2PKH, true)
 
 	serializedBlockHeight := bytes.Join([][]byte{
 		crypto.SerializeNumber(blockHeight),
@@ -26,7 +26,7 @@ func GenerateCoinbase(version, lockTime uint32, address string, amount, blockHei
 	prevTx := "0000000000000000000000000000000000000000000000000000000000000000"
 	tx.AddInput(prevTx, 0xFFFFFFFF, 0xFFFFFFFF, serializedBlockHeight)
 
-	scriptPubKey, err := btctx.AddressToScript(address, prefixP2PKH, prefixP2SH)
+	scriptPubKey, err := btctx.AddressToScript(address, prefixP2PKH, prefixP2SH, true)
 	tx.AddOutput(scriptPubKey, amount)
 
 	if len(defaultWitness) > 0 {

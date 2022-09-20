@@ -13,9 +13,10 @@ import (
 
 var (
 	baseTxBTC = &transaction{
-		PrefixP2PKH: []byte{0x00},
-		PrefixP2SH:  []byte{0x05},
-		Version:     0x1,
+		PrefixP2PKH:   []byte{0x00},
+		PrefixP2SH:    []byte{0x05},
+		SegwitEnabled: true,
+		Version:       0x1,
 	}
 
 	baseTxRVN = &transaction{

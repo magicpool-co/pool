@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/magicpool-co/pool/pkg/common"
+	"github.com/magicpool-co/pool/pkg/crypto/tx/btctx"
 	"github.com/magicpool-co/pool/types"
 )
 
@@ -60,4 +61,10 @@ func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 		return 0
 	}
 	return difficulty * (diffFactor / blockTime)
+}
+
+func (node Node) ValidateAddress(address string) bool {
+	_, err := btctx.AddressToScript(address, node.prefixP2PKH, nil, false)
+
+	return err == nil
 }

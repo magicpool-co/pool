@@ -1,8 +1,6 @@
 package btc
 
 import (
-	"github.com/magicpool-co/pool/types"
-
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
 
 	"github.com/magicpool-co/pool/pkg/crypto"
@@ -54,16 +52,4 @@ type Node struct {
 	address       string
 	blockchairKey string
 	privKey       *secp256k1.PrivateKey
-}
-
-func (node Node) Chain() string {
-	return "BTC"
-}
-
-func (node Node) Address() string {
-	return node.address
-}
-
-func (node Node) GetUnits() *types.Number {
-	return new(types.Number).SetFromValue(1e8)
 }

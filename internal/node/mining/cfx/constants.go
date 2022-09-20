@@ -3,6 +3,8 @@ package cfx
 import (
 	"math/big"
 
+	cfxAddress "github.com/Conflux-Chain/go-conflux-sdk/types/cfxaddress"
+
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/types"
 )
@@ -55,4 +57,15 @@ func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 		return 0
 	}
 	return difficulty / blockTime
+}
+
+func (node Node) ValidateAddress(address string) bool {
+	parsedAddress, err := cfxAddress.NewFromBase32(address)
+	if err != nil {
+		return false
+	} else if parsedAddress.GetNetworkID() != uint32(mainnetChainID) {
+		return false
+	}
+
+	return parsedAddress.IsValid()
 }

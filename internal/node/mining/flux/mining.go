@@ -170,8 +170,7 @@ func (node Node) parseBlockTemplate(template *BlockTemplate) (*types.StratumJob,
 		amounts = append(amounts, template.StratusFluxnodePayout)
 	}
 
-	coinbaseHex, coinbaseHash, err := GenerateCoinbase(addresses, amounts, template.Height,
-		"", node.prefixP2PKH, node.prefixP2SH)
+	coinbaseHex, coinbaseHash, err := GenerateCoinbase(addresses, amounts, template.Height, "", node.prefixP2PKH)
 	if err != nil {
 		return nil, err
 	}

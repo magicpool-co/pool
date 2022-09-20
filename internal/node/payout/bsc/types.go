@@ -10,7 +10,6 @@ import (
 	"github.com/magicpool-co/pool/pkg/hostpool"
 	"github.com/magicpool-co/pool/pkg/sshtunnel"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
-	"github.com/magicpool-co/pool/types"
 )
 
 func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
@@ -63,16 +62,4 @@ type Node struct {
 	address string
 	privKey *secp256k1.PrivateKey
 	rpcHost *hostpool.HTTPPool
-}
-
-func (node Node) Chain() string {
-	return "BSC"
-}
-
-func (node Node) Address() string {
-	return node.address
-}
-
-func (node Node) GetUnits() *types.Number {
-	return new(types.Number).SetFromValue(1e18)
 }

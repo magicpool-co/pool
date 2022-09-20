@@ -148,7 +148,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		return "", err
 	}
 
-	baseTx := btctx.NewTransaction(txVersion, 0, node.prefixP2PKH, node.prefixP2SH)
+	baseTx := btctx.NewTransaction(txVersion, 0, node.prefixP2PKH, node.prefixP2SH, true)
 	rawTx, err := btctx.GenerateTx(node.privKey, baseTx, inputs, outputs, feeRate)
 	if err != nil {
 		return "", err

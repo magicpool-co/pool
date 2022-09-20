@@ -29,7 +29,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		return "", fmt.Errorf("node is syncing")
 	}
 
-	baseTx := btctx.NewTransaction(txVersion, 0, node.prefixP2PKH, node.prefixP2SH)
+	baseTx := btctx.NewTransaction(txVersion, 0, node.prefixP2PKH, nil, false)
 	baseTx.SetVersionMask(versionMask)
 	baseTx.SetVersionGroupID(versionGroupID)
 	baseTx.SetExpiryHeight(uint32(height + expiryHeight))
