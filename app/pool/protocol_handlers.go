@@ -11,6 +11,7 @@ import (
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
+	"github.com/magicpool-co/pool/pkg/crypto/tx/btctx"
 	"github.com/magicpool-co/pool/pkg/stratum"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 	"github.com/magicpool-co/pool/types"
@@ -32,15 +33,17 @@ func generateExtraNonce(size int, mocked bool) string {
 	return hex.EncodeToString(extraNonce1)
 }
 
-func validateAddress(address, chain string) bool {
-	var btcRegex = regexp.MustCompile("^(?:[13]{1}[a-km-zA-HJ-NP-Z1-9]{26,33}|bc1[a-z0-9]{39,59})$")
+func (p *Pool) validateAddress(address, chain string) bool {
 	var ethRegex = regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 
 	switch strings.ToUpper(chain) {
 	case "BTC":
-		return btcRegex.MatchString(address)
+		_, err := btctx.AddressToScript(address, []byte{0x00}, []byte{0x05}, true)
+		return err == nil
 	case "ETH":
 		return ethRegex.MatchString(address)
+	case p.chain:
+		return p.node.ValidateAddress(address)
 	}
 
 	return false
@@ -71,7 +74,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) ([]interface{}, er
 	partial := strings.Split(addressChain, ":")
 	if len(partial) != 2 {
 		return nil, fmt.Errorf("invalid address:chain formatting: %v", username)
-	} else if valid := validateAddress(partial[0], strings.ToUpper(partial[1])); !valid {
+	} else if valid := p.validateAddress(partial[0], strings.ToUpper(partial[1])); !valid {
 		return nil, fmt.Errorf("invalid address: %s", args[0])
 	} else if len(workerName) > 32 {
 		return nil, fmt.Errorf("invalid worker name: %s", username)
