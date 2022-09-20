@@ -64,7 +64,7 @@ func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 }
 
 func (node Node) ValidateAddress(address string) bool {
-	_, err := btctx.AddressToScript(address, node.prefixP2PKH, nil, false)
+	_, err := btctx.AddressToScript(address, node.prefixP2PKH, node.prefixP2SH, false)
 
 	return err == nil
 }

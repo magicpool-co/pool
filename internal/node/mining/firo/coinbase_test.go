@@ -107,7 +107,7 @@ func TestGenerateCoinbase(t *testing.T) {
 
 	for i, tt := range tests {
 		coinbaseHex, coinbaseHash, err := GenerateCoinbase(tt.addresses, tt.amounts, tt.height,
-			tt.nTime, tt.extraData, tt.extraPayload, tt.prefixP2PKH)
+			tt.nTime, tt.extraData, tt.extraPayload, tt.prefixP2PKH, tt.prefixP2SH)
 		if err != nil {
 			t.Errorf("failed on %d: GenerateCoinbase: %v", i, err)
 		} else if bytes.Compare(coinbaseHex, tt.coinbaseHex) != 0 {

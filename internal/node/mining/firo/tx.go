@@ -22,7 +22,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	// @TODO: figure out proper fee rate
 	const feeRate = 2000
 
-	baseTx := btctx.NewTransaction(txVersion, 0, node.prefixP2PKH, nil, false)
+	baseTx := btctx.NewTransaction(txVersion, 0, node.prefixP2PKH, node.prefixP2SH, false)
 	rawTx, err := btctx.GenerateTx(node.privKey, baseTx, inputs, outputs, feeRate)
 	if err != nil {
 		return "", err

@@ -11,14 +11,14 @@ import (
 
 const txVersion uint32 = 0x50003
 
-func GenerateCoinbase(addresses []string, amounts []uint64, blockHeight, nTime uint64, extraData []byte, extraPayload string, prefixP2PKH []byte) ([]byte, []byte, error) {
+func GenerateCoinbase(addresses []string, amounts []uint64, blockHeight, nTime uint64, extraData []byte, extraPayload string, prefixP2PKH, prefixP2SH []byte) ([]byte, []byte, error) {
 	if len(addresses) != len(amounts) {
 		return nil, nil, fmt.Errorf("address and amount length mismatch")
 	} else if len(addresses) == 0 {
 		return nil, nil, fmt.Errorf("cannot send transaction without recipients")
 	}
 
-	tx := btctx.NewTransaction(txVersion, 0, prefixP2PKH, nil, false)
+	tx := btctx.NewTransaction(txVersion, 0, prefixP2PKH, prefixP2SH, false)
 
 	extraNonceSize := []byte{0x04}
 	if addresses[0] == "a8ULhhDgfdSiXJhSZVdhb8EuDc6R3ogsaM" {
@@ -37,7 +37,7 @@ func GenerateCoinbase(addresses []string, amounts []uint64, blockHeight, nTime u
 	tx.AddInput(prevTx, 0xFFFFFFFF, 0xFFFFFFFF, serializedBlockHeight)
 
 	for i, address := range addresses {
-		scriptPubKey, err := btctx.AddressToScript(address, prefixP2PKH, nil, false)
+		scriptPubKey, err := btctx.AddressToScript(address, prefixP2PKH, prefixP2SH, false)
 		if err != nil {
 			return nil, nil, err
 		}
