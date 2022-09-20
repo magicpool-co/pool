@@ -40,7 +40,7 @@ func (p *Pool) validateAddress(address, chain string) (bool, bool) {
 	case "BTC":
 		_, err := btctx.AddressToScript(address, []byte{0x00}, []byte{0x05}, true)
 		return true, err == nil
-	case "ETH":
+	case "ETH", "USDC":
 		return true, ethRegex.MatchString(address)
 	case p.chain:
 		return true, p.node.ValidateAddress(address)
