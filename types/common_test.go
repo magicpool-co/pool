@@ -1,18 +1,12 @@
 package types
 
 import (
-	"encoding/json"
 	"testing"
+
+	"github.com/goccy/go-json"
+
+	"github.com/magicpool-co/pool/pkg/common"
 )
-
-func mustMarshalJSON(input interface{}) []byte {
-	data, err := json.Marshal(input)
-	if err != nil {
-		panic(err)
-	}
-
-	return data
-}
 
 func TestHashUnmarshal(t *testing.T) {
 	tests := []struct {
@@ -20,11 +14,11 @@ func TestHashUnmarshal(t *testing.T) {
 		outputHex string
 	}{
 		{
-			input:     mustMarshalJSON(`2c32`),
+			input:     common.MustMarshalJSON(`2c32`),
 			outputHex: "2c32",
 		},
 		{
-			input:     mustMarshalJSON(`0x2c32`),
+			input:     common.MustMarshalJSON(`0x2c32`),
 			outputHex: "2c32",
 		},
 	}
@@ -46,19 +40,19 @@ func TestNumberUnmarshal(t *testing.T) {
 		outputValue uint64
 	}{
 		{
-			input:       mustMarshalJSON(0x2c32),
+			input:       common.MustMarshalJSON(0x2c32),
 			outputValue: 0x2c32,
 		},
 		{
-			input:       mustMarshalJSON(6161047830682206209),
+			input:       common.MustMarshalJSON(6161047830682206209),
 			outputValue: 6161047830682206209,
 		},
 		{
-			input:       mustMarshalJSON(`2c32`),
+			input:       common.MustMarshalJSON(`2c32`),
 			outputValue: 0x2c32,
 		},
 		{
-			input:       mustMarshalJSON(`0x2c32`),
+			input:       common.MustMarshalJSON(`0x2c32`),
 			outputValue: 0x2c32,
 		},
 	}
@@ -80,15 +74,15 @@ func TestSolutionUnmarshal(t *testing.T) {
 		outputHex string
 	}{
 		{
-			input:     mustMarshalJSON("12321232"),
+			input:     common.MustMarshalJSON("12321232"),
 			outputHex: "12321232",
 		},
 		{
-			input:     mustMarshalJSON([]string{"0x12", "0x32"}),
+			input:     common.MustMarshalJSON([]string{"0x12", "0x32"}),
 			outputHex: "0000001200000032",
 		},
 		{
-			input:     mustMarshalJSON([]uint64{0x12, 0x32}),
+			input:     common.MustMarshalJSON([]uint64{0x12, 0x32}),
 			outputHex: "0000001200000032",
 		},
 	}

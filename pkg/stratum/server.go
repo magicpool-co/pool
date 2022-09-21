@@ -2,13 +2,14 @@ package stratum
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
 	"net"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 )

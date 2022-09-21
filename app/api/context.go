@@ -1,10 +1,11 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/internal/charter"
 	"github.com/magicpool-co/pool/internal/log"

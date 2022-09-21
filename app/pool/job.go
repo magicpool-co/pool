@@ -2,10 +2,11 @@ package pool
 
 import (
 	"context"
-	"encoding/json"
 	"runtime/debug"
 	"strconv"
 	"sync"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/stratum"

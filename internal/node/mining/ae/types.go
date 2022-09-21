@@ -4,9 +4,9 @@ import (
 	"context"
 	"crypto/ed25519"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 
+	"github.com/goccy/go-json"
 	"github.com/sencha-dev/powkit/cuckoo"
 
 	"github.com/magicpool-co/pool/pkg/crypto"

@@ -1,7 +1,7 @@
 package kucoin
 
 import (
-	"encoding/json"
+	"github.com/goccy/go-json"
 )
 
 type Response struct {

@@ -2,10 +2,11 @@ package stratum
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"net"
 	"time"
+
+	"github.com/goccy/go-json"
 )
 
 type Conn struct {

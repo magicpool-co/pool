@@ -2,10 +2,10 @@ package ergo
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/brianium/mnemonic"
+	"github.com/goccy/go-json"
 	"github.com/sencha-dev/powkit/autolykos2"
 
 	"github.com/magicpool-co/pool/pkg/crypto"

@@ -2,8 +2,9 @@ package firo
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"math/big"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/pkg/crypto/tx/btctx"
 	"github.com/magicpool-co/pool/types"

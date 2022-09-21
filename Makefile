@@ -13,6 +13,9 @@ fmt:
 unit:
 	go test ./...
 
+mod-tidy:
+	go get github.com/btcsuite/btcd; go get github.com/btcsuite/btcd/btcec/v2; go get github.com/ethereum/go-ethereum; go mod tidy
+
 integration:
 	make reset-test-containers
 	go test ./... -p 1 -tags=integration

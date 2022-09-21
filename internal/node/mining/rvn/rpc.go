@@ -1,8 +1,9 @@
 package rvn
 
 import (
-	"encoding/json"
 	"fmt"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/internal/node/mining/rvn/mock"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"

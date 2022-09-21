@@ -1,9 +1,10 @@
 package pool
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/stratum"

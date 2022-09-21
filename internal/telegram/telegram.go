@@ -1,12 +1,13 @@
 package telegram
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/goccy/go-json"
 )
 
 var (

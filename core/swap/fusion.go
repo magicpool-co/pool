@@ -2,12 +2,13 @@ package swap
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/crypto/tx/ethtx"
