@@ -3,12 +3,13 @@ package hostpool
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/pkg/sshtunnel"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"

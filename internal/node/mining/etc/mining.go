@@ -3,11 +3,12 @@ package etc
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/tsdb"

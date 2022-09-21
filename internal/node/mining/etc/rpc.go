@@ -1,9 +1,10 @@
 package etc
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/internal/node/mining/etc/mock"
 	"github.com/magicpool-co/pool/pkg/common"

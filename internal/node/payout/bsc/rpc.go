@@ -2,9 +2,10 @@ package bsc
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/big"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/pkg/common"
 )

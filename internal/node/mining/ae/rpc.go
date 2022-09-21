@@ -1,10 +1,11 @@
 package ae
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/internal/node/mining/ae/mock"
 )

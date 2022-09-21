@@ -1,7 +1,7 @@
 package pool
 
 import (
-	"encoding/json"
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 )

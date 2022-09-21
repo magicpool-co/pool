@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/pkg/crypto"
 )

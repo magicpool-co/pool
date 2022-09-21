@@ -2,9 +2,10 @@ package types
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/tsdb"

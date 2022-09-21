@@ -2,10 +2,11 @@ package cfx
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/internal/node/mining/cfx/mock"
 	"github.com/magicpool-co/pool/pkg/common"

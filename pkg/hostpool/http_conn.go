@@ -3,11 +3,12 @@ package hostpool
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/goccy/go-json"
 )
 
 // An internal representation of an individual http connection.

@@ -2,9 +2,9 @@ package rvn
 
 import (
 	"context"
-	"encoding/json"
 
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/goccy/go-json"
 	"github.com/sencha-dev/powkit/kawpow"
 
 	"github.com/magicpool-co/pool/pkg/crypto"

@@ -2,11 +2,12 @@ package btc
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"net/http"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/pkg/blockchair"
 	"github.com/magicpool-co/pool/pkg/crypto/tx/btctx"

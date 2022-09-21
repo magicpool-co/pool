@@ -5,13 +5,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math"
 	"net"
 	"runtime/debug"
 	"sync"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"

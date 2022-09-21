@@ -1,10 +1,11 @@
 package bittrex
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/goccy/go-json"
 )
 
 /* account */
