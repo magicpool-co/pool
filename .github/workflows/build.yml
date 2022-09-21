@@ -57,7 +57,7 @@ jobs:
     strategy:
       matrix:
         app: [pool]
-        region: [eu-central-1]
+        region: [us-west-2, eu-central-1]
         chain: [cfx, ctxc, ergo, etc, firo, flux, rvn]
         include:
           - region: eu-west-1
