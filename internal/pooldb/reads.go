@@ -381,3 +381,125 @@ func GetSharesByRound(q dbcl.Querier, roundID uint64) ([]*Share, error) {
 
 	return output, err
 }
+
+/* batch queries */
+
+func GetExchangeBatch(q dbcl.Querier, batchID uint64) (*ExchangeBatch, error) {
+	const query = `SELECT *
+	FROM exchange_batches
+	WHERE
+		id = ?;`
+
+	var output *ExchangeBatch
+	err := q.Get(&output, query, batchID)
+	if err != nil && err != sql.ErrNoRows {
+		return output, err
+	}
+
+	return output, nil
+}
+
+func GetExchangeInputs(q dbcl.Querier, batchID uint64) ([]*ExchangeInput, error) {
+	const query = `SELECT *
+	FROM exchange_inputs
+	WHERE
+		batch_id = ?;`
+
+	output := []*ExchangeInput{}
+	err := q.Select(&output, query, batchID)
+
+	return output, err
+}
+
+func GetExchangeDeposits(q dbcl.Querier, batchID uint64) ([]*ExchangeDeposit, error) {
+	const query = `SELECT *
+	FROM exchange_deposits
+	WHERE
+		batch_id = ?;`
+
+	output := []*ExchangeDeposit{}
+	err := q.Select(&output, query, batchID)
+
+	return output, err
+}
+
+func GetExchangeTradesByStage(q dbcl.Querier, batchID uint64, stage int) ([]*ExchangeTrade, error) {
+	const query = `SELECT *
+	FROM exchange_trades
+	WHERE
+		batch_id = ?
+	AND
+		stage = ?;`
+
+	output := []*ExchangeTrade{}
+	err := q.Select(&output, query, batchID, stage)
+
+	return output, err
+}
+
+func GetExchangeTradeByPathAndStage(q dbcl.Querier, batchID uint64, path, stage int) (*ExchangeTrade, error) {
+	const query = `SELECT *
+	FROM exchange_trades
+	WHERE
+		batch_id = ?
+	AND
+		path = ?
+	AND
+		stage = ?;`
+
+	var output *ExchangeTrade
+	err := q.Get(&output, query, batchID, path, stage)
+	if err != nil && err != sql.ErrNoRows {
+		return output, err
+	}
+
+	return output, nil
+}
+
+func GetFinalExchangeTrades(q dbcl.Querier, batchID uint64) ([]*ExchangeTrade, error) {
+	const query = `WITH cte AS (
+		SELECT path, max(stage) max_stage
+		FROM exchange_trades
+		WHERE
+			batch_id = ?
+		GROUP BY path
+	)
+	SELECT exchange_trades.*
+	FROM exchange_trades
+	JOIN cte ON exchange_trades.stage = cte.max_stage
+	WHERE
+		batch_id = ?;`
+
+	output := []*ExchangeTrade{}
+	err := q.Select(&output, query, batchID, batchID)
+
+	return output, err
+}
+
+func GetExchangeWithdrawals(q dbcl.Querier, batchID uint64) ([]*ExchangeWithdrawal, error) {
+	const query = `SELECT *
+	FROM exchange_withdrawals
+	WHERE
+		batch_id = ?;`
+
+	output := []*ExchangeWithdrawal{}
+	err := q.Select(&output, query, batchID)
+
+	return output, err
+}
+
+/* balance queries */
+
+func GetPendingBalanceInputsWithoutBatch(q dbcl.Querier) ([]*BalanceInput, error) {
+	const query = `SELECT *
+	FROM balance_inputs
+	WHERE
+		pending = TRUE
+	AND
+		exchange_batch_id IS NULL;`
+
+	output := []*BalanceInput{}
+	err := q.Select(&output, query)
+
+	return output, err
+}

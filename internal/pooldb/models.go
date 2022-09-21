@@ -123,11 +123,11 @@ type Share struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
-/* switch */
+/* exchange */
 
-type Switch struct {
+type ExchangeBatch struct {
 	ID         uint64 `db:"id"`
-	ExchangeID string `db:"exchange_id"`
+	ExchangeID int    `db:"exchange_id"`
 	Status     int    `db:"status"`
 
 	CreatedAt   time.Time  `db:"created_at"`
@@ -135,9 +135,20 @@ type Switch struct {
 	CompletedAt *time.Time `db:"completed_at"`
 }
 
-type SwitchDeposit struct {
+type ExchangeInput struct {
+	ID            uint64 `db:"id"`
+	BatchID       uint64 `db:"batch_id"`
+	InputChainID  string `db:"input_chain_id"`
+	OutputChainID string `db:"output_chain_id"`
+
+	Value dbcl.NullBigInt `db:"value"`
+
+	CreatedAt time.Time `db:"created_at"`
+}
+
+type ExchangeDeposit struct {
 	ID        uint64 `db:"id"`
-	SwitchID  uint64 `db:"switch_id"`
+	BatchID   uint64 `db:"batch_id"`
 	ChainID   string `db:"chain_id"`
 	NetworkID string `db:"network_id"`
 
@@ -155,21 +166,22 @@ type SwitchDeposit struct {
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
-type SwitchTrade struct {
-	ID       uint64 `db:"id"`
-	SwitchID uint64 `db:"switch_id"`
-	PathID   uint64 `db:"path_id"`
-	Stage    int    `db:"stage"`
+type ExchangeTrade struct {
+	ID      uint64 `db:"id"`
+	BatchID uint64 `db:"batch_id"`
+	Path    int    `db:"path"`
+	Stage   int    `db:"stage"`
 
 	ExchangeTradeID *string `db:"exchange_trade_id"`
-	NextTradeID     *uint64 `db:"next_trade_id"`
 
 	FromChainID string `db:"from_chain_id"`
 	ToChainID   string `db:"to_chain_id"`
 	Market      string `db:"market"`
 	Direction   int    `db:"direction"`
+	Increment   int    `db:"increment"`
 
 	Value     dbcl.NullBigInt `db:"value"`
+	Remainder dbcl.NullBigInt `db:"remainder"`
 	Fees      dbcl.NullBigInt `db:"fees"`
 	Proceeds  dbcl.NullBigInt `db:"proceeds"`
 	Slippage  *float64        `db:"slippage"`
@@ -181,9 +193,9 @@ type SwitchTrade struct {
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
-type SwitchWithdrawal struct {
+type ExchangeWithdrawal struct {
 	ID        uint64 `db:"id"`
-	SwitchID  uint64 `db:"switch_id"`
+	BatchID   uint64 `db:"batch_id"`
 	ChainID   string `db:"chain_id"`
 	NetworkID string `db:"network_id"`
 
@@ -208,7 +220,9 @@ type BalanceInput struct {
 	ChainID string `db:"chain_id"`
 	MinerID uint64 `db:"miner_id"`
 
+	OutputChainID   string  `db:"output_chain_id"`
 	OutputBalanceID *uint64 `db:"output_balance_id"`
+	ExchangeBatchID *uint64 `db:"exchange_batch_id"`
 
 	Value   dbcl.NullBigInt `db:"value"`
 	Pending bool            `db:"pending"`

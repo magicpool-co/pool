@@ -1,0 +1,1 @@
+ALTER TABLE balance_inputs DROP COLUMN exchange_batch_id;
