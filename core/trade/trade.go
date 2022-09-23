@@ -150,8 +150,9 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 			return err
 		}
 
+		tradeID := types.StringValue(trade.ExchangeTradeID)
 		initialQuantity := common.BigIntToFloat64(trade.Value.BigInt, fromUnits)
-		parsedTrade, err := c.exchange.GetTradeByID(trade.Market, initialQuantity)
+		parsedTrade, err := c.exchange.GetTradeByID(trade.Market, tradeID, initialQuantity)
 		if err != nil {
 			return err
 		} else if parsedTrade == nil || !parsedTrade.Completed {
