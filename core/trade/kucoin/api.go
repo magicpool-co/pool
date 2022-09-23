@@ -316,7 +316,7 @@ func (c *Client) GetWalletBalance(chain string) (float64, float64, error) {
 
 func (c *Client) getDepositAddresses(chain string) ([]*Address, error) {
 	payload := map[string]string{
-		"currency": chain,
+		"currency": formatChain(chain),
 	}
 
 	objs := make([]*Address, 0)
@@ -333,9 +333,8 @@ func (c *Client) GetDepositAddress(chain string) (string, error) {
 	} else if len(addresses) > 0 {
 		obj = addresses[0]
 	} else {
-		// @TODO: do i need to use chain parameter for any currencies
 		payload := map[string]string{
-			"currency": chain,
+			"currency": formatChain(chain),
 		}
 
 		err = c.do("POST", "/api/v1/deposit-addresses", payload, &obj, true)
@@ -355,7 +354,7 @@ func (c *Client) GetDepositAddress(chain string) (string, error) {
 
 func (c *Client) getDeposits(chain string) ([]*Deposit, error) {
 	payload := map[string]string{
-		"currency": chain,
+		"currency": formatChain(chain),
 	}
 
 	var paginated *PaginatedResponse
@@ -377,8 +376,6 @@ func (c *Client) GetDepositByTxID(chain, txid string) (*types.Deposit, error) {
 	}
 
 	for _, deposit := range deposits {
-		// @TODO: depending on the chain, txid may not actually match
-		// like with ETH when they forward it via smart contract
 		if strings.Split(deposit.WalletTxID, "@")[0] == txid {
 			var completed bool
 			switch deposit.Status {
@@ -425,7 +422,7 @@ func (c *Client) transferToAccount(chain, from, to string, value float64) error 
 	err := c.do("POST", "/api/v2/accounts/inner-transfer", payload, &obj, true)
 	if err != nil {
 		return err
-	} else if obj == nil || obj.ID == "" {
+	} else if obj.ID == "" {
 		return fmt.Errorf("transfer not found")
 	}
 
@@ -603,7 +600,7 @@ func (c *Client) CreateTrade(market string, direction types.TradeDirection, quan
 		quantity = common.FloorFloatByIncrement(quantity, 8-quoteIncrement, 1e8)
 		payload["size"] = strconv.FormatFloat(quantity, 'f', 8, 64)
 	default:
-		return "", fmt.Errorf("invalid trade direction %s", direction)
+		return "", fmt.Errorf("invalid trade direction %d", direction)
 	}
 
 	var obj *CreateOrder
@@ -617,13 +614,11 @@ func (c *Client) CreateTrade(market string, direction types.TradeDirection, quan
 	return obj.OrderID, nil
 }
 
-func (c *Client) GetTradeByID(tradeID string, inputValue float64) (*types.Trade, error) {
+func (c *Client) GetTradeByID(market, tradeID string, inputValue float64) (*types.Trade, error) {
 	var obj *Order
 	err := c.do("GET", "/api/v1/orders/"+tradeID, nil, &obj, true)
 	if err != nil {
 		return nil, err
-	} else if obj == nil {
-		return nil, fmt.Errorf("order not found")
 	} else if obj.CancelExist {
 		return nil, fmt.Errorf("order was cancelled")
 	}
@@ -637,8 +632,6 @@ func (c *Client) GetTradeByID(tradeID string, inputValue float64) (*types.Trade,
 	avgFillPrice, err := c.getAverageFillPrice(tradeID)
 	if err != nil {
 		return nil, err
-	} else if avgFillPrice <= 0 {
-		return nil, fmt.Errorf("avgFillPrice is not positive: %f", avgFillPrice)
 	}
 
 	var fromChain, toChain string
@@ -646,11 +639,14 @@ func (c *Client) GetTradeByID(tradeID string, inputValue float64) (*types.Trade,
 	var outputValue, proceeds, fees string
 	switch strings.ToUpper(obj.Side) {
 	case "BUY":
-		outputValueFloat, err := strconv.ParseFloat(obj.Funds, 10)
-		if err != nil {
-			return nil, err
+		var feesFloat float64
+		if avgFillPrice > 0 {
+			quoteInitialQuantity, err := strconv.ParseFloat(obj.Funds, 10)
+			if err != nil {
+				return nil, err
+			}
+			feesFloat = (inputValue - quoteInitialQuantity) / avgFillPrice
 		}
-		feesFloat := (inputValue - outputValueFloat) / avgFillPrice
 
 		fromChain, toChain = quote, base
 		direction = types.TradeBuy
@@ -699,7 +695,7 @@ func (c *Client) GetTradeByID(tradeID string, inputValue float64) (*types.Trade,
 
 func (c *Client) checkWithdrawalQuota(chain string, quantity float64) error {
 	payload := map[string]string{
-		"currency": chain,
+		"currency": formatChain(chain),
 	}
 
 	var obj *WithdrawalQuota
@@ -724,7 +720,7 @@ func (c *Client) CreateWithdrawal(chain, address string, quantity float64) (stri
 	}
 
 	payload := map[string]string{
-		"currency":      chain,
+		"currency":      formatChain(chain),
 		"address":       address,
 		"amount":        strconv.FormatFloat(quantity, 'f', 8, 64),
 		"feeDeductType": "INTERNAL",
@@ -743,7 +739,7 @@ func (c *Client) CreateWithdrawal(chain, address string, quantity float64) (stri
 
 func (c *Client) GetWithdrawalByID(chain, withdrawalID string) (*types.Withdrawal, error) {
 	payload := map[string]string{
-		"currency": chain,
+		"currency": formatChain(chain),
 	}
 
 	var paginated *PaginatedResponse
@@ -773,6 +769,7 @@ func (c *Client) GetWithdrawalByID(chain, withdrawalID string) (*types.Withdrawa
 
 			parsedWithdrawal := &types.Withdrawal{
 				ID:        withdrawal.ID,
+				TxID:      withdrawal.WalletTxId,
 				Value:     withdrawal.Amount,
 				Fee:       withdrawal.Fee,
 				Completed: completed,

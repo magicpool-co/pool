@@ -44,8 +44,7 @@ func New(apiKey, secretKey, secretPasphrase string) *Client {
 }
 
 func (c *Client) doTimeoutRequest(req *http.Request) (*http.Response, error) {
-	ctx, cancel := context.WithTimeout(req.Context(), time.Second*5)
-	defer cancel()
+	ctx, _ := context.WithTimeout(req.Context(), time.Second*5)
 
 	return c.httpClient.Do(req.WithContext(ctx))
 }
