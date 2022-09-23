@@ -6,16 +6,12 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"flag"
-	"fmt"
+	"log"
 	"strings"
 
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
 
 	"github.com/magicpool-co/pool/pkg/crypto"
-)
-
-var (
-	ErrNotImplemented = fmt.Errorf("Not implemented")
 )
 
 func generateSecp256k1Priv(obscure bool) ([]byte, []byte, error) {
@@ -85,12 +81,12 @@ func main() {
 			}
 		}
 	default:
-		err = ErrNotImplemented
+		log.Fatalf("chain not supported")
 	}
 
 	if err != nil {
-		fmt.Printf("failed with error: %v\n", err)
-	} else {
-		fmt.Println(hex.EncodeToString(rawPriv))
+		log.Fatalf("failed with error: %v", err)
 	}
+
+	log.Printf(hex.EncodeToString(rawPriv))
 }

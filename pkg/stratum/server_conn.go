@@ -4,15 +4,20 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/goccy/go-json"
 )
 
 type Conn struct {
-	id         uint64
-	ip         string
-	conn       net.Conn
+	id     uint64
+	ip     string
+	conn   net.Conn
+	mu     sync.Mutex
+	quit   chan struct{}
+	closed bool
+
 	minerID    uint64
 	workerID   uint64
 	compoundID string
@@ -68,4 +73,14 @@ func (c *Conn) SetReadDeadline(timestamp time.Time) {
 
 func (c *Conn) Close() {
 	c.conn.Close()
+}
+
+func (c *Conn) SoftClose() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if !c.closed {
+		c.closed = true
+		close(c.quit)
+	}
 }
