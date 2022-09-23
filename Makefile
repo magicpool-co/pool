@@ -36,8 +36,11 @@ keygen:
 excli:
 	go build -o magicpool-excli ./cmd/excli
 
+loadtest:
+	go build -o magicpool-loadtest ./cmd/loadtest
+
 clean:
-	rm -rf magicpool-pool magicpool-worker magicpool-api magicpool-keygen magicpool-excli
+	rm -rf magicpool-pool magicpool-worker magicpool-api magicpool-keygen magicpool-excli magicpool-loadtest
 	docker rm -f $(TEST_MYSQL) $(TEST_REDIS)
 
-.PHONY: reset-test-containers fmt unit integration pool worker api keygen excli clean
+.PHONY: reset-test-containers fmt unit integration pool worker api keygen excli loadtest clean
