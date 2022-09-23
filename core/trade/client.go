@@ -3,7 +3,6 @@ package trade
 import (
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/magicpool-co/pool/core/trade/binance"
 	"github.com/magicpool-co/pool/core/trade/bittrex"
@@ -16,38 +15,13 @@ import (
 
 /* exchange */
 
-type ExchangeID int
-
-const (
-	BinanceID ExchangeID = iota
-	KucoinID
-	BittrexID
-)
-
-type Exchange interface {
-	GetAccountStatus() error
-	GetRate(base, quote string) (float64, error)
-	GetHistoricalRate(base, quote string, timestamp time.Time) (float64, error)
-	GetWalletStatus(chain string) (bool, error)
-	GetWalletAddress(chain string) (string, error)
-	GetWalletBalance(chain string) (float64, error)
-	GetDepositStatus(chain, txid string) (bool, error)
-	TransferToTradeAccount(chain string, quantity float64) error
-	TransferToMainAccount(chain string, quantity float64) error
-	GenerateTradePath(fromChain, toChain string, quantity *big.Int) ([]*pooldb.ExchangeTrade, error)
-	CreateOrder(market, direction string, quantity float64) (string, error)
-	GetOrderStatus(market, orderID string) (bool, error)
-	CreateWithdrawal(chain, address string, quantity float64) (string, error)
-	GetWithdrawalStatus(chain, withdrawalID string) (bool, error)
-}
-
-func NewExchange(exchangeID ExchangeID, apiKey, secretKey, secretPassphrase string) (Exchange, error) {
+func NewExchange(exchangeID types.ExchangeID, apiKey, secretKey, secretPassphrase string) (types.Exchange, error) {
 	switch exchangeID {
-	case BinanceID:
+	case types.BinanceID:
 		return binance.New(apiKey, secretKey), nil
-	case KucoinID:
+	case types.KucoinID:
 		return kucoin.New(apiKey, secretKey, secretPassphrase), nil
-	case BittrexID:
+	case types.BittrexID:
 		return bittrex.New(apiKey, secretKey), nil
 	default:
 		return nil, fmt.Errorf("unsupported exchange %d", exchangeID)
@@ -74,13 +48,13 @@ const (
 )
 
 type Client struct {
-	exchangeID ExchangeID
-	exchange   Exchange
+	exchangeID types.ExchangeID
+	exchange   types.Exchange
 	pooldb     *dbcl.Client
 	nodes      map[string]types.PayoutNode
 }
 
-func New(nodes map[string]types.PayoutNode, exchangeID ExchangeID, apiKey, secretKey, secretPassphrase string) (*Client, error) {
+func New(nodes map[string]types.PayoutNode, exchangeID types.ExchangeID, apiKey, secretKey, secretPassphrase string) (*Client, error) {
 	exchange, err := NewExchange(exchangeID, apiKey, secretKey, secretPassphrase)
 	if err != nil {
 		return nil, err

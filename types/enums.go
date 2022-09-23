@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+type AccountingType int
+
+const (
+	UTXOStructure AccountingType = iota
+	AccountStructure
+)
+
 type ShareStatus int
 
 const (

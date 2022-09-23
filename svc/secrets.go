@@ -15,6 +15,7 @@ var (
 		"API":      []string{"JWT_SECRET", "TOKEN_SECRET"},
 		"Telegram": []string{"TELEGRAM_API_KEY", "TELEGRAM_INFO_CHAT_ID", "TELEGRAM_ERROR_CHAT_ID"},
 		"Bittrex":  []string{"BITTREX_KEY", "BITTREX_SECRET"},
+		"Kucoin":   []string{"KUCOIN_API_KEY", "KUCOIN_API_SECRET", "KUCOIN_API_PASSPHRASE"},
 		"SES":      []string{"EMAIL_SENDER", "EMAIL_DOMAIN", "AWS_REGION"},
 		"PDU":      []string{"PDU_ROCK_HOST", "PDU_HUT_HOST"},
 		"Asana":    []string{"ASANA_PROJECT_ID", "ASANA_API_KEY"},

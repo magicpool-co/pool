@@ -503,3 +503,19 @@ func GetPendingBalanceInputsWithoutBatch(q dbcl.Querier) ([]*BalanceInput, error
 
 	return output, err
 }
+
+/* utxos */
+
+func GetUnspentUTXOsByChain(q dbcl.Querier, chainID string) ([]*UTXO, error) {
+	const query = `SELECT *
+	FROM utxos
+	WHERE
+		chain_id = ?
+	AND
+		spent = FALSE;`
+
+	output := []*UTXO{}
+	err := q.Select(&output, query)
+
+	return output, err
+}

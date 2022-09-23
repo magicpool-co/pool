@@ -194,3 +194,24 @@ func InsertBalanceInputs(q dbcl.Querier, objects ...*BalanceInput) error {
 
 	return dbcl.ExecBulkInsert(q, table, cols, rawObjects)
 }
+
+/* utxos */
+
+func InsertUTXOs(q dbcl.Querier, objects ...*UTXO) error {
+	const table = "utxos"
+	cols := []string{"chain_id", "value", "txid", "index", "spent"}
+
+	rawObjects := make([]interface{}, len(objects))
+	for i, object := range objects {
+		rawObjects[i] = object
+	}
+
+	return dbcl.ExecBulkInsert(q, table, cols, rawObjects)
+}
+
+func UpdateUTXO(q dbcl.Querier, obj *UTXO, updateCols []string) error {
+	const table = "utxos"
+	whereCols := []string{"id"}
+
+	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
+}

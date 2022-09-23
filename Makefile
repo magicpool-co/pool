@@ -33,8 +33,11 @@ api:
 keygen:
 	go build -o magicpool-keygen ./cmd/keygen
 
+excli:
+	go build -o magicpool-excli ./cmd/excli
+
 clean:
-	rm -rf magicpool-pool magicpool-worker magicpool-api secrets-gen
+	rm -rf magicpool-pool magicpool-worker magicpool-api magicpool-keygen magicpool-excli
 	docker rm -f $(TEST_MYSQL) $(TEST_REDIS)
 
-.PHONY: reset-test-containers fmt unit integration pool worker api secrets-gen clean
+.PHONY: reset-test-containers fmt unit integration pool worker api keygen excli clean

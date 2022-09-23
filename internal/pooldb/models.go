@@ -178,16 +178,19 @@ type ExchangeTrade struct {
 	ToChainID   string `db:"to_chain_id"`
 	Market      string `db:"market"`
 	Direction   int    `db:"direction"`
-	Increment   int    `db:"increment"`
 
-	Value     dbcl.NullBigInt `db:"value"`
-	Remainder dbcl.NullBigInt `db:"remainder"`
-	Fees      dbcl.NullBigInt `db:"fees"`
-	Proceeds  dbcl.NullBigInt `db:"proceeds"`
-	Slippage  *float64        `db:"slippage"`
-	Initiated bool            `db:"initiated"`
-	Open      bool            `db:"open"`
-	Filled    bool            `db:"filled"`
+	Value                 dbcl.NullBigInt `db:"value"`
+	Proceeds              dbcl.NullBigInt `db:"proceeds"`
+	TradeFees             dbcl.NullBigInt `db:"trade_fees"`
+	CumulativeDepositFees dbcl.NullBigInt `db:"cumulative_deposit_fees"`
+	CumulativeTradeFees   dbcl.NullBigInt `db:"cumulative_trade_fees"`
+
+	OrderPrice *float64 `db:"order_price"`
+	FillPrice  *float64 `db:"fill_price"`
+	Slippage   *float64 `db:"slippage"`
+	Initiated  bool     `db:"initiated"`
+	Open       bool     `db:"open"`
+	Filled     bool     `db:"filled"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
@@ -203,8 +206,10 @@ type ExchangeWithdrawal struct {
 	ExchangeWithdrawalID string  `db:"exchange_withdrawal_id"`
 
 	Value          dbcl.NullBigInt `db:"value"`
+	DepositFees    dbcl.NullBigInt `db:"deposit_fees"`
 	TradeFees      dbcl.NullBigInt `db:"trade_fees"`
 	WithdrawalFees dbcl.NullBigInt `db:"withdrawal_fees"`
+	CumulativeFees dbcl.NullBigInt `db:"cumulative_fees"`
 	Pending        bool            `db:"pending"`
 	Spent          bool            `db:"spent"`
 
@@ -272,18 +277,9 @@ type UTXO struct {
 	ID      uint64 `db:"id"`
 	ChainID string `db:"chain_id"`
 
-	InTxID         string  `db:"in_txid"`
-	InIndex        uint32  `db:"in_index"`
-	InRoundID      *uint64 `db:"in_round_id"`
-	InDepositID    *uint64 `db:"in_deposit_id"`
-	InWithdrawalID *uint64 `db:"in_withdrawal_id"`
-	InPayoutID     *uint64 `db:"in_payout_id"`
-
-	OutTxID      *string `db:"out_txid"`
-	OutDepositID *uint64 `db:"out_deposit_id"`
-	OutPayoutID  *uint64 `db:"out_payout_id"`
-
 	Value dbcl.NullBigInt `db:"value"`
+	TxID  string          `db:"txid"`
+	Index uint32          `db:"index"`
 	Spent bool            `db:"spent"`
 
 	CreatedAt time.Time `db:"created_at"`

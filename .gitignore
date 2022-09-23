@@ -5,6 +5,7 @@ magicpool-worker
 magicpool-pool
 magicpool-api
 magicpool-keygen
+magicpool-excli
 
 *.py
 *.txt

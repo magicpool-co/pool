@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/magicpool-co/pool/internal/banker"
+	"github.com/magicpool-co/pool/core/bank"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/dbcl"
@@ -34,7 +34,6 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 	}
 
 	// validate each proposed deposit, create the tx outputs
-	txInputIdx := make(map[string][]*types.TxInput, len(values))
 	txOutputIdx := make(map[string][]*types.TxOutput, len(values))
 	for chain, value := range values {
 		if value.Cmp(common.Big0) <= 0 {
@@ -50,12 +49,10 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 			return fmt.Errorf("deposits not enabled for chain %s", chain)
 		}
 
-		address, err := c.exchange.GetWalletAddress(chain)
+		address, err := c.exchange.GetDepositAddress(chain)
 		if err != nil {
 			return err
 		}
-
-		// @TODO: fetch inputs from utxos (or have banker verify there is enough value)
 
 		txOutputIdx[chain] = []*types.TxOutput{
 			&types.TxOutput{
@@ -67,10 +64,9 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 	}
 
 	// execute the deposit for each chain
-	// @TODO: manage completed all for deposits
 	for chain, value := range values {
 		// @TODO: check if deposit has already been executed
-		txid, err := banker.SendOutgoingTx(c.nodes[chain], txInputIdx[chain], txOutputIdx[chain])
+		txid, err := bank.SendOutgoingTx(c.nodes[chain], c.pooldb, txOutputIdx[chain])
 		if err != nil {
 			return err
 		}
@@ -89,8 +85,6 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 		if err != nil {
 			return err
 		}
-
-		// @TODO: mark inputs as spent
 	}
 
 	return c.updateBatchStatus(batchID, DepositsActive)
@@ -110,21 +104,20 @@ func (c *Client) RegisterDeposits(batchID uint64) error {
 			continue
 		}
 
-		var exchangeTxID, exchangeDepositID string
-		// depositTxID, depositExchangeID, err := c.exchange.GetDepositIDs(deposit.ChainID, deposit.DepositTxID)
+		parsedDeposit, err := c.exchange.GetDepositByTxID(deposit.ChainID, deposit.DepositTxID)
 		if err != nil {
 			return err
-		} else if exchangeTxID == "" || exchangeDepositID == "" {
+		} else if parsedDeposit.ID == "" {
 			registeredAll = false
 			continue
 		}
 
 		deposit.Registered = true
-		deposit.ExchangeTxID = types.StringPtr(exchangeTxID)
-		deposit.ExchangeDepositID = types.StringPtr(exchangeDepositID)
+		deposit.ExchangeTxID = types.StringPtr(parsedDeposit.TxID)
+		deposit.ExchangeDepositID = types.StringPtr(parsedDeposit.ID)
 
 		cols := []string{"exchange_txid", "exchange_deposit_id", "registered"}
-		err := pooldb.UpdateExchangeDeposit(c.pooldb.Writer(), deposit, cols)
+		err = pooldb.UpdateExchangeDeposit(c.pooldb.Writer(), deposit, cols)
 		if err != nil {
 			return err
 		}
@@ -150,38 +143,42 @@ func (c *Client) ConfirmDeposits(batchID uint64) error {
 		depositID := types.StringValue(deposit.ExchangeDepositID)
 		if depositID == "" {
 			return fmt.Errorf("no exchange deposit ID for %d", deposit.ID)
+		} else if !deposit.Value.Valid {
+			return fmt.Errorf("no value for deposit %d", deposit.ID)
 		} else if !deposit.Pending {
 			continue
 		}
 
-		completed, err := c.exchange.GetDepositStatus(deposit.ChainID, depositID)
+		parsedDeposit, err := c.exchange.GetDepositByID(deposit.ChainID, depositID)
 		if err != nil {
 			return err
-		} else if !completed {
+		} else if !parsedDeposit.Completed {
 			confirmedAll = false
 			continue
 		}
 
-		// @TODO: update deposit amount
-		// @TODO: transfer to proper account
-		// @TODO: confirm tx with banker
+		units, err := common.GetDefaultUnits(deposit.ChainID)
+		if err != nil {
+			return err
+		}
 
-		/*
-			err = c.exchange.TransferToTradeAccount(deposit.ChainID, 7501.71076222)
-			if err != nil {
-				return err
-			}
+		valueBig, err := common.StringDecimalToBigint(parsedDeposit.Value, units)
+		if err != nil {
+			return err
+		}
+		feesBig := new(big.Int).Sub(deposit.Value.BigInt, valueBig)
 
-			node, ok := c.nodes[deposit.ChainID]
-			if !ok {
-				return fmt.Errorf("no node found for %s", deposit.ChainID)
-			}
-
-			banker.ConfirmOutgoingTx(node, deposit.DepositTxID)
-		*/
+		err = c.exchange.TransferToTradeAccount(deposit.ChainID, common.BigIntToFloat64(valueBig, units))
+		if err != nil {
+			return err
+		}
 
 		deposit.Pending = false
-		err = pooldb.UpdateExchangeDeposit(c.pooldb.Writer(), deposit, []string{"pending"})
+		deposit.Value = dbcl.NullBigInt{Valid: true, BigInt: valueBig}
+		deposit.Fees = dbcl.NullBigInt{Valid: true, BigInt: feesBig}
+
+		cols := []string{"value", "fees", "pending"}
+		err = pooldb.UpdateExchangeDeposit(c.pooldb.Writer(), deposit, cols)
 		if err != nil {
 			return err
 		}

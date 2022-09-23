@@ -13,6 +13,10 @@ func (node Node) Address() string {
 	return node.address
 }
 
+func (node Node) GetAccountingType() types.AccountingType {
+	return types.UTXOStructure
+}
+
 func (node Node) GetUnits() *types.Number {
 	return new(types.Number).SetFromValue(1e8)
 }

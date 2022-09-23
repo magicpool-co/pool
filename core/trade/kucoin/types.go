@@ -56,6 +56,15 @@ type Currency struct {
 	Chains          []*Chain `json:"chains"`
 }
 
+type Balance struct {
+	ID        string `json:"id"`
+	Currency  string `json:"currency"`
+	Type      string `json:"type"`
+	Balance   string `json:"balance"`
+	Available string `json:"available"`
+	Holds     string `json:"holds"`
+}
+
 type Address struct {
 	Address         string `json:"address"`
 	Memo            string `json:"memo"`
@@ -77,12 +86,38 @@ type Deposit struct {
 	UpdatedAt  int64  `json:"updatedAt"`
 }
 
+type Market struct {
+	Symbol          string `json:"symbol"`
+	Name            string `json:"name"`
+	BaseCurrency    string `json:"baseCurrency"`
+	QuoteCurrency   string `json:"quoteCurrency"`
+	FeeCurrency     string `json:"feeCurrency"`
+	Market          string `json:"market"`
+	BaseMinSize     string `json:"baseMinSize"`
+	QuoteMinSize    string `json:"quoteMinSize"`
+	BaseMaxSize     string `json:"baseMaxSize"`
+	QuoteMaxSize    string `json:"quoteMaxSize"`
+	BaseIncrement   string `json:"baseIncrement"`
+	QuoteIncrement  string `json:"quoteIncrement"`
+	PriceIncrement  string `json:"priceIncrement"`
+	PriceLimitRate  string `json:"priceLimitRate"`
+	MinFunds        string `json:"minFunds"`
+	IsMarginEnabled bool   `json:"isMarginEnabled"`
+	EnableTrading   bool   `json:"enableTrading"`
+}
+
+type TradeFee struct {
+	Symbol   string `json:"symbol"`
+	TakerFee string `json:"takerFeeRate"`
+	MakerFee string `json:"makerFeeRate"`
+}
+
 type CreateOrder struct {
 	OrderID string `json:"orderId"`
 }
 
 type Order struct {
-	Id          string `json:"id"`
+	ID          string `json:"id"`
 	Symbol      string `json:"symbol"`
 	OpType      string `json:"opType"`
 	Type        string `json:"type"`
@@ -101,6 +136,25 @@ type Order struct {
 	CancelExist bool   `json:"cancelExist"`
 	CreatedAt   int64  `json:"createdAt"`
 	TradeType   string `json:"tradeType"`
+}
+
+type OrderFill struct {
+	Symbol         string `json:"symbol"`
+	TradeID        string `json:"tradeId"`
+	OrderID        string `json:"orderId"`
+	CounterOrderId string `json:"counterOrderId"`
+	Side           string `json:"side"`
+	Liquidity      string `json:"liquidity"`
+	ForceTaker     bool   `json:"forceTaker"`
+	Price          string `json:"price"`
+	Size           string `json:"size"`
+	Funds          string `json:"funds"`
+	Fee            string `json:"fee"`
+	FeeRate        string `json:"feeRate"`
+	FeeCurrency    string `json:"feeCurrency"`
+	Stop           string `json:"stop"`
+	CreatedAt      int64  `json:"createdAt"`
+	TradeType      string `json:"tradeType"`
 }
 
 type CreateWithdrawal struct {
