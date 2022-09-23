@@ -24,11 +24,13 @@ type Message struct {
 }
 
 type Server struct {
-	ctx     context.Context
-	addr    *net.TCPAddr
-	mu      sync.RWMutex
-	counter uint64
-	conns   map[uint64]*Conn
+	ctx      context.Context
+	addr     *net.TCPAddr
+	listener net.Listener
+	wg       sync.WaitGroup
+	mu       sync.RWMutex
+	counter  uint64
+	conns    map[uint64]*Conn
 }
 
 func NewServer(ctx context.Context, port int) (*Server, error) {
@@ -68,6 +70,7 @@ func (s *Server) newConn(rawConn net.Conn) *Conn {
 		id:   s.counter,
 		ip:   ip,
 		conn: rawConn,
+		quit: make(chan struct{}),
 	}
 	s.conns[conn.id] = conn
 
@@ -90,55 +93,114 @@ func (s *Server) Start(connTimeout time.Duration) (chan Message, chan uint64, ch
 	connectCh := make(chan uint64)
 	disconnectCh := make(chan uint64)
 	errCh := make(chan error)
-	listener, err := net.ListenTCP("tcp", s.addr)
+
+	var err error
+	s.listener, err = net.ListenTCP("tcp", s.addr)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	s.addr = listener.Addr().(*net.TCPAddr)
+	s.addr = s.listener.Addr().(*net.TCPAddr)
+
+	go func() {
+		<-s.ctx.Done()
+		go s.close()
+	}()
 
 	go func() {
 		defer recoverPanic(errCh)
 
 		for {
-			rawConn, err := listener.Accept()
-			select {
-			case <-s.ctx.Done():
-				listener.Close()
-				return
-			default:
-				if err != nil {
+			rawConn, err := s.listener.Accept()
+			if err != nil {
+				select {
+				case <-s.ctx.Done():
+					return
+				default:
 					if !os.IsTimeout(err) {
 						errCh <- err
 					}
 					continue
 				}
+			}
+
+			go func() {
+				defer recoverPanic(errCh)
+				s.wg.Add(1)
+
+				c := s.newConn(rawConn)
+				defer c.SoftClose()
+
+				c.SetReadDeadline(time.Now().Add(connTimeout))
+				connectCh <- c.id
 
 				go func() {
-					defer recoverPanic(errCh)
+					<-c.quit
 
-					c := s.newConn(rawConn)
-					c.SetReadDeadline(time.Now().Add(connTimeout))
-					connectCh <- c.id
-					defer func() {
-						c.Close()
-						disconnectCh <- c.id
+					c.Close()
+					s.wg.Done()
+					disconnectCh <- c.id
 
-						s.mu.Lock()
-						defer s.mu.Unlock()
-						delete(s.conns, c.id)
-					}()
-
-					scanner := c.NewScanner()
-					for scanner.Scan() {
-						var req *rpc.Request
-						if err := json.Unmarshal(scanner.Bytes(), &req); err == nil {
-							messageCh <- Message{Conn: c, Req: req}
-						}
-					}
+					s.mu.Lock()
+					defer s.mu.Unlock()
+					delete(s.conns, c.id)
 				}()
-			}
+
+				scanner := c.NewScanner()
+				for scanner.Scan() {
+					var req *rpc.Request
+					if err := json.Unmarshal(scanner.Bytes(), &req); err == nil {
+						messageCh <- Message{Conn: c, Req: req}
+					}
+				}
+			}()
 		}
 	}()
 
 	return messageCh, connectCh, disconnectCh, errCh, nil
+}
+
+// graceful shutdown
+func (s *Server) close() {
+	const shutdownDuration = time.Second * 30
+	const batchInterval = time.Millisecond * 500
+
+	s.listener.Close()
+
+	go func() {
+		s.mu.Lock()
+		conns := s.conns
+		defer s.mu.Unlock()
+
+		count := len(conns)
+		batchSize := int(shutdownDuration / batchInterval)
+		if count < batchSize {
+			batchSize = count
+		}
+
+		ticker := time.NewTicker(batchInterval)
+		for {
+			select {
+			case <-ticker.C:
+				var killed int
+				toKill := count / batchSize
+				for id, conn := range conns {
+					if killed >= toKill {
+						break
+					}
+
+					conn.SoftClose()
+					delete(conns, id)
+					killed++
+				}
+
+				if len(conns) == 0 {
+					return
+				}
+			}
+		}
+	}()
+}
+
+func (s *Server) Wait() {
+	s.wg.Wait()
 }

@@ -320,4 +320,5 @@ func (p *Pool) Serve() {
 func (p *Pool) Stop() {
 	p.cancelFunc()
 	p.wg.Wait()
+	p.server.Wait()
 }
