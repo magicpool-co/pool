@@ -381,22 +381,22 @@ func (c *Client) GetTradeByID(market, tradeID string, inputValue float64) (*type
 		return nil, err
 	}
 
-	baseInitialQuantity, err := strconv.ParseFloat(obj.OrigQty, 10)
+	baseInitialQuantity, err := strconv.ParseFloat(obj.OrigQty, 64)
 	if err != nil {
 		return nil, err
 	}
 
-	baseFinalQuantity, err := strconv.ParseFloat(obj.ExecutedQty, 10)
+	baseFinalQuantity, err := strconv.ParseFloat(obj.ExecutedQty, 64)
 	if err != nil {
 		return nil, err
 	}
 
-	quoteInitialQuantity, err := strconv.ParseFloat(obj.OrigQuoteOrderQty, 10)
+	quoteInitialQuantity, err := strconv.ParseFloat(obj.OrigQuoteOrderQty, 64)
 	if err != nil {
 		return nil, err
 	}
 
-	quoteFinalQuantity, err := strconv.ParseFloat(obj.CumulativeQuoteQty, 10)
+	quoteFinalQuantity, err := strconv.ParseFloat(obj.CumulativeQuoteQty, 64)
 	if err != nil {
 		return nil, err
 	}

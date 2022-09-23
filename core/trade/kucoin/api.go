@@ -147,7 +147,7 @@ func safeSubtractFees(chain, quantity, feeRate string) (float64, float64, error)
 	quantityFloat = common.FloorFloatByIncrement(quantityFloat, 8-precision, 1e8)
 
 	// calculate the fees (ignoring floating point errors)
-	initialFloat, err := strconv.ParseFloat(quantity, 10)
+	initialFloat, err := strconv.ParseFloat(quantity, 64)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -183,7 +183,7 @@ func (c *Client) GetRate(base, quote string) (float64, error) {
 		return 0, err
 	}
 
-	return strconv.ParseFloat(obj.Price, 10)
+	return strconv.ParseFloat(obj.Price, 64)
 }
 
 func (c *Client) GetHistoricalRate(base, quote string, timestamp time.Time) (float64, error) {
@@ -297,12 +297,12 @@ func (c *Client) GetWalletBalance(chain string) (float64, float64, error) {
 	for _, obj := range objs {
 		switch obj.Type {
 		case "main":
-			mainBalance, err = strconv.ParseFloat(obj.Balance, 10)
+			mainBalance, err = strconv.ParseFloat(obj.Balance, 64)
 			if err != nil {
 				return 0, 0, err
 			}
 		case "trade":
-			tradeBalance, err = strconv.ParseFloat(obj.Balance, 10)
+			tradeBalance, err = strconv.ParseFloat(obj.Balance, 64)
 			if err != nil {
 				return 0, 0, err
 			}
@@ -539,12 +539,12 @@ func (c *Client) getAverageFillPrice(tradeID string) (float64, error) {
 	var fillPriceWeightedSum float64
 	var fillPriceWeightedCount float64
 	for _, fill := range objs {
-		price, err := strconv.ParseFloat(fill.Price, 10)
+		price, err := strconv.ParseFloat(fill.Price, 64)
 		if err != nil {
 			return 0, err
 		}
 
-		size, err := strconv.ParseFloat(fill.Size, 10)
+		size, err := strconv.ParseFloat(fill.Size, 64)
 		if err != nil {
 			return 0, err
 		}
@@ -642,7 +642,7 @@ func (c *Client) GetTradeByID(market, tradeID string, inputValue float64) (*type
 	case "BUY":
 		var feesFloat float64
 		if avgFillPrice > 0 {
-			quoteInitialQuantity, err := strconv.ParseFloat(obj.Funds, 10)
+			quoteInitialQuantity, err := strconv.ParseFloat(obj.Funds, 64)
 			if err != nil {
 				return nil, err
 			}
@@ -705,7 +705,7 @@ func (c *Client) checkWithdrawalQuota(chain string, quantity float64) error {
 		return err
 	} else if !obj.IsWithdrawEnabled {
 		return fmt.Errorf("withdrawals are not enabled for %s", chain)
-	} else if remainingQuota, err := strconv.ParseFloat(obj.AvailableAmount, 10); err != nil {
+	} else if remainingQuota, err := strconv.ParseFloat(obj.AvailableAmount, 64); err != nil {
 		return err
 	} else if remainingQuota < quantity {
 		return fmt.Errorf("%f is greater than the withdrawal limit %f for %s", quantity, remainingQuota, chain)
