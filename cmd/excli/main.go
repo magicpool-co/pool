@@ -5,6 +5,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/magicpool-co/pool/core/trade/binance"
+	"github.com/magicpool-co/pool/core/trade/bittrex"
 	"github.com/magicpool-co/pool/core/trade/kucoin"
 	"github.com/magicpool-co/pool/svc"
 	"github.com/magicpool-co/pool/types"
@@ -28,8 +30,12 @@ func main() {
 
 	var ex types.Exchange
 	switch *argExchange {
+	case "binance":
+		ex = binance.New(secrets["BINANCE_API_KEY"], secrets["BINANCE_API_SECRET"])
 	case "kucoin":
 		ex = kucoin.New(secrets["KUCOIN_API_KEY"], secrets["KUCOIN_API_SECRET"], secrets["KUCOIN_API_PASSPHRASE"])
+	case "bittrex":
+		ex = bittrex.New(secrets["BITTREX_API_KEY"], secrets["BITTREX_API_SECRET"])
 	default:
 		log.Fatalf("exchange: unsupported exchange %s", *argExchange)
 	}
