@@ -127,32 +127,6 @@ type MiningNode interface {
 
 /* exchange */
 
-type ExchangeID int
-
-const (
-	BinanceID ExchangeID = iota
-	KucoinID
-	BittrexID
-)
-
-type TradeDirection int
-
-func (d TradeDirection) String() string {
-	switch d {
-	case TradeBuy:
-		return "BUY"
-	case TradeSell:
-		return "SELL"
-	default:
-		return ""
-	}
-}
-
-const (
-	TradeBuy TradeDirection = iota
-	TradeSell
-)
-
 type Exchange interface {
 	// account
 	GetAccountStatus() error
@@ -179,7 +153,7 @@ type Exchange interface {
 	// trade
 	GenerateTradePath(string, string) ([]*Trade, error)
 	CreateTrade(string, TradeDirection, float64) (string, error)
-	GetTradeByID(string, float64) (*Trade, error)
+	GetTradeByID(string, string, float64) (*Trade, error)
 
 	// withdrawal
 	CreateWithdrawal(string, string, float64) (string, error)
@@ -219,6 +193,7 @@ type Trade struct {
 
 type Withdrawal struct {
 	ID        string
+	TxID      string
 	Value     string
 	Fee       string
 	Completed bool

@@ -114,7 +114,7 @@ func main() {
 		log.Printf("create trade: %s", id)
 
 	case "GetTradeByID":
-		trade, err := ex.GetTradeByID(*argID, *argValue)
+		trade, err := ex.GetTradeByID(*argMarket, *argID, *argValue)
 		if err != nil {
 			log.Fatalf("trade: %v", err)
 		}
