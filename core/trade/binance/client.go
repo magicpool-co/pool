@@ -16,6 +16,10 @@ import (
 	"github.com/magicpool-co/pool/pkg/crypto"
 )
 
+var (
+	ErrEmptyTarget = fmt.Errorf("nil target after marshalling")
+)
+
 type securityType int
 
 const (
@@ -122,7 +126,7 @@ func (c *Client) do(method, path string, payload map[string]string, target inter
 	if err != nil {
 		return err
 	} else if target == nil {
-		return fmt.Errorf("nil target after marshalling")
+		return ErrEmptyTarget
 	}
 
 	return nil

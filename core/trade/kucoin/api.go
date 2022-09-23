@@ -382,6 +382,7 @@ func (c *Client) GetDepositByTxID(chain, txid string) (*types.Deposit, error) {
 			case "SUCCESS":
 				completed = true
 			case "PROCESSING":
+				completed = false
 			case "FAILURE":
 				return nil, fmt.Errorf("deposit failed")
 			default:
