@@ -159,7 +159,7 @@ type ExchangeDeposit struct {
 	Value      dbcl.NullBigInt `db:"value"`
 	Fees       dbcl.NullBigInt `db:"fees"`
 	Registered bool            `db:"registered"`
-	Pending    bool            `db:"pending"`
+	Confirmed  bool            `db:"confirmed"`
 	Spent      bool            `db:"spent"`
 
 	CreatedAt time.Time `db:"created_at"`
@@ -189,8 +189,7 @@ type ExchangeTrade struct {
 	FillPrice  *float64 `db:"fill_price"`
 	Slippage   *float64 `db:"slippage"`
 	Initiated  bool     `db:"initiated"`
-	Open       bool     `db:"open"`
-	Filled     bool     `db:"filled"`
+	Confirmed  bool     `db:"confirmed"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
@@ -210,7 +209,7 @@ type ExchangeWithdrawal struct {
 	TradeFees      dbcl.NullBigInt `db:"trade_fees"`
 	WithdrawalFees dbcl.NullBigInt `db:"withdrawal_fees"`
 	CumulativeFees dbcl.NullBigInt `db:"cumulative_fees"`
-	Pending        bool            `db:"pending"`
+	Confirmed      bool            `db:"confirmed"`
 	Spent          bool            `db:"spent"`
 
 	CreatedAt time.Time `db:"created_at"`

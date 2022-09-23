@@ -42,6 +42,7 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 			return fmt.Errorf("no node for %s", chain)
 		}
 
+		// verify the exchange supports the chain for deposits and withdrawals
 		walletActive, err := c.exchange.GetWalletStatus(chain)
 		if err != nil {
 			return err
@@ -49,6 +50,7 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 			return fmt.Errorf("deposits not enabled for chain %s", chain)
 		}
 
+		// fetch the deposit address from the exchange
 		address, err := c.exchange.GetDepositAddress(chain)
 		if err != nil {
 			return err
@@ -104,6 +106,7 @@ func (c *Client) RegisterDeposits(batchID uint64) error {
 			continue
 		}
 
+		// fetch the deposit from the exchange and register it in the db
 		parsedDeposit, err := c.exchange.GetDepositByTxID(deposit.ChainID, deposit.DepositTxID)
 		if err != nil {
 			return err
@@ -141,14 +144,15 @@ func (c *Client) ConfirmDeposits(batchID uint64) error {
 	confirmedAll := true
 	for _, deposit := range deposits {
 		depositID := types.StringValue(deposit.ExchangeDepositID)
-		if depositID == "" {
+		if deposit.Confirmed {
+			continue
+		} else if depositID == "" {
 			return fmt.Errorf("no exchange deposit ID for %d", deposit.ID)
 		} else if !deposit.Value.Valid {
 			return fmt.Errorf("no value for deposit %d", deposit.ID)
-		} else if !deposit.Pending {
-			continue
 		}
 
+		// fetch the deposit from the exchange
 		parsedDeposit, err := c.exchange.GetDepositByID(deposit.ChainID, depositID)
 		if err != nil {
 			return err
@@ -157,27 +161,31 @@ func (c *Client) ConfirmDeposits(batchID uint64) error {
 			continue
 		}
 
+		// fetch the chain's units
 		units, err := common.GetDefaultUnits(deposit.ChainID)
 		if err != nil {
 			return err
 		}
 
+		// process the deposit value as a big int in the chain's units, calculate fees
 		valueBig, err := common.StringDecimalToBigint(parsedDeposit.Value, units)
 		if err != nil {
 			return err
 		}
 		feesBig := new(big.Int).Sub(deposit.Value.BigInt, valueBig)
 
+		// transfer the balance from the main account to the
+		// trade account (kucoin only, empty method otherwise)
 		err = c.exchange.TransferToTradeAccount(deposit.ChainID, common.BigIntToFloat64(valueBig, units))
 		if err != nil {
 			return err
 		}
 
-		deposit.Pending = false
+		deposit.Confirmed = true
 		deposit.Value = dbcl.NullBigInt{Valid: true, BigInt: valueBig}
 		deposit.Fees = dbcl.NullBigInt{Valid: true, BigInt: feesBig}
 
-		cols := []string{"value", "fees", "pending"}
+		cols := []string{"value", "fees", "confirmed"}
 		err = pooldb.UpdateExchangeDeposit(c.pooldb.Writer(), deposit, cols)
 		if err != nil {
 			return err

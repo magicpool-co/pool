@@ -72,6 +72,12 @@ func New(nodes map[string]types.PayoutNode, exchangeID types.ExchangeID, apiKey,
 /* helpers */
 
 func (c *Client) balanceInputsToInputPaths(balanceInputs []*pooldb.BalanceInput) (map[string]map[string]*big.Int, error) {
+	// iterate through each balance input, creating a trade path from the
+	// given input chain to the desired, summing any overlapping paths (since
+	// paths are batched and redistributed during withdrawal crediting)
+
+	// note that "output path" just refers to the path being an "unconfirmed"
+	// path, meaning it is still unknown whether or not it will actually be executed
 	inputPaths := make(map[string]map[string]*big.Int)
 	for _, balanceInput := range balanceInputs {
 		if !balanceInput.Value.Valid {
@@ -95,6 +101,11 @@ func (c *Client) balanceInputsToInputPaths(balanceInputs []*pooldb.BalanceInput)
 }
 
 func (c *Client) exchangeInputsToOutputPaths(exchangeInputs []*pooldb.ExchangeInput) (map[string]map[string]*big.Int, error) {
+	// iterate through each exchange input, creating a trade path from the
+	// given input chain to the desired (exchange inputs should already be summed)
+
+	// note that "output path" just refers to the path being
+	// a "confirmed" path that will be executed
 	outputPaths := make(map[string]map[string]*big.Int)
 	for _, exchangeInput := range exchangeInputs {
 		if !exchangeInput.Value.Valid {
@@ -134,6 +145,11 @@ func (c *Client) CheckForNewBatch() error {
 		return err
 	}
 
+	// calculate the input paths from balance inputs, fetch the
+	// exchange's output thresholds and current prices. though input
+	// thresholds are global (since exchanges don't charge any deposit
+	// fees, the only deposit fee is the network tx fee), output thresholds
+	// are exchange specific since withdrawal fees can vary across exchanges.
 	inputPaths, err := c.balanceInputsToInputPaths(balanceInputs)
 	if err != nil {
 		return err
@@ -145,6 +161,11 @@ func (c *Client) CheckForNewBatch() error {
 		return err
 	}
 
+	// calculate the paths that meet the given thresholds, based off
+	// of the input paths, output thresholds, and current prices (since
+	// the final price of each trade is only know at runtime, cumulative output
+	// values are estimated through the current prices - see the exchange accountant
+	// for more details on this process).
 	outputPaths, err := accounting.CalculateExchangePaths(inputPaths, outputThresholds, prices)
 	if err != nil {
 		return err
@@ -152,6 +173,8 @@ func (c *Client) CheckForNewBatch() error {
 		return nil
 	}
 
+	// create a db tx to make sure either all trade paths
+	// are inserted or none are
 	tx, err := c.pooldb.Begin()
 	if err != nil {
 		return err
@@ -168,6 +191,10 @@ func (c *Client) CheckForNewBatch() error {
 		return err
 	}
 
+	// calculate the exchange inputs based off of the output paths
+	// that meet both the input thresholds and output thresholds (these
+	// are held in the db to avoid having to recalculate the output paths,
+	// since it is an expensive calculation and prices could change).
 	exchangeInputs := make([]*pooldb.ExchangeInput, 0)
 	for inChainID, outputIdx := range outputPaths {
 		for outChainID, value := range outputIdx {
@@ -198,6 +225,7 @@ func (c *Client) ProcessBatch(batchID uint64) error {
 		return fmt.Errorf("batch not found")
 	}
 
+	// switch on the batch status and execute the proper action
 	switch Status(batch.Status) {
 	case BatchInactive:
 		return c.InitiateDeposits(batchID)

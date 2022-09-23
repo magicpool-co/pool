@@ -17,6 +17,8 @@ func (c *Client) InitiateWithdrawals(batchID uint64) error {
 		return nil
 	}
 
+	// sum the proceeds, cumulative deposit fees, and cumulative
+	// trade fees for every trade (based off of the final output chain)
 	values := make(map[string]*big.Int)
 	depositFees := make(map[string]*big.Int)
 	tradeFees := make(map[string]*big.Int)
@@ -80,7 +82,7 @@ func (c *Client) InitiateWithdrawals(batchID uint64) error {
 			Value:       dbcl.NullBigInt{Valid: true, BigInt: value},
 			DepositFees: dbcl.NullBigInt{Valid: true, BigInt: depositFees[chain]},
 			TradeFees:   dbcl.NullBigInt{Valid: true, BigInt: tradeFees[chain]},
-			Pending:     true,
+			Confirmed:   false,
 			Spent:       false,
 		}
 
@@ -103,7 +105,7 @@ func (c *Client) ConfirmWithdrawals(batchID uint64) error {
 
 	completedAll := true
 	for _, withdrawal := range withdrawals {
-		if !withdrawal.Pending {
+		if withdrawal.Confirmed {
 			continue
 		} else if !withdrawal.DepositFees.Valid {
 			return fmt.Errorf("no deposit fees for withdrawal %d", withdrawal.ID)
@@ -111,6 +113,7 @@ func (c *Client) ConfirmWithdrawals(batchID uint64) error {
 			return fmt.Errorf("no trade fees for withdrawal %d", withdrawal.ID)
 		}
 
+		// fetch the withdrawal from the exchange
 		parsedWithdrawal, err := c.exchange.GetWithdrawalByID(withdrawal.ChainID, withdrawal.ExchangeWithdrawalID)
 		if err != nil {
 			return err
@@ -119,11 +122,13 @@ func (c *Client) ConfirmWithdrawals(batchID uint64) error {
 			continue
 		}
 
+		// fetch the chain's units
 		units, err := common.GetDefaultUnits(withdrawal.ChainID)
 		if err != nil {
 			return err
 		}
 
+		// process the withdrawal value as a big int in the chain's units, calculate fees
 		valueBig, err := common.StringDecimalToBigint(parsedWithdrawal.Value, units)
 		if err != nil {
 			return err
@@ -134,17 +139,18 @@ func (c *Client) ConfirmWithdrawals(batchID uint64) error {
 			return err
 		}
 
+		// sum all fees to get the final cumulative fee
 		cumulativeFeesBig := new(big.Int)
 		cumulativeFeesBig.Add(cumulativeFeesBig, withdrawal.DepositFees.BigInt)
 		cumulativeFeesBig.Add(cumulativeFeesBig, withdrawal.TradeFees.BigInt)
 		cumulativeFeesBig.Add(cumulativeFeesBig, withdrawalFeesBig)
 
-		withdrawal.Pending = false
+		withdrawal.Confirmed = true
 		withdrawal.Value = dbcl.NullBigInt{Valid: true, BigInt: valueBig}
 		withdrawal.WithdrawalFees = dbcl.NullBigInt{Valid: true, BigInt: withdrawalFeesBig}
 		withdrawal.CumulativeFees = dbcl.NullBigInt{Valid: true, BigInt: cumulativeFeesBig}
 
-		cols := []string{"value", "withdrawal_fees", "cumulative_fees", "pending"}
+		cols := []string{"value", "withdrawal_fees", "cumulative_fees", "confirmed"}
 		err = pooldb.UpdateExchangeWithdrawal(c.pooldb.Writer(), withdrawal, cols)
 		if err != nil {
 			return err
