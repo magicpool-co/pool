@@ -122,6 +122,10 @@ func (s *Server) Start(connTimeout time.Duration) (chan Message, chan uint64, ch
 					defer func() {
 						c.Close()
 						disconnectCh <- c.id
+
+						s.mu.Lock()
+						defer s.mu.Unlock()
+						delete(s.conns, c.id)
 					}()
 
 					scanner := c.NewScanner()
