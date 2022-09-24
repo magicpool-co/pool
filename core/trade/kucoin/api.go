@@ -172,9 +172,9 @@ func (c *Client) GetAccountStatus() error {
 
 /* rate */
 
-func (c *Client) GetRate(base, quote string) (float64, error) {
+func (c *Client) GetRate(market string) (float64, error) {
 	payload := map[string]string{
-		"symbol": base + "-" + quote,
+		"symbol": market,
 	}
 
 	var obj *Symbol
@@ -236,7 +236,7 @@ func (c *Client) GetPrices(inputPaths map[string]map[string]*big.Int) (map[strin
 
 			prices[fromChain][toChain] = 1
 			for _, market := range markets {
-				localPrice, err := c.GetRate(market.Base, market.Quote)
+				localPrice, err := c.GetRate(market.Market)
 				if err != nil {
 					return nil, err
 				}

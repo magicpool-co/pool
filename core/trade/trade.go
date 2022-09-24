@@ -140,6 +140,11 @@ func (c *Client) InitiateTradeStage(batchID uint64, stage int) error {
 			return err
 		}
 
+		orderPrice, err := c.exchange.GetRate(trade.Market)
+		if err != nil {
+			return err
+		}
+
 		// process the trade value as a float and execute the trade
 		value := common.BigIntToFloat64(trade.Value.BigInt, units)
 		tradeID, err := c.exchange.CreateTrade(trade.Market, types.TradeDirection(trade.Direction), value)
@@ -148,10 +153,11 @@ func (c *Client) InitiateTradeStage(batchID uint64, stage int) error {
 		}
 
 		trade.ExchangeTradeID = types.StringPtr(tradeID)
+		trade.OrderPrice = types.Float64Ptr(orderPrice)
 		trade.Initiated = true
 		trade.Confirmed = false
 
-		cols := []string{"exchange_trade_id", "initiated", "open"}
+		cols := []string{"exchange_trade_id", "initiated", "confirmed"}
 		err = pooldb.UpdateExchangeTrade(c.pooldb.Writer(), trade, cols)
 		if err != nil {
 			return err

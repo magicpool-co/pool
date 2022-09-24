@@ -19,9 +19,9 @@ func (c *Client) GetAccountStatus() error {
 
 /* rate */
 
-func (c *Client) GetRate(base, quote string) (float64, error) {
+func (c *Client) GetRate(market string) (float64, error) {
 	var obj *RateResponse
-	err := c.do("GET", "/markets/"+base+"-"+quote+"/ticker", nil, &obj, false)
+	err := c.do("GET", "/markets/"+market+"/ticker", nil, &obj, false)
 	if err != nil {
 		return 0, err
 	}
@@ -71,7 +71,7 @@ func (c *Client) GetPrices(inputPaths map[string]map[string]*big.Int) (map[strin
 
 			prices[fromChain][toChain] = 1
 			for _, market := range markets {
-				localPrice, err := c.GetRate(market.Base, market.Quote)
+				localPrice, err := c.GetRate(market.Market)
 				if err != nil {
 					return nil, err
 				}
