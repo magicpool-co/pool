@@ -24,11 +24,11 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 	for _, balanceInput := range balanceInputs {
 		if !balanceInput.Value.Valid {
 			return fmt.Errorf("no value for input %d", balanceInput.ID)
-		} else if _, ok := values[balanceInput.InputChainID]; !ok {
-			values[balanceInput.InputChainID] = new(big.Int)
+		} else if _, ok := values[balanceInput.InChainID]; !ok {
+			values[balanceInput.InChainID] = new(big.Int)
 		}
 
-		chainID := balanceInput.InputChainID
+		chainID := balanceInput.InChainID
 		value := balanceInput.Value.BigInt
 		values[chainID].Add(values[chainID], value)
 	}

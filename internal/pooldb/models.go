@@ -123,6 +123,21 @@ type Share struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
+/* utxo */
+
+type UTXO struct {
+	ID      uint64 `db:"id"`
+	ChainID string `db:"chain_id"`
+
+	Value dbcl.NullBigInt `db:"value"`
+	TxID  string          `db:"txid"`
+	Index uint32          `db:"idx"`
+	Spent bool            `db:"spent"`
+
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
 /* exchange */
 
 type ExchangeBatch struct {
@@ -136,14 +151,15 @@ type ExchangeBatch struct {
 }
 
 type ExchangeInput struct {
-	ID            uint64 `db:"id"`
-	BatchID       uint64 `db:"batch_id"`
-	InputChainID  string `db:"input_chain_id"`
-	OutputChainID string `db:"output_chain_id"`
+	ID         uint64 `db:"id"`
+	BatchID    uint64 `db:"batch_id"`
+	InChainID  string `db:"in_chain_id"`
+	OutChainID string `db:"out_chain_id"`
 
 	Value dbcl.NullBigInt `db:"value"`
 
 	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
 }
 
 type ExchangeDeposit struct {
@@ -169,8 +185,8 @@ type ExchangeDeposit struct {
 type ExchangeTrade struct {
 	ID      uint64 `db:"id"`
 	BatchID uint64 `db:"batch_id"`
-	Path    int    `db:"path"`
-	Stage   int    `db:"stage"`
+	PathID  int    `db:"path_id"`
+	StageID int    `db:"stage_id"`
 
 	ExchangeTradeID *string `db:"exchange_trade_id"`
 
@@ -224,9 +240,9 @@ type BalanceInput struct {
 	ChainID string `db:"chain_id"`
 	MinerID uint64 `db:"miner_id"`
 
-	OutputChainID   string  `db:"output_chain_id"`
-	OutputBalanceID *uint64 `db:"output_balance_id"`
-	ExchangeBatchID *uint64 `db:"exchange_batch_id"`
+	OutChainID      string  `db:"out_chain_id"`
+	BalanceOutputID *uint64 `db:"balance_output_id"`
+	BatchID         *uint64 `db:"batch_id"`
 
 	Value   dbcl.NullBigInt `db:"value"`
 	Pending bool            `db:"pending"`
@@ -237,8 +253,8 @@ type BalanceInput struct {
 
 type BalanceOutput struct {
 	ID      uint64 `db:"id"`
-	MinerID uint64 `db:"miner_id"`
 	ChainID string `db:"chain_id"`
+	MinerID uint64 `db:"miner_id"`
 
 	InDepositID *uint64 `db:"in_deposit_id"`
 	InPayoutID  *uint64 `db:"in_payout_id"`
@@ -254,8 +270,8 @@ type BalanceOutput struct {
 
 type Payout struct {
 	ID      uint64 `db:"id"`
-	MinerID uint64 `db:"miner_id"`
 	ChainID string `db:"chain_id"`
+	MinerID uint64 `db:"miner_id"`
 	Address string `db:"address"`
 
 	TxID   string  `db:"txid"`
@@ -267,19 +283,6 @@ type Payout struct {
 	TxFees       dbcl.NullBigInt `db:"tx_fees"`
 	Confirmed    bool            `db:"confirmed"`
 	Failed       bool            `db:"failed"`
-
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
-}
-
-type UTXO struct {
-	ID      uint64 `db:"id"`
-	ChainID string `db:"chain_id"`
-
-	Value dbcl.NullBigInt `db:"value"`
-	TxID  string          `db:"txid"`
-	Index uint32          `db:"index"`
-	Spent bool            `db:"spent"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`

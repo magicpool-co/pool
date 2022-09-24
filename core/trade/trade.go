@@ -87,8 +87,8 @@ func (c *Client) InitiateTrades(batchID uint64) error {
 
 				trade := &pooldb.ExchangeTrade{
 					BatchID: batchID,
-					Path:    pathID,
-					Stage:   i + 1,
+					PathID:  pathID,
+					StageID: i + 1,
 
 					FromChainID: parsedTrade.FromChain,
 					ToChainID:   parsedTrade.ToChain,
@@ -230,7 +230,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 		// check for the previous trade to collect cumulative deposit and trade fees. if no
 		// previous trade exists, collect the initial deposit fees from the current trade
 		var cumulativeDepositFees, cumulativeTradeFees float64
-		prevTrade, err := pooldb.GetExchangeTradeByPathAndStage(c.pooldb.Reader(), batchID, trade.Path, trade.Stage-1)
+		prevTrade, err := pooldb.GetExchangeTradeByPathAndStage(c.pooldb.Reader(), batchID, trade.PathID, trade.StageID-1)
 		if err != nil {
 			return err
 		} else if prevTrade != nil {
@@ -260,7 +260,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 		// check for the next trade to update the trade value, since it is only known
 		// after the previous (current) trade is filled. if no next trade exists, transfer
 		// the balance from the trade account to the main account (kucoin only, empty method otherwise)
-		nextTrade, err := pooldb.GetExchangeTradeByPathAndStage(c.pooldb.Reader(), batchID, trade.Path, trade.Stage+1)
+		nextTrade, err := pooldb.GetExchangeTradeByPathAndStage(c.pooldb.Reader(), batchID, trade.PathID, trade.StageID+1)
 		if err != nil {
 			return err
 		} else if nextTrade == nil {

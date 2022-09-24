@@ -185,7 +185,8 @@ func UpdateExchangeWithdrawal(q dbcl.Querier, obj *ExchangeWithdrawal, updateCol
 
 func InsertBalanceInputs(q dbcl.Querier, objects ...*BalanceInput) error {
 	const table = "balance_inputs"
-	cols := []string{"round_id", "chain_id", "miner_id", "exchange_batch_id", "output_balance_id", "value", "pending"}
+	cols := []string{"round_id", "chain_id", "miner_id", "out_chain_id",
+		"balance_output_id", "batch_id", "value", "pending"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
@@ -199,7 +200,7 @@ func InsertBalanceInputs(q dbcl.Querier, objects ...*BalanceInput) error {
 
 func InsertUTXOs(q dbcl.Querier, objects ...*UTXO) error {
 	const table = "utxos"
-	cols := []string{"chain_id", "value", "txid", "index", "spent"}
+	cols := []string{"chain_id", "value", "txid", "idx", "spent"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {

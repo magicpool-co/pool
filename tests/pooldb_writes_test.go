@@ -180,8 +180,9 @@ func (suite *PooldbWritesSuite) TestWriteBalanceInput() {
 	}{
 		{
 			&pooldb.BalanceInput{
-				ChainID: "ETC",
-				Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				ChainID:    "ETC",
+				OutChainID: "ETH",
+				Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
 			},
 		},
 	}

@@ -84,7 +84,7 @@ func (c *Client) balanceInputsToInputPaths(balanceInputs []*pooldb.BalanceInput)
 			return nil, fmt.Errorf("no value for balance input %d", balanceInput.ID)
 		}
 		inChainID := balanceInput.ChainID
-		outChainID := balanceInput.OutputChainID
+		outChainID := balanceInput.OutChainID
 		value := balanceInput.Value.BigInt
 
 		if _, ok := inputPaths[inChainID]; !ok {
@@ -111,8 +111,8 @@ func (c *Client) exchangeInputsToOutputPaths(exchangeInputs []*pooldb.ExchangeIn
 		if !exchangeInput.Value.Valid {
 			return nil, fmt.Errorf("no value for exchange input %d", exchangeInput.ID)
 		}
-		inChainID := exchangeInput.InputChainID
-		outChainID := exchangeInput.OutputChainID
+		inChainID := exchangeInput.InChainID
+		outChainID := exchangeInput.OutChainID
 		value := exchangeInput.Value.BigInt
 
 		if _, ok := outputPaths[inChainID]; !ok {
@@ -199,9 +199,9 @@ func (c *Client) CheckForNewBatch() error {
 	for inChainID, outputIdx := range outputPaths {
 		for outChainID, value := range outputIdx {
 			exchangeInput := &pooldb.ExchangeInput{
-				BatchID:       batchID,
-				InputChainID:  inChainID,
-				OutputChainID: outChainID,
+				BatchID:    batchID,
+				InChainID:  inChainID,
+				OutChainID: outChainID,
 
 				Value: dbcl.NullBigInt{Valid: true, BigInt: value},
 			}
