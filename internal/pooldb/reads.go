@@ -2,6 +2,7 @@ package pooldb
 
 import (
 	"database/sql"
+	"math/big"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -526,6 +527,17 @@ func GetBalanceOutputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceOutput,
 	err := q.Select(&output, query, batchID)
 
 	return output, err
+}
+
+func GetSumBalanceOutputValueByMiner(q dbcl.Querier, minerID uint64, chain string) (*big.Int, error) {
+	const query = `SELECT *
+	FROM balance_outputs
+	WHERE
+		miner_id = ?
+	AND
+		chain_id = ?;`
+
+	return dbcl.GetBigInt(q, query, minerID, chain)
 }
 
 /* utxos */

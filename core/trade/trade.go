@@ -42,7 +42,7 @@ func (c *Client) InitiateTrades(batchID uint64) error {
 		return nil
 	}
 
-	outputPaths, err := c.exchangeInputsToOutputPaths(balanceInputs)
+	outputPaths, err := exchangeInputsToOutputPaths(balanceInputs)
 	if err != nil {
 		return err
 	}

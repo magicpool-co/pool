@@ -175,7 +175,7 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 
 	// calculate the initial proportional value for each miner (how much
 	// each one contributed to each trade path prior to the batch)
-	initialProportions, err := c.balanceInputsToInitialProportions(balanceInputs)
+	initialProportions, err := balanceInputsToInitialProportions(balanceInputs)
 	if err != nil {
 		return err
 	}
@@ -188,13 +188,13 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 
 	// calculate the final, global proportional value for each trade path
 	// (how	much each path ended up with after all trades were executed)
-	finalProportions, err := c.finalTradesToFinalProportions(finalTrades)
+	finalProportions, err := finalTradesToFinalProportions(finalTrades)
 	if err != nil {
 		return err
 	}
 
 	// calculate the average weighted fill prices for each trade path
-	avgPrices, err := c.finalTradesToAvgWeightedPrice(finalTrades)
+	avgPrices, err := finalTradesToAvgWeightedPrice(finalTrades)
 	if err != nil {
 		return err
 	}
