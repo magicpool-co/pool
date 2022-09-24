@@ -177,10 +177,10 @@ func UpdateExchangeDeposit(q dbcl.Querier, obj *ExchangeDeposit, updateCols []st
 func InsertExchangeTrades(q dbcl.Querier, objects ...*ExchangeTrade) error {
 	const table = "exchange_trades"
 	cols := []string{
-		"batch_id", "path_id", "stage_id", "exchange_trade_id", "from_chain_id",
-		"to_chain_id", "market", "direction", "value", "proceeds", "trade_fees",
-		"cumulative_deposit_fees", "cumulative_trade_fees", "order_price", "fill_price",
-		"slippage", "initiated", "confirmed",
+		"batch_id", "path_id", "stage_id", "exchange_trade_id", "initial_chain_id",
+		"from_chain_id", "to_chain_id", "market", "direction", "value", "proceeds",
+		"trade_fees", "cumulative_deposit_fees", "cumulative_trade_fees", "order_price",
+		"fill_price", "cumulative_fill_price", "slippage", "initiated", "confirmed",
 	}
 
 	rawObjects := make([]interface{}, len(objects))
@@ -222,7 +222,7 @@ func InsertBalanceInputs(q dbcl.Querier, objects ...*BalanceInput) error {
 	const table = "balance_inputs"
 	cols := []string{
 		"round_id", "chain_id", "miner_id", "out_chain_id",
-		"balance_output_id", "batch_id", "value", "pending",
+		"balance_output_id", "batch_id", "value", "pool_fees", "pending",
 	}
 
 	rawObjects := make([]interface{}, len(objects))
@@ -243,7 +243,7 @@ func UpdateBalanceInput(q dbcl.Querier, obj *BalanceInput, updateCols []string) 
 func InsertBalanceOutputs(q dbcl.Querier, objects ...*BalanceOutput) error {
 	const table = "balance_outputs"
 	cols := []string{
-		"chain_id", "miner_id", "in_deposit_id", "in_payout_id",
+		"chain_id", "miner_id", "in_batch_id", "in_deposit_id", "in_payout_id",
 		"out_payout_id", "value", "pool_fees", "exchange_fees",
 	}
 

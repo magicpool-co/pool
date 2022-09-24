@@ -1,3 +1,5 @@
+ALTER TABLE balance_inputs DROP COLUMN pool_fees;
+
 ALTER TABLE balance_inputs DROP CONSTRAINT fk_balance_inputs_batch_id;
 ALTER TABLE balance_inputs DROP INDEX idx_balance_inputs_batch_id;
 ALTER TABLE balance_inputs DROP COLUMN batch_id;

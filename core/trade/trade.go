@@ -90,10 +90,11 @@ func (c *Client) InitiateTrades(batchID uint64) error {
 					PathID:  pathID,
 					StageID: i + 1,
 
-					FromChainID: parsedTrade.FromChain,
-					ToChainID:   parsedTrade.ToChain,
-					Market:      parsedTrade.Market,
-					Direction:   int(parsedTrade.Direction),
+					InitialChainID: fromChainID,
+					FromChainID:    parsedTrade.FromChain,
+					ToChainID:      parsedTrade.ToChain,
+					Market:         parsedTrade.Market,
+					Direction:      int(parsedTrade.Direction),
 
 					Value:                 initialTradeValue,
 					CumulativeDepositFees: initialDepositFees,
@@ -235,16 +236,21 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 
 		// check for the previous trade to collect cumulative deposit and trade fees. if no
 		// previous trade exists, collect the initial deposit fees from the current trade
-		var cumulativeDepositFees, cumulativeTradeFees float64
+		var cumulativeFillPrice, cumulativeDepositFees, cumulativeTradeFees float64
 		prevTrade, err := pooldb.GetExchangeTradeByPathAndStage(c.pooldb.Reader(), batchID, trade.PathID, trade.StageID-1)
 		if err != nil {
 			return err
 		} else if prevTrade != nil {
-			if !prevTrade.CumulativeDepositFees.Valid {
+			if prevTrade.CumulativeFillPrice == nil {
+				return fmt.Errorf("no cumulative fill price for trade %d", prevTrade.ID)
+			} else if !prevTrade.CumulativeDepositFees.Valid {
 				return fmt.Errorf("no cumulative deposit fees for trade %d", prevTrade.ID)
 			} else if !prevTrade.CumulativeTradeFees.Valid {
 				return fmt.Errorf("no cumulative trade fees for trade %d", prevTrade.ID)
 			}
+
+			// set cumulative fill price to previous cumulative fill price
+			cumulativeFillPrice = types.Float64Value(prevTrade.CumulativeFillPrice)
 
 			// adjust cumulative deposit and trade fees to the current chain's price
 			cumulativeDepositFees = fillPrice * common.BigIntToFloat64(prevTrade.CumulativeDepositFees.BigInt, fromUnits)
@@ -254,8 +260,21 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 				return fmt.Errorf("no cumulative deposit fees for trade %d", trade.ID)
 			}
 
+			// set cumulative fill price to 1
+			cumulativeFillPrice = 1
+
 			// adjust initial cumulative deposit fees to the current chain's price
 			cumulativeDepositFees = fillPrice * common.BigIntToFloat64(trade.CumulativeDepositFees.BigInt, fromUnits)
+		}
+
+		// adjust cumulative fill price to account for previous
+		if fillPrice > 0 {
+			switch types.TradeDirection(trade.Direction) {
+			case types.TradeBuy:
+				cumulativeFillPrice /= fillPrice
+			case types.TradeSell:
+				cumulativeFillPrice *= fillPrice
+			}
 		}
 
 		// sum cumulative deposit and trade fees
@@ -299,11 +318,13 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 		trade.CumulativeDepositFees = dbcl.NullBigInt{Valid: true, BigInt: cumulativeDepositFeesBig}
 		trade.CumulativeTradeFees = dbcl.NullBigInt{Valid: true, BigInt: cumulativeTradeFeesBig}
 		trade.FillPrice = types.Float64Ptr(fillPrice)
+		trade.CumulativeFillPrice = types.Float64Ptr(cumulativeFillPrice)
 		trade.Slippage = types.Float64Ptr(slippage)
 		trade.Confirmed = true
 
 		cols := []string{"proceeds", "trade_fees", "cumulative_deposit_fees",
-			"cumulative_trade_fees", "fill_price", "slippage", "confirmed"}
+			"cumulative_trade_fees", "fill_price", "cumulative_fill_price",
+			"slippage", "confirmed"}
 		err = pooldb.UpdateExchangeTrade(c.pooldb.Writer(), trade, cols)
 		if err != nil {
 			return err

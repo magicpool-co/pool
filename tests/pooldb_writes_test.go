@@ -318,7 +318,7 @@ func (suite *PooldbWritesSuite) WriteExchangeTrade() {
 
 		cols := []string{"exchange_trade_id", "value", "proceeds", "trade_fees",
 			"cumulative_deposit_fees", "cumulative_trade_fees", "order_price",
-			"fill_price", "slippage", "initiated", "confirmed"}
+			"fill_price", "cumulative_fill_price", "slippage", "initiated", "confirmed"}
 		err = pooldb.UpdateExchangeTrade(pooldbClient.Writer(), tt.trade, cols)
 		if err != nil {
 			suite.T().Errorf("failed on %d: update: %v", i, err)
@@ -367,6 +367,7 @@ func (suite *PooldbWritesSuite) TestWriteBalanceInput() {
 				ChainID:    "ETC",
 				OutChainID: "ETH",
 				Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				PoolFees:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
 			},
 		},
 	}

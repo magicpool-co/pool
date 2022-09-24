@@ -17,7 +17,7 @@ CREATE TABLE utxos (
 );
 
 CREATE TABLE exchange_batches (
-	id				int				UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	exchange_id		tinyint(1)		UNSIGNED NOT NULL,
 	status			tinyint(1)		UNSIGNED NOT NULL,
 
@@ -27,8 +27,8 @@ CREATE TABLE exchange_batches (
 );
 
 CREATE TABLE exchange_inputs (
-	id				int				UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	batch_id		int				UNSIGNED NOT NULL,
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	batch_id		bigint			UNSIGNED NOT NULL,
 	in_chain_id		varchar(4)		NOT NULL,
 	out_chain_id	varchar(4)		NOT NULL,
 
@@ -50,8 +50,8 @@ CREATE TABLE exchange_inputs (
 );
 
 CREATE TABLE exchange_deposits (
-	id				int				UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	batch_id		int				UNSIGNED NOT NULL,
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	batch_id		bigint			UNSIGNED NOT NULL,
 	chain_id		varchar(4)		NOT NULL,
 	network_id		varchar(4)		NOT NULL,
 
@@ -80,29 +80,31 @@ CREATE TABLE exchange_deposits (
 );
 
 CREATE TABLE exchange_trades (
-	id				int				UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	batch_id		int				UNSIGNED NOT NULL,
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	batch_id		bigint			UNSIGNED NOT NULL,
 	path_id			tinyint(1)		UNSIGNED NOT NULL,
 	stage_id		tinyint(1)		UNSIGNED NOT NULL,
 
 	exchange_trade_id	varchar(100),
 
-	from_chain_id	varchar(4)		NOT NULL,
-	to_chain_id		varchar(4)		NOT NULL,
-	market			varchar(12)		NOT NULL,
-	direction		tinyint(1)		NOT NULL,
+	initial_chain_id	varchar(4)		NOT NULL,
+	from_chain_id		varchar(4)		NOT NULL,
+	to_chain_id			varchar(4)		NOT NULL,
+	market				varchar(12)		NOT NULL,
+	direction			tinyint(1)		NOT NULL,
 
-	value						decimal(25,0),
-	proceeds					decimal(25,0),
-	trade_fees					decimal(25,0),
-	cumulative_deposit_fees		decimal(25,0),
-	cumulative_trade_fees		decimal(25,0),
+	value					decimal(25,0),
+	proceeds				decimal(25,0),
+	trade_fees				decimal(25,0),
+	cumulative_deposit_fees	decimal(25,0),
+	cumulative_trade_fees	decimal(25,0),
 
-	order_price		double,
-	fill_price		double,
-	slippaged		double,
-	initiated		bool		NOT NULL,
-	confirmed		bool		NOT NULL,
+	order_price				double,
+	fill_price				double,
+	cumulative_fill_price	double,
+	slippaged				double,
+	initiated				bool		NOT NULL,
+	confirmed				bool		NOT NULL,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -120,8 +122,8 @@ CREATE TABLE exchange_trades (
 );
 
 CREATE TABLE exchange_withdrawals (
-	id				int				UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	batch_id		int				UNSIGNED NOT NULL,
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	batch_id		bigint			UNSIGNED NOT NULL,
 	chain_id		varchar(4)		NOT NULL,
 	network_id		varchar(4)		NOT NULL,
 
@@ -184,7 +186,8 @@ CREATE TABLE balance_outputs (
 	chain_id		varchar(4)		NOT NULL,
 	miner_id		int				UNSIGNED NOT NULL,
 
-	in_deposit_id	int				UNSIGNED,
+	in_batch_id		bigint			UNSIGNED,
+	in_deposit_id	bigint			UNSIGNED,
 	in_payout_id	bigint			UNSIGNED,
 	out_payout_id	bigint			UNSIGNED,
 
@@ -222,6 +225,8 @@ ALTER TABLE balance_inputs RENAME COLUMN output_balance_id TO balance_output_id;
 ALTER TABLE balance_inputs ADD INDEX idx_balance_inputs_balance_output_id (balance_output_id);
 ALTER TABLE balance_inputs ADD CONSTRAINT fk_balance_inputs_balance_output_id FOREIGN KEY (balance_output_id) REFERENCES balance_outputs(id);
 
-ALTER TABLE balance_inputs ADD COLUMN batch_id int UNSIGNED AFTER balance_output_id;
+ALTER TABLE balance_inputs ADD COLUMN batch_id bigint UNSIGNED AFTER balance_output_id;
 ALTER TABLE balance_inputs ADD INDEX idx_balance_inputs_batch_id (batch_id);
 ALTER TABLE balance_inputs ADD CONSTRAINT fk_balance_inputs_batch_id FOREIGN KEY (batch_id) REFERENCES exchange_batches(id);
+
+ALTER TABLE balance_inputs ADD COLUMN pool_fees decimal(25,0) NOT NULL AFTER value;

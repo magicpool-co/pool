@@ -12,24 +12,22 @@ import (
 )
 
 func (c *Client) InitiateDeposits(batchID uint64) error {
-	balanceInputs, err := pooldb.GetExchangeInputs(c.pooldb.Reader(), batchID)
+	exchangeInputs, err := pooldb.GetExchangeInputs(c.pooldb.Reader(), batchID)
 	if err != nil {
 		return err
-	} else if len(balanceInputs) == 0 {
-		return nil
 	}
 
-	// create summed values from the inputs
+	// create summed values from the exchange inputs
 	values := make(map[string]*big.Int)
-	for _, balanceInput := range balanceInputs {
-		if !balanceInput.Value.Valid {
-			return fmt.Errorf("no value for input %d", balanceInput.ID)
-		} else if _, ok := values[balanceInput.InChainID]; !ok {
-			values[balanceInput.InChainID] = new(big.Int)
+	for _, exchangeInput := range exchangeInputs {
+		if !exchangeInput.Value.Valid {
+			return fmt.Errorf("no value for input %d", exchangeInput.ID)
+		} else if _, ok := values[exchangeInput.InChainID]; !ok {
+			values[exchangeInput.InChainID] = new(big.Int)
 		}
 
-		chainID := balanceInput.InChainID
-		value := balanceInput.Value.BigInt
+		chainID := exchangeInput.InChainID
+		value := exchangeInput.Value.BigInt
 		values[chainID].Add(values[chainID], value)
 	}
 

@@ -496,10 +496,34 @@ func GetPendingBalanceInputsWithoutBatch(q dbcl.Querier) ([]*BalanceInput, error
 	WHERE
 		pending = TRUE
 	AND
-		exchange_batch_id IS NULL;`
+		batch_id IS NULL;`
 
 	output := []*BalanceInput{}
 	err := q.Select(&output, query)
+
+	return output, err
+}
+
+func GetBalanceInputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceInput, error) {
+	const query = `SELECT *
+	FROM balance_inputs
+	WHERE
+		batch_id = ?;`
+
+	output := []*BalanceInput{}
+	err := q.Select(&output, query, batchID)
+
+	return output, err
+}
+
+func GetBalanceOutputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceOutput, error) {
+	const query = `SELECT *
+	FROM balance_outputs
+	WHERE
+		in_batch_id = ?;`
+
+	output := []*BalanceOutput{}
+	err := q.Select(&output, query, batchID)
 
 	return output, err
 }

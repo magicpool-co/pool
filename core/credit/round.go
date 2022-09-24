@@ -33,7 +33,7 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 	}
 
 	// distribute the proceeds to miners and recipients
-	compoundValues, err := accounting.CreditRound(round.Value.BigInt, minerIdx, recipientIdx)
+	compoundValues, minerFees, err := accounting.CreditRound(round.Value.BigInt, minerIdx, recipientIdx)
 	if err != nil {
 		return err
 	}
@@ -67,13 +67,19 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 		}
 		usedValue.Add(usedValue, value)
 
+		poolFee, ok := minerFees[minerID]
+		if !ok {
+			poolFee = new(big.Int)
+		}
+
 		input := &pooldb.BalanceInput{
 			RoundID: round.ID,
 			ChainID: round.ChainID,
 			MinerID: miner.ID,
 
-			Value:   dbcl.NullBigInt{Valid: true, BigInt: value},
-			Pending: miner.ChainID != round.ChainID,
+			Value:    dbcl.NullBigInt{Valid: true, BigInt: value},
+			PoolFees: dbcl.NullBigInt{Valid: true, BigInt: poolFee},
+			Pending:  miner.ChainID != round.ChainID,
 		}
 		inputs = append(inputs, input)
 		delete(compoundIdx, miner.ID)

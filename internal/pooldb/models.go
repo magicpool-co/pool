@@ -190,10 +190,11 @@ type ExchangeTrade struct {
 
 	ExchangeTradeID *string `db:"exchange_trade_id"`
 
-	FromChainID string `db:"from_chain_id"`
-	ToChainID   string `db:"to_chain_id"`
-	Market      string `db:"market"`
-	Direction   int    `db:"direction"`
+	InitialChainID string `db:"initial_chain_id"`
+	FromChainID    string `db:"from_chain_id"`
+	ToChainID      string `db:"to_chain_id"`
+	Market         string `db:"market"`
+	Direction      int    `db:"direction"`
 
 	Value                 dbcl.NullBigInt `db:"value"`
 	Proceeds              dbcl.NullBigInt `db:"proceeds"`
@@ -201,11 +202,12 @@ type ExchangeTrade struct {
 	CumulativeDepositFees dbcl.NullBigInt `db:"cumulative_deposit_fees"`
 	CumulativeTradeFees   dbcl.NullBigInt `db:"cumulative_trade_fees"`
 
-	OrderPrice *float64 `db:"order_price"`
-	FillPrice  *float64 `db:"fill_price"`
-	Slippage   *float64 `db:"slippage"`
-	Initiated  bool     `db:"initiated"`
-	Confirmed  bool     `db:"confirmed"`
+	OrderPrice          *float64 `db:"order_price"`
+	FillPrice           *float64 `db:"fill_price"`
+	CumulativeFillPrice *float64 `db:"cumulative_fill_price"`
+	Slippage            *float64 `db:"slippage"`
+	Initiated           bool     `db:"initiated"`
+	Confirmed           bool     `db:"confirmed"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
@@ -244,8 +246,9 @@ type BalanceInput struct {
 	BalanceOutputID *uint64 `db:"balance_output_id"`
 	BatchID         *uint64 `db:"batch_id"`
 
-	Value   dbcl.NullBigInt `db:"value"`
-	Pending bool            `db:"pending"`
+	Value    dbcl.NullBigInt `db:"value"`
+	PoolFees dbcl.NullBigInt `db:"pool_fees"`
+	Pending  bool            `db:"pending"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
@@ -256,6 +259,7 @@ type BalanceOutput struct {
 	ChainID string `db:"chain_id"`
 	MinerID uint64 `db:"miner_id"`
 
+	InBatchID   *uint64 `db:"in_batch_id"`
 	InDepositID *uint64 `db:"in_deposit_id"`
 	InPayoutID  *uint64 `db:"in_payout_id"`
 	OutPayoutID *uint64 `db:"out_payout_id"`

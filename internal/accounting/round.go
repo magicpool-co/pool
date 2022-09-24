@@ -40,13 +40,13 @@ func splitValue(value *big.Int, idx map[uint64]uint64) (map[uint64]*big.Int, *bi
 
 // credits a round based off of the share index and the fee recipient distributions. the output is a merged
 // map of miners and recipients since we can safely assume that miner ids and recipient ids are globally unique.
-func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) (map[uint64]*big.Int, error) {
+func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) (map[uint64]*big.Int, map[uint64]*big.Int, error) {
 	if roundValue == nil {
-		return nil, fmt.Errorf("empty round value")
+		return nil, nil, fmt.Errorf("empty round value")
 	} else if len(minerIdx) == 0 {
-		return nil, fmt.Errorf("empty miner index")
+		return nil, nil, fmt.Errorf("empty miner index")
 	} else if len(recipientIdx) == 0 {
-		return nil, fmt.Errorf("empty recipient index")
+		return nil, nil, fmt.Errorf("empty recipient index")
 	}
 
 	// copy value to avoid overwriting it elsewhere
@@ -54,19 +54,31 @@ func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) 
 
 	// takes a 1% fee from the value as the pool fees
 	feeValue := common.SplitBigPercentage(roundValue, 100, 10000)
-	roundValue.Sub(roundValue, feeValue)
+	adjustedRoundValue := new(big.Int).Sub(roundValue, feeValue)
 
 	// calculate the miner distributions and remainder
-	minerValues, remainder, err := splitValue(roundValue, minerIdx)
+	minerValues, remainder, err := splitValue(adjustedRoundValue, minerIdx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	feeValue.Add(feeValue, remainder)
+
+	// calculate the miner fees by recalculating the distributions without
+	// the fee and subtracting each miner's distribution with the fee
+	initialMinerValues, _, err := splitValue(roundValue, minerIdx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	minerFees := make(map[uint64]*big.Int)
+	for minerID, initialValue := range initialMinerValues {
+		minerFees[minerID] = new(big.Int).Sub(initialValue, minerValues[minerID])
+	}
 
 	// calculate the fee recipients distributions and remainder
 	recipientValues, remainder, err := splitValue(feeValue, recipientIdx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// add the remainder to the fee recipient recieving the lowest quantity
@@ -102,5 +114,5 @@ func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) 
 		}
 	}
 
-	return compoundValues, nil
+	return compoundValues, minerFees, nil
 }

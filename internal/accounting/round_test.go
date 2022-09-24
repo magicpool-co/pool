@@ -12,6 +12,7 @@ func TestCreditRound(t *testing.T) {
 		minerIdx     map[uint64]uint64
 		recipientIdx map[uint64]uint64
 		outputValues map[uint64]*big.Int
+		outputFees   map[uint64]*big.Int
 	}{
 		{
 			roundValue: new(big.Int).SetUint64(1992800000000000000),
@@ -27,6 +28,9 @@ func TestCreditRound(t *testing.T) {
 				1: new(big.Int).SetUint64(7189766763848396), 2: new(big.Int).SetUint64(1965682233236151603),
 				// recipients
 				500: new(big.Int).SetUint64(9964000000000001), 501: new(big.Int).SetUint64(9964000000000000),
+			},
+			outputFees: map[uint64]*big.Int{
+				1: new(big.Int).SetUint64(72623906705539), 2: new(big.Int).SetUint64(19855376093294461),
 			},
 		},
 		{
@@ -55,6 +59,18 @@ func TestCreditRound(t *testing.T) {
 				19: new(big.Int).SetUint64(2239071311), 20: new(big.Int).SetUint64(1413238451),
 				// recipients
 				500: new(big.Int).SetUint64(2500023807),
+			},
+			outputFees: map[uint64]*big.Int{
+				1: new(big.Int).SetUint64(883500076), 2: new(big.Int).SetUint64(283902703),
+				3: new(big.Int).SetUint64(174218325), 4: new(big.Int).SetUint64(135976294),
+				5: new(big.Int).SetUint64(132734596), 6: new(big.Int).SetUint64(114176087),
+				7: new(big.Int).SetUint64(108784369), 8: new(big.Int).SetUint64(108709369),
+				9: new(big.Int).SetUint64(93617558), 10: new(big.Int).SetUint64(92775883),
+				11: new(big.Int).SetUint64(60417241), 12: new(big.Int).SetUint64(51292155),
+				13: new(big.Int).SetUint64(47883790), 14: new(big.Int).SetUint64(37833694),
+				15: new(big.Int).SetUint64(37692025), 16: new(big.Int).SetUint64(34258660),
+				17: new(big.Int).SetUint64(32866980), 18: new(big.Int).SetUint64(32491976),
+				19: new(big.Int).SetUint64(22616882), 20: new(big.Int).SetUint64(14275136),
 			},
 		},
 		{
@@ -107,6 +123,33 @@ func TestCreditRound(t *testing.T) {
 				49: new(big.Int).SetUint64(66047859965475),
 				// recipients
 				500: new(big.Int).SetUint64(10212615010821569), 501: new(big.Int).SetUint64(10212615010821568),
+			},
+			outputFees: map[uint64]*big.Int{
+				1: new(big.Int).SetUint64(9661362451799657), 2: new(big.Int).SetUint64(7865665763911050),
+				3: new(big.Int).SetUint64(884561880075200), 4: new(big.Int).SetUint64(250249133520962),
+				5: new(big.Int).SetUint64(214720563753538), 6: new(big.Int).SetUint64(188170251272980),
+				7: new(big.Int).SetUint64(179078917697866), 8: new(big.Int).SetUint64(168653283921428),
+				9: new(big.Int).SetUint64(125966985107926), 10: new(big.Int).SetUint64(121907546359834),
+				11: new(big.Int).SetUint64(71769520150809), 12: new(big.Int).SetUint64(70356066547712),
+				13: new(big.Int).SetUint64(61626577094991), 14: new(big.Int).SetUint64(59410281845336),
+				15: new(big.Int).SetUint64(56108454228503), 16: new(big.Int).SetUint64(54378387018314),
+				17: new(big.Int).SetUint64(38875627899555), 18: new(big.Int).SetUint64(36761101309324),
+				19: new(big.Int).SetUint64(33764579670760), 20: new(big.Int).SetUint64(28676146699615),
+				21: new(big.Int).SetUint64(27115693921796), 22: new(big.Int).SetUint64(26640773511156),
+				23: new(big.Int).SetUint64(26572927738207), 24: new(big.Int).SetUint64(15174837882840),
+				25: new(big.Int).SetUint64(14575533555127), 26: new(big.Int).SetUint64(14247612319209),
+				27: new(big.Int).SetUint64(13139464694382), 28: new(big.Int).SetUint64(12868081602587),
+				29: new(big.Int).SetUint64(12427084078421), 30: new(big.Int).SetUint64(12257469646050),
+				31: new(big.Int).SetUint64(12212239130750), 32: new(big.Int).SetUint64(11929548410131),
+				33: new(big.Int).SetUint64(11873010266008), 34: new(big.Int).SetUint64(11669472947161),
+				35: new(big.Int).SetUint64(11375474597717), 36: new(big.Int).SetUint64(2137141847882),
+				37: new(big.Int).SetUint64(2057988446108), 38: new(big.Int).SetUint64(1820528240787),
+				39: new(big.Int).SetUint64(1583068035468), 40: new(big.Int).SetUint64(1549145148993),
+				41: new(big.Int).SetUint64(1537837520168), 42: new(big.Int).SetUint64(1424761231921),
+				43: new(big.Int).SetUint64(1390838345447), 44: new(big.Int).SetUint64(1379530716622),
+				45: new(big.Int).SetUint64(1311684943673), 46: new(big.Int).SetUint64(791534017734),
+				47: new(big.Int).SetUint64(746303502435), 48: new(big.Int).SetUint64(689765358311),
+				49: new(big.Int).SetUint64(667150100661),
 			},
 		},
 		{
@@ -185,15 +228,60 @@ func TestCreditRound(t *testing.T) {
 				500: new(big.Int).SetUint64(1575000000000005), 501: new(big.Int).SetUint64(5425000000000011),
 				502: new(big.Int).SetUint64(7875000000000017), 503: new(big.Int).SetUint64(2625000000000005),
 			},
+			outputFees: map[uint64]*big.Int{
+				1: new(big.Int).SetUint64(7577091380574683), 2: new(big.Int).SetUint64(6272107997638682),
+				3: new(big.Int).SetUint64(709498587498493), 4: new(big.Int).SetUint64(196883355768582),
+				5: new(big.Int).SetUint64(166239579865061), 6: new(big.Int).SetUint64(147883698935977),
+				7: new(big.Int).SetUint64(143889015987924), 8: new(big.Int).SetUint64(132378609640961),
+				9: new(big.Int).SetUint64(98347843049941), 10: new(big.Int).SetUint64(97784834043840),
+				11: new(big.Int).SetUint64(91752594692753), 12: new(big.Int).SetUint64(88276237496348),
+				13: new(big.Int).SetUint64(83736418843975), 14: new(big.Int).SetUint64(76721147894934),
+				15: new(big.Int).SetUint64(76131328936161), 16: new(big.Int).SetUint64(71761306650706),
+				17: new(big.Int).SetUint64(66131216589692), 18: new(big.Int).SetUint64(65603954187153),
+				19: new(big.Int).SetUint64(62270583404997), 20: new(big.Int).SetUint64(59973864126138),
+				21: new(big.Int).SetUint64(59062325735308), 22: new(big.Int).SetUint64(56908592870697),
+				23: new(big.Int).SetUint64(56703049900215), 24: new(big.Int).SetUint64(47560856039236),
+				25: new(big.Int).SetUint64(46971037080463), 26: new(big.Int).SetUint64(44334725067765),
+				27: new(big.Int).SetUint64(43029974037752), 28: new(big.Int).SetUint64(42770811161928),
+				29: new(big.Int).SetUint64(40063005942107), 30: new(big.Int).SetUint64(37212214308038),
+				31: new(big.Int).SetUint64(37033481290228), 32: new(big.Int).SetUint64(36854748272418),
+				33: new(big.Int).SetUint64(32270246365591), 34: new(big.Int).SetUint64(30697395808864),
+				35: new(big.Int).SetUint64(28856445725421), 36: new(big.Int).SetUint64(26193323760052),
+				37: new(big.Int).SetUint64(22448867036934), 38: new(big.Int).SetUint64(22109274303095),
+				39: new(big.Int).SetUint64(21251355817606), 40: new(big.Int).SetUint64(21054749498016),
+				41: new(big.Int).SetUint64(20920699734658), 42: new(big.Int).SetUint64(20625790255272),
+				43: new(big.Int).SetUint64(19642758657317), 44: new(big.Int).SetUint64(19624885355535),
+				45: new(big.Int).SetUint64(19464025639506), 46: new(big.Int).SetUint64(19383595781492),
+				47: new(big.Int).SetUint64(18713346964705), 48: new(big.Int).SetUint64(18525677296004),
+				49: new(big.Int).SetUint64(17149433058867), 50: new(big.Int).SetUint64(16952826739276),
+				51: new(big.Int).SetUint64(16666853910781), 52: new(big.Int).SetUint64(15576582502139),
+				53: new(big.Int).SetUint64(15505089295015), 54: new(big.Int).SetUint64(15451469389673),
+				55: new(big.Int).SetUint64(14968890241586), 56: new(big.Int).SetUint64(14754410620214),
+				57: new(big.Int).SetUint64(14745473969323), 58: new(big.Int).SetUint64(14727600667542),
+				59: new(big.Int).SetUint64(14727600667542), 60: new(big.Int).SetUint64(14575677602404),
+				61: new(big.Int).SetUint64(14539930998842), 62: new(big.Int).SetUint64(14468437791717),
+				63: new(big.Int).SetUint64(14414817886375), 64: new(big.Int).SetUint64(9329863529681),
+				65: new(big.Int).SetUint64(9186877115433), 66: new(big.Int).SetUint64(8516628298646),
+				67: new(big.Int).SetUint64(8463008393302), 68: new(big.Int).SetUint64(7801696227406),
+				69: new(big.Int).SetUint64(7614026558705), 70: new(big.Int).SetUint64(7578279955143),
+				71: new(big.Int).SetUint64(2716741870712), 72: new(big.Int).SetUint64(2484388947559),
+				73: new(big.Int).SetUint64(2162669515500), 74: new(big.Int).SetUint64(2100112959267),
+				76: new(big.Int).SetUint64(2091176308377), 77: new(big.Int).SetUint64(1724773621866),
+				78: new(big.Int).SetUint64(1117081361313), 79: new(big.Int).SetUint64(1108144710422),
+				80: new(big.Int).SetUint64(607692260553), 81: new(big.Int).SetUint64(518325751648),
+				82: new(big.Int).SetUint64(518325751648), 83: new(big.Int).SetUint64(384275988291),
+			},
 		},
 	}
 
 	for i, tt := range tests {
-		outputValues, err := CreditRound(tt.roundValue, tt.minerIdx, tt.recipientIdx)
+		outputValues, outputFees, err := CreditRound(tt.roundValue, tt.minerIdx, tt.recipientIdx)
 		if err != nil {
 			t.Errorf("failed on %d: %v", i, err)
 		} else if !reflect.DeepEqual(outputValues, tt.outputValues) {
 			t.Errorf("failed on %d: output values mismatch: have %v, want %v", i, outputValues, tt.outputValues)
+		} else if !reflect.DeepEqual(outputFees, tt.outputFees) {
+			t.Errorf("failed on %d: output fees mismatch: have %v, want %v", i, outputFees, tt.outputFees)
 		}
 	}
 }

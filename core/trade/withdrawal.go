@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/magicpool-co/pool/internal/accounting"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/dbcl"
+	"github.com/magicpool-co/pool/types"
 )
 
 func (c *Client) InitiateWithdrawals(batchID uint64) error {
@@ -165,21 +167,227 @@ func (c *Client) ConfirmWithdrawals(batchID uint64) error {
 }
 
 func (c *Client) CreditWithdrawals(batchID uint64) error {
+	// fetch all miner balance inputs for the batch
+	balanceInputs, err := pooldb.GetBalanceInputsByBatch(c.pooldb.Reader(), batchID)
+	if err != nil {
+		return err
+	}
+
+	// calculate the initial proportional value for each miner (how much
+	// each one contributed to each trade path prior to the batch)
+	initialProportions, err := c.balanceInputsToInitialProportions(balanceInputs)
+	if err != nil {
+		return err
+	}
+
+	// fetch the final exchange trades across every path the batch
+	finalTrades, err := pooldb.GetFinalExchangeTrades(c.pooldb.Reader(), batchID)
+	if err != nil {
+		return err
+	}
+
+	// calculate the final, global proportional value for each trade path
+	// (how	much each path ended up with after all trades were executed)
+	finalProportions, err := c.finalTradesToFinalProportions(finalTrades)
+	if err != nil {
+		return err
+	}
+
+	// calculate the average weighted fill prices for each trade path
+	avgPrices, err := c.finalTradesToAvgWeightedPrice(finalTrades)
+	if err != nil {
+		return err
+	}
+
+	// fetch all withdrawals for the batch
 	withdrawals, err := pooldb.GetExchangeWithdrawals(c.pooldb.Reader(), batchID)
 	if err != nil {
 		return err
-	} else if len(withdrawals) == 0 {
-		return nil
 	}
 
-	// @TODO: set to true
-	completedAll := false
+	// calculate the sum adjusted pool fees for each miner and pair combination.
+	// since the pool fees are in the initial chain and they can only be summed
+	// in a common chain, the cumulative fill price is used to adjust them into
+	// an (estimated) final chain value.
+	poolFeeIdx := make(map[uint64]map[string]*big.Int)
+	for _, balanceInput := range balanceInputs {
+		minerID := balanceInput.MinerID
+		initialChainID := balanceInput.ChainID
+		finalChainID := balanceInput.OutChainID
 
-	// @TODO: properly credit withdrawals
+		if !balanceInput.PoolFees.Valid {
+			return fmt.Errorf("no pool fees for balance input %d", balanceInput.ID)
+		} else if _, ok := avgPrices[initialChainID]; !ok {
+			return fmt.Errorf("no average price for balance input %d", balanceInput.ID)
+		} else if _, ok := avgPrices[initialChainID][finalChainID]; !ok {
+			return fmt.Errorf("no average price for balance input %d", balanceInput.ID)
+		}
 
-	if completedAll {
-		return c.updateBatchStatus(batchID, WithdrawalsComplete)
+		if _, ok := poolFeeIdx[minerID]; !ok {
+			poolFeeIdx[minerID] = make(map[string]*big.Int)
+		}
+		if _, ok := poolFeeIdx[minerID][finalChainID]; !ok {
+			poolFeeIdx[minerID][finalChainID] = new(big.Int)
+		}
+
+		initialUnitsBig, err := common.GetDefaultUnits(initialChainID)
+		if err != nil {
+			return err
+		}
+
+		finalUnitsBig, err := common.GetDefaultUnits(finalChainID)
+		if err != nil {
+			return err
+		}
+
+		// set all of the required values as big floats for the adjustment calculation
+		poolFeeFloat := new(big.Float).SetInt(balanceInput.PoolFees.BigInt)
+		priceFloat := new(big.Float).SetFloat64(avgPrices[initialChainID][finalChainID])
+		initialUnitsFloat := new(big.Float).SetInt(initialUnitsBig)
+		finalUnitsFloat := new(big.Float).SetInt(finalUnitsBig)
+
+		// calculate the adjusted pool fees
+		adjustedPoolFeeFloat := new(big.Float).Quo(poolFeeFloat, initialUnitsFloat)
+		adjustedPoolFeeFloat.Mul(adjustedPoolFeeFloat, priceFloat)
+		adjustedPoolFeeFloat.Mul(adjustedPoolFeeFloat, finalUnitsFloat)
+		adjustedPoolFeeBig, _ := adjustedPoolFeeFloat.Int(nil)
+
+		poolFeeIdx[minerID][finalChainID].Add(poolFeeIdx[minerID][finalChainID], adjustedPoolFeeBig)
 	}
 
-	return nil
+	// iterate through all withdrawals to calculate the proportional values
+	// for each miner and create the proper balance outputs for each
+	balanceOutputs := make([]*pooldb.BalanceOutput, 0)
+	for _, withdrawal := range withdrawals {
+		if withdrawal.Spent {
+			continue
+		} else if !withdrawal.Value.Valid {
+			return fmt.Errorf("no value for withdrawal %d", withdrawal.ID)
+		} else if !withdrawal.WithdrawalFees.Valid {
+			return fmt.Errorf("no withdrawal fees for withdrawal %d", withdrawal.ID)
+		} else if !withdrawal.CumulativeFees.Valid {
+			return fmt.Errorf("no cumulative fees for withdrawal %d", withdrawal.ID)
+		}
+
+		// calculate the exact proportional values and fees for each trade path
+		proportionalValues, proportionalFees, err := accounting.CalculateProportionalTradeValues(withdrawal.Value.BigInt,
+			withdrawal.CumulativeFees.BigInt, finalProportions[withdrawal.ChainID])
+		if err != nil {
+			return err
+		}
+
+		// finally, iterate through the exact proportional values and fees for each
+		// input trade path and calculate the exact proportional values for each miner
+		for initialChainID, proportionalValue := range proportionalValues {
+			proportionalFee := proportionalFees[initialChainID]
+
+			// make sure the given (reversed) trade path is present in the initial proportions
+			if _, ok := initialProportions[withdrawal.ChainID]; !ok {
+				return fmt.Errorf("no initial proportions found for %s", withdrawal.ChainID)
+			} else if _, ok := initialProportions[withdrawal.ChainID][initialChainID]; !ok {
+				return fmt.Errorf("no initial proportions found for %s->%s", withdrawal.ChainID, initialChainID)
+			}
+
+			// calculate the exact proportional values and fees for each miner
+			minerProportionalValues, minerProportionalFees, err := accounting.CalculateProportionalMinerValues(proportionalValue,
+				proportionalFee, initialProportions[withdrawal.ChainID][initialChainID])
+			if err != nil {
+				return err
+			}
+
+			// create balance outputs for each miner
+			for minerID, value := range minerProportionalValues {
+				if _, ok := poolFeeIdx[minerID]; !ok {
+					return fmt.Errorf("no pool fees found for miner %d", minerID)
+				} else if _, ok := poolFeeIdx[minerID][withdrawal.ChainID]; !ok {
+					return fmt.Errorf("no pool fees found for miner %d and chain %s", minerID, withdrawal.ChainID)
+				}
+
+				poolFee := poolFeeIdx[minerID][withdrawal.ChainID]
+				exchangeFee := minerProportionalFees[minerID]
+
+				balanceOutput := &pooldb.BalanceOutput{
+					ChainID: withdrawal.ChainID,
+					MinerID: minerID,
+
+					Value:        dbcl.NullBigInt{Valid: true, BigInt: value},
+					PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: poolFee},
+					ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: exchangeFee},
+				}
+				balanceOutputs = append(balanceOutputs, balanceOutput)
+			}
+		}
+	}
+
+	// create a db tx to make sure all of the balance outputs are
+	// inserted, all of the balance inputs are marked as not pending
+	// with the corresponding balance output, and all of the withdrawals
+	// are marked as spent
+	tx, err := c.pooldb.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.SafeRollback()
+
+	// insert all of the newly created balance outputs
+	err = pooldb.InsertBalanceOutputs(tx, balanceOutputs...)
+	if err != nil {
+		return err
+	}
+
+	// re-fetch balance outputs with their new ids
+	balanceOutputs, err = pooldb.GetBalanceOutputsByBatch(tx, batchID)
+	if err != nil {
+		return err
+	}
+
+	// create an index for all balance output ids by miner and chain
+	balanceOutputIdx := make(map[uint64]map[string]uint64)
+	for _, balanceOutput := range balanceOutputs {
+		minerID := balanceOutput.MinerID
+		chainID := balanceOutput.ChainID
+
+		if _, ok := balanceOutputIdx[minerID]; !ok {
+			balanceOutputIdx[minerID] = make(map[string]uint64)
+		}
+
+		balanceOutputIdx[minerID][chainID] = balanceOutput.ID
+	}
+
+	// update every balance input to be marked as not pending and set
+	// with the corresponding balance output id
+	for _, balanceInput := range balanceInputs {
+		minerID := balanceInput.MinerID
+		chainID := balanceInput.OutChainID
+		if _, ok := balanceOutputIdx[minerID]; !ok {
+			return fmt.Errorf("no balance output found for miner %d", minerID)
+		} else if _, ok := balanceOutputIdx[minerID][chainID]; !ok {
+			return fmt.Errorf("no balance output found for miner %d and chain %s", minerID, chainID)
+		}
+
+		balanceInput.BalanceOutputID = types.Uint64Ptr(balanceOutputIdx[minerID][chainID])
+		balanceInput.Pending = false
+
+		cols := []string{"balance_output_id", "pending"}
+		err = pooldb.UpdateBalanceInput(tx, balanceInput, cols)
+		if err != nil {
+			return err
+		}
+	}
+
+	// mark all of the withdrawals as spent
+	for _, withdrawal := range withdrawals {
+		withdrawal.Spent = true
+		err = pooldb.UpdateExchangeWithdrawal(tx, withdrawal, []string{"spent"})
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.SafeCommit()
+	if err != nil {
+		return err
+	}
+
+	return c.updateBatchStatus(batchID, WithdrawalsComplete)
 }
