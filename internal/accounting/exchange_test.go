@@ -159,6 +159,39 @@ func TestCalculateExchangePaths(t *testing.T) {
 		{
 			inputPaths: map[string]map[string]*big.Int{
 				"CFX": map[string]*big.Int{
+					"ETH": common.MustParseBigInt("7433150323012392030309"),
+					"BTC": common.MustParseBigInt("4225155251235918477239"),
+				},
+				"ETC": map[string]*big.Int{
+					"ETH":  common.MustParseBigInt("82315931231311938231"),
+					"BTC":  common.MustParseBigInt("31412030881418410073"),
+					"USDC": common.MustParseBigInt("39310403813440000003"),
+				},
+				"FLUX": map[string]*big.Int{
+					"ETH":  new(big.Int).SetUint64(18_301_031_941),
+					"USDC": new(big.Int).SetUint64(14_299_031_132),
+				},
+			},
+			outputThresholds: map[string]*big.Int{
+				"BTC":  new(big.Int).SetUint64(5_000_000),
+				"ETH":  new(big.Int).SetUint64(500_000_000_000_000_000),
+				"USDC": new(big.Int).SetUint64(2_000_000_000),
+			},
+			prices: priceIndex,
+			finalPaths: map[string]map[string]*big.Int{
+				"CFX": map[string]*big.Int{
+					"ETH": common.MustParseBigInt("7433150323012392030309"),
+					"BTC": common.MustParseBigInt("4225155251235918477239"),
+				},
+				"ETC": map[string]*big.Int{
+					"ETH": common.MustParseBigInt("82315931231311938231"),
+					"BTC": common.MustParseBigInt("31412030881418410073"),
+				},
+			},
+		},
+		{
+			inputPaths: map[string]map[string]*big.Int{
+				"CFX": map[string]*big.Int{
 					"ETH":  common.MustParseBigInt("2000000000000000000000"),
 					"BTC":  common.MustParseBigInt("2000000000000000000000"),
 					"USDC": common.MustParseBigInt("2000000000000000000000"),
@@ -199,8 +232,44 @@ func TestCalculateExchangePaths(t *testing.T) {
 				"ETH":  new(big.Int).SetUint64(5_000_000_000_000_000_000),
 				"USDC": new(big.Int).SetUint64(20_000_000_000),
 			},
-			prices:     priceIndex,
-			finalPaths: map[string]map[string]*big.Int{},
+			prices: priceIndex,
+			finalPaths: map[string]map[string]*big.Int{
+				"CFX": map[string]*big.Int{
+					"ETH":  common.MustParseBigInt("2000000000000000000000"),
+					"BTC":  common.MustParseBigInt("2000000000000000000000"),
+					"USDC": common.MustParseBigInt("2000000000000000000000"),
+				},
+				"CTXC": map[string]*big.Int{
+					"ETH":  common.MustParseBigInt("500000000000000000000"),
+					"BTC":  common.MustParseBigInt("500000000000000000000"),
+					"USDC": common.MustParseBigInt("500000000000000000000"),
+				},
+				"ERGO": map[string]*big.Int{
+					"ETH":  new(big.Int).SetUint64(39_049_076_512_513),
+					"BTC":  new(big.Int).SetUint64(241_000_423_000_312),
+					"USDC": new(big.Int).SetUint64(132_042_004_041_420_314),
+				},
+				"ETC": map[string]*big.Int{
+					"ETH":  new(big.Int).SetUint64(3_000_000_000_000_000_000),
+					"BTC":  new(big.Int).SetUint64(3_000_000_000_000_000_000),
+					"USDC": new(big.Int).SetUint64(3_000_000_000_000_000_000),
+				},
+				"FIRO": map[string]*big.Int{
+					"ETH":  new(big.Int).SetUint64(10_000_000_000),
+					"BTC":  new(big.Int).SetUint64(10_000_000_000),
+					"USDC": new(big.Int).SetUint64(10_000_000_000),
+				},
+				"FLUX": map[string]*big.Int{
+					"ETH":  new(big.Int).SetUint64(30_000_000_000),
+					"BTC":  new(big.Int).SetUint64(30_000_000_000),
+					"USDC": new(big.Int).SetUint64(30_000_000_000),
+				},
+				"RVN": map[string]*big.Int{
+					"ETH":  new(big.Int).SetUint64(20_000_000_000),
+					"BTC":  new(big.Int).SetUint64(20_000_000_000),
+					"USDC": new(big.Int).SetUint64(20_000_000_000),
+				},
+			},
 		},
 	}
 
