@@ -6,6 +6,37 @@ import (
 	"testing"
 )
 
+func TestSplitValue(t *testing.T) {
+	tests := []struct {
+		value     *big.Int
+		idx       map[uint64]uint64
+		values    map[uint64]*big.Int
+		remainder *big.Int
+	}{
+		{
+			value: new(big.Int).SetUint64(1992800000000000000),
+			idx: map[uint64]uint64{
+				1: 5, 2: 1367,
+			},
+			values: map[uint64]*big.Int{
+				1: new(big.Int).SetUint64(7262390670553935), 2: new(big.Int).SetUint64(1985537609329446064),
+			},
+			remainder: new(big.Int).SetUint64(1),
+		},
+	}
+
+	for i, tt := range tests {
+		values, remainder, err := splitValue(tt.value, tt.idx)
+		if err != nil {
+			t.Errorf("failed on %d: %v", i, err)
+		} else if !reflect.DeepEqual(values, tt.values) {
+			t.Errorf("failed on %d: values mismatch: have %v, want %v", i, values, tt.values)
+		} else if remainder.Cmp(tt.remainder) != 0 {
+			t.Errorf("failed on %d: remainder mismatch: have %s, want %s", i, remainder, tt.remainder)
+		}
+	}
+}
+
 func TestCreditRound(t *testing.T) {
 	tests := []struct {
 		roundValue   *big.Int
@@ -282,6 +313,71 @@ func TestCreditRound(t *testing.T) {
 			t.Errorf("failed on %d: output values mismatch: have %v, want %v", i, outputValues, tt.outputValues)
 		} else if !reflect.DeepEqual(outputFees, tt.outputFees) {
 			t.Errorf("failed on %d: output fees mismatch: have %v, want %v", i, outputFees, tt.outputFees)
+		}
+	}
+}
+
+func TestProcessFeeBalance(t *testing.T) {
+	tests := []struct {
+		roundChain  string
+		minerChain  string
+		value       *big.Int
+		fee         *big.Int
+		feeBalance  *big.Int
+		price       float64
+		outputValue *big.Int
+		outputFee   *big.Int
+	}{
+		{
+			roundChain:  "ETC",
+			minerChain:  "USDC",
+			value:       new(big.Int).SetUint64(17750132046676893599),
+			fee:         new(big.Int).SetUint64(177501320466768935),
+			feeBalance:  new(big.Int),
+			price:       0.022,
+			outputValue: new(big.Int).SetUint64(454545454545454572),
+			outputFee:   new(big.Int).SetUint64(4545454545454545),
+		},
+		{
+			roundChain:  "ETC",
+			minerChain:  "USDC",
+			value:       new(big.Int).SetUint64(17750132046676893599),
+			fee:         new(big.Int).SetUint64(177501320466768935),
+			feeBalance:  new(big.Int).SetUint64(5000000000000000),
+			price:       0.022,
+			outputValue: new(big.Int).SetUint64(227272727272727286),
+			outputFee:   new(big.Int).SetUint64(2272727272727272),
+		},
+		{
+			roundChain:  "ETC",
+			minerChain:  "USDC",
+			value:       new(big.Int).SetUint64(17750132046676893599),
+			fee:         new(big.Int).SetUint64(177501320466768935),
+			feeBalance:  new(big.Int).SetUint64(9000000000000000),
+			price:       0.022,
+			outputValue: new(big.Int).SetUint64(45454545454545457),
+			outputFee:   new(big.Int).SetUint64(454545454545454),
+		},
+		{
+			roundChain:  "ETC",
+			minerChain:  "USDC",
+			value:       new(big.Int).SetUint64(17750132046676893599),
+			fee:         new(big.Int).SetUint64(177501320466768935),
+			feeBalance:  new(big.Int).SetUint64(17750132046676893599),
+			price:       0.022,
+			outputValue: new(big.Int),
+			outputFee:   new(big.Int),
+		},
+	}
+
+	for i, tt := range tests {
+		outputValue, outputFee, err := ProcessFeeBalance(tt.roundChain, tt.minerChain, tt.value, tt.fee, tt.feeBalance, tt.price)
+		if err != nil {
+			t.Errorf("failed on %d: %v", i, err)
+		} else if outputValue.Cmp(tt.outputValue) != 0 {
+			t.Errorf("failed on %d: fee balance value mismatch: have %s, want %s", i, outputValue, tt.outputValue)
+		} else if outputFee.Cmp(tt.outputFee) != 0 {
+			t.Errorf("failed on %d: fee balance fee mismatch: have %s, want %s", i, outputFee, tt.outputFee)
 		}
 	}
 }
