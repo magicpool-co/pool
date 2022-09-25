@@ -146,124 +146,63 @@ func CalculateExchangePaths(inputPaths map[string]map[string]*big.Int, outputThr
 	return inputPaths, nil
 }
 
-func CalculateProportionalTradeValues(withdrawalValue, feeValue *big.Int, tradeProportions map[string]*big.Int) (map[string]*big.Int, map[string]*big.Int, error) {
+func CalculateProportionalValues[K string | uint64](value, fee *big.Int, proportions map[K]*big.Int) (map[K]*big.Int, map[K]*big.Int, error) {
 	// keep track of the used value and fees to make sure any remainders are distributed
 	usedValue := new(big.Int)
 	usedFee := new(big.Int)
 
-	// calculate the sum trade value (to use as the denominator for each trades's proportion)
-	sumTradeValue := new(big.Int)
-	for _, tradeValue := range tradeProportions {
-		sumTradeValue.Add(sumTradeValue, tradeValue)
+	// calculate the sum input value
+	sumInputValue := new(big.Int)
+	for _, inputValue := range proportions {
+		sumInputValue.Add(sumInputValue, inputValue)
 	}
 
-	// iterate through the final values of each trade path (by the final chain)
-	// and calculate the proportional withdrawal value and cumulative fees for each
-	proportionalValues := make(map[string]*big.Int)
-	proportionalFees := make(map[string]*big.Int)
-	for initialChainID, tradeValue := range tradeProportions {
-		// withdrawalValue * (tradeValue / sumTradeValue) is the formula
-		// for calculating the distributed withdrawal values for that trade path
-		proportionalValues[initialChainID] = new(big.Int).Mul(withdrawalValue, tradeValue)
-		proportionalValues[initialChainID].Div(proportionalValues[initialChainID], sumTradeValue)
-		usedValue.Add(usedValue, proportionalValues[initialChainID])
+	// iterate through the proportions, calculating the proportional
+	// value and fee for each item in the map
+	proportionalValues := make(map[K]*big.Int)
+	proportionalFees := make(map[K]*big.Int)
+	for k, inputValue := range proportions {
+		// value * (inputValue / sumInputValue) is the formula for calculating
+		// the proportional value based on the given input value
+		proportionalValues[k] = new(big.Int).Mul(value, inputValue)
+		proportionalValues[k].Div(proportionalValues[k], sumInputValue)
+		usedValue.Add(usedValue, proportionalValues[k])
 
-		// feeValue * (tradeValue / sumTradeValue) is the formula
-		// for calculating the distributed withdrawal values for that trade path
-		// feeValue * (proportionalValue / withdrawalValue) would also work
-		proportionalFees[initialChainID] = new(big.Int).Mul(feeValue, tradeValue)
-		proportionalFees[initialChainID].Div(proportionalFees[initialChainID], sumTradeValue)
-		usedFee.Add(usedFee, proportionalFees[initialChainID])
+		// fee * (tradeValue / sumTradeValue) is the formula for calculating
+		// the proportional fee based on the given input value.
+		// fee * (proportionalValues[k] / value) would also work
+		proportionalFees[k] = new(big.Int).Mul(fee, inputValue)
+		proportionalFees[k].Div(proportionalFees[k], sumInputValue)
+		usedFee.Add(usedFee, proportionalFees[k])
 	}
 
 	// calculate the remainder values and verify they are non-negative (over-credit protection)
-	remainderValue := usedValue.Sub(withdrawalValue, usedValue)
+	remainderValue := usedValue.Sub(value, usedValue)
 	if remainderValue.Cmp(common.Big0) < 0 {
 		return nil, nil, fmt.Errorf("negative remainder value for trade proportions")
 	}
 
 	// calculate the remainder fees and verify they are non-negative (over-credit protection)
-	remainderFee := usedFee.Sub(feeValue, usedFee)
+	remainderFee := usedFee.Sub(fee, usedFee)
 	if remainderFee.Cmp(common.Big0) < 0 {
 		return nil, nil, fmt.Errorf("negative remainder fee for trade proportions")
 	}
 
-	// calculate the output chain with the largest value for determinstic remainder distribution
-	// (if two values are the same, use the chain with the smallest lexographical order)
-	var smallestChainID string
+	// find the key with the largest value for deterministic remainder distribution
+	// (if multiple values are equivalent, choose the smallest key)
+	var smallestKey K
 	largestValue := new(big.Int)
-	for chainID, proportionalValue := range proportionalValues {
-		diff := proportionalValue.Cmp(largestValue)
-		if diff > 0 || (diff == 0 && chainID < smallestChainID) {
-			smallestChainID = chainID
-			largestValue.Set(proportionalValue)
+	for k, v := range proportionalValues {
+		diff := v.Cmp(largestValue)
+		if diff > 0 || (diff == 0 && k < smallestKey) {
+			smallestKey = k
+			largestValue.Set(v)
 		}
 	}
 
 	// distribute the remainder fees
-	proportionalValues[smallestChainID].Add(proportionalValues[smallestChainID], remainderValue)
-	proportionalFees[smallestChainID].Add(proportionalFees[smallestChainID], remainderFee)
-
-	return proportionalValues, proportionalFees, nil
-}
-
-func CalculateProportionalMinerValues(withdrawalValue, feeValue *big.Int, minerProportions map[uint64]*big.Int) (map[uint64]*big.Int, map[uint64]*big.Int, error) {
-	// calculate the sum initial value (to use as the denominator for each miner's proportion)
-	sumInitialValue := new(big.Int)
-	for _, initialValue := range minerProportions {
-		sumInitialValue.Add(sumInitialValue, initialValue)
-	}
-
-	// keep track of the used value and fees to make sure any remainders are distributed
-	usedValue := new(big.Int)
-	usedFee := new(big.Int)
-
-	// iterate through the initial values for each miner (by the final chain)
-	// and calculate the proportional withdrawal value and cumulative fees for each
-	proportionalValues := make(map[uint64]*big.Int)
-	proportionalFees := make(map[uint64]*big.Int)
-	for minerID, initialValue := range minerProportions {
-		// finalValue * (initialValue / sumInitialValue) is the formula
-		// for calculating the distributed withdrawal values for that miner
-		proportionalValues[minerID] = new(big.Int).Mul(withdrawalValue, initialValue)
-		proportionalValues[minerID].Div(proportionalValues[minerID], sumInitialValue)
-		usedValue.Add(usedValue, proportionalValues[minerID])
-
-		// feeValue * (initialValue / sumInitialValue) is the formula
-		// for calculating the distributed withdrawal values for that trade path
-		// feeValue * (proportionalValue / withdrawalValue) would also work
-		proportionalFees[minerID] = new(big.Int).Mul(feeValue, initialValue)
-		proportionalFees[minerID].Div(proportionalFees[minerID], sumInitialValue)
-		usedFee.Add(usedFee, proportionalFees[minerID])
-	}
-
-	// calculate the remainder values and verify they are non-negative (over-credit protection)
-	remainderValue := usedValue.Sub(withdrawalValue, usedValue)
-	if remainderValue.Cmp(common.Big0) < 0 {
-		return nil, nil, fmt.Errorf("negative remainder value for miner proportions")
-	}
-
-	// calculate the remainder fees and verify they are non-negative (over-credit protection)
-	remainderFee := usedFee.Sub(feeValue, usedFee)
-	if remainderFee.Cmp(common.Big0) < 0 {
-		return nil, nil, fmt.Errorf("negative remainder fee for miner proportions")
-	}
-
-	// calculate the output chain with the largest value for determinstic remainder distribution
-	// (if two values are the same, use the miner with the lowest ID)
-	var smallestMinerID uint64
-	largestValue := new(big.Int)
-	for minerID, proportionalValue := range proportionalValues {
-		diff := proportionalValue.Cmp(largestValue)
-		if diff > 0 || (diff == 0 && minerID < smallestMinerID) {
-			smallestMinerID = minerID
-			largestValue.Set(proportionalValue)
-		}
-	}
-
-	// distribute the remainder fees
-	proportionalValues[smallestMinerID].Add(proportionalValues[smallestMinerID], remainderValue)
-	proportionalFees[smallestMinerID].Add(proportionalFees[smallestMinerID], remainderFee)
+	proportionalValues[smallestKey].Add(proportionalValues[smallestKey], remainderValue)
+	proportionalFees[smallestKey].Add(proportionalFees[smallestKey], remainderFee)
 
 	return proportionalValues, proportionalFees, nil
 }

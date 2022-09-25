@@ -270,7 +270,7 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 		}
 
 		// calculate the exact proportional values and fees for each trade path
-		proportionalValues, proportionalFees, err := accounting.CalculateProportionalTradeValues(withdrawal.Value.BigInt,
+		proportionalValues, proportionalFees, err := accounting.CalculateProportionalValues(withdrawal.Value.BigInt,
 			withdrawal.CumulativeFees.BigInt, finalProportions[withdrawal.ChainID])
 		if err != nil {
 			return err
@@ -289,7 +289,7 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 			}
 
 			// calculate the exact proportional values and fees for each miner
-			minerProportionalValues, minerProportionalFees, err := accounting.CalculateProportionalMinerValues(proportionalValue,
+			minerProportionalValues, minerProportionalFees, err := accounting.CalculateProportionalValues(proportionalValue,
 				proportionalFee, initialProportions[withdrawal.ChainID][initialChainID])
 			if err != nil {
 				return err

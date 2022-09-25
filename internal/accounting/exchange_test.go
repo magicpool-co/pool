@@ -8,6 +8,29 @@ import (
 	"github.com/magicpool-co/pool/pkg/common"
 )
 
+func deepEqualMapBigInt(a, b map[string]*big.Int) bool {
+	aCopy := make(map[string]*big.Int)
+	for k, v := range a {
+		aCopy[k] = v
+	}
+
+	bCopy := make(map[string]*big.Int)
+	for k, v := range b {
+		bCopy[k] = v
+	}
+
+	for k, aV := range aCopy {
+		bV, ok := b[k]
+		if !ok || aV.Cmp(bV) != 0 {
+			return false
+		}
+		delete(aCopy, k)
+		delete(bCopy, k)
+	}
+
+	return len(aCopy) == 0 && len(bCopy) == 0
+}
+
 var (
 	priceIndex = map[string]map[string]float64{
 		"CFX": map[string]float64{
@@ -279,6 +302,107 @@ func TestCalculateExchangePaths(t *testing.T) {
 			t.Errorf("failed on %d: %v", i, err)
 		} else if !reflect.DeepEqual(finalPaths, tt.finalPaths) {
 			t.Errorf("failed on %d: final paths mismatch: have %v, want %v", i, finalPaths, tt.finalPaths)
+		}
+	}
+}
+
+func TestCalculateProportionalValues(t *testing.T) {
+	tests := []struct {
+		value              *big.Int
+		fee                *big.Int
+		proportions        map[string]*big.Int
+		proportionalValues map[string]*big.Int
+		proportionalFees   map[string]*big.Int
+	}{
+		{
+			value: new(big.Int).SetUint64(39_049_076_512_513),
+			fee:   new(big.Int).SetUint64(40_139_932_481),
+			proportions: map[string]*big.Int{
+				"a": new(big.Int).SetUint64(100),
+			},
+			proportionalValues: map[string]*big.Int{
+				"a": new(big.Int).SetUint64(39_049_076_512_513),
+			},
+			proportionalFees: map[string]*big.Int{
+				"a": new(big.Int).SetUint64(40_139_932_481),
+			},
+		},
+		{
+			value: new(big.Int).SetUint64(39_049_076_512_513),
+			fee:   new(big.Int).SetUint64(40_139_932_481),
+			proportions: map[string]*big.Int{
+				"a": new(big.Int).SetUint64(50),
+				"b": new(big.Int).SetUint64(50),
+			},
+			proportionalValues: map[string]*big.Int{
+				"a": new(big.Int).SetUint64(19_524_538_256_257),
+				"b": new(big.Int).SetUint64(19_524_538_256_256),
+			},
+			proportionalFees: map[string]*big.Int{
+				"a": new(big.Int).SetUint64(20_069_966_241),
+				"b": new(big.Int).SetUint64(20_069_966_240),
+			},
+		},
+		{
+			value: new(big.Int).SetUint64(39_049_076_512_513),
+			fee:   new(big.Int).SetUint64(40_139_932_481),
+			proportions: map[string]*big.Int{
+				"a": new(big.Int).SetUint64(2_135_123),
+				"b": new(big.Int).SetUint64(51_235_123_125_123),
+				"c": new(big.Int).SetUint64(59_840_203_041),
+				"d": new(big.Int).SetUint64(32),
+				"e": new(big.Int).SetUint64(258_881_824_858_293),
+			},
+			proportionalValues: map[string]*big.Int{
+				"a": new(big.Int).SetUint64(268_796),
+				"b": new(big.Int).SetUint64(6_450_141_678_771),
+				"c": new(big.Int).SetUint64(7_533_460_722),
+				"d": new(big.Int).SetUint64(4),
+				"e": new(big.Int).SetUint64(32_591_401_104_220),
+			},
+			proportionalFees: map[string]*big.Int{
+				"a": new(big.Int).SetUint64(276),
+				"b": new(big.Int).SetUint64(6_630_329_692),
+				"c": new(big.Int).SetUint64(7_743_911),
+				"d": new(big.Int).SetUint64(0),
+				"e": new(big.Int).SetUint64(33_501_858_602),
+			},
+		},
+		{
+			value: new(big.Int).SetUint64(40_139_932_481),
+			fee:   new(big.Int).SetUint64(39_049_076_512_513),
+			proportions: map[string]*big.Int{
+				"a": new(big.Int).SetUint64(2_135_123),
+				"b": new(big.Int).SetUint64(51_235_123_125_123),
+				"c": new(big.Int).SetUint64(59_840_203_041),
+				"d": new(big.Int).SetUint64(32),
+				"e": new(big.Int).SetUint64(258_881_824_858_293),
+			},
+			proportionalValues: map[string]*big.Int{
+				"a": new(big.Int).SetUint64(276),
+				"b": new(big.Int).SetUint64(6_630_329_692),
+				"c": new(big.Int).SetUint64(7_743_911),
+				"d": new(big.Int).SetUint64(0),
+				"e": new(big.Int).SetUint64(33_501_858_602),
+			},
+			proportionalFees: map[string]*big.Int{
+				"a": new(big.Int).SetUint64(268_796),
+				"b": new(big.Int).SetUint64(6_450_141_678_771),
+				"c": new(big.Int).SetUint64(7_533_460_722),
+				"d": new(big.Int).SetUint64(4),
+				"e": new(big.Int).SetUint64(32_591_401_104_220),
+			},
+		},
+	}
+
+	for i, tt := range tests {
+		proportionalValues, proportionalFees, err := CalculateProportionalValues(tt.value, tt.fee, tt.proportions)
+		if err != nil {
+			t.Errorf("failed on %d: %v", i, err)
+		} else if !deepEqualMapBigInt(proportionalValues, tt.proportionalValues) {
+			t.Errorf("failed on %d: proportional values mismatch: have %v, want %v", i, proportionalValues, tt.proportionalValues)
+		} else if !deepEqualMapBigInt(proportionalFees, tt.proportionalFees) {
+			t.Errorf("failed on %d: proportional fees mismatch: have %v, want %v", i, proportionalFees, tt.proportionalFees)
 		}
 	}
 }
