@@ -8,19 +8,6 @@ import (
 )
 
 var (
-	units = map[string]*big.Int{
-		"BTC":  new(big.Int).SetUint64(1e8),
-		"CFX":  new(big.Int).SetUint64(1e18),
-		"CTXC": new(big.Int).SetUint64(1e18),
-		"ERGO": new(big.Int).SetUint64(1e9),
-		"ETC":  new(big.Int).SetUint64(1e18),
-		"ETH":  new(big.Int).SetUint64(1e18),
-		"FIRO": new(big.Int).SetUint64(1e8),
-		"FLUX": new(big.Int).SetUint64(1e8),
-		"RVN":  new(big.Int).SetUint64(1e8),
-		"USDC": new(big.Int).SetUint64(1e6),
-	}
-
 	inputThresholds = map[string]*big.Int{
 		"CFX":  common.MustParseBigInt("2000000000000000000000"),  // 2,000 CFX
 		"CTXC": common.MustParseBigInt("500000000000000000000"),   // 500 CTXC
@@ -49,18 +36,21 @@ func reverseMap(input map[string]map[string]*big.Int, prices map[string]map[stri
 				output[to][from] = new(big.Int)
 			}
 
+			// set the reverse value as initial value (to avoid accidental overwriting)
 			reverseValue := new(big.Int).Set(value)
+
+			// if prices exists, adjust the value based off of the price
 			if _, ok := prices[from]; ok {
 				price, ok := prices[from][to]
 				if ok {
-					fromUnits, ok := units[from]
-					if !ok {
-						return nil, fmt.Errorf("no units for from chain %s", from)
+					fromUnits, err := common.GetDefaultUnits(from)
+					if err != nil {
+						return nil, err
 					}
 
-					toUnits, ok := units[to]
-					if !ok {
-						return nil, fmt.Errorf("no units for to chain %s", to)
+					toUnits, err := common.GetDefaultUnits(to)
+					if err != nil {
+						return nil, err
 					}
 
 					rate, err := common.StringDecimalToBigint(fmt.Sprintf("%.8f", price), toUnits)
@@ -83,11 +73,8 @@ func reverseMap(input map[string]map[string]*big.Int, prices map[string]map[stri
 func sumMap(input map[string]map[string]*big.Int) map[string]*big.Int {
 	output := make(map[string]*big.Int)
 	for from, toIdx := range input {
+		output[from] = new(big.Int)
 		for _, value := range toIdx {
-			if _, ok := output[from]; !ok {
-				output[from] = new(big.Int)
-			}
-
 			output[from].Add(output[from], value)
 		}
 	}
