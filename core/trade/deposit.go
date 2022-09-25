@@ -20,15 +20,14 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 	// create summed values from the exchange inputs
 	values := make(map[string]*big.Int)
 	for _, exchangeInput := range exchangeInputs {
+		chainID := exchangeInput.InChainID
 		if !exchangeInput.Value.Valid {
 			return fmt.Errorf("no value for input %d", exchangeInput.ID)
-		} else if _, ok := values[exchangeInput.InChainID]; !ok {
-			values[exchangeInput.InChainID] = new(big.Int)
+		} else if _, ok := values[chainID]; !ok {
+			values[chainID] = new(big.Int)
 		}
 
-		chainID := exchangeInput.InChainID
-		value := exchangeInput.Value.BigInt
-		values[chainID].Add(values[chainID], value)
+		values[chainID].Add(values[chainID], exchangeInput.Value.BigInt)
 	}
 
 	// validate each proposed deposit, create the tx outputs
@@ -94,8 +93,6 @@ func (c *Client) RegisterDeposits(batchID uint64) error {
 	deposits, err := pooldb.GetExchangeDeposits(c.pooldb.Reader(), batchID)
 	if err != nil {
 		return err
-	} else if len(deposits) == 0 {
-		return nil
 	}
 
 	registeredAll := true
@@ -135,8 +132,6 @@ func (c *Client) ConfirmDeposits(batchID uint64) error {
 	deposits, err := pooldb.GetExchangeDeposits(c.pooldb.Reader(), batchID)
 	if err != nil {
 		return err
-	} else if len(deposits) == 0 {
-		return nil
 	}
 
 	confirmedAll := true

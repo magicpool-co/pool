@@ -38,8 +38,6 @@ func (c *Client) InitiateTrades(batchID uint64) error {
 	balanceInputs, err := pooldb.GetExchangeInputs(c.pooldb.Reader(), batchID)
 	if err != nil {
 		return err
-	} else if len(balanceInputs) == 0 {
-		return nil
 	}
 
 	outputPaths, err := exchangeInputsToOutputPaths(balanceInputs)
