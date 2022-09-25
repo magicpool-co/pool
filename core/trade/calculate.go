@@ -154,12 +154,13 @@ func finalTradesToAvgWeightedPrice(finalTrades []*pooldb.ExchangeTrade) (map[str
 			return nil, err
 		}
 
-		prices[initialChainID][finalChainID] += types.Float64Value(finalTrade.CumulativeFillPrice)
-		weights[initialChainID][finalChainID] += common.BigIntToFloat64(finalTrade.Value.BigInt, units)
+		weight := common.BigIntToFloat64(finalTrade.Value.BigInt, units)
+		prices[initialChainID][finalChainID] += types.Float64Value(finalTrade.CumulativeFillPrice) * weight
+		weights[initialChainID][finalChainID] += weight
 	}
 
 	// divide the sum prices by the sum weights to calculate the average weighted price
-	for initialChainID, weightIdx := range prices {
+	for initialChainID, weightIdx := range weights {
 		for finalChainID, weight := range weightIdx {
 			if weight > 0 {
 				prices[initialChainID][finalChainID] /= weight

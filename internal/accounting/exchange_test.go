@@ -8,29 +8,6 @@ import (
 	"github.com/magicpool-co/pool/pkg/common"
 )
 
-func deepEqualMapBigInt(a, b map[string]*big.Int) bool {
-	aCopy := make(map[string]*big.Int)
-	for k, v := range a {
-		aCopy[k] = v
-	}
-
-	bCopy := make(map[string]*big.Int)
-	for k, v := range b {
-		bCopy[k] = v
-	}
-
-	for k, aV := range aCopy {
-		bV, ok := b[k]
-		if !ok || aV.Cmp(bV) != 0 {
-			return false
-		}
-		delete(aCopy, k)
-		delete(bCopy, k)
-	}
-
-	return len(aCopy) == 0 && len(bCopy) == 0
-}
-
 var (
 	priceIndex = map[string]map[string]float64{
 		"CFX": map[string]float64{
@@ -399,9 +376,9 @@ func TestCalculateProportionalValues(t *testing.T) {
 		proportionalValues, proportionalFees, err := CalculateProportionalValues(tt.value, tt.fee, tt.proportions)
 		if err != nil {
 			t.Errorf("failed on %d: %v", i, err)
-		} else if !deepEqualMapBigInt(proportionalValues, tt.proportionalValues) {
+		} else if !common.DeepEqualMapBigInt1D(proportionalValues, tt.proportionalValues) {
 			t.Errorf("failed on %d: proportional values mismatch: have %v, want %v", i, proportionalValues, tt.proportionalValues)
-		} else if !deepEqualMapBigInt(proportionalFees, tt.proportionalFees) {
+		} else if !common.DeepEqualMapBigInt1D(proportionalFees, tt.proportionalFees) {
 			t.Errorf("failed on %d: proportional fees mismatch: have %v, want %v", i, proportionalFees, tt.proportionalFees)
 		}
 	}
