@@ -102,7 +102,7 @@ CREATE TABLE exchange_trades (
 	order_price				double,
 	fill_price				double,
 	cumulative_fill_price	double,
-	slippaged				double,
+	slippage				double,
 	initiated				bool		NOT NULL,
 	confirmed				bool		NOT NULL,
 

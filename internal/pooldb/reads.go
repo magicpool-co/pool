@@ -118,6 +118,8 @@ func GetMiner(q dbcl.Querier, id uint64) (*Miner, error) {
 	err := q.Get(output, query, id)
 	if err != nil && err != sql.ErrNoRows {
 		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
 	}
 
 	return output, nil
@@ -211,6 +213,8 @@ func GetOldestActiveIPAddress(q dbcl.Querier, minerID uint64) (*IPAddress, error
 	err := q.Get(output, query, minerID)
 	if err != nil && err != sql.ErrNoRows {
 		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
 	}
 
 	return output, nil
@@ -228,6 +232,8 @@ func GetRound(q dbcl.Querier, id uint64) (*Round, error) {
 	err := q.Get(output, query, id)
 	if err != nil && err != sql.ErrNoRows {
 		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
 	}
 
 	return output, nil
@@ -247,6 +253,8 @@ func GetLastRoundBeforeTime(q dbcl.Querier, chain string, timestamp time.Time) (
 	err := q.Get(output, query, chain, timestamp)
 	if err != nil && err != sql.ErrNoRows {
 		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
 	}
 
 	return output, nil
@@ -383,6 +391,22 @@ func GetSharesByRound(q dbcl.Querier, roundID uint64) ([]*Share, error) {
 	return output, err
 }
 
+/* utxos */
+
+func GetUnspentUTXOsByChain(q dbcl.Querier, chainID string) ([]*UTXO, error) {
+	const query = `SELECT *
+	FROM utxos
+	WHERE
+		chain_id = ?
+	AND
+		spent = FALSE;`
+
+	output := []*UTXO{}
+	err := q.Select(&output, query, chainID)
+
+	return output, err
+}
+
 /* batch queries */
 
 func GetExchangeBatch(q dbcl.Querier, batchID uint64) (*ExchangeBatch, error) {
@@ -391,10 +415,12 @@ func GetExchangeBatch(q dbcl.Querier, batchID uint64) (*ExchangeBatch, error) {
 	WHERE
 		id = ?;`
 
-	var output *ExchangeBatch
-	err := q.Get(&output, query, batchID)
+	output := new(ExchangeBatch)
+	err := q.Get(output, query, batchID)
 	if err != nil && err != sql.ErrNoRows {
 		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
 	}
 
 	return output, nil
@@ -430,7 +456,7 @@ func GetExchangeTradesByStage(q dbcl.Querier, batchID uint64, stage int) ([]*Exc
 	WHERE
 		batch_id = ?
 	AND
-		stage = ?;`
+		stage_id = ?;`
 
 	output := []*ExchangeTrade{}
 	err := q.Select(&output, query, batchID, stage)
@@ -444,14 +470,16 @@ func GetExchangeTradeByPathAndStage(q dbcl.Querier, batchID uint64, path, stage 
 	WHERE
 		batch_id = ?
 	AND
-		path = ?
+		path_id = ?
 	AND
-		stage = ?;`
+		stage_id = ?;`
 
-	var output *ExchangeTrade
-	err := q.Get(&output, query, batchID, path, stage)
+	output := new(ExchangeTrade)
+	err := q.Get(output, query, batchID, path, stage)
 	if err != nil && err != sql.ErrNoRows {
 		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
 	}
 
 	return output, nil
@@ -459,15 +487,15 @@ func GetExchangeTradeByPathAndStage(q dbcl.Querier, batchID uint64, path, stage 
 
 func GetFinalExchangeTrades(q dbcl.Querier, batchID uint64) ([]*ExchangeTrade, error) {
 	const query = `WITH cte AS (
-		SELECT path, max(stage) max_stage
+		SELECT path_id, max(stage_id) max_stage
 		FROM exchange_trades
 		WHERE
 			batch_id = ?
-		GROUP BY path
+		GROUP BY path_id
 	)
 	SELECT exchange_trades.*
 	FROM exchange_trades
-	JOIN cte ON exchange_trades.stage = cte.max_stage
+	JOIN cte ON exchange_trades.stage_id = cte.max_stage AND exchange_trades.path_id = cte.path_id
 	WHERE
 		batch_id = ?;`
 
@@ -530,7 +558,7 @@ func GetBalanceOutputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceOutput,
 }
 
 func GetSumBalanceOutputValueByMiner(q dbcl.Querier, minerID uint64, chain string) (*big.Int, error) {
-	const query = `SELECT *
+	const query = `SELECT sum(value)
 	FROM balance_outputs
 	WHERE
 		miner_id = ?
@@ -538,20 +566,4 @@ func GetSumBalanceOutputValueByMiner(q dbcl.Querier, minerID uint64, chain strin
 		chain_id = ?;`
 
 	return dbcl.GetBigInt(q, query, minerID, chain)
-}
-
-/* utxos */
-
-func GetUnspentUTXOsByChain(q dbcl.Querier, chainID string) ([]*UTXO, error) {
-	const query = `SELECT *
-	FROM utxos
-	WHERE
-		chain_id = ?
-	AND
-		spent = FALSE;`
-
-	output := []*UTXO{}
-	err := q.Select(&output, query)
-
-	return output, err
 }
