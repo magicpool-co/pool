@@ -2,6 +2,7 @@ package trade
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/magicpool-co/pool/core/trade/binance"
 	"github.com/magicpool-co/pool/core/trade/bittrex"
@@ -53,29 +54,36 @@ type Client struct {
 	nodes      map[string]types.PayoutNode
 }
 
-func New(pooldbClient *dbcl.Client, nodes map[string]types.PayoutNode, exchangeID types.ExchangeID, apiKey, secretKey, secretPassphrase string) (*Client, error) {
-	exchange, err := NewExchange(exchangeID, apiKey, secretKey, secretPassphrase)
-	if err != nil {
-		return nil, err
+func New(pooldbClient *dbcl.Client, nodes []types.PayoutNode, exchange types.Exchange) *Client {
+	nodeIdx := make(map[string]types.PayoutNode)
+	for _, node := range nodes {
+		nodeIdx[node.Chain()] = node
 	}
 
 	client := &Client{
-		exchangeID: exchangeID,
+		exchangeID: exchange.ID(),
 		exchange:   exchange,
 		pooldb:     pooldbClient,
-		nodes:      nodes,
+		nodes:      nodeIdx,
 	}
 
-	return client, nil
+	return client
 }
 
 func (c *Client) updateBatchStatus(batchID uint64, status Status) error {
-	batch := &pooldb.ExchangeBatch{
-		ID:     batchID,
-		Status: int(status),
+	var completedAt *time.Time
+	if status == BatchComplete {
+		completedAt = types.TimePtr(time.Now())
 	}
 
-	return pooldb.UpdateExchangeBatch(c.pooldb.Writer(), batch, []string{"status"})
+	batch := &pooldb.ExchangeBatch{
+		ID:          batchID,
+		Status:      int(status),
+		CompletedAt: completedAt,
+	}
+	cols := []string{"status", "completed_at"}
+
+	return pooldb.UpdateExchangeBatch(c.pooldb.Writer(), batch, cols)
 }
 
 /* core methods */

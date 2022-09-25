@@ -426,6 +426,18 @@ func GetExchangeBatch(q dbcl.Querier, batchID uint64) (*ExchangeBatch, error) {
 	return output, nil
 }
 
+func GetActiveExchangeBatches(q dbcl.Querier) ([]*ExchangeBatch, error) {
+	const query = `SELECT *
+	FROM exchange_batches
+	WHERE
+		completed_at IS NULL`
+
+	output := []*ExchangeBatch{}
+	err := q.Select(&output, query)
+
+	return output, err
+}
+
 func GetExchangeInputs(q dbcl.Querier, batchID uint64) ([]*ExchangeInput, error) {
 	const query = `SELECT *
 	FROM exchange_inputs

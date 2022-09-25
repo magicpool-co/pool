@@ -46,8 +46,8 @@ func GetMiningNode(mainnet bool, chain, privKey string, urls []string, tunnel *s
 	}
 }
 
-func GetPayoutNode(mainnet bool, chain, privKey, apiKey string, urls []string, tunnel *sshtunnel.SSHTunnel) (types.PayoutNode, error) {
-	node, err := GetMiningNode(mainnet, chain, privKey, urls, tunnel)
+func GetPayoutNode(mainnet bool, chain, privKey, apiKey, url string) (types.PayoutNode, error) {
+	node, err := GetMiningNode(mainnet, chain, privKey, []string{url}, nil)
 	if err != nil && err != ErrUnsupportedChain {
 		return nil, err
 	} else if node != nil {
@@ -56,11 +56,11 @@ func GetPayoutNode(mainnet bool, chain, privKey, apiKey string, urls []string, t
 
 	switch strings.ToUpper(chain) {
 	case "BSC":
-		return bsc.New(mainnet, urls, privKey, tunnel)
+		return bsc.New(mainnet, url, privKey)
 	case "BTC":
 		return btc.New(mainnet, privKey, apiKey)
 	case "ETH":
-		return eth.New(mainnet, urls, privKey, tunnel, nil)
+		return eth.New(mainnet, url, privKey, nil)
 	case "USDC":
 		usdc := &eth.ERC20{
 			Chain:    "USDC",
@@ -69,7 +69,7 @@ func GetPayoutNode(mainnet bool, chain, privKey, apiKey string, urls []string, t
 			Units:    new(types.Number).SetFromValue(1000000),
 		}
 
-		return eth.New(mainnet, urls, privKey, tunnel, usdc)
+		return eth.New(mainnet, url, privKey, usdc)
 	default:
 		return nil, ErrUnsupportedChain
 	}

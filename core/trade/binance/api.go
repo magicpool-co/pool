@@ -10,6 +10,12 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
+/* general */
+
+func (c *Client) ID() types.ExchangeID {
+	return types.BinanceID
+}
+
 /* account */
 
 func (c *Client) GetAccountStatus() error {

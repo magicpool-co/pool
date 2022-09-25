@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/magicpool-co/pool/app/worker"
+	"github.com/magicpool-co/pool/core/trade"
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/metrics"
 	"github.com/magicpool-co/pool/internal/node"
@@ -19,7 +20,8 @@ import (
 )
 
 var (
-	chains = []string{"AE", "CFX", "CTXC", "ERGO", "ETC", "FIRO", "FLUX", "RVN"}
+	miningChains = []string{"CFX", "CTXC", "ERGO", "ETC", "FIRO", "FLUX", "RVN"}
+	payoutChains = []string{"BTC", "ETH", "USDC"}
 )
 
 func initTunnel(secrets map[string]string) (*sshtunnel.SSHTunnel, error) {
@@ -82,13 +84,20 @@ func newWorker(secrets map[string]string, mainnet bool, metricsClient *metrics.C
 		return nil, nil, err
 	}
 
+	exchange, err := trade.NewExchange(types.KucoinID, secrets["KUCOIN_API_KEY"],
+		secrets["KUCOIN_API_SECRET"], secrets["KUCOIN_API_PASSPHRASE"])
+	if err != nil {
+		return nil, nil, err
+	}
+
 	tunnel, err := initTunnel(secrets)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	nodes := make([]types.MiningNode, 0)
-	for _, chain := range chains {
+	miningNodes := make([]types.MiningNode, 0)
+	payoutNodes := make([]types.PayoutNode, 0)
+	for _, chain := range miningChains {
 		urls, err := pooldb.GetNodeURLsByChain(pooldbClient.Reader(), chain, mainnet)
 		if err != nil {
 			return nil, nil, err
@@ -109,10 +118,21 @@ func newWorker(secrets map[string]string, mainnet bool, metricsClient *metrics.C
 		if err != nil {
 			return nil, nil, err
 		}
-		nodes = append(nodes, node)
+		miningNodes = append(miningNodes, node)
+		payoutNodes = append(payoutNodes, node)
 	}
 
-	workerClient := worker.NewWorker(secrets["ENVIRONMENT"], mainnet, logger, nodes, pooldbClient, tsdbClient, redisClient, awsClient, metricsClient)
+	for _, chain := range payoutChains {
+		node, err := node.GetPayoutNode(mainnet, chain, secrets[chain+"_PRIVATE_KEY"],
+			secrets["BLOCKCHAIR_API_KEY"], secrets[chain+"_NODE_URL"])
+		if err != nil {
+			return nil, nil, err
+		}
+		payoutNodes = append(payoutNodes, node)
+	}
+
+	workerClient := worker.NewWorker(secrets["ENVIRONMENT"], mainnet, logger, miningNodes, payoutNodes,
+		pooldbClient, tsdbClient, redisClient, awsClient, metricsClient, exchange)
 
 	return workerClient, logger, nil
 }

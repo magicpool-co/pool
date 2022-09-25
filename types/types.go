@@ -128,6 +128,8 @@ type MiningNode interface {
 /* exchange */
 
 type Exchange interface {
+	ID() ExchangeID
+
 	// account
 	GetAccountStatus() error
 

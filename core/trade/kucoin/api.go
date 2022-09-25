@@ -156,6 +156,12 @@ func safeSubtractFees(chain, quantity, feeRate string) (float64, float64, error)
 	return quantityFloat, feesFloat, nil
 }
 
+/* general */
+
+func (c *Client) ID() types.ExchangeID {
+	return types.KucoinID
+}
+
 /* account */
 
 func (c *Client) GetAccountStatus() error {
