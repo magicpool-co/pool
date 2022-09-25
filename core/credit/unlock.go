@@ -38,13 +38,41 @@ func UnlockRounds(node types.MiningNode, pooldbClient *dbcl.Client) error {
 		return err
 	}
 
-	for _, round := range immatureRounds {
+	tx, err := pooldbClient.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.SafeRollback()
+
+	utxos := make([]*pooldb.UTXO, len(immatureRounds))
+	for i, round := range immatureRounds {
 		round.Mature = true
-		err = pooldb.UpdateRound(pooldbClient.Writer(), round, []string{"mature"})
+		err = pooldb.UpdateRound(tx, round, []string{"mature"})
 		if err != nil {
 			return err
 		}
+
+		var utxoHash string
+		if round.CoinbaseTxID != nil {
+			utxoHash = types.StringValue(round.CoinbaseTxID)
+		} else {
+			utxoHash = round.Hash
+		}
+
+		utxos[i] = &pooldb.UTXO{
+			ChainID: round.ChainID,
+
+			Value: round.Value,
+			TxID:  utxoHash,
+			Index: 0,
+			Spent: false,
+		}
 	}
 
-	return nil
+	err = pooldb.InsertUTXOs(tx, utxos...)
+	if err != nil {
+		return err
+	}
+
+	return tx.SafeCommit()
 }
