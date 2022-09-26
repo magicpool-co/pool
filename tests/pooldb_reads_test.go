@@ -61,6 +61,11 @@ func (suite *PooldbReadsSuite) TestReadMiner() {
 		suite.T().Errorf("failed: GetMinerID: %v", err)
 	}
 
+	_, err = pooldb.GetMinerAddress(pooldbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetMinerAddress: %v", err)
+	}
+
 	_, err = pooldb.GetMiners(pooldbClient.Reader(), []uint64{1, 2, 3})
 	if err != nil {
 		suite.T().Errorf("failed: GetMiners: %v", err)
@@ -252,5 +257,19 @@ func (suite *PooldbReadsSuite) TestReadBalanceOutput() {
 	_, err = pooldb.GetSumBalanceOutputValueByMiner(pooldbClient.Reader(), 1, "ETH")
 	if err != nil {
 		suite.T().Errorf("failed: GetSumBalanceOutputValueByMiner: %v", err)
+	}
+
+	_, err = pooldb.GetSumBalanceOutputAboveThreshold(pooldbClient.Reader(), "ETH", "10")
+	if err != nil {
+		suite.T().Errorf("failed: GetSumBalanceOutputAboveThreshold: %v", err)
+	}
+}
+
+func (suite *PooldbReadsSuite) TestReadPayout() {
+	var err error
+
+	_, err = pooldb.GetUnconfirmedPayouts(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnconfirmedPayouts: %v", err)
 	}
 }

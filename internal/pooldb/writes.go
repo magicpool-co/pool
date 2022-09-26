@@ -262,13 +262,28 @@ func UpdateBalanceOutput(q dbcl.Querier, obj *BalanceOutput, updateCols []string
 	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
 }
 
+func UpdateBalanceOutputsSetOutPayoutID(q dbcl.Querier, payoutID, minerID uint64, chainID string) error {
+	const query = `UPDATE balance_outputs
+	SET out_payout_id = ?
+	WHERE
+		miner_id = ?
+	AND
+		chain_id = ?
+	AND
+		out_payout_id IS NULL;`
+
+	_, err := q.Exec(query, payoutID, minerID, chainID)
+
+	return err
+}
+
 /* payouts */
 
 func InsertPayout(q dbcl.Querier, obj *Payout) (uint64, error) {
 	const table = "payouts"
 	cols := []string{
 		"chain_id", "miner_id", "address", "txid", "height", "value",
-		"pool_fees", "exchange_fees", "tx_fees", "confirmed", "failed",
+		"fee_balance", "pool_fees", "exchange_fees", "tx_fees", "confirmed", "failed",
 	}
 
 	return dbcl.ExecInsert(q, table, cols, obj)

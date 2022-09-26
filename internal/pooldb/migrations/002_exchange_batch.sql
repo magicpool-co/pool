@@ -163,6 +163,7 @@ CREATE TABLE payouts (
 	height			bigint			UNSIGNED,
 
 	value			decimal(25,0)	NOT NULL,
+	fee_balance		decimal(25,0) 	NOT NULL,
 	pool_fees		decimal(25,0)	NOT NULL,
 	exchange_fees	decimal(25,0)	NOT NULL,
 	tx_fees			decimal(25,0),

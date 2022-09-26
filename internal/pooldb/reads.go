@@ -136,6 +136,15 @@ func GetMinerID(q dbcl.Querier, address, chain string) (uint64, error) {
 	return dbcl.GetUint64(q, query, address, chain)
 }
 
+func GetMinerAddress(q dbcl.Querier, minerID uint64) (string, error) {
+	const query = `SELECT address
+	FROM miners
+	WHERE
+		id = ?;`
+
+	return dbcl.GetString(q, query, minerID)
+}
+
 func GetMiners(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error) {
 	const rawQuery = `SELECT *
 	FROM miners
@@ -578,4 +587,44 @@ func GetSumBalanceOutputValueByMiner(q dbcl.Querier, minerID uint64, chain strin
 		chain_id = ?;`
 
 	return dbcl.GetBigInt(q, query, minerID, chain)
+}
+
+func GetSumBalanceOutputAboveThreshold(q dbcl.Querier, chain, threshold string) ([]*BalanceOutput, error) {
+	const query = `WITH cte as (
+		SELECT
+			miner_id, 
+			sum(value) value, 
+			sum(pool_fees) pool_fees, 
+			sum(exchange_fees) exchange_fees
+		FROM balance_outputs
+		WHERE
+			chain_id = ?
+		GROUP BY miner_id
+	)
+	SELECT DISTINCT *
+	FROM cte
+	WHERE value >= ?;`
+
+	output := []*BalanceOutput{}
+	err := q.Select(&output, query, chain, threshold)
+
+	return output, err
+}
+
+/* payout */
+
+func GetUnconfirmedPayouts(q dbcl.Querier, chain string) ([]*Payout, error) {
+	const query = `SELECT *
+	FROM payouts
+	WHERE
+		chain_id = ?
+	AND
+		confirmed = FALSE
+	and
+		failed = FALSE;`
+
+	output := []*Payout{}
+	err := q.Select(&output, query, chain)
+
+	return output, err
 }

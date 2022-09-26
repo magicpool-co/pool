@@ -429,6 +429,11 @@ func (suite *PooldbWritesSuite) TestWriteBalanceOutput() {
 		if err != nil {
 			suite.T().Errorf("failed on %d: update: %v", i, err)
 		}
+
+		err = pooldb.UpdateBalanceOutputsSetOutPayoutID(pooldbClient.Writer(), 1, 1, "ETH")
+		if err != nil {
+			suite.T().Errorf("failed on %d: update set payout id: %v", i, err)
+		}
 	}
 }
 
@@ -440,6 +445,7 @@ func (suite *PooldbWritesSuite) TestWritePayout() {
 			&pooldb.Payout{
 				ChainID:      "ETC",
 				Value:        dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				FeeBalance:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
 				PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
 				ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
 			},
@@ -458,7 +464,7 @@ func (suite *PooldbWritesSuite) TestWritePayout() {
 			suite.T().Errorf("failed on %d: insert: %v", i, err)
 		}
 
-		cols := []string{"height", "tx_fees", "confirmed", "failed"}
+		cols := []string{"height", "value", "tx_fees", "fee_balance", "confirmed"}
 		err = pooldb.UpdatePayout(pooldbClient.Writer(), tt.payout, cols)
 		if err != nil {
 			suite.T().Errorf("failed on %d: update: %v", i, err)

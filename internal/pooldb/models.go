@@ -282,6 +282,7 @@ type Payout struct {
 	Height *uint64 `db:"height"`
 
 	Value        dbcl.NullBigInt `db:"value"`
+	FeeBalance   dbcl.NullBigInt `db:"fee_balance"`
 	PoolFees     dbcl.NullBigInt `db:"pool_fees"`
 	ExchangeFees dbcl.NullBigInt `db:"exchange_fees"`
 	TxFees       dbcl.NullBigInt `db:"tx_fees"`

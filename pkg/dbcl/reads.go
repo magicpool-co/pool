@@ -6,6 +6,18 @@ import (
 	"time"
 )
 
+func GetString(q Querier, query string, args ...interface{}) (string, error) {
+	var output *string
+	err := q.Get(&output, query, args...)
+	if err != nil && err != sql.ErrNoRows {
+		return "", err
+	} else if output == nil {
+		return "", nil
+	}
+
+	return *output, nil
+}
+
 func GetUint64(q Querier, query string, args ...interface{}) (uint64, error) {
 	var output *uint64
 	err := q.Get(&output, query, args...)
