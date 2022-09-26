@@ -122,12 +122,12 @@ func (w *Worker) Start() {
 		nodes:  w.payoutNodes,
 	})
 
-	w.cron.AddJob("*/5 * * * *", &TradeJob{
-		locker: locker,
-		logger: w.logger,
-		pooldb: w.pooldb,
-		nodes:  w.payoutNodes,
-	})
+	// w.cron.AddJob("*/5 * * * *", &TradeJob{
+	// 	locker: locker,
+	// 	logger: w.logger,
+	// 	pooldb: w.pooldb,
+	// 	nodes:  w.payoutNodes,
+	// })
 
 	w.cron.AddJob("* * * * *", &ChartBlockJob{
 		locker: locker,
