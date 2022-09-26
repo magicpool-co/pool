@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
@@ -84,7 +85,7 @@ func (hc *httpConn) markHealthy(healthy bool) {
 
 // Base call to execute an HTTP call. If the request succeeeds, but the status code
 // is non-2xx and not 300, a HTTPError is returned.
-func (hc *httpConn) execHTTP(ctx context.Context, method, path string, msg interface{}) (io.ReadCloser, string, error) {
+func (hc *httpConn) execHTTP(ctx context.Context, method, path string, msg interface{}) ([]byte, string, error) {
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return nil, "", err
@@ -121,5 +122,9 @@ func (hc *httpConn) execHTTP(ctx context.Context, method, path string, msg inter
 			Body:       body,
 		}
 	}
-	return res.Body, hc.id, nil
+
+	defer res.Body.Close()
+	data, err := ioutil.ReadAll(res.Body)
+
+	return data, hc.id, err
 }
