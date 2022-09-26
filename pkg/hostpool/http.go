@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -197,7 +196,7 @@ func (p *HTTPPool) EnableHost(id string) {
 func (p *HTTPPool) ExecHTTPSticky(hostID, method, path string, body, target interface{}) (string, error) {
 	// iterate through all host connections until no healthy connections
 	// are left or a valid response is returned
-	var res io.ReadCloser
+	var res []byte
 	var err error
 	var failed bool
 	for {
@@ -216,9 +215,10 @@ func (p *HTTPPool) ExecHTTPSticky(hostID, method, path string, body, target inte
 			p.logger.Error(fmt.Errorf("httppool: http: %s: %v", hostID, err))
 			continue
 		}
-		defer res.Close()
-		if err = json.NewDecoder(res).Decode(target); err != nil {
-			p.logger.Error(fmt.Errorf("httppool: json: %s: %v", hostID, err))
+
+		err = json.Unmarshal(res, target)
+		if err != nil {
+			p.logger.Error(fmt.Errorf("httppool: json: %s: %v: %s", hostID, err, res))
 			continue
 		}
 
