@@ -1,8 +1,6 @@
 package worker
 
 import (
-	"runtime/debug"
-
 	"github.com/robfig/cron/v3"
 
 	"github.com/magicpool-co/pool/internal/log"
@@ -145,11 +143,5 @@ func (w *Worker) Stop() {
 	select {
 	case <-ctx.Done():
 		return
-	}
-}
-
-func recoverPanic(logger *log.Logger) {
-	if r := recover(); r != nil {
-		logger.Panic(r, string(debug.Stack()))
 	}
 }

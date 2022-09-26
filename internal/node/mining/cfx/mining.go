@@ -190,6 +190,8 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 
 func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh chan *types.StratumJob, errCh chan error) {
 	go func() {
+		defer node.logger.RecoverPanic()
+
 		notifyCh := node.miningSubscribe()
 		for {
 			select {
@@ -197,6 +199,10 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh ch
 				return
 			case req := <-notifyCh:
 				data := req.Params
+				if len(data) < 3 {
+					errCh <- fmt.Errorf("invalid job recieved: %v", data)
+					continue
+				}
 
 				var ok bool
 				var rawEpoch, rawHash, rawBoundary string

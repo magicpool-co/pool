@@ -92,7 +92,7 @@ func NewHTTPPool(ctx context.Context, logger *log.Logger, healthCheck *HTTPHealt
 		// run the healthcheck according to the given interval
 		timer := time.NewTimer(pool.healthCheck.Interval)
 		go func() {
-			defer recoverPanic(pool.logger)
+			defer pool.logger.RecoverPanic()
 
 			for {
 				select {
@@ -343,7 +343,7 @@ func (p *HTTPPool) runHealthCheck() {
 	for id, hc := range p.index {
 		latencyWg.Add(1)
 		go func(id string, hc *httpConn) {
-			defer recoverPanic(p.logger)
+			defer p.logger.RecoverPanic()
 			defer latencyWg.Done()
 
 			latency := hc.healthCheck(p.healthCheck, p.logger)

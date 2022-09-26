@@ -3,6 +3,7 @@ package log
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -125,4 +126,10 @@ func (l *Logger) Panic(r interface{}, trace string, labels ...string) {
 	event.Msg("")
 
 	l.ExitChan <- syscall.SIGTERM
+}
+
+func (l *Logger) RecoverPanic() {
+	if r := recover(); r != nil {
+		l.Panic(r, string(debug.Stack()))
+	}
 }

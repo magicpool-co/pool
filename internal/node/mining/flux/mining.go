@@ -225,6 +225,8 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh ch
 	staticInterval := time.Minute * 2
 
 	go func() {
+		defer node.logger.RecoverPanic()
+
 		var lastHeight uint64
 		var lastJob time.Time
 		for {

@@ -75,7 +75,7 @@ type NodeStatusJob struct {
 }
 
 func (j *NodeStatusJob) Run() {
-	defer recoverPanic(j.logger)
+	defer j.logger.RecoverPanic()
 
 	ctx := context.Background()
 	lock, err := j.locker.Obtain(ctx, "cron:nodestatus", time.Minute*5, nil)
@@ -131,7 +131,7 @@ type NodeCheckJob struct {
 }
 
 func (j *NodeCheckJob) Run() {
-	defer recoverPanic(j.logger)
+	defer j.logger.RecoverPanic()
 
 	ctx := context.Background()
 	lock, err := j.locker.Obtain(ctx, "cron:nodecheck", time.Minute*5, nil)
@@ -241,7 +241,7 @@ type NodeBackupJob struct {
 }
 
 func (j *NodeBackupJob) Run() {
-	defer recoverPanic(j.logger)
+	defer j.logger.RecoverPanic()
 
 	ctx := context.Background()
 	lock, err := j.locker.Obtain(ctx, "cron:nodebackup", time.Hour*4, nil)
@@ -329,7 +329,7 @@ type NodeUpdateJob struct {
 }
 
 func (j *NodeUpdateJob) Run() {
-	defer recoverPanic(j.logger)
+	defer j.logger.RecoverPanic()
 
 	ctx := context.Background()
 	lock, err := j.locker.Obtain(ctx, "cron:nodeupdate", time.Hour*4, nil)
@@ -401,7 +401,7 @@ type NodeResizeJob struct {
 }
 
 func (j *NodeResizeJob) Run() {
-	defer recoverPanic(j.logger)
+	defer j.logger.RecoverPanic()
 
 	ctx := context.Background()
 	lock, err := j.locker.Obtain(ctx, "cron:noderesize", time.Hour*4, nil)
