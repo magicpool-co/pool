@@ -61,7 +61,7 @@ func (hc *httpConn) healthCheck(healthCheck *HTTPHealthCheck, logger *log.Logger
 	}
 
 	if err != nil {
-		logger.Error(fmt.Errorf("httpconn: healthcheck: %s: %v", hc.id, err))
+		logger.Error(fmt.Errorf("httpconn: healthcheck: %v", err))
 		return maxLatency
 	}
 

@@ -212,7 +212,7 @@ func (p *HTTPPool) ExecHTTPSticky(hostID, method, path string, body, target inte
 
 		res, hostID, err = hc.execHTTP(ctx, method, path, body)
 		if err != nil {
-			p.logger.Error(fmt.Errorf("httppool: http: %s: %v", hostID, err))
+			p.logger.Error(fmt.Errorf("httppool: http: %v", err))
 			continue
 		}
 
