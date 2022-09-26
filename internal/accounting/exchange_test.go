@@ -152,6 +152,7 @@ func TestSumMap(t *testing.T) {
 func TestCalculateExchangePaths(t *testing.T) {
 	tests := []struct {
 		inputPaths       map[string]map[string]*big.Int
+		inputThresholds  map[string]*big.Int
 		outputThresholds map[string]*big.Int
 		prices           map[string]map[string]float64
 		finalPaths       map[string]map[string]*big.Int
@@ -172,6 +173,7 @@ func TestCalculateExchangePaths(t *testing.T) {
 					"USDC": new(big.Int).SetUint64(14_299_031_132),
 				},
 			},
+			inputThresholds: DefaultInputThresholds,
 			outputThresholds: map[string]*big.Int{
 				"BTC":  new(big.Int).SetUint64(5_000_000),
 				"ETH":  new(big.Int).SetUint64(500_000_000_000_000_000),
@@ -227,6 +229,7 @@ func TestCalculateExchangePaths(t *testing.T) {
 					"USDC": new(big.Int).SetUint64(20_000_000_000),
 				},
 			},
+			inputThresholds: DefaultInputThresholds,
 			outputThresholds: map[string]*big.Int{
 				"BTC":  new(big.Int).SetUint64(50_000_000),
 				"ETH":  new(big.Int).SetUint64(5_000_000_000_000_000_000),
@@ -274,7 +277,7 @@ func TestCalculateExchangePaths(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		finalPaths, err := CalculateExchangePaths(tt.inputPaths, tt.outputThresholds, tt.prices)
+		finalPaths, err := CalculateExchangePaths(tt.inputPaths, tt.inputThresholds, tt.outputThresholds, tt.prices)
 		if err != nil {
 			t.Errorf("failed on %d: %v", i, err)
 		} else if !reflect.DeepEqual(finalPaths, tt.finalPaths) {

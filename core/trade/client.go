@@ -115,7 +115,8 @@ func (c *Client) CheckForNewBatch() error {
 	// the final price of each trade is only know at runtime, cumulative output
 	// values are estimated through the current prices - see the exchange accountant
 	// for more details on this process).
-	outputPaths, err := accounting.CalculateExchangePaths(inputPaths, outputThresholds, prices)
+	outputPaths, err := accounting.CalculateExchangePaths(inputPaths,
+		accounting.DefaultInputThresholds, outputThresholds, prices)
 	if err != nil {
 		return err
 	} else if len(outputPaths) == 0 {

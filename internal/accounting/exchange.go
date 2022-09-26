@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	inputThresholds = map[string]*big.Int{
+	DefaultInputThresholds = map[string]*big.Int{
 		"CFX":  common.MustParseBigInt("2000000000000000000000"),  // 2,000 CFX
 		"CTXC": common.MustParseBigInt("500000000000000000000"),   // 500 CTXC
 		"ERGO": new(big.Int).SetUint64(10_000_000_000),            // 10 ERGO
@@ -18,7 +18,7 @@ var (
 		"RVN":  new(big.Int).SetUint64(20_000_000_000),            // 200 RVN
 	}
 
-	outputThresholds = map[string]*big.Int{
+	DefaultOutputThresholds = map[string]*big.Int{
 		"BTC":  new(big.Int).SetUint64(50_000_000),                // 0.5 BTC
 		"ETH":  new(big.Int).SetUint64(5_000_000_000_000_000_000), // 5 ETH
 		"USDC": new(big.Int).SetUint64(20_000_000_000),            // 20,000 USDC
@@ -82,7 +82,7 @@ func sumMap(input map[string]map[string]*big.Int) map[string]*big.Int {
 	return output
 }
 
-func CalculateExchangePaths(inputPaths map[string]map[string]*big.Int, outputThresholds map[string]*big.Int, prices map[string]map[string]float64) (map[string]map[string]*big.Int, error) {
+func CalculateExchangePaths(inputPaths map[string]map[string]*big.Int, inputThresholds, outputThresholds map[string]*big.Int, prices map[string]map[string]float64) (map[string]map[string]*big.Int, error) {
 	for {
 		var hasChanges bool
 		if len(inputPaths) == 0 {
