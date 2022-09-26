@@ -8,14 +8,12 @@ import (
 
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/hostpool"
-	"github.com/magicpool-co/pool/pkg/sshtunnel"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 	"github.com/magicpool-co/pool/types"
 )
 
-func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
+func generateHost(url string) (*hostpool.HTTPPool, error) {
 	var (
-		port            = 8545
 		hostHealthCheck = &hostpool.HTTPHealthCheck{
 			RPCRequest: &rpc.Request{
 				JSONRPC: "2.0",
@@ -24,23 +22,18 @@ func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPoo
 		}
 	)
 
-	if len(urls) == 0 {
+	if url == "" {
 		return nil, nil
 	}
 
-	host := hostpool.NewHTTPPool(context.Background(), hostHealthCheck, tunnel)
-	for _, url := range urls {
-		err := host.AddHost(url, port, nil)
-		if err != nil {
-			return nil, err
-		}
-	}
+	host := hostpool.NewHTTPPool(context.Background(), hostHealthCheck, nil)
+	err := host.AddHost(url, 0, nil)
 
-	return host, nil
+	return host, err
 }
 
-func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunnel, erc20 *ERC20) (*Node, error) {
-	host, err := generateHost(urls, tunnel)
+func New(mainnet bool, url, rawPriv string, erc20 *ERC20) (*Node, error) {
+	host, err := generateHost(url)
 	if err != nil {
 		return nil, err
 	}

@@ -19,7 +19,7 @@ type HistoricalRateResponse struct {
 	Close    string    `json:"close"`
 }
 
-type CurrencyV3 struct {
+type Currency struct {
 	Symbol                   string        `json:"symbol"`
 	Name                     string        `json:"name"`
 	CoinType                 string        `json:"coinType"`
@@ -33,11 +33,7 @@ type CurrencyV3 struct {
 	AssociatedTermsOfService []interface{} `json:"associatedTermsOfService"`
 }
 
-type AddressParams struct {
-	CurrencySymbol string `json:"currencySymbol"`
-}
-
-type AddressV3 struct {
+type Address struct {
 	Status           string `json:"status"`
 	CurrencySymbol   string `json:"currencySymbol"`
 	CryptoAddress    string `json:"cryptoAddress"`
@@ -51,7 +47,7 @@ type Balance struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-type DepositV3 struct {
+type Deposit struct {
 	ID               string `json:"id"`
 	CurrencySymbol   string `json:"currencySymbol"`
 	Quantity         string `json:"quantity"`
@@ -65,20 +61,7 @@ type DepositV3 struct {
 	Source           string `json:"source"`
 }
 
-type CreateOrderParams struct {
-	MarketSymbol string `json:"marketSymbol"`
-	Direction    string `json:"direction"`
-	Type         string `json:"type"`
-	TimeInForce  string `json:"timeInForce"`
-
-	Quantity      float64 `json:"quantity,omitempty"`
-	Ceiling       float64 `json:"ceiling,omitempty"`
-	Limit         float64 `json:"limit,omitempty"`
-	ClientOrderID string  `json:"clientOrderId,omitempty"`
-	UseAwards     string  `json:"useAwards,omitempty"`
-}
-
-type OrderV3 struct {
+type Order struct {
 	ID            string      `json:"id"`
 	MarketSymbol  string      `json:"marketSymbol"`
 	Direction     string      `json:"direction"`
@@ -98,14 +81,7 @@ type OrderV3 struct {
 	OrderToCancel interface{} `json:"orderToCancel"`
 }
 
-type WithdrawalParams struct {
-	CurrencySymbol   string  `json:"currencySymbol"`
-	Quantity         float64 `json:"quantity"`
-	CryptoAddress    string  `json:"cryptoAddress"`
-	CryptoAddressTag string  `json:"cryptoAddressTag"`
-}
-
-type WithdrawalV3 struct {
+type Withdrawal struct {
 	ID               string    `json:"id"`
 	CurrencySymbol   string    `json:"currencySymbol"`
 	Quantity         string    `json:"quantity"`

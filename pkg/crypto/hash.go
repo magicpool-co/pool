@@ -61,6 +61,12 @@ func HmacSha256(key, data string) []byte {
 	return d.Sum(nil)
 }
 
+func HmacSha512(key, data string) []byte {
+	d := hmac.New(sha512.New, []byte(key))
+	d.Write([]byte(data))
+	return d.Sum(nil)
+}
+
 // custom
 
 func EthashSeedHash(height, epochLength uint64) []byte {

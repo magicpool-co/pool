@@ -65,6 +65,15 @@ func Uint64ToHex(inp uint64) string {
 	return "0x" + strconv.FormatUint(inp, 16)
 }
 
+func Float64ToBigInt(num float64, exp *big.Int) *big.Int {
+	numFloat := new(big.Float).SetFloat64(num)
+	expFloat := new(big.Float).SetInt(exp)
+
+	val, _ := new(big.Float).Mul(numFloat, expFloat).Int(new(big.Int))
+
+	return val
+}
+
 func BigIntToFloat64(num, exp *big.Int) float64 {
 	numFloat := new(big.Float).SetInt(num)
 	expFloat := new(big.Float).SetInt(exp)
@@ -88,8 +97,10 @@ func StringDecimalToBigint(dec string, exp *big.Int) (*big.Int, error) {
 
 	// set the integer part as big int
 	intBig, ok := new(big.Int).SetString(intPart, 10)
-	if !ok {
+	if !ok && len(intPart) > 0 {
 		return nil, fmt.Errorf("unable to convert integer part to big int")
+	} else if intBig == nil {
+		intBig = new(big.Int)
 	}
 
 	// multiply the integer by the exponent size
@@ -97,8 +108,10 @@ func StringDecimalToBigint(dec string, exp *big.Int) (*big.Int, error) {
 
 	// set the fraction part as big int
 	fracBig, ok := new(big.Int).SetString(fracPart, 10)
-	if !ok {
+	if !ok && len(fracPart) > 0 {
 		return nil, fmt.Errorf("unable to convert fraction part to big int")
+	} else if fracBig == nil {
+		fracBig = new(big.Int)
 	}
 
 	// normalize the fraction part if less than the exponent size

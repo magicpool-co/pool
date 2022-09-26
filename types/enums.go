@@ -6,6 +6,17 @@ import (
 	"time"
 )
 
+/* node */
+
+type AccountingType int
+
+const (
+	UTXOStructure AccountingType = iota
+	AccountStructure
+)
+
+/* pool */
+
 type ShareStatus int
 
 const (
@@ -13,6 +24,36 @@ const (
 	RejectedShare
 	InvalidShare
 )
+
+/* exchange */
+
+type ExchangeID int
+
+const (
+	BinanceID ExchangeID = iota
+	KucoinID
+	BittrexID
+)
+
+type TradeDirection int
+
+func (d TradeDirection) String() string {
+	switch d {
+	case TradeBuy:
+		return "BUY"
+	case TradeSell:
+		return "SELL"
+	default:
+		return ""
+	}
+}
+
+const (
+	TradeBuy TradeDirection = iota
+	TradeSell
+)
+
+/* chart */
 
 type PeriodType int
 

@@ -10,7 +10,9 @@ import (
 
 func parseURL(url string, port int, tunnel *sshtunnel.SSHTunnel) (string, string, error) {
 	id := url
-	url = fmt.Sprintf("%s:%d", url, port)
+	if port != 0 {
+		url = fmt.Sprintf("%s:%d", url, port)
+	}
 
 	// tunnel the host if required (and active tunnel exists)
 	if len(url) < 9 {

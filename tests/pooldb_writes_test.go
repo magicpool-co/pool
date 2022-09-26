@@ -33,6 +33,13 @@ func (suite *PooldbWritesSuite) TestWriteNode() {
 		if err != nil {
 			suite.T().Errorf("failed on %d: insert: %v", i, err)
 		}
+
+		cols := []string{"active", "synced", "height", "needs_backup", "pending_backup",
+			"needs_update", "pending_update", "needs_resize", "pending_resize", "backup_at"}
+		err = pooldb.UpdateNode(pooldbClient.Writer(), tt.node, cols)
+		if err != nil {
+			suite.T().Errorf("failed on %d: update: %v", i, err)
+		}
 	}
 }
 
@@ -132,6 +139,7 @@ func (suite *PooldbWritesSuite) TestWriteRound() {
 			&pooldb.Round{
 				ChainID: "ETC",
 				MinerID: 1,
+				Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
 			},
 		},
 	}
@@ -147,7 +155,7 @@ func (suite *PooldbWritesSuite) TestWriteRound() {
 			"spent", "uncle_height", "orphan"}
 		err = pooldb.UpdateRound(pooldbClient.Writer(), tt.round, cols)
 		if err != nil {
-			suite.T().Errorf("failed on %d: updateStatus: %v", i, err)
+			suite.T().Errorf("failed on %d: update: %v", i, err)
 		}
 	}
 }
@@ -174,14 +182,192 @@ func (suite *PooldbWritesSuite) TestWriteShare() {
 	}
 }
 
+func (suite *PooldbWritesSuite) TestWriteUTXO() {
+	tests := []struct {
+		utxo *pooldb.UTXO
+	}{
+		{
+			&pooldb.UTXO{
+				ChainID: "ETC",
+				Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+			},
+		},
+	}
+
+	var err error
+	for i, tt := range tests {
+		err = pooldb.InsertUTXOs(pooldbClient.Writer(), tt.utxo, tt.utxo)
+		if err != nil {
+			suite.T().Errorf("failed on %d: bulk insert: %v", i, err)
+		}
+
+		err = pooldb.UpdateUTXO(pooldbClient.Writer(), tt.utxo, []string{"spent"})
+		if err != nil {
+			suite.T().Errorf("failed on %d: update: %v", i, err)
+		}
+	}
+}
+
+func (suite *PooldbWritesSuite) WriteExchangeBatch() {
+	tests := []struct {
+		batch *pooldb.ExchangeBatch
+	}{
+		{
+			&pooldb.ExchangeBatch{},
+		},
+	}
+
+	var err error
+	for i, tt := range tests {
+		_, err = pooldb.InsertExchangeBatch(pooldbClient.Writer(), tt.batch)
+		if err != nil {
+			suite.T().Errorf("failed on %d: insert: %v", i, err)
+		}
+
+		cols := []string{"status", "completed_at"}
+		err = pooldb.UpdateExchangeBatch(pooldbClient.Writer(), tt.batch, cols)
+		if err != nil {
+			suite.T().Errorf("failed on %d: update: %v", i, err)
+		}
+	}
+}
+
+func (suite *PooldbWritesSuite) WriteExchangeInput() {
+	tests := []struct {
+		input *pooldb.ExchangeInput
+	}{
+		{
+			&pooldb.ExchangeInput{
+				InChainID:  "ETC",
+				OutChainID: "ETH",
+				Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+			},
+		},
+	}
+
+	batchID, err := pooldb.InsertExchangeBatch(pooldbClient.Writer(), &pooldb.ExchangeBatch{})
+	if err != nil {
+		suite.T().Errorf("failed on preliminary batch insert: %v", err)
+	}
+
+	for i, tt := range tests {
+		tt.input.BatchID = batchID
+		err = pooldb.InsertExchangeInputs(pooldbClient.Writer(), tt.input, tt.input)
+		if err != nil {
+			suite.T().Errorf("failed on %d: insert: %v", i, err)
+		}
+	}
+}
+
+func (suite *PooldbWritesSuite) WriteExchangeDeposit() {
+	tests := []struct {
+		deposit *pooldb.ExchangeDeposit
+	}{
+		{
+			&pooldb.ExchangeDeposit{
+				ChainID: "ETC",
+				Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+			},
+		},
+	}
+
+	batchID, err := pooldb.InsertExchangeBatch(pooldbClient.Writer(), &pooldb.ExchangeBatch{})
+	if err != nil {
+		suite.T().Errorf("failed on preliminary batch insert: %v", err)
+	}
+
+	for i, tt := range tests {
+		tt.deposit.BatchID = batchID
+		_, err = pooldb.InsertExchangeDeposit(pooldbClient.Writer(), tt.deposit)
+		if err != nil {
+			suite.T().Errorf("failed on %d: insert: %v", i, err)
+		}
+
+		cols := []string{"exchange_txid", "exchange_deposit_id",
+			"value", "fees", "confirmed", "registered"}
+		err = pooldb.UpdateExchangeDeposit(pooldbClient.Writer(), tt.deposit, cols)
+		if err != nil {
+			suite.T().Errorf("failed on %d: update: %v", i, err)
+		}
+	}
+}
+
+func (suite *PooldbWritesSuite) WriteExchangeTrade() {
+	tests := []struct {
+		trade *pooldb.ExchangeTrade
+	}{
+		{
+			&pooldb.ExchangeTrade{
+				FromChainID: "ETC",
+				ToChainID:   "ETH",
+			},
+		},
+	}
+
+	batchID, err := pooldb.InsertExchangeBatch(pooldbClient.Writer(), &pooldb.ExchangeBatch{})
+	if err != nil {
+		suite.T().Errorf("failed on preliminary batch insert: %v", err)
+	}
+
+	for i, tt := range tests {
+		tt.trade.BatchID = batchID
+		err = pooldb.InsertExchangeTrades(pooldbClient.Writer(), tt.trade, tt.trade)
+		if err != nil {
+			suite.T().Errorf("failed on %d: insert: %v", i, err)
+		}
+
+		cols := []string{"exchange_trade_id", "value", "proceeds", "trade_fees",
+			"cumulative_deposit_fees", "cumulative_trade_fees", "order_price",
+			"fill_price", "cumulative_fill_price", "slippage", "initiated", "confirmed"}
+		err = pooldb.UpdateExchangeTrade(pooldbClient.Writer(), tt.trade, cols)
+		if err != nil {
+			suite.T().Errorf("failed on %d: update: %v", i, err)
+		}
+	}
+}
+
+func (suite *PooldbWritesSuite) WriteExchangeWithdrawal() {
+	tests := []struct {
+		withdrawal *pooldb.ExchangeWithdrawal
+	}{
+		{
+			&pooldb.ExchangeWithdrawal{
+				ChainID: "ETC",
+				Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+			},
+		},
+	}
+
+	batchID, err := pooldb.InsertExchangeBatch(pooldbClient.Writer(), &pooldb.ExchangeBatch{})
+	if err != nil {
+		suite.T().Errorf("failed on preliminary batch insert: %v", err)
+	}
+
+	for i, tt := range tests {
+		tt.withdrawal.BatchID = batchID
+		_, err = pooldb.InsertExchangeWithdrawal(pooldbClient.Writer(), tt.withdrawal)
+		if err != nil {
+			suite.T().Errorf("failed on %d: insert: %v", i, err)
+		}
+
+		cols := []string{"value", "withdrawal_fees", "cumulative_fees", "confirmed"}
+		err = pooldb.UpdateExchangeWithdrawal(pooldbClient.Writer(), tt.withdrawal, cols)
+		if err != nil {
+			suite.T().Errorf("failed on %d: update: %v", i, err)
+		}
+	}
+}
+
 func (suite *PooldbWritesSuite) TestWriteBalanceInput() {
 	tests := []struct {
 		input *pooldb.BalanceInput
 	}{
 		{
 			&pooldb.BalanceInput{
-				ChainID: "ETC",
-				Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				ChainID:    "ETC",
+				OutChainID: "ETH",
+				Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				PoolFees:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
 			},
 		},
 	}
@@ -204,5 +390,89 @@ func (suite *PooldbWritesSuite) TestWriteBalanceInput() {
 			suite.T().Errorf("failed on %d: bulk insert: %v", i, err)
 		}
 
+		cols := []string{"balance_output_id", "batch_id", "pending"}
+		err = pooldb.UpdateBalanceInput(pooldbClient.Writer(), tt.input, cols)
+		if err != nil {
+			suite.T().Errorf("failed on %d: update: %v", i, err)
+		}
+	}
+}
+
+func (suite *PooldbWritesSuite) TestWriteBalanceOutput() {
+	tests := []struct {
+		output *pooldb.BalanceOutput
+	}{
+		{
+			&pooldb.BalanceOutput{
+				ChainID:      "ETC",
+				Value:        dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+			},
+		},
+	}
+
+	minerID, err := pooldb.InsertMiner(pooldbClient.Writer(), &pooldb.Miner{ChainID: "ETH", Address: "3"})
+	if err != nil {
+		suite.T().Errorf("failed on preliminary miner insert: %v", err)
+	}
+
+	for i, tt := range tests {
+		tt.output.MinerID = minerID
+		_, err = pooldb.InsertBalanceOutput(pooldbClient.Writer(), tt.output)
+		if err != nil {
+			suite.T().Errorf("failed on %d: insert: %v", i, err)
+		}
+
+		err = pooldb.InsertBalanceOutputs(pooldbClient.Writer(), tt.output, tt.output)
+		if err != nil {
+			suite.T().Errorf("failed on %d: bulk insert: %v", i, err)
+		}
+
+		cols := []string{"out_payout_id"}
+		err = pooldb.UpdateBalanceOutput(pooldbClient.Writer(), tt.output, cols)
+		if err != nil {
+			suite.T().Errorf("failed on %d: update: %v", i, err)
+		}
+
+		err = pooldb.UpdateBalanceOutputsSetOutPayoutID(pooldbClient.Writer(), 1, 1, "ETH")
+		if err != nil {
+			suite.T().Errorf("failed on %d: update set payout id: %v", i, err)
+		}
+	}
+}
+
+func (suite *PooldbWritesSuite) TestWritePayout() {
+	tests := []struct {
+		payout *pooldb.Payout
+	}{
+		{
+			&pooldb.Payout{
+				ChainID:      "ETC",
+				Value:        dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				FeeBalance:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+			},
+		},
+	}
+
+	minerID, err := pooldb.InsertMiner(pooldbClient.Writer(), &pooldb.Miner{ChainID: "ETH", Address: "4"})
+	if err != nil {
+		suite.T().Errorf("failed on preliminary miner insert: %v", err)
+	}
+
+	for i, tt := range tests {
+		tt.payout.MinerID = minerID
+		_, err = pooldb.InsertPayout(pooldbClient.Writer(), tt.payout)
+		if err != nil {
+			suite.T().Errorf("failed on %d: insert: %v", i, err)
+		}
+
+		cols := []string{"height", "value", "tx_fees", "fee_balance", "confirmed"}
+		err = pooldb.UpdatePayout(pooldbClient.Writer(), tt.payout, cols)
+		if err != nil {
+			suite.T().Errorf("failed on %d: update: %v", i, err)
+		}
 	}
 }

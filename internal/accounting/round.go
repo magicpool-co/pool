@@ -40,13 +40,13 @@ func splitValue(value *big.Int, idx map[uint64]uint64) (map[uint64]*big.Int, *bi
 
 // credits a round based off of the share index and the fee recipient distributions. the output is a merged
 // map of miners and recipients since we can safely assume that miner ids and recipient ids are globally unique.
-func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) (map[uint64]*big.Int, error) {
+func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) (map[uint64]*big.Int, map[uint64]*big.Int, error) {
 	if roundValue == nil {
-		return nil, fmt.Errorf("empty round value")
+		return nil, nil, fmt.Errorf("empty round value")
 	} else if len(minerIdx) == 0 {
-		return nil, fmt.Errorf("empty miner index")
+		return nil, nil, fmt.Errorf("empty miner index")
 	} else if len(recipientIdx) == 0 {
-		return nil, fmt.Errorf("empty recipient index")
+		return nil, nil, fmt.Errorf("empty recipient index")
 	}
 
 	// copy value to avoid overwriting it elsewhere
@@ -54,19 +54,31 @@ func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) 
 
 	// takes a 1% fee from the value as the pool fees
 	feeValue := common.SplitBigPercentage(roundValue, 100, 10000)
-	roundValue.Sub(roundValue, feeValue)
+	adjustedRoundValue := new(big.Int).Sub(roundValue, feeValue)
 
 	// calculate the miner distributions and remainder
-	minerValues, remainder, err := splitValue(roundValue, minerIdx)
+	minerValues, remainder, err := splitValue(adjustedRoundValue, minerIdx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	feeValue.Add(feeValue, remainder)
+
+	// calculate the miner fees by recalculating the distributions without
+	// the fee and subtracting each miner's distribution with the fee
+	initialMinerValues, _, err := splitValue(roundValue, minerIdx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	minerFees := make(map[uint64]*big.Int)
+	for minerID, initialValue := range initialMinerValues {
+		minerFees[minerID] = new(big.Int).Sub(initialValue, minerValues[minerID])
+	}
 
 	// calculate the fee recipients distributions and remainder
 	recipientValues, remainder, err := splitValue(feeValue, recipientIdx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// add the remainder to the fee recipient recieving the lowest quantity
@@ -102,5 +114,76 @@ func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) 
 		}
 	}
 
-	return compoundValues, nil
+	return compoundValues, minerFees, nil
+}
+
+// given a miner's round distributions, check to see if any fee balance is needed and, if so,
+// return the estimated needed fee balance
+func ProcessFeeBalance(roundChain, minerChain string, value, poolFee, feeBalance *big.Int, price float64) (*big.Int, *big.Int, error) {
+	// specify the minumum fee balance required for the given chain,
+	// throw an error if the chain doesn't exist
+	var minFeeBalance *big.Int
+	switch minerChain {
+	case "USDC":
+		minFeeBalance = new(big.Int).SetUint64(10_000_000_000_000_000)
+	default:
+		return nil, nil, fmt.Errorf("unsupported fee balance chain")
+	}
+
+	// if the mienr already has enough fee balance, return with empty values
+	if feeBalance.Cmp(minFeeBalance) >= 0 {
+		return new(big.Int), new(big.Int), nil
+	}
+	neededFeeBalance := new(big.Int).Sub(minFeeBalance, feeBalance)
+
+	// fetch the units for both chains
+	initialUnitsBig, err := common.GetDefaultUnits(roundChain)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	finalUnitsBig, err := common.GetDefaultUnits("ETH")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// set all of the required values as big floats for the adjustment calculation
+	valueFloat := new(big.Float).SetInt(value)
+	priceFloat := new(big.Float).SetFloat64(price)
+	initialUnitsFloat := new(big.Float).SetInt(initialUnitsBig)
+	finalUnitsFloat := new(big.Float).SetInt(finalUnitsBig)
+
+	// calculate the adjusted ETH proceeds
+	estimatedValueFloat := new(big.Float).Quo(valueFloat, initialUnitsFloat)
+	estimatedValueFloat.Mul(estimatedValueFloat, priceFloat)
+	estimatedValueFloat.Mul(estimatedValueFloat, finalUnitsFloat)
+	estimatedValue, _ := estimatedValueFloat.Int(nil)
+
+	// if the estimated value is less than or equal to the remaining
+	// needed fee balance, only create the fee balance input
+	if neededFeeBalance.Cmp(estimatedValue) > 0 {
+		feeBalanceValue := new(big.Int).Set(value)
+		feeBalancePoolFee := new(big.Int).Set(poolFee)
+
+		return feeBalanceValue, feeBalancePoolFee, nil
+	}
+
+	// value * (neededFeeBalance / estimatedValue) is the formula
+	// for calculating the proportional value that goes to USDC
+	proportionalValue := new(big.Int).Mul(value, neededFeeBalance)
+	proportionalValue.Div(proportionalValue, estimatedValue)
+
+	// poolFee * (neededFeeBalance / estimatedValue) is the formula
+	// for calculating the proportional pool fees that go to USDC
+	proportionalFee := new(big.Int).Mul(poolFee, neededFeeBalance)
+	proportionalFee.Div(proportionalFee, estimatedValue)
+
+	// verify that the proportional value and pool fee are not greater than the initial value
+	if value.Cmp(proportionalValue) < 0 {
+		return nil, nil, fmt.Errorf("negative remainder value for usdc proportions")
+	} else if poolFee.Cmp(proportionalFee) < 0 {
+		return nil, nil, fmt.Errorf("negative remainder fee for usdc proportions")
+	}
+
+	return proportionalValue, proportionalFee, nil
 }

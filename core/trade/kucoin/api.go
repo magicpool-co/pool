@@ -2,12 +2,165 @@ package kucoin
 
 import (
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/google/uuid"
+
+	"github.com/magicpool-co/pool/pkg/common"
+	"github.com/magicpool-co/pool/types"
 )
+
+/* helpers */
+
+func formatChain(chain string) string {
+	chain = strings.ToUpper(chain)
+	switch chain {
+	case "ERGO":
+		return "ERG"
+	default:
+		return chain
+	}
+}
+
+func unformatChain(chain string) string {
+	chain = strings.ToUpper(chain)
+	switch chain {
+	case "ERG":
+		return "ERGO"
+	default:
+		return chain
+	}
+}
+
+func chainToNetwork(chain string) string {
+	network := strings.ToLower(chain)
+	switch network {
+	default:
+		return network
+	}
+}
+
+func parseIncrement(increment string) int {
+	parts := strings.Split(increment, ".")
+	if len(parts) != 2 {
+		return 1
+	} else if parts[1][len(parts[1])-1:] != "1" {
+		return len(parts[1]) - 1
+	}
+
+	return len(parts[1])
+}
+
+func calcFeesAsBig(value, feeRate string, units *big.Int) (*big.Int, error) {
+	feeParts := strings.Split(feeRate, ".")
+	if len(feeParts) != 2 {
+		return nil, fmt.Errorf("invalid fee rate %s", feeRate)
+	}
+
+	feeDec := feeParts[1]
+	num := len(feeDec)
+	mult, err := strconv.ParseUint(strings.TrimLeft(feeDec, "0"), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	var moved int
+	if num <= 0 || value == "0" {
+		return new(big.Int), nil
+	}
+
+	parts := strings.Split(value, ".")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid float %s", value)
+	}
+
+	newInt := parts[0]
+	newDec := ""
+	if newInt != "0" {
+		for i := len(newInt) - 1; i >= 0; i-- {
+			newDec = newInt[i:] + newDec
+			newInt = newInt[:i]
+
+			moved++
+			if moved == num {
+				if newInt == "" {
+					newInt = "0"
+				}
+				break
+			}
+		}
+	}
+
+	for i := 0; i < num-moved; i++ {
+		newDec = "0" + newDec
+	}
+
+	feeStr := newInt + "." + newDec + parts[1]
+
+	feeBig, err := common.StringDecimalToBigint(feeStr, units)
+	if err != nil {
+		return nil, err
+	}
+
+	feeBig.Mul(feeBig, new(big.Int).SetUint64(mult))
+
+	return feeBig, nil
+}
+
+func safeSubtractFees(chain, quantity, feeRate string) (float64, float64, error) {
+	var precision int
+	switch chain {
+	case "BTC", "ETH":
+		precision = 6
+	case "USDC", "USDT":
+		precision = 4
+	default:
+		return 0, 0, fmt.Errorf("unsupported chain to split fees on %s", chain)
+	}
+
+	// max precision *should be 1e8, add 3 for 1e3 fee
+	units := new(big.Int).SetUint64(1e11)
+
+	// convert quantity into safe big int
+	quantityBig, err := common.StringDecimalToBigint(quantity, units)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	// calculate fees safely as big int
+	feeBig, err := calcFeesAsBig(quantity, feeRate, units)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	// subtract fees from quantity
+	quantityBig.Sub(quantityBig, feeBig)
+
+	// safely convert quantity back to float
+	quantityFloat := common.BigIntToFloat64(quantityBig, units)
+
+	// round quantity down to defined precision
+	quantityFloat = common.FloorFloatByIncrement(quantityFloat, 8-precision, 1e8)
+
+	// calculate the fees (ignoring floating point errors)
+	initialFloat, err := strconv.ParseFloat(quantity, 64)
+	if err != nil {
+		return 0, 0, err
+	}
+	feesFloat := initialFloat - quantityFloat
+
+	return quantityFloat, feesFloat, nil
+}
+
+/* general */
+
+func (c *Client) ID() types.ExchangeID {
+	return types.KucoinID
+}
 
 /* account */
 
@@ -25,9 +178,9 @@ func (c *Client) GetAccountStatus() error {
 
 /* rate */
 
-func (c *Client) GetRate(base, quote string) (float64, error) {
+func (c *Client) GetRate(market string) (float64, error) {
 	payload := map[string]string{
-		"symbol": base + "-" + quote,
+		"symbol": market,
 	}
 
 	var obj *Symbol
@@ -36,7 +189,7 @@ func (c *Client) GetRate(base, quote string) (float64, error) {
 		return 0, err
 	}
 
-	return strconv.ParseFloat(obj.Price, 10)
+	return strconv.ParseFloat(obj.Price, 64)
 }
 
 func (c *Client) GetHistoricalRate(base, quote string, timestamp time.Time) (float64, error) {
@@ -68,6 +221,45 @@ func (c *Client) GetHistoricalRate(base, quote string, timestamp time.Time) (flo
 	return strconv.ParseFloat(rawClosePrice, 64)
 }
 
+func (c *Client) GetOutputThresholds() map[string]*big.Int {
+	return presetOutputThresholds
+}
+
+func (c *Client) GetPrices(inputPaths map[string]map[string]*big.Int) (map[string]map[string]float64, error) {
+	prices := make(map[string]map[string]float64)
+
+	for fromChain, outputPaths := range inputPaths {
+		prices[fromChain] = make(map[string]float64)
+		for toChain := range outputPaths {
+			if _, ok := presetTradePaths[fromChain]; !ok {
+				return nil, fmt.Errorf("no trade path found for %s->%s", fromChain, toChain)
+			}
+
+			markets := presetTradePaths[fromChain][toChain]
+			if len(markets) == 0 {
+				return nil, fmt.Errorf("no trade path found for %s->%s", fromChain, toChain)
+			}
+
+			prices[fromChain][toChain] = 1
+			for _, market := range markets {
+				localPrice, err := c.GetRate(market.Market)
+				if err != nil {
+					return nil, err
+				}
+
+				switch market.Direction {
+				case types.TradeBuy:
+					prices[fromChain][toChain] /= localPrice
+				case types.TradeSell:
+					prices[fromChain][toChain] *= localPrice
+				}
+			}
+		}
+	}
+
+	return prices, nil
+}
+
 /* wallet */
 
 func (c *Client) GetWalletStatus(chain string) (bool, error) {
@@ -93,9 +285,44 @@ func (c *Client) GetWalletStatus(chain string) (bool, error) {
 	return false, fmt.Errorf("unable to find mainnet chain for %s", chain)
 }
 
+func (c *Client) GetWalletBalance(chain string) (float64, float64, error) {
+	payload := map[string]string{
+		"currency": formatChain(chain),
+		"network":  chainToNetwork(chain),
+	}
+
+	objs := make([]*Balance, 0)
+	err := c.do("GET", "/api/v1/accounts", payload, &objs, true)
+	if err != nil {
+		return 0, 0, err
+	} else if len(objs) == 0 {
+		return 0, 0, nil
+	}
+
+	var mainBalance, tradeBalance float64
+	for _, obj := range objs {
+		switch obj.Type {
+		case "main":
+			mainBalance, err = strconv.ParseFloat(obj.Balance, 64)
+			if err != nil {
+				return 0, 0, err
+			}
+		case "trade":
+			tradeBalance, err = strconv.ParseFloat(obj.Balance, 64)
+			if err != nil {
+				return 0, 0, err
+			}
+		}
+	}
+
+	return mainBalance, tradeBalance, nil
+}
+
+/* deposit */
+
 func (c *Client) getDepositAddresses(chain string) ([]*Address, error) {
 	payload := map[string]string{
-		"currency": chain,
+		"currency": formatChain(chain),
 	}
 
 	objs := make([]*Address, 0)
@@ -104,7 +331,7 @@ func (c *Client) getDepositAddresses(chain string) ([]*Address, error) {
 	return objs, err
 }
 
-func (c *Client) GetWalletAddress(chain string) (string, error) {
+func (c *Client) GetDepositAddress(chain string) (string, error) {
 	var obj *Address
 	addresses, err := c.getDepositAddresses(chain)
 	if err != nil {
@@ -112,9 +339,8 @@ func (c *Client) GetWalletAddress(chain string) (string, error) {
 	} else if len(addresses) > 0 {
 		obj = addresses[0]
 	} else {
-		// @TODO: do i need to use chain parameter for any currencies
 		payload := map[string]string{
-			"currency": chain,
+			"currency": formatChain(chain),
 		}
 
 		err = c.do("POST", "/api/v1/deposit-addresses", payload, &obj, true)
@@ -132,67 +358,260 @@ func (c *Client) GetWalletAddress(chain string) (string, error) {
 	return obj.Address, nil
 }
 
-func (c *Client) GetWalletBalance(chain string) (float64, error) {
-	return 0, nil
-}
-
-/* deposit */
-
-func (c *Client) GetDepositStatus(chain, txid string) (bool, error) {
+func (c *Client) getDeposits(chain string) ([]*Deposit, error) {
 	payload := map[string]string{
-		"currency": chain,
+		"currency": formatChain(chain),
 	}
 
 	var paginated *PaginatedResponse
 	err := c.do("GET", "/api/v1/deposits", payload, &paginated, true)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	objs := make([]*Deposit, 0)
 	err = json.Unmarshal(paginated.Items, &objs)
+
+	return objs, err
+}
+
+func (c *Client) GetDepositByTxID(chain, txid string) (*types.Deposit, error) {
+	deposits, err := c.getDeposits(chain)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	for _, deposit := range objs {
-		// @TODO: depending on the chain, txid may not actually match
-		// like with ETH when they forward it via smart contract
-		if deposit.WalletTxID == txid {
+	for _, deposit := range deposits {
+		if strings.Split(deposit.WalletTxID, "@")[0] == txid {
+			var completed bool
 			switch deposit.Status {
 			case "SUCCESS":
-				return true, nil
+				completed = true
 			case "PROCESSING":
-				return false, nil
+				completed = false
 			case "FAILURE":
-				return false, fmt.Errorf("deposit failed")
+				return nil, fmt.Errorf("deposit failed")
+			default:
+				return nil, fmt.Errorf("unknown deposit status %s", deposit.Status)
 			}
+
+			parsedDeposit := &types.Deposit{
+				ID:        txid,
+				TxID:      txid,
+				Value:     deposit.Amount,
+				Fee:       deposit.Fee,
+				Completed: completed,
+			}
+
+			return parsedDeposit, nil
 		}
 	}
 
-	return false, fmt.Errorf("deposit not found")
+	return nil, fmt.Errorf("deposit not found")
+}
+
+func (c *Client) GetDepositByID(chain, depositID string) (*types.Deposit, error) {
+	return c.GetDepositByTxID(chain, depositID)
+}
+
+/* transfer */
+
+func (c *Client) transferToAccount(chain, from, to string, value float64) error {
+	payload := map[string]string{
+		"clientOid": uuid.NewString(),
+		"currency":  formatChain(chain),
+		"from":      from,
+		"to":        to,
+		"amount":    strconv.FormatFloat(value, 'f', 8, 64),
+	}
+
+	var obj *Order
+	err := c.do("POST", "/api/v2/accounts/inner-transfer", payload, &obj, true)
+	if err != nil {
+		return err
+	} else if obj.ID == "" {
+		return fmt.Errorf("transfer not found")
+	}
+
+	return nil
+}
+
+func (c *Client) TransferToMainAccount(chain string, value float64) error {
+	return c.transferToAccount(chain, "trade", "main", value)
+}
+
+func (c *Client) TransferToTradeAccount(chain string, value float64) error {
+	return c.transferToAccount(chain, "main", "trade", value)
 }
 
 /* order */
 
-func (c *Client) CreateOrder(base, quote, direction string, quantity float64) (string, error) {
+func (c *Client) getSymbols() (map[string]*Market, error) {
+	var objs []*Market
+	err := c.do("GET", "/api/v1/symbols", nil, &objs, false)
+	if err != nil {
+		return nil, err
+	}
+
+	symbols := make(map[string]*Market, len(objs))
+	for _, symbol := range objs {
+		symbols[symbol.Symbol] = symbol
+	}
+
+	return symbols, nil
+}
+
+func (c *Client) GenerateTradePath(fromChain, toChain string) ([]*types.Trade, error) {
+	fromChain = formatChain(fromChain)
+	toChain = formatChain(toChain)
+
+	if _, ok := presetTradePaths[fromChain]; !ok {
+		return nil, fmt.Errorf("no trade path found for %s->%s", fromChain, toChain)
+	}
+
+	markets := presetTradePaths[fromChain][toChain]
+	if len(markets) == 0 {
+		return nil, fmt.Errorf("no trade path found for %s->%s", fromChain, toChain)
+	}
+
+	symbols, err := c.getSymbols()
+	if err != nil {
+		return nil, err
+	}
+
+	trades := make([]*types.Trade, len(markets))
+	for i, market := range markets {
+		symbol, ok := symbols[market.Market]
+		if !ok {
+			return nil, fmt.Errorf("market %s not found", market.Market)
+		} else if !symbol.EnableTrading {
+			return nil, fmt.Errorf("market %s is not enabled", market.Market)
+		}
+
+		var localFromChain, localToChain string
+		switch market.Direction {
+		case types.TradeBuy:
+			localFromChain, localToChain = market.Base, market.Quote
+		case types.TradeSell:
+			localFromChain, localToChain = market.Quote, market.Base
+		default:
+			return nil, fmt.Errorf("unknown trade direction %d", market.Direction)
+		}
+
+		trades[i] = &types.Trade{
+			FromChain: unformatChain(localFromChain),
+			ToChain:   unformatChain(localToChain),
+			Market:    market.Market,
+			Direction: market.Direction,
+		}
+	}
+
+	return trades, nil
+}
+
+func (c *Client) getTradeFees(market string) (string, error) {
 	payload := map[string]string{
-		"side":   strings.ToLower(direction),
-		"symbol": base + "-" + quote,
-		"type":   "market",
+		"symbols": market,
+	}
+
+	objs := make([]*TradeFee, 0)
+	err := c.do("GET", "/api/v1/trade-fees", payload, &objs, true)
+	if err != nil {
+		return "", err
+	} else if len(objs) == 0 {
+		return "", fmt.Errorf("trade fees not found for market %s", market)
+	}
+
+	return objs[0].TakerFee, nil
+}
+
+func (c *Client) getAverageFillPrice(tradeID string) (float64, error) {
+	payload := map[string]string{
+		"orderId": tradeID,
+	}
+
+	var paginated *PaginatedResponse
+	err := c.do("GET", "/api/v1/fills", payload, &paginated, true)
+	if err != nil {
+		return 0, err
+	}
+
+	objs := make([]*OrderFill, 0)
+	err = json.Unmarshal(paginated.Items, &objs)
+	if err != nil {
+		return 0, err
+	}
+
+	var fillPriceWeightedSum float64
+	var fillPriceWeightedCount float64
+	for _, fill := range objs {
+		price, err := strconv.ParseFloat(fill.Price, 64)
+		if err != nil {
+			return 0, err
+		}
+
+		size, err := strconv.ParseFloat(fill.Size, 64)
+		if err != nil {
+			return 0, err
+		}
+
+		fillPriceWeightedSum += price * size
+		fillPriceWeightedCount += size
+	}
+
+	if fillPriceWeightedCount > 0 {
+		return fillPriceWeightedSum / fillPriceWeightedCount, nil
+	}
+
+	return 0, nil
+}
+
+func (c *Client) CreateTrade(market string, direction types.TradeDirection, quantity float64) (string, error) {
+	payload := map[string]string{
+		"clientOid": uuid.NewString(),
+		"side":      direction.String(),
+		"symbol":    market,
+		"type":      "market",
+	}
+
+	var baseIncrement, quoteIncrement int
+	symbols, err := c.getSymbols()
+	if err != nil {
+		return "", err
+	} else if symbol, ok := symbols[market]; !ok {
+		return "", fmt.Errorf("market %s not found", market)
+	} else if !symbol.EnableTrading {
+		return "", fmt.Errorf("market %s is not enabled", market)
+	} else {
+		baseIncrement = parseIncrement(symbol.BaseIncrement)
+		quoteIncrement = parseIncrement(symbol.QuoteIncrement)
 	}
 
 	switch direction {
-	case "BUY":
-		payload["funds"] = strconv.FormatFloat(quantity, 'f', 8, 64)
-	case "SELL":
+	case types.TradeBuy:
+		feeRate, err := c.getTradeFees(market)
+		if err != nil {
+			return "", err
+		}
+
+		base := strings.Split(market, "-")[0]
+		quantityStr := strconv.FormatFloat(quantity, 'f', 8, 64)
+		newQuantity, _, err := safeSubtractFees(base, quantityStr, feeRate)
+		if err != nil {
+			return "", err
+		}
+
+		quantity = common.FloorFloatByIncrement(newQuantity, 8-baseIncrement, 1e8)
+		payload["funds"] = strconv.FormatFloat(newQuantity, 'f', 8, 64)
+	case types.TradeSell:
+		quantity = common.FloorFloatByIncrement(quantity, 8-quoteIncrement, 1e8)
 		payload["size"] = strconv.FormatFloat(quantity, 'f', 8, 64)
 	default:
-		return "", fmt.Errorf("invalid trade direction %s", direction)
+		return "", fmt.Errorf("invalid trade direction %d", direction)
 	}
 
 	var obj *CreateOrder
-	err := c.do("POST", "/api/v1/orders", payload, &obj, true)
+	err = c.do("POST", "/api/v1/orders", payload, &obj, true)
 	if err != nil {
 		return "", err
 	} else if obj.OrderID == "" {
@@ -202,23 +621,88 @@ func (c *Client) CreateOrder(base, quote, direction string, quantity float64) (s
 	return obj.OrderID, nil
 }
 
-func (c *Client) GetOrderStatus(base, quote, orderID string) (bool, error) {
+func (c *Client) GetTradeByID(market, tradeID string, inputValue float64) (*types.Trade, error) {
 	var obj *Order
-	err := c.do("GET", "/api/v1/orders/"+orderID, nil, &obj, true)
+	err := c.do("GET", "/api/v1/orders/"+tradeID, nil, &obj, true)
 	if err != nil {
-		return false, err
+		return nil, err
 	} else if obj.CancelExist {
-		return false, fmt.Errorf("order was cancelled")
+		return nil, fmt.Errorf("order was cancelled")
 	}
 
-	return obj.IsActive, nil
+	parts := strings.Split(obj.Symbol, "-")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid market %s", obj.Symbol)
+	}
+	base, quote := parts[0], parts[1]
+
+	avgFillPrice, err := c.getAverageFillPrice(tradeID)
+	if err != nil {
+		return nil, err
+	}
+
+	var fromChain, toChain string
+	var direction types.TradeDirection
+	var outputValue, proceeds, fees string
+	switch strings.ToUpper(obj.Side) {
+	case "BUY":
+		var feesFloat float64
+		if avgFillPrice > 0 {
+			quoteInitialQuantity, err := strconv.ParseFloat(obj.Funds, 64)
+			if err != nil {
+				return nil, err
+			}
+			feesFloat = (inputValue - quoteInitialQuantity) / avgFillPrice
+		}
+
+		fromChain, toChain = quote, base
+		direction = types.TradeBuy
+		outputValue = obj.Funds
+		proceeds = obj.DealSize
+		fees = strconv.FormatFloat(feesFloat, 'f', 8, 64)
+	case "SELL":
+		feeRate, err := c.getTradeFees(obj.Symbol)
+		if err != nil {
+			return nil, err
+		}
+
+		proceedsFloat, feesFloat, err := safeSubtractFees(obj.FeeCurrency, obj.DealFunds, feeRate)
+		if err != nil {
+			return nil, err
+		}
+
+		fromChain, toChain = base, quote
+		direction = types.TradeSell
+		outputValue = obj.Size
+		proceeds = strconv.FormatFloat(proceedsFloat, 'f', 8, 64)
+		fees = strconv.FormatFloat(feesFloat, 'f', 8, 64)
+	default:
+		return nil, fmt.Errorf("unknown trade direction")
+	}
+
+	parsedTrade := &types.Trade{
+		ID:        obj.ID,
+		FromChain: fromChain,
+		ToChain:   toChain,
+		Market:    obj.Symbol,
+		Direction: direction,
+
+		Value:    outputValue,
+		Proceeds: proceeds,
+		Fees:     fees,
+		Price:    strconv.FormatFloat(avgFillPrice, 'f', 8, 64),
+
+		Completed: !obj.IsActive,
+	}
+
+	return parsedTrade, nil
 }
 
 /* withdrawal */
 
 func (c *Client) checkWithdrawalQuota(chain string, quantity float64) error {
 	payload := map[string]string{
-		"currency": chain,
+		"currency": formatChain(chain),
 	}
 
 	var obj *WithdrawalQuota
@@ -227,7 +711,7 @@ func (c *Client) checkWithdrawalQuota(chain string, quantity float64) error {
 		return err
 	} else if !obj.IsWithdrawEnabled {
 		return fmt.Errorf("withdrawals are not enabled for %s", chain)
-	} else if remainingQuota, err := strconv.ParseFloat(obj.AvailableAmount, 10); err != nil {
+	} else if remainingQuota, err := strconv.ParseFloat(obj.AvailableAmount, 64); err != nil {
 		return err
 	} else if remainingQuota < quantity {
 		return fmt.Errorf("%f is greater than the withdrawal limit %f for %s", quantity, remainingQuota, chain)
@@ -243,7 +727,7 @@ func (c *Client) CreateWithdrawal(chain, address string, quantity float64) (stri
 	}
 
 	payload := map[string]string{
-		"currency":      chain,
+		"currency":      formatChain(chain),
 		"address":       address,
 		"amount":        strconv.FormatFloat(quantity, 'f', 8, 64),
 		"feeDeductType": "INTERNAL",
@@ -260,35 +744,47 @@ func (c *Client) CreateWithdrawal(chain, address string, quantity float64) (stri
 	return obj.WithdrawalID, nil
 }
 
-func (c *Client) GetWithdrawalStatus(chain, withdrawalID string) (bool, error) {
+func (c *Client) GetWithdrawalByID(chain, withdrawalID string) (*types.Withdrawal, error) {
 	payload := map[string]string{
-		"currency": chain,
+		"currency": formatChain(chain),
 	}
 
 	var paginated *PaginatedResponse
 	err := c.do("GET", "/api/v1/withdrawals", payload, &paginated, true)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	objs := make([]*Withdrawal, 0)
 	err = json.Unmarshal(paginated.Items, &objs)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	for _, withdrawal := range objs {
 		if withdrawal.ID == withdrawalID {
+			var completed bool
 			switch withdrawal.Status {
 			case "SUCCESS":
-				return true, nil
+				completed = true
 			case "PROCESSING", "WALLET_PROCESSING":
-				return false, nil
 			case "FAILURE":
-				return false, fmt.Errorf("withdrawal failed")
+				return nil, fmt.Errorf("withdrawal failed")
+			default:
+				return nil, fmt.Errorf("unknown withdrawal status %s", withdrawal.Status)
 			}
+
+			parsedWithdrawal := &types.Withdrawal{
+				ID:        withdrawal.ID,
+				TxID:      withdrawal.WalletTxId,
+				Value:     withdrawal.Amount,
+				Fee:       withdrawal.Fee,
+				Completed: completed,
+			}
+
+			return parsedWithdrawal, nil
 		}
 	}
 
-	return false, fmt.Errorf("withdrawal not found")
+	return nil, fmt.Errorf("withdrawal not found")
 }

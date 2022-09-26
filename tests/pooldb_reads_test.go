@@ -61,6 +61,11 @@ func (suite *PooldbReadsSuite) TestReadMiner() {
 		suite.T().Errorf("failed: GetMinerID: %v", err)
 	}
 
+	_, err = pooldb.GetMinerAddress(pooldbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetMinerAddress: %v", err)
+	}
+
 	_, err = pooldb.GetMiners(pooldbClient.Reader(), []uint64{1, 2, 3})
 	if err != nil {
 		suite.T().Errorf("failed: GetMiners: %v", err)
@@ -147,6 +152,11 @@ func (suite *PooldbReadsSuite) TestReadRound() {
 	if err != nil {
 		suite.T().Errorf("failed: GetMatureUnspentRounds: %v", err)
 	}
+
+	_, err = pooldb.GetSumImmatureRoundValueByChain(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetSumImmatureRoundValueByChain: %v", err)
+	}
 }
 
 func (suite *PooldbReadsSuite) TestReadShare() {
@@ -155,5 +165,131 @@ func (suite *PooldbReadsSuite) TestReadShare() {
 	_, err = pooldb.GetSharesByRound(pooldbClient.Reader(), 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetSharesByRound: %v", err)
+	}
+}
+
+func (suite *PooldbReadsSuite) TestReadUTXO() {
+	var err error
+
+	_, err = pooldb.GetUnspentUTXOsByChain(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnspentUTXOsByChain: %v", err)
+	}
+
+	_, err = pooldb.GetSumUnspentUTXOValueByChain(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetSumUnspentUTXOValueByChain: %v", err)
+	}
+}
+
+func (suite *PooldbReadsSuite) TestReadExchangeBatch() {
+	var err error
+
+	_, err = pooldb.GetExchangeBatch(pooldbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetExchangeBatch: %v", err)
+	}
+
+	_, err = pooldb.GetActiveExchangeBatches(pooldbClient.Reader())
+	if err != nil {
+		suite.T().Errorf("failed: GetActiveExchangeBatches: %v", err)
+	}
+}
+
+func (suite *PooldbReadsSuite) TestReadExchangeInput() {
+	var err error
+
+	_, err = pooldb.GetExchangeInputs(pooldbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetExchangeInputs: %v", err)
+	}
+}
+
+func (suite *PooldbReadsSuite) TestReadExchangeDeposit() {
+	var err error
+
+	_, err = pooldb.GetExchangeDeposits(pooldbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetExchangeDeposits: %v", err)
+	}
+}
+
+func (suite *PooldbReadsSuite) TestReadExchangeTrade() {
+	var err error
+
+	_, err = pooldb.GetExchangeTradesByStage(pooldbClient.Reader(), 1, 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetExchangeTradesByStage: %v", err)
+	}
+
+	_, err = pooldb.GetExchangeTradeByPathAndStage(pooldbClient.Reader(), 1, 1, 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetExchangeTradeByPathAndStage: %v", err)
+	}
+
+	_, err = pooldb.GetFinalExchangeTrades(pooldbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetFinalExchangeTrades: %v", err)
+	}
+}
+
+func (suite *PooldbReadsSuite) TestReadExchangeWithdrawal() {
+	var err error
+
+	_, err = pooldb.GetExchangeWithdrawals(pooldbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetExchangeWithdrawals: %v", err)
+	}
+}
+
+func (suite *PooldbReadsSuite) TestReadBalanceInput() {
+	var err error
+
+	_, err = pooldb.GetPendingBalanceInputsWithoutBatch(pooldbClient.Reader())
+	if err != nil {
+		suite.T().Errorf("failed: GetPendingBalanceInputsWithoutBatch: %v", err)
+	}
+
+	_, err = pooldb.GetBalanceInputsByBatch(pooldbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetBalanceInputsByBatch: %v", err)
+	}
+
+	_, err = pooldb.GetSumBalanceInputValueByChain(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetSumBalanceInputValueByChain: %v", err)
+	}
+}
+
+func (suite *PooldbReadsSuite) TestReadBalanceOutput() {
+	var err error
+
+	_, err = pooldb.GetBalanceOutputsByBatch(pooldbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetBalanceOutputsByBatch: %v", err)
+	}
+
+	_, err = pooldb.GetSumBalanceOutputValueByChain(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetSumBalanceOutputValueByChain: %v", err)
+	}
+
+	_, err = pooldb.GetSumBalanceOutputValueByMiner(pooldbClient.Reader(), 1, "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetSumBalanceOutputValueByMiner: %v", err)
+	}
+
+	_, err = pooldb.GetSumBalanceOutputAboveThreshold(pooldbClient.Reader(), "ETH", "10")
+	if err != nil {
+		suite.T().Errorf("failed: GetSumBalanceOutputAboveThreshold: %v", err)
+	}
+}
+
+func (suite *PooldbReadsSuite) TestReadPayout() {
+	var err error
+
+	_, err = pooldb.GetUnconfirmedPayouts(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnconfirmedPayouts: %v", err)
 	}
 }

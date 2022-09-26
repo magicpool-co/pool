@@ -123,11 +123,26 @@ type Share struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
-/* switch */
+/* utxo */
 
-type Switch struct {
+type UTXO struct {
+	ID      uint64 `db:"id"`
+	ChainID string `db:"chain_id"`
+
+	Value dbcl.NullBigInt `db:"value"`
+	TxID  string          `db:"txid"`
+	Index uint32          `db:"idx"`
+	Spent bool            `db:"spent"`
+
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+/* exchange */
+
+type ExchangeBatch struct {
 	ID         uint64 `db:"id"`
-	ExchangeID string `db:"exchange_id"`
+	ExchangeID int    `db:"exchange_id"`
 	Status     int    `db:"status"`
 
 	CreatedAt   time.Time  `db:"created_at"`
@@ -135,9 +150,21 @@ type Switch struct {
 	CompletedAt *time.Time `db:"completed_at"`
 }
 
-type SwitchDeposit struct {
+type ExchangeInput struct {
+	ID         uint64 `db:"id"`
+	BatchID    uint64 `db:"batch_id"`
+	InChainID  string `db:"in_chain_id"`
+	OutChainID string `db:"out_chain_id"`
+
+	Value dbcl.NullBigInt `db:"value"`
+
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+type ExchangeDeposit struct {
 	ID        uint64 `db:"id"`
-	SwitchID  uint64 `db:"switch_id"`
+	BatchID   uint64 `db:"batch_id"`
 	ChainID   string `db:"chain_id"`
 	NetworkID string `db:"network_id"`
 
@@ -148,42 +175,47 @@ type SwitchDeposit struct {
 	Value      dbcl.NullBigInt `db:"value"`
 	Fees       dbcl.NullBigInt `db:"fees"`
 	Registered bool            `db:"registered"`
-	Pending    bool            `db:"pending"`
+	Confirmed  bool            `db:"confirmed"`
 	Spent      bool            `db:"spent"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
-type SwitchTrade struct {
-	ID       uint64 `db:"id"`
-	SwitchID uint64 `db:"switch_id"`
-	PathID   uint64 `db:"path_id"`
-	Stage    int    `db:"stage"`
+type ExchangeTrade struct {
+	ID      uint64 `db:"id"`
+	BatchID uint64 `db:"batch_id"`
+	PathID  int    `db:"path_id"`
+	StageID int    `db:"stage_id"`
 
 	ExchangeTradeID *string `db:"exchange_trade_id"`
-	NextTradeID     *uint64 `db:"next_trade_id"`
 
-	FromChainID string `db:"from_chain_id"`
-	ToChainID   string `db:"to_chain_id"`
-	Market      string `db:"market"`
-	Direction   int    `db:"direction"`
+	InitialChainID string `db:"initial_chain_id"`
+	FromChainID    string `db:"from_chain_id"`
+	ToChainID      string `db:"to_chain_id"`
+	Market         string `db:"market"`
+	Direction      int    `db:"direction"`
 
-	Value     dbcl.NullBigInt `db:"value"`
-	Fees      dbcl.NullBigInt `db:"fees"`
-	Proceeds  dbcl.NullBigInt `db:"proceeds"`
-	Slippage  *float64        `db:"slippage"`
-	Initiated bool            `db:"initiated"`
-	Open      bool            `db:"open"`
-	Filled    bool            `db:"filled"`
+	Value                 dbcl.NullBigInt `db:"value"`
+	Proceeds              dbcl.NullBigInt `db:"proceeds"`
+	TradeFees             dbcl.NullBigInt `db:"trade_fees"`
+	CumulativeDepositFees dbcl.NullBigInt `db:"cumulative_deposit_fees"`
+	CumulativeTradeFees   dbcl.NullBigInt `db:"cumulative_trade_fees"`
+
+	OrderPrice          *float64 `db:"order_price"`
+	FillPrice           *float64 `db:"fill_price"`
+	CumulativeFillPrice *float64 `db:"cumulative_fill_price"`
+	Slippage            *float64 `db:"slippage"`
+	Initiated           bool     `db:"initiated"`
+	Confirmed           bool     `db:"confirmed"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
-type SwitchWithdrawal struct {
+type ExchangeWithdrawal struct {
 	ID        uint64 `db:"id"`
-	SwitchID  uint64 `db:"switch_id"`
+	BatchID   uint64 `db:"batch_id"`
 	ChainID   string `db:"chain_id"`
 	NetworkID string `db:"network_id"`
 
@@ -191,9 +223,11 @@ type SwitchWithdrawal struct {
 	ExchangeWithdrawalID string  `db:"exchange_withdrawal_id"`
 
 	Value          dbcl.NullBigInt `db:"value"`
+	DepositFees    dbcl.NullBigInt `db:"deposit_fees"`
 	TradeFees      dbcl.NullBigInt `db:"trade_fees"`
 	WithdrawalFees dbcl.NullBigInt `db:"withdrawal_fees"`
-	Pending        bool            `db:"pending"`
+	CumulativeFees dbcl.NullBigInt `db:"cumulative_fees"`
+	Confirmed      bool            `db:"confirmed"`
 	Spent          bool            `db:"spent"`
 
 	CreatedAt time.Time `db:"created_at"`
@@ -208,10 +242,13 @@ type BalanceInput struct {
 	ChainID string `db:"chain_id"`
 	MinerID uint64 `db:"miner_id"`
 
-	OutputBalanceID *uint64 `db:"output_balance_id"`
+	OutChainID      string  `db:"out_chain_id"`
+	BalanceOutputID *uint64 `db:"balance_output_id"`
+	BatchID         *uint64 `db:"batch_id"`
 
-	Value   dbcl.NullBigInt `db:"value"`
-	Pending bool            `db:"pending"`
+	Value    dbcl.NullBigInt `db:"value"`
+	PoolFees dbcl.NullBigInt `db:"pool_fees"`
+	Pending  bool            `db:"pending"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
@@ -219,9 +256,10 @@ type BalanceInput struct {
 
 type BalanceOutput struct {
 	ID      uint64 `db:"id"`
-	MinerID uint64 `db:"miner_id"`
 	ChainID string `db:"chain_id"`
+	MinerID uint64 `db:"miner_id"`
 
+	InBatchID   *uint64 `db:"in_batch_id"`
 	InDepositID *uint64 `db:"in_deposit_id"`
 	InPayoutID  *uint64 `db:"in_payout_id"`
 	OutPayoutID *uint64 `db:"out_payout_id"`
@@ -236,41 +274,20 @@ type BalanceOutput struct {
 
 type Payout struct {
 	ID      uint64 `db:"id"`
-	MinerID uint64 `db:"miner_id"`
 	ChainID string `db:"chain_id"`
+	MinerID uint64 `db:"miner_id"`
 	Address string `db:"address"`
 
 	TxID   string  `db:"txid"`
 	Height *uint64 `db:"height"`
 
 	Value        dbcl.NullBigInt `db:"value"`
+	FeeBalance   dbcl.NullBigInt `db:"fee_balance"`
 	PoolFees     dbcl.NullBigInt `db:"pool_fees"`
 	ExchangeFees dbcl.NullBigInt `db:"exchange_fees"`
 	TxFees       dbcl.NullBigInt `db:"tx_fees"`
 	Confirmed    bool            `db:"confirmed"`
 	Failed       bool            `db:"failed"`
-
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
-}
-
-type UTXO struct {
-	ID      uint64 `db:"id"`
-	ChainID string `db:"chain_id"`
-
-	InTxID         string  `db:"in_txid"`
-	InIndex        uint32  `db:"in_index"`
-	InRoundID      *uint64 `db:"in_round_id"`
-	InDepositID    *uint64 `db:"in_deposit_id"`
-	InWithdrawalID *uint64 `db:"in_withdrawal_id"`
-	InPayoutID     *uint64 `db:"in_payout_id"`
-
-	OutTxID      *string `db:"out_txid"`
-	OutDepositID *uint64 `db:"out_deposit_id"`
-	OutPayoutID  *uint64 `db:"out_payout_id"`
-
-	Value dbcl.NullBigInt `db:"value"`
-	Spent bool            `db:"spent"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
