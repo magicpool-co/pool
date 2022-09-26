@@ -113,7 +113,14 @@ func (w *Worker) Start() {
 		nodes:  w.miningNodes,
 	})
 
-	w.cron.AddJob("*/1 * * * *", &TradeJob{
+	w.cron.AddJob("*/5 * * * *", &AuditJob{
+		locker: locker,
+		logger: w.logger,
+		pooldb: w.pooldb,
+		nodes:  w.payoutNodes,
+	})
+
+	w.cron.AddJob("*/5 * * * *", &TradeJob{
 		locker: locker,
 		logger: w.logger,
 		pooldb: w.pooldb,

@@ -152,6 +152,11 @@ func (suite *PooldbReadsSuite) TestReadRound() {
 	if err != nil {
 		suite.T().Errorf("failed: GetMatureUnspentRounds: %v", err)
 	}
+
+	_, err = pooldb.GetSumImmatureRoundValueByChain(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetSumImmatureRoundValueByChain: %v", err)
+	}
 }
 
 func (suite *PooldbReadsSuite) TestReadShare() {
@@ -169,6 +174,11 @@ func (suite *PooldbReadsSuite) TestReadUTXO() {
 	_, err = pooldb.GetUnspentUTXOsByChain(pooldbClient.Reader(), "ETH")
 	if err != nil {
 		suite.T().Errorf("failed: GetUnspentUTXOsByChain: %v", err)
+	}
+
+	_, err = pooldb.GetSumUnspentUTXOValueByChain(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetSumUnspentUTXOValueByChain: %v", err)
 	}
 }
 
@@ -244,6 +254,11 @@ func (suite *PooldbReadsSuite) TestReadBalanceInput() {
 	if err != nil {
 		suite.T().Errorf("failed: GetBalanceInputsByBatch: %v", err)
 	}
+
+	_, err = pooldb.GetSumBalanceInputValueByChain(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetSumBalanceInputValueByChain: %v", err)
+	}
 }
 
 func (suite *PooldbReadsSuite) TestReadBalanceOutput() {
@@ -252,6 +267,11 @@ func (suite *PooldbReadsSuite) TestReadBalanceOutput() {
 	_, err = pooldb.GetBalanceOutputsByBatch(pooldbClient.Reader(), 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetBalanceOutputsByBatch: %v", err)
+	}
+
+	_, err = pooldb.GetSumBalanceOutputValueByChain(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetSumBalanceOutputValueByChain: %v", err)
 	}
 
 	_, err = pooldb.GetSumBalanceOutputValueByMiner(pooldbClient.Reader(), 1, "ETH")

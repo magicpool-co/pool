@@ -386,6 +386,19 @@ func GetMatureUnspentRounds(q dbcl.Querier, chain string) ([]*Round, error) {
 	return output, err
 }
 
+func GetSumImmatureRoundValueByChain(q dbcl.Querier, chain string) (*big.Int, error) {
+	const query = `SELECT sum(value)
+	FROM rounds
+	WHERE
+		chain_id = ?
+	AND
+		mature IS FALSE
+	AND
+		orphan IS FALSE;`
+
+	return dbcl.GetBigInt(q, query, chain)
+}
+
 /* Share Queries */
 
 func GetSharesByRound(q dbcl.Querier, roundID uint64) ([]*Share, error) {
@@ -414,6 +427,17 @@ func GetUnspentUTXOsByChain(q dbcl.Querier, chainID string) ([]*UTXO, error) {
 	err := q.Select(&output, query, chainID)
 
 	return output, err
+}
+
+func GetSumUnspentUTXOValueByChain(q dbcl.Querier, chainID string) (*big.Int, error) {
+	const query = `SELECT sum(value)
+	FROM utxos
+	WHERE
+		chain_id = ?
+	AND
+		spent = FALSE;`
+
+	return dbcl.GetBigInt(q, query, chainID)
 }
 
 /* batch queries */
@@ -566,6 +590,17 @@ func GetBalanceInputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceInput, e
 	return output, err
 }
 
+func GetSumBalanceInputValueByChain(q dbcl.Querier, chain string) (*big.Int, error) {
+	const query = `SELECT sum(value)
+	FROM balance_inputs
+	WHERE
+		chain_id = ?
+	AND
+		pending = TRUE;`
+
+	return dbcl.GetBigInt(q, query, chain)
+}
+
 func GetBalanceOutputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceOutput, error) {
 	const query = `SELECT *
 	FROM balance_outputs
@@ -578,13 +613,26 @@ func GetBalanceOutputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceOutput,
 	return output, err
 }
 
+func GetSumBalanceOutputValueByChain(q dbcl.Querier, chain string) (*big.Int, error) {
+	const query = `SELECT sum(value)
+	FROM balance_outputs
+	WHERE
+		chain_id = ?
+	AND
+		out_payout_id IS NULL;`
+
+	return dbcl.GetBigInt(q, query, chain)
+}
+
 func GetSumBalanceOutputValueByMiner(q dbcl.Querier, minerID uint64, chain string) (*big.Int, error) {
 	const query = `SELECT sum(value)
 	FROM balance_outputs
 	WHERE
 		miner_id = ?
 	AND
-		chain_id = ?;`
+		chain_id = ?
+	AND
+		out_payout_id IS NULL;`
 
 	return dbcl.GetBigInt(q, query, minerID, chain)
 }
@@ -599,6 +647,8 @@ func GetSumBalanceOutputAboveThreshold(q dbcl.Querier, chain, threshold string) 
 		FROM balance_outputs
 		WHERE
 			chain_id = ?
+		AND
+			out_payout_id IS NULL
 		GROUP BY miner_id
 	)
 	SELECT DISTINCT *

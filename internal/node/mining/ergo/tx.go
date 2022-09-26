@@ -7,7 +7,7 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
-func (node Node) GetBalance(address string) (*big.Int, error) {
+func (node Node) GetBalance() (*big.Int, error) {
 	balance, err := node.getWalletBalances()
 	if err != nil {
 		return nil, err

@@ -63,7 +63,8 @@ func SendOutgoingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txOutputs 
 		}
 
 		// if the remainder is non-zero, add a remainder output
-		if remainder.Cmp(common.Big0) > 0 {
+		// (except for ERGO, since wallet is managed by the node)
+		if remainder.Cmp(common.Big0) > 0 && node.Chain() != "ERGO" {
 			remainderOutput := &types.TxOutput{
 				Address:  node.Address(),
 				Value:    remainder,
