@@ -424,7 +424,7 @@ func (suite *PoolSuite) TestPool() {
 	}
 
 	for i, tt := range tests {
-		miningNode, err := node.GetMiningNode(true, tt.chain, tt.priv, nil, nil)
+		miningNode, err := node.GetMiningNode(true, tt.chain, tt.priv, nil, logger, nil)
 		if err != nil {
 			suite.T().Errorf("failed to create node: %d: %s: %v", i, tt.chain, err)
 		}

@@ -287,7 +287,7 @@ func (j *ChartRoundJob) truncate(node types.MiningNode, endTime time.Time) error
 }
 
 func (j *ChartRoundJob) Run() {
-	defer recoverPanic(j.logger)
+	defer j.logger.RecoverPanic()
 
 	ctx := context.Background()
 	lock, err := j.locker.Obtain(ctx, "cron:chrtrnd", time.Minute*5, nil)

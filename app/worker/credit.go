@@ -22,7 +22,7 @@ type BlockUnlockJob struct {
 }
 
 func (j *BlockUnlockJob) Run() {
-	defer recoverPanic(j.logger)
+	defer j.logger.RecoverPanic()
 
 	ctx := context.Background()
 	lock, err := j.locker.Obtain(ctx, "cron:blkunlock", time.Minute*5, nil)
@@ -49,7 +49,7 @@ type BlockCreditJob struct {
 }
 
 func (j *BlockCreditJob) Run() {
-	defer recoverPanic(j.logger)
+	defer j.logger.RecoverPanic()
 
 	ctx := context.Background()
 	lock, err := j.locker.Obtain(ctx, "cron:blkunlock", time.Minute*5, nil)

@@ -102,8 +102,14 @@ func (s *Server) Start(connTimeout time.Duration) (chan Message, chan uint64, ch
 	s.addr = s.listener.Addr().(*net.TCPAddr)
 
 	go func() {
+		defer recoverPanic(errCh)
 		<-s.ctx.Done()
-		go s.close()
+
+		go func() {
+			defer recoverPanic(errCh)
+
+			s.close()
+		}()
 	}()
 
 	go func() {
@@ -166,39 +172,37 @@ func (s *Server) close() {
 
 	s.listener.Close()
 
-	go func() {
-		s.mu.Lock()
-		conns := s.conns
-		defer s.mu.Unlock()
+	s.mu.Lock()
+	conns := s.conns
+	defer s.mu.Unlock()
 
-		count := len(conns)
-		batchSize := int(shutdownDuration / batchInterval)
-		if count < batchSize {
-			batchSize = count
-		}
+	count := len(conns)
+	batchSize := int(shutdownDuration / batchInterval)
+	if count < batchSize {
+		batchSize = count
+	}
 
-		ticker := time.NewTicker(batchInterval)
-		for {
-			select {
-			case <-ticker.C:
-				var killed int
-				toKill := count / batchSize
-				for id, conn := range conns {
-					if killed >= toKill {
-						break
-					}
-
-					conn.SoftClose()
-					delete(conns, id)
-					killed++
+	ticker := time.NewTicker(batchInterval)
+	for {
+		select {
+		case <-ticker.C:
+			var killed int
+			toKill := count / batchSize
+			for id, conn := range conns {
+				if killed >= toKill {
+					break
 				}
 
-				if len(conns) == 0 {
-					return
-				}
+				conn.SoftClose()
+				delete(conns, id)
+				killed++
+			}
+
+			if len(conns) == 0 {
+				return
 			}
 		}
-	}()
+	}
 }
 
 func (s *Server) Wait() {

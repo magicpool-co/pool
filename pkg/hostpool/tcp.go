@@ -65,7 +65,7 @@ func NewTCPPool(ctx context.Context, logger *log.Logger, healthCheck *TCPHealthC
 		// run the healthcheck according to the given interval
 		timer := time.NewTimer(pool.healthCheck.Interval)
 		go func() {
-			defer recoverPanic(pool.logger)
+			defer pool.logger.RecoverPanic()
 
 			for {
 				select {
@@ -107,7 +107,7 @@ func (p *TCPPool) AddHost(url string, port int) error {
 
 		reqCh, resCh, errCh := p.index[id].client.Start([]*rpc.Request{p.healthCheck.RPCRequest})
 		go func() {
-			defer recoverPanic(p.logger)
+			defer p.logger.RecoverPanic()
 
 			for {
 				select {
@@ -236,7 +236,7 @@ func (p *TCPPool) runHealthCheck() {
 	for id, tc := range p.index {
 		latencyWg.Add(1)
 		go func(id string, tc *tcpConn) {
-			defer recoverPanic(p.logger)
+			defer p.logger.RecoverPanic()
 			defer latencyWg.Done()
 
 			latency := tc.healthCheck(p.healthCheck, p.logger)

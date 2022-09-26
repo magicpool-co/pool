@@ -21,7 +21,7 @@ type AuditJob struct {
 }
 
 func (j *AuditJob) Run() {
-	defer recoverPanic(j.logger)
+	defer j.logger.RecoverPanic()
 
 	ctx := context.Background()
 	lock, err := j.locker.Obtain(ctx, "cron:audit", time.Minute*5, nil)

@@ -25,7 +25,7 @@ type TradeJob struct {
 }
 
 func (j *TradeJob) Run() {
-	defer recoverPanic(j.logger)
+	defer j.logger.RecoverPanic()
 
 	ctx := context.Background()
 	lock, err := j.locker.Obtain(ctx, "cron:trade", time.Minute*5, nil)
