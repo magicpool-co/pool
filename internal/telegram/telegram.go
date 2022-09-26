@@ -10,20 +10,6 @@ import (
 	"github.com/goccy/go-json"
 )
 
-var (
-	blockExplorers = map[string]string{
-		"ETH": "https://etherscan.io/block",
-		"ETC": "https://blockscout.com/etc/mainnet/blocks",
-		"RVN": "https://api.ravencoin.org/block",
-	}
-
-	txExplorers = map[string]string{
-		"ETH":  "etherscan.io/tx",
-		"USDC": "etherscan.io/tx",
-		"BTC":  "https://blockchair.com/bitcoin/transaction",
-	}
-)
-
 type Client struct {
 	Enabled     bool
 	Key         string
@@ -165,26 +151,21 @@ func (t *Client) NotifyNewBlockCandidate(chain, explorerURL string, height uint6
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyInitiateSwitch(id uint64) error {
-	msg := fmt.Sprintf("initiated exchange profit switch %d", id)
+func (t *Client) NotifyInitiateExchangeBatch(id uint64) error {
+	msg := fmt.Sprintf("initiated exchange batch %d", id)
 
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyFinalizeSwitch(id uint64) error {
-	msg := fmt.Sprintf("completed exchange profit switch %d", id)
+func (t *Client) NotifyFinalizeExchangeBatch(id uint64) error {
+	msg := fmt.Sprintf("completed exchange batch %d", id)
 
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyPayoutSent(chain, txid, client string) error {
-	chain = strings.ToUpper(chain)
-	if explorer, ok := txExplorers[chain]; !ok {
-		return fmt.Errorf("no explorer for %s", chain)
-	} else {
-		msg := fmt.Sprintf("send %s payout to %s: [%s](%s/%s)",
-			chain, client, txid, explorer, txid)
+func (t *Client) NotifyPayoutSent(chain, explorerURL, txid string) error {
+	msg := fmt.Sprintf("send %s payout [%s](%s)",
+		chain, txid, explorerURL)
 
-		return t.sendMessage(msg, t.InfoChatID)
-	}
+	return t.sendMessage(msg, t.InfoChatID)
 }

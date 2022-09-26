@@ -389,5 +389,7 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 		return err
 	}
 
+	c.telegram.NotifyFinalizeExchangeBatch(batchID)
+
 	return c.updateBatchStatus(batchID, WithdrawalsComplete)
 }

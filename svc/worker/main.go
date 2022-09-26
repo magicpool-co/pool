@@ -132,7 +132,7 @@ func newWorker(secrets map[string]string, mainnet bool, metricsClient *metrics.C
 	}
 
 	workerClient := worker.NewWorker(secrets["ENVIRONMENT"], mainnet, logger, miningNodes, payoutNodes,
-		pooldbClient, tsdbClient, redisClient, awsClient, metricsClient, exchange)
+		pooldbClient, tsdbClient, redisClient, awsClient, metricsClient, exchange, telegramClient)
 
 	return workerClient, logger, nil
 }

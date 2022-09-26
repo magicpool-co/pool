@@ -8,6 +8,7 @@ import (
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/metrics"
 	"github.com/magicpool-co/pool/internal/redis"
+	"github.com/magicpool-co/pool/internal/telegram"
 	"github.com/magicpool-co/pool/pkg/aws"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
@@ -25,9 +26,10 @@ type Worker struct {
 	redis       *redis.Client
 	aws         *aws.Client
 	metrics     *metrics.Client
+	telegram    *telegram.Client
 }
 
-func NewWorker(env string, mainnet bool, logger *log.Logger, miningNodes []types.MiningNode, payoutNodes []types.PayoutNode, pooldbClient, tsdbClient *dbcl.Client, redisClient *redis.Client, awsClient *aws.Client, metricsClient *metrics.Client, exchange types.Exchange) *Worker {
+func NewWorker(env string, mainnet bool, logger *log.Logger, miningNodes []types.MiningNode, payoutNodes []types.PayoutNode, pooldbClient, tsdbClient *dbcl.Client, redisClient *redis.Client, awsClient *aws.Client, metricsClient *metrics.Client, exchange types.Exchange, telegramClient *telegram.Client) *Worker {
 	cronClient := cron.New(
 		cron.WithParser(
 			cron.NewParser(

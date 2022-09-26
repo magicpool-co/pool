@@ -9,6 +9,7 @@ import (
 	"github.com/magicpool-co/pool/core/trade/kucoin"
 	"github.com/magicpool-co/pool/internal/accounting"
 	"github.com/magicpool-co/pool/internal/pooldb"
+	"github.com/magicpool-co/pool/internal/telegram"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
@@ -52,9 +53,10 @@ type Client struct {
 	exchange   types.Exchange
 	pooldb     *dbcl.Client
 	nodes      map[string]types.PayoutNode
+	telegram   *telegram.Client
 }
 
-func New(pooldbClient *dbcl.Client, nodes []types.PayoutNode, exchange types.Exchange) *Client {
+func New(pooldbClient *dbcl.Client, nodes []types.PayoutNode, exchange types.Exchange, telegramClient *telegram.Client) *Client {
 	nodeIdx := make(map[string]types.PayoutNode)
 	for _, node := range nodes {
 		nodeIdx[node.Chain()] = node
@@ -65,6 +67,7 @@ func New(pooldbClient *dbcl.Client, nodes []types.PayoutNode, exchange types.Exc
 		exchange:   exchange,
 		pooldb:     pooldbClient,
 		nodes:      nodeIdx,
+		telegram:   telegramClient,
 	}
 
 	return client
@@ -172,6 +175,8 @@ func (c *Client) CheckForNewBatch() error {
 	if err != nil {
 		return err
 	}
+
+	c.telegram.NotifyInitiateExchangeBatch(batchID)
 
 	return tx.SafeCommit()
 }
