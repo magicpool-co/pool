@@ -419,6 +419,11 @@ func (suite *PooldbWritesSuite) TestWriteBalanceOutput() {
 
 	for i, tt := range tests {
 		tt.output.MinerID = minerID
+		_, err = pooldb.InsertBalanceOutput(pooldbClient.Writer(), tt.output)
+		if err != nil {
+			suite.T().Errorf("failed on %d: insert: %v", i, err)
+		}
+
 		err = pooldb.InsertBalanceOutputs(pooldbClient.Writer(), tt.output, tt.output)
 		if err != nil {
 			suite.T().Errorf("failed on %d: bulk insert: %v", i, err)

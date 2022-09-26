@@ -58,7 +58,8 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 
 	// process the balance inputs for all round distributions
 	usedValue := new(big.Int)
-	inputs := make([]*pooldb.BalanceInput, 0)
+	pendingInputs := make([]*pooldb.BalanceInput, 0)
+	completedInputs := make([]*pooldb.BalanceInput, 0)
 	for minerID, value := range compoundValues {
 		miner, ok := compoundIdx[minerID]
 		if !ok {
@@ -129,12 +130,18 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 				PoolFees: dbcl.NullBigInt{Valid: true, BigInt: poolFee},
 				Pending:  round.ChainID != miner.ChainID,
 			}
-			inputs = append(inputs, balanceInput)
+
+			if balanceInput.Pending {
+				pendingInputs = append(pendingInputs, balanceInput)
+			} else {
+				completedInputs = append(completedInputs, balanceInput)
+			}
+
 		}
 
 		// add the fee balance input if exists
 		if feeBalanceInput != nil {
-			inputs = append(inputs, feeBalanceInput)
+			pendingInputs = append(pendingInputs, feeBalanceInput)
 		}
 
 		delete(compoundIdx, miner.ID)
@@ -155,10 +162,36 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 	}
 	defer tx.SafeRollback()
 
-	round.Spent = true
-	if err := pooldb.InsertBalanceInputs(tx, inputs...); err != nil {
+	// insert balance outputs for inputs that are already completed
+	// (they do not need to be exchanged)
+	for _, completedInput := range completedInputs {
+		completedOutput := &pooldb.BalanceOutput{
+			ChainID: completedInput.OutChainID,
+			MinerID: completedInput.MinerID,
+
+			Value:        completedInput.Value,
+			PoolFees:     completedInput.PoolFees,
+			ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+		}
+
+		outputID, err := pooldb.InsertBalanceOutput(tx, completedOutput)
+		if err != nil {
+			return err
+		}
+
+		completedInput.BalanceOutputID = types.Uint64Ptr(outputID)
+	}
+
+	// insert pending and completed inputs
+	if err := pooldb.InsertBalanceInputs(tx, pendingInputs...); err != nil {
 		return err
-	} else if pooldb.UpdateRound(tx, round, []string{"spent"}); err != nil {
+	} else if err := pooldb.InsertBalanceInputs(tx, completedInputs...); err != nil {
+		return err
+	}
+
+	// mark the round as spent
+	round.Spent = true
+	if pooldb.UpdateRound(tx, round, []string{"spent"}); err != nil {
 		return err
 	}
 

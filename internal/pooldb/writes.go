@@ -240,6 +240,16 @@ func UpdateBalanceInput(q dbcl.Querier, obj *BalanceInput, updateCols []string) 
 	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
 }
 
+func InsertBalanceOutput(q dbcl.Querier, obj *BalanceOutput) (uint64, error) {
+	const table = "balance_outputs"
+	cols := []string{
+		"chain_id", "miner_id", "in_batch_id", "in_deposit_id", "in_payout_id",
+		"out_payout_id", "value", "pool_fees", "exchange_fees",
+	}
+
+	return dbcl.ExecInsert(q, table, cols, obj)
+}
+
 func InsertBalanceOutputs(q dbcl.Querier, objects ...*BalanceOutput) error {
 	const table = "balance_outputs"
 	cols := []string{
