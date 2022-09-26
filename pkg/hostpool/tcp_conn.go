@@ -2,9 +2,11 @@ package hostpool
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/stratum"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 )
@@ -13,14 +15,28 @@ type tcpConn struct {
 	id      string
 	ctx     context.Context
 	mu      sync.RWMutex
-	healthy bool
+	errors  uint
 	enabled bool
 
 	client *stratum.Client
 }
 
+func (tc *tcpConn) healthy() bool {
+	tc.mu.RLock()
+	defer tc.mu.RUnlock()
+
+	return tc.errors < 3
+}
+
+func (tc *tcpConn) usable() bool {
+	tc.mu.RLock()
+	defer tc.mu.RUnlock()
+
+	return tc.enabled && tc.errors < 3
+}
+
 // Run a healthcheck on the given TCP connection.
-func (tc *tcpConn) healthCheck(healthCheck *TCPHealthCheck) int {
+func (tc *tcpConn) healthCheck(healthCheck *TCPHealthCheck, logger *log.Logger) int {
 	var unit = time.Nanosecond
 	var maxLatency = int(healthCheck.Timeout/unit) * 2
 
@@ -34,6 +50,7 @@ func (tc *tcpConn) healthCheck(healthCheck *TCPHealthCheck) int {
 	}
 
 	if err != nil {
+		logger.Error(fmt.Errorf("tcpconn: healthcheck: %s: %v", tc.id, err))
 		return maxLatency
 	}
 
@@ -50,8 +67,13 @@ func (tc *tcpConn) markHealthy(healthy bool) {
 	}
 
 	tc.mu.Lock()
-	tc.healthy = healthy
-	tc.mu.Unlock()
+	defer tc.mu.Unlock()
+
+	if healthy {
+		tc.errors = 0
+	} else {
+		tc.errors++
+	}
 }
 
 // Execute a request with a given timeout.

@@ -114,7 +114,7 @@ func newWorker(secrets map[string]string, mainnet bool, metricsClient *metrics.C
 			}
 		}
 
-		node, err := node.GetMiningNode(mainnet, chain, secrets[chain+"_PRIVATE_KEY"], urls, tunnel)
+		node, err := node.GetMiningNode(mainnet, chain, secrets[chain+"_PRIVATE_KEY"], urls, logger, tunnel)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -124,7 +124,7 @@ func newWorker(secrets map[string]string, mainnet bool, metricsClient *metrics.C
 
 	for _, chain := range payoutChains {
 		node, err := node.GetPayoutNode(mainnet, chain, secrets[chain+"_PRIVATE_KEY"],
-			secrets["BLOCKCHAIR_API_KEY"], secrets[chain+"_NODE_URL"])
+			secrets["BLOCKCHAIR_API_KEY"], secrets[chain+"_NODE_URL"], logger)
 		if err != nil {
 			return nil, nil, err
 		}

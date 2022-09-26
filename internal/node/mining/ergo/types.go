@@ -8,6 +8,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/sencha-dev/powkit/autolykos2"
 
+	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/hostpool"
 	"github.com/magicpool-co/pool/pkg/sshtunnel"
@@ -17,7 +18,7 @@ var (
 	addressPrefix = []byte{0x01}
 )
 
-func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
+func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
 	var (
 		port        = 9053
 		hostOptions = &hostpool.HTTPHostOptions{
@@ -33,7 +34,7 @@ func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPoo
 		return nil, nil
 	}
 
-	host := hostpool.NewHTTPPool(context.Background(), hostHealthCheck, tunnel)
+	host := hostpool.NewHTTPPool(context.Background(), logger, hostHealthCheck, tunnel)
 	for _, url := range urls {
 		err := host.AddHost(url, port, hostOptions)
 		if err != nil {
@@ -68,8 +69,8 @@ func (node Node) initWallets() error {
 	return nil
 }
 
-func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
-	httpHost, err := generateHost(urls, tunnel)
+func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
+	httpHost, err := generateHost(urls, logger, tunnel)
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +93,7 @@ func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunne
 		mnemonic: mnemonicPhrase.Sentence(),
 		httpHost: httpHost,
 		pow:      autolykos2.NewErgo(),
+		logger:   logger,
 	}
 
 	if !node.mocked {
@@ -116,6 +118,7 @@ type Node struct {
 	mnemonic string
 	httpHost *hostpool.HTTPPool
 	pow      *autolykos2.Client
+	logger   *log.Logger
 }
 
 type NodeInfo struct {

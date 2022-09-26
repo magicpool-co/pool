@@ -6,13 +6,14 @@ import (
 
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
 
+	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/hostpool"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 	"github.com/magicpool-co/pool/types"
 )
 
-func generateHost(url string) (*hostpool.HTTPPool, error) {
+func generateHost(url string, logger *log.Logger) (*hostpool.HTTPPool, error) {
 	var (
 		hostHealthCheck = &hostpool.HTTPHealthCheck{
 			RPCRequest: &rpc.Request{
@@ -26,14 +27,14 @@ func generateHost(url string) (*hostpool.HTTPPool, error) {
 		return nil, nil
 	}
 
-	host := hostpool.NewHTTPPool(context.Background(), hostHealthCheck, nil)
+	host := hostpool.NewHTTPPool(context.Background(), logger, hostHealthCheck, nil)
 	err := host.AddHost(url, 0, nil)
 
 	return host, err
 }
 
-func New(mainnet bool, url, rawPriv string, erc20 *ERC20) (*Node, error) {
-	host, err := generateHost(url)
+func New(mainnet bool, url, rawPriv string, erc20 *ERC20, logger *log.Logger) (*Node, error) {
+	host, err := generateHost(url, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +55,7 @@ func New(mainnet bool, url, rawPriv string, erc20 *ERC20) (*Node, error) {
 		privKey: privKey,
 		rpcHost: host,
 		erc20:   erc20,
+		logger:  logger,
 	}
 
 	return node, nil
@@ -66,6 +68,7 @@ type Node struct {
 	privKey *secp256k1.PrivateKey
 	rpcHost *hostpool.HTTPPool
 	erc20   *ERC20
+	logger  *log.Logger
 }
 
 type ERC20 struct {

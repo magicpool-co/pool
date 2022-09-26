@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/sshtunnel"
 	"github.com/magicpool-co/pool/pkg/stratum"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
@@ -31,15 +32,16 @@ type TCPPool struct {
 	counts      map[string]int
 	healthCheck *TCPHealthCheck
 	tunnel      *sshtunnel.SSHTunnel
+	logger      *log.Logger
 
 	errCh  chan error
 	resCh  chan *rpc.Response
 	reqChs map[string]chan *rpc.Request
 }
 
-func NewTCPPool(ctx context.Context, healthCheck *TCPHealthCheck, tunnel *sshtunnel.SSHTunnel) *TCPPool {
+func NewTCPPool(ctx context.Context, logger *log.Logger, healthCheck *TCPHealthCheck, tunnel *sshtunnel.SSHTunnel) *TCPPool {
 	if healthCheck.Interval == 0 {
-		healthCheck.Interval = time.Minute
+		healthCheck.Interval = time.Second * 30
 	}
 	if healthCheck.Timeout == 0 {
 		healthCheck.Timeout = time.Second * 3
@@ -52,6 +54,7 @@ func NewTCPPool(ctx context.Context, healthCheck *TCPHealthCheck, tunnel *sshtun
 		counts:      make(map[string]int),
 		healthCheck: healthCheck,
 		tunnel:      tunnel,
+		logger:      logger,
 
 		errCh:  make(chan error),
 		resCh:  make(chan *rpc.Response),
@@ -62,6 +65,8 @@ func NewTCPPool(ctx context.Context, healthCheck *TCPHealthCheck, tunnel *sshtun
 		// run the healthcheck according to the given interval
 		timer := time.NewTimer(pool.healthCheck.Interval)
 		go func() {
+			defer recoverPanic(pool.logger)
+
 			for {
 				select {
 				case <-ctx.Done():
@@ -96,13 +101,14 @@ func (p *TCPPool) AddHost(url string, port int) error {
 		p.index[id] = &tcpConn{
 			id:      id,
 			ctx:     ctx,
-			healthy: true,
 			enabled: true,
 			client:  stratum.NewClient(ctx, finalURL, time.Second*10, time.Second*30),
 		}
 
 		reqCh, resCh, errCh := p.index[id].client.Start([]*rpc.Request{p.healthCheck.RPCRequest})
 		go func() {
+			defer recoverPanic(p.logger)
+
 			for {
 				select {
 				case <-ctx.Done():
@@ -117,7 +123,7 @@ func (p *TCPPool) AddHost(url string, port int) error {
 						ch <- req
 					}
 				case res := <-resCh:
-					p.errCh <- fmt.Errorf("recieved unbound resppnse: %s", res)
+					p.logger.Error(fmt.Errorf("tcppool: recieved unbound response: %s, %s", id, res))
 				case err := <-errCh:
 					p.errCh <- err
 				}
@@ -198,24 +204,16 @@ func (p *TCPPool) getConn(hostID string) *tcpConn {
 
 	if hostID != "" {
 		tc, ok := p.index[hostID]
-		if !ok {
-			return nil
-		}
-
-		tc.mu.RLock()
-		defer tc.mu.RUnlock()
-		if tc.healthy {
+		if ok && tc.healthy() {
 			return tc
 		}
+
 		return nil
 	}
 
 	for _, id := range p.order {
 		tc := p.index[id]
-		tc.mu.RLock()
-		usable := tc.healthy && tc.enabled
-		tc.mu.RUnlock()
-		if usable {
+		if tc.usable() {
 			return tc
 		}
 	}
@@ -238,8 +236,10 @@ func (p *TCPPool) runHealthCheck() {
 	for id, tc := range p.index {
 		latencyWg.Add(1)
 		go func(id string, tc *tcpConn) {
+			defer recoverPanic(p.logger)
 			defer latencyWg.Done()
-			latency := tc.healthCheck(p.healthCheck)
+
+			latency := tc.healthCheck(p.healthCheck, p.logger)
 			latencyMu.Lock()
 			latencies[id] = latency
 			latencyMu.Unlock()
