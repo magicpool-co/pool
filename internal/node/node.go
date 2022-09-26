@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/node/mining/ae"
 	"github.com/magicpool-co/pool/internal/node/mining/cfx"
 	"github.com/magicpool-co/pool/internal/node/mining/ctxc"
@@ -23,31 +24,31 @@ var (
 	ErrUnsupportedChain = fmt.Errorf("unsupported chain")
 )
 
-func GetMiningNode(mainnet bool, chain, privKey string, urls []string, tunnel *sshtunnel.SSHTunnel) (types.MiningNode, error) {
+func GetMiningNode(mainnet bool, chain, privKey string, urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (types.MiningNode, error) {
 	switch strings.ToUpper(chain) {
 	case "AE":
-		return ae.New(mainnet, urls, privKey, tunnel)
+		return ae.New(mainnet, urls, privKey, logger, tunnel)
 	case "CFX":
-		return cfx.New(mainnet, urls, privKey, tunnel)
+		return cfx.New(mainnet, urls, privKey, logger, tunnel)
 	case "CTXC":
-		return ctxc.New(mainnet, urls, privKey, tunnel)
+		return ctxc.New(mainnet, urls, privKey, logger, tunnel)
 	case "ERGO":
-		return ergo.New(mainnet, urls, privKey, tunnel)
+		return ergo.New(mainnet, urls, privKey, logger, tunnel)
 	case "ETC":
-		return etc.New(mainnet, urls, privKey, tunnel)
+		return etc.New(mainnet, urls, privKey, logger, tunnel)
 	case "FIRO":
-		return firo.New(mainnet, urls, privKey, tunnel)
+		return firo.New(mainnet, urls, privKey, logger, tunnel)
 	case "FLUX":
-		return flux.New(mainnet, urls, privKey, tunnel)
+		return flux.New(mainnet, urls, privKey, logger, tunnel)
 	case "RVN":
-		return rvn.New(mainnet, urls, privKey, tunnel)
+		return rvn.New(mainnet, urls, privKey, logger, tunnel)
 	default:
 		return nil, ErrUnsupportedChain
 	}
 }
 
-func GetPayoutNode(mainnet bool, chain, privKey, apiKey string, urls []string, tunnel *sshtunnel.SSHTunnel) (types.PayoutNode, error) {
-	node, err := GetMiningNode(mainnet, chain, privKey, urls, tunnel)
+func GetPayoutNode(mainnet bool, chain, privKey, apiKey string, urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (types.PayoutNode, error) {
+	node, err := GetMiningNode(mainnet, chain, privKey, urls, logger, tunnel)
 	if err != nil && err != ErrUnsupportedChain {
 		return nil, err
 	} else if node != nil {
@@ -56,11 +57,11 @@ func GetPayoutNode(mainnet bool, chain, privKey, apiKey string, urls []string, t
 
 	switch strings.ToUpper(chain) {
 	case "BSC":
-		return bsc.New(mainnet, urls, privKey, tunnel)
+		return bsc.New(mainnet, urls, privKey, logger, tunnel)
 	case "BTC":
 		return btc.New(mainnet, privKey, apiKey)
 	case "ETH":
-		return eth.New(mainnet, urls, privKey, tunnel, nil)
+		return eth.New(mainnet, urls, privKey, logger, tunnel, nil)
 	case "USDC":
 		usdc := &eth.ERC20{
 			Chain:    "USDC",
@@ -69,7 +70,7 @@ func GetPayoutNode(mainnet bool, chain, privKey, apiKey string, urls []string, t
 			Units:    new(types.Number).SetFromValue(1000000),
 		}
 
-		return eth.New(mainnet, urls, privKey, tunnel, usdc)
+		return eth.New(mainnet, urls, privKey, logger, tunnel, usdc)
 	default:
 		return nil, ErrUnsupportedChain
 	}

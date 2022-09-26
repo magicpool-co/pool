@@ -7,6 +7,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/sencha-dev/powkit/firopow"
 
+	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/crypto/base58"
 	"github.com/magicpool-co/pool/pkg/hostpool"
@@ -26,7 +27,7 @@ var (
 	testnetDevWalletAmounts   = []uint64{62500000, 93750000}
 )
 
-func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
+func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
 	var (
 		port        = 8888
 		hostOptions = &hostpool.HTTPHostOptions{
@@ -45,7 +46,7 @@ func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPoo
 		return nil, nil
 	}
 
-	host := hostpool.NewHTTPPool(context.Background(), hostHealthCheck, tunnel)
+	host := hostpool.NewHTTPPool(context.Background(), logger, hostHealthCheck, tunnel)
 	for _, url := range urls {
 		err := host.AddHost(url, port, hostOptions)
 		if err != nil {
@@ -56,7 +57,7 @@ func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPoo
 	return host, nil
 }
 
-func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
+func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
 	devWalletAddresses := mainnetDevWalletAddresses
 	devWalletAmounts := mainnetDevWalletAmounts
 	prefixP2PKH := mainnetPrefixP2PKH
@@ -68,7 +69,7 @@ func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunne
 		prefixP2SH = testnetPrefixP2SH
 	}
 
-	host, err := generateHost(urls, tunnel)
+	host, err := generateHost(urls, logger, tunnel)
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +97,7 @@ func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunne
 		privKey:            privKey,
 		rpcHost:            host,
 		pow:                firopow.NewFiro(),
+		logger:             logger,
 	}
 
 	return node, nil
@@ -112,6 +114,7 @@ type Node struct {
 	privKey            *secp256k1.PrivateKey
 	rpcHost            *hostpool.HTTPPool
 	pow                *firopow.Client
+	logger             *log.Logger
 }
 
 type BlockchainInfo struct {

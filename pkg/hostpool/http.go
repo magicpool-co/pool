@@ -11,6 +11,7 @@ import (
 
 	"github.com/goccy/go-json"
 
+	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/sshtunnel"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 )
@@ -47,6 +48,7 @@ type HTTPPool struct {
 	order       []string
 	healthCheck *HTTPHealthCheck
 	tunnel      *sshtunnel.SSHTunnel
+	logger      *log.Logger
 }
 
 // HTTPHealthCheck specifies the definition of connection health for all
@@ -69,9 +71,9 @@ type HTTPHealthCheck struct {
 //
 // The HTTPHealthCheck is not required, but without it the pool has little purpose. The
 // health check interval defaults to one minute, the timeout defaults to
-func NewHTTPPool(ctx context.Context, healthCheck *HTTPHealthCheck, tunnel *sshtunnel.SSHTunnel) *HTTPPool {
+func NewHTTPPool(ctx context.Context, logger *log.Logger, healthCheck *HTTPHealthCheck, tunnel *sshtunnel.SSHTunnel) *HTTPPool {
 	if healthCheck.Interval == 0 {
-		healthCheck.Interval = time.Minute
+		healthCheck.Interval = time.Second * 30
 	}
 	if healthCheck.Timeout == 0 {
 		healthCheck.Timeout = time.Second * 3
@@ -83,12 +85,15 @@ func NewHTTPPool(ctx context.Context, healthCheck *HTTPHealthCheck, tunnel *ssht
 		order:       make([]string, 0),
 		healthCheck: healthCheck,
 		tunnel:      tunnel,
+		logger:      logger,
 	}
 
 	if pool.healthCheck != nil {
 		// run the healthcheck according to the given interval
 		timer := time.NewTimer(pool.healthCheck.Interval)
 		go func() {
+			defer recoverPanic(pool.logger)
+
 			for {
 				select {
 				case <-ctx.Done():
@@ -116,7 +121,7 @@ func (p *HTTPPool) GetAllHosts() []string {
 
 	hosts := make([]string, 0)
 	for id, client := range p.index {
-		if client.enabled && client.healthy {
+		if client.enabled && client.healthy() {
 			hosts = append(hosts, id)
 		}
 	}
@@ -157,7 +162,6 @@ func (p *HTTPPool) AddHost(url string, port int, opt *HTTPHostOptions) error {
 		p.order = append(p.order, id)
 		p.index[id] = &httpConn{
 			id:      id,
-			healthy: true,
 			enabled: true,
 			client:  new(http.Client),
 			headers: connHeaders,
@@ -209,10 +213,12 @@ func (p *HTTPPool) ExecHTTPSticky(hostID, method, path string, body, target inte
 
 		res, hostID, err = hc.execHTTP(ctx, method, path, body)
 		if err != nil {
+			p.logger.Error(fmt.Errorf("httppool: http: %s: %v", hostID, err))
 			continue
 		}
 		defer res.Close()
 		if err = json.NewDecoder(res).Decode(target); err != nil {
+			p.logger.Error(fmt.Errorf("httppool: json: %s: %v", hostID, err))
 			continue
 		}
 
@@ -305,24 +311,16 @@ func (p *HTTPPool) getConn(hostID string) *httpConn {
 
 	if hostID != "" {
 		hc, ok := p.index[hostID]
-		if !ok {
-			return nil
-		}
-
-		hc.mu.RLock()
-		defer hc.mu.RUnlock()
-		if hc.healthy {
+		if ok && hc.healthy() {
 			return hc
 		}
+
 		return nil
 	}
 
 	for _, id := range p.order {
 		hc := p.index[id]
-		hc.mu.RLock()
-		usable := hc.healthy && hc.enabled
-		hc.mu.RUnlock()
-		if usable {
+		if hc.usable() {
 			return hc
 		}
 	}
@@ -345,8 +343,10 @@ func (p *HTTPPool) runHealthCheck() {
 	for id, hc := range p.index {
 		latencyWg.Add(1)
 		go func(id string, hc *httpConn) {
+			defer recoverPanic(p.logger)
 			defer latencyWg.Done()
-			latency := hc.healthCheck(p.healthCheck)
+
+			latency := hc.healthCheck(p.healthCheck, p.logger)
 			latencyMu.Lock()
 			latencies[id] = latency
 			latencyMu.Unlock()

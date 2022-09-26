@@ -9,6 +9,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/sencha-dev/powkit/cuckoo"
 
+	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/crypto/base58"
 	"github.com/magicpool-co/pool/pkg/hostpool"
@@ -27,7 +28,7 @@ func b58Encode(prefix string, data []byte) string {
 	return prefix + base58.Encode(append(data, crypto.Sha256d(data)[0:4]...))
 }
 
-func generateHost(internal bool, urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
+func generateHost(internal bool, urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
 	var (
 		externalPort            = 3013
 		internalPort            = 3113
@@ -52,7 +53,7 @@ func generateHost(internal bool, urls []string, tunnel *sshtunnel.SSHTunnel) (*h
 		healthcheck = internalHostHealthCheck
 	}
 
-	host := hostpool.NewHTTPPool(context.Background(), healthcheck, tunnel)
+	host := hostpool.NewHTTPPool(context.Background(), logger, healthcheck, tunnel)
 	for _, url := range urls {
 		err := host.AddHost(url, port, nil)
 		if err != nil {
@@ -63,7 +64,7 @@ func generateHost(internal bool, urls []string, tunnel *sshtunnel.SSHTunnel) (*h
 	return host, nil
 }
 
-func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
+func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
 	networkID := mainnetNetworkID
 	fallbackURL := mainnetFallbackURL
 	if !mainnet {
@@ -71,12 +72,12 @@ func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunne
 		fallbackURL = testnetFallbackURL
 	}
 
-	externalHost, err := generateHost(false, urls, tunnel)
+	externalHost, err := generateHost(false, urls, logger, tunnel)
 	if err != nil {
 		return nil, err
 	}
 
-	internalHost, err := generateHost(true, urls, tunnel)
+	internalHost, err := generateHost(true, urls, logger, tunnel)
 	if err != nil {
 		return nil, err
 	}
@@ -104,6 +105,7 @@ func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunne
 		internalHost: internalHost,
 		externalHost: externalHost,
 		pow:          cuckoo.NewAeternity(),
+		logger:       logger,
 	}
 
 	return node, nil
@@ -119,6 +121,7 @@ type Node struct {
 	internalHost *hostpool.HTTPPool
 	externalHost *hostpool.HTTPPool
 	pow          *cuckoo.Client
+	logger       *log.Logger
 }
 
 type Status struct {

@@ -9,6 +9,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/sencha-dev/powkit/octopus"
 
+	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/hostpool"
@@ -25,7 +26,7 @@ const (
 	testnetURL            = "http://test.confluxrpc.com"
 )
 
-func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, *hostpool.TCPPool, error) {
+func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, *hostpool.TCPPool, error) {
 	var (
 		rpcPort            = 12537
 		rpcHostHealthCheck = &hostpool.HTTPHealthCheck{
@@ -52,8 +53,8 @@ func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPoo
 		return nil, nil, nil
 	}
 
-	rpcHost := hostpool.NewHTTPPool(context.Background(), rpcHostHealthCheck, tunnel)
-	tcpHost := hostpool.NewTCPPool(context.Background(), tcpHostHealthCheck, tunnel)
+	rpcHost := hostpool.NewHTTPPool(context.Background(), logger, rpcHostHealthCheck, tunnel)
+	tcpHost := hostpool.NewTCPPool(context.Background(), logger, tcpHostHealthCheck, tunnel)
 	for _, url := range urls {
 		err := rpcHost.AddHost(url, rpcPort, nil)
 		if err != nil {
@@ -69,7 +70,7 @@ func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPoo
 	return rpcHost, tcpHost, nil
 }
 
-func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
+func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
 	networkID := mainnetChainID
 	networkPrefix := mainnetPrefix
 	fallbackURL := mainnetURL
@@ -79,7 +80,7 @@ func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunne
 		fallbackURL = testnetURL
 	}
 
-	rpcHost, tcpHost, err := generateHost(urls, tunnel)
+	rpcHost, tcpHost, err := generateHost(urls, logger, tunnel)
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +113,7 @@ func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunne
 		rpcHost:       rpcHost,
 		tcpHost:       tcpHost,
 		pow:           octopus.NewConflux(),
+		logger:        logger,
 	}
 
 	return node, nil
@@ -128,6 +130,7 @@ type Node struct {
 	rpcHost       *hostpool.HTTPPool
 	tcpHost       *hostpool.TCPPool
 	pow           *octopus.Client
+	logger        *log.Logger
 }
 
 func (node Node) execRPCfromFallback(req *rpc.Request, target interface{}) error {

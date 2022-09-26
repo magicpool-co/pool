@@ -7,13 +7,14 @@ import (
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/sencha-dev/powkit/cuckoo"
 
+	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/hostpool"
 	"github.com/magicpool-co/pool/pkg/sshtunnel"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 )
 
-func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
+func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
 	var (
 		httpPort        = 8546
 		httpHealthCheck = &hostpool.HTTPHealthCheck{
@@ -28,7 +29,7 @@ func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPoo
 		return nil, nil
 	}
 
-	host := hostpool.NewHTTPPool(context.Background(), httpHealthCheck, tunnel)
+	host := hostpool.NewHTTPPool(context.Background(), logger, httpHealthCheck, tunnel)
 	for _, url := range urls {
 		err := host.AddHost(url, httpPort, nil)
 		if err != nil {
@@ -39,8 +40,8 @@ func generateHost(urls []string, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPoo
 	return host, nil
 }
 
-func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
-	host, err := generateHost(urls, tunnel)
+func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
+	host, err := generateHost(urls, logger, tunnel)
 	if err != nil {
 		return nil, err
 	}
@@ -61,6 +62,7 @@ func New(mainnet bool, urls []string, rawPriv string, tunnel *sshtunnel.SSHTunne
 		privKey: privKey,
 		rpcHost: host,
 		pow:     cuckoo.NewCortex(),
+		logger:  logger,
 	}
 
 	return node, nil
@@ -73,6 +75,7 @@ type Node struct {
 	privKey *secp256k1.PrivateKey
 	rpcHost *hostpool.HTTPPool
 	pow     *cuckoo.Client
+	logger  *log.Logger
 }
 
 type Block struct {

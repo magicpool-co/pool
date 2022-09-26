@@ -4,9 +4,17 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"runtime/debug"
 
+	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/sshtunnel"
 )
+
+func recoverPanic(logger *log.Logger) {
+	if r := recover(); r != nil {
+		logger.Panic(r, string(debug.Stack()))
+	}
+}
 
 func parseURL(url string, port int, tunnel *sshtunnel.SSHTunnel) (string, string, error) {
 	id := url

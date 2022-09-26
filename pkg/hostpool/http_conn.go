@@ -3,19 +3,22 @@ package hostpool
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/goccy/go-json"
+
+	"github.com/magicpool-co/pool/internal/log"
 )
 
 // An internal representation of an individual http connection.
 type httpConn struct {
 	id      string
 	mu      sync.RWMutex
-	healthy bool
+	errors  uint
 	enabled bool
 
 	client  *http.Client
@@ -23,9 +26,23 @@ type httpConn struct {
 	url     string
 }
 
+func (hc *httpConn) healthy() bool {
+	hc.mu.RLock()
+	defer hc.mu.RUnlock()
+
+	return hc.errors < 3
+}
+
+func (hc *httpConn) usable() bool {
+	hc.mu.RLock()
+	defer hc.mu.RUnlock()
+
+	return hc.enabled && hc.errors < 3
+}
+
 // Executes the healthcheck and measures the latency for the connection.
 // The host's healthiness is automatically updated according to the outcome.
-func (hc *httpConn) healthCheck(healthCheck *HTTPHealthCheck) int {
+func (hc *httpConn) healthCheck(healthCheck *HTTPHealthCheck, logger *log.Logger) int {
 	var unit = time.Nanosecond
 	var maxLatency = int(healthCheck.Timeout/unit) * 2
 
@@ -43,6 +60,7 @@ func (hc *httpConn) healthCheck(healthCheck *HTTPHealthCheck) int {
 	}
 
 	if err != nil {
+		logger.Error(fmt.Errorf("httpconn: healthcheck: %s: %v", hc.id, err))
 		return maxLatency
 	}
 
@@ -55,8 +73,13 @@ func (hc *httpConn) healthCheck(healthCheck *HTTPHealthCheck) int {
 // Change a host's healthiness.
 func (hc *httpConn) markHealthy(healthy bool) {
 	hc.mu.Lock()
-	hc.healthy = healthy
-	hc.mu.Unlock()
+	defer hc.mu.Unlock()
+
+	if healthy {
+		hc.errors = 0
+	} else {
+		hc.errors++
+	}
 }
 
 // Base call to execute an HTTP call. If the request succeeeds, but the status code
