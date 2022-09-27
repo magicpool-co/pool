@@ -17,7 +17,7 @@ func (node Node) GetBalance() (*big.Int, error) {
 		Balance uint64 `json:"balanceSat"`
 	}
 
-	url := "ttps://explorer.firo.org/insight-api-zcoin/addr/" + node.address + "/?noTxList=1"
+	url := "https://explorer.firo.org/insight-api-zcoin/addr/" + node.address + "/?noTxList=1"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
