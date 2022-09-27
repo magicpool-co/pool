@@ -72,7 +72,7 @@ type HTTPHealthCheck struct {
 // health check interval defaults to one minute, the timeout defaults to
 func NewHTTPPool(ctx context.Context, logger *log.Logger, healthCheck *HTTPHealthCheck, tunnel *sshtunnel.SSHTunnel) *HTTPPool {
 	if healthCheck.Interval == 0 {
-		healthCheck.Interval = time.Second * 30
+		healthCheck.Interval = time.Minute
 	}
 	if healthCheck.Timeout == 0 {
 		healthCheck.Timeout = time.Second * 3

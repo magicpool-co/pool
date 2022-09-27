@@ -41,7 +41,7 @@ type TCPPool struct {
 
 func NewTCPPool(ctx context.Context, logger *log.Logger, healthCheck *TCPHealthCheck, tunnel *sshtunnel.SSHTunnel) *TCPPool {
 	if healthCheck.Interval == 0 {
-		healthCheck.Interval = time.Second * 30
+		healthCheck.Interval = time.Minute
 	}
 	if healthCheck.Timeout == 0 {
 		healthCheck.Timeout = time.Second * 3
