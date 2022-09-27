@@ -123,8 +123,15 @@ func newWorker(secrets map[string]string, mainnet bool, metricsClient *metrics.C
 	}
 
 	for _, chain := range payoutChains {
-		node, err := node.GetPayoutNode(mainnet, chain, secrets[chain+"_PRIVATE_KEY"],
-			secrets["BLOCKCHAIR_API_KEY"], secrets[chain+"_NODE_URL"], logger)
+		priv := secrets[chain+"_PRIVATE_KEY"]
+		url := secrets[chain+"_NODE_URL"]
+		if chain == "USDC" && (priv == "" || url == "") {
+			priv = secrets["ETH_PRIVATE_KEY"]
+			url = secrets["ETH_NODE_URL"]
+		}
+
+		blockchairKey := secrets["BLOCKCHAIR_API_KEY"]
+		node, err := node.GetPayoutNode(mainnet, chain, priv, blockchairKey, url, logger)
 		if err != nil {
 			return nil, nil, err
 		}
