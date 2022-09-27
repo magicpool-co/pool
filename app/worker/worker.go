@@ -127,27 +127,11 @@ func (w *Worker) Start() {
 	// 	nodes:  w.payoutNodes,
 	// })
 
-	w.cron.AddJob("* * * * *", &ChartBlockJob{
-		locker: locker,
-		logger: w.logger,
-		redis:  w.redis,
-		tsdb:   w.tsdb,
-		nodes:  w.miningNodes,
-	})
-
-	w.cron.AddJob("* * * * *", &ChartRoundJob{
+	w.cron.AddJob("* * * * *", &ChartJob{
 		locker: locker,
 		logger: w.logger,
 		redis:  w.redis,
 		pooldb: w.pooldb,
-		tsdb:   w.tsdb,
-		nodes:  w.miningNodes,
-	})
-
-	w.cron.AddJob("* * * * *", &ChartShareJob{
-		locker: locker,
-		logger: w.logger,
-		redis:  w.redis,
 		tsdb:   w.tsdb,
 		nodes:  w.miningNodes,
 	})

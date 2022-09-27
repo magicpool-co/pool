@@ -1,19 +1,13 @@
-package worker
+package chart
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"time"
 
-	"github.com/bsm/redislock"
-
-	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/pooldb"
-	"github.com/magicpool-co/pool/internal/redis"
 	"github.com/magicpool-co/pool/internal/tsdb"
 	"github.com/magicpool-co/pool/pkg/common"
-	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
 
@@ -22,19 +16,10 @@ var (
 	roundRollupPeriods = []types.PeriodType{types.Period1d}
 )
 
-type ChartRoundJob struct {
-	locker *redislock.Client
-	logger *log.Logger
-	redis  *redis.Client
-	pooldb *dbcl.Client
-	tsdb   *dbcl.Client
-	nodes  []types.MiningNode
-}
-
-func (j *ChartRoundJob) fetchIntervals(chain string) ([]time.Time, error) {
-	lastTime, err := j.redis.GetChartRoundsLastTime(chain)
+func (c *Client) FetchRoundIntervals(chain string) ([]time.Time, error) {
+	lastTime, err := c.redis.GetChartRoundsLastTime(chain)
 	if err != nil || lastTime.IsZero() {
-		lastTime, err = tsdb.GetRoundMaxEndTime(j.tsdb.Reader(), chain, int(roundPeriod))
+		lastTime, err = tsdb.GetRoundMaxEndTime(c.tsdb.Reader(), chain, int(roundPeriod))
 		if err != nil {
 			return nil, err
 		}
@@ -42,7 +27,7 @@ func (j *ChartRoundJob) fetchIntervals(chain string) ([]time.Time, error) {
 
 	// handle initialization of intervals when there are no rounds in tsdb
 	if lastTime.IsZero() {
-		lastTime, err = pooldb.GetRoundMinTimestamp(j.pooldb.Reader(), chain)
+		lastTime, err = pooldb.GetRoundMinTimestamp(c.pooldb.Reader(), chain)
 		if err != nil {
 			return nil, err
 		} else if lastTime.IsZero() {
@@ -62,7 +47,7 @@ func (j *ChartRoundJob) fetchIntervals(chain string) ([]time.Time, error) {
 
 		// make sure no pending round are in the period to avoid
 		// collecting stats on a round that has incomplete statistics
-		pendingRoundCount, err := pooldb.GetPendingRoundCountBetweenTime(j.pooldb.Reader(), chain, startTime, endTime)
+		pendingRoundCount, err := pooldb.GetPendingRoundCountBetweenTime(c.pooldb.Reader(), chain, startTime, endTime)
 		if err != nil {
 			return nil, err
 		} else if pendingRoundCount > 0 {
@@ -76,8 +61,8 @@ func (j *ChartRoundJob) fetchIntervals(chain string) ([]time.Time, error) {
 	return intervals, nil
 }
 
-func (j *ChartRoundJob) rollup(node types.MiningNode, endTime time.Time) error {
-	lastTime, err := tsdb.GetRoundMaxEndTime(j.tsdb.Reader(), node.Chain(), int(roundPeriod))
+func (c *Client) rollupRounds(node types.MiningNode, endTime time.Time) error {
+	lastTime, err := tsdb.GetRoundMaxEndTime(c.tsdb.Reader(), node.Chain(), int(roundPeriod))
 	if err != nil {
 		return err
 	} else if !lastTime.Before(endTime) {
@@ -88,13 +73,13 @@ func (j *ChartRoundJob) rollup(node types.MiningNode, endTime time.Time) error {
 	unitsBigFloat := new(big.Float).SetInt(node.GetUnits().Big())
 	// startTime needs to be exclusive to avoid duplicating the statistics
 	// for rounds with a timestamp of both startTime and endTime
-	poolRounds, err := pooldb.GetRoundsBetweenTime(j.pooldb.Reader(), node.Chain(), startTime, endTime)
+	poolRounds, err := pooldb.GetRoundsBetweenTime(c.pooldb.Reader(), node.Chain(), startTime, endTime)
 	if err != nil {
 		return err
 	}
 
 	// need to get the prior round for calculating round time
-	previousPoolRound, err := pooldb.GetLastRoundBeforeTime(j.pooldb.Reader(), node.Chain(), startTime)
+	previousPoolRound, err := pooldb.GetLastRoundBeforeTime(c.pooldb.Reader(), node.Chain(), startTime)
 	if err != nil {
 		return err
 	} else if previousPoolRound != nil {
@@ -150,12 +135,12 @@ func (j *ChartRoundJob) rollup(node types.MiningNode, endTime time.Time) error {
 		profitability = marketRate * (value / roundTime) / hashrate
 	}
 
-	avgLuck, err := tsdb.GetRoundsAverageLuckSlow(j.tsdb.Reader(), endTime, node.Chain(), int(roundPeriod), roundPeriod.Average())
+	avgLuck, err := tsdb.GetRoundsAverageLuckSlow(c.tsdb.Reader(), endTime, node.Chain(), int(roundPeriod), roundPeriod.Average())
 	if err != nil {
 		return err
 	}
 
-	avgProfitability, err := tsdb.GetRoundsAverageProfitabilitySlow(j.tsdb.Reader(), endTime, node.Chain(), int(roundPeriod), roundPeriod.Average())
+	avgProfitability, err := tsdb.GetRoundsAverageProfitabilitySlow(c.tsdb.Reader(), endTime, node.Chain(), int(roundPeriod), roundPeriod.Average())
 	if err != nil {
 		return err
 	}
@@ -182,7 +167,7 @@ func (j *ChartRoundJob) rollup(node types.MiningNode, endTime time.Time) error {
 		EndTime:   endTime,
 	}
 
-	tx, err := j.tsdb.Begin()
+	tx, err := c.tsdb.Begin()
 	if err != nil {
 		return err
 	}
@@ -218,10 +203,10 @@ func (j *ChartRoundJob) rollup(node types.MiningNode, endTime time.Time) error {
 	return tx.SafeCommit()
 }
 
-func (j *ChartRoundJob) finalize(node types.MiningNode, endTime time.Time) error {
+func (c *Client) finalizeRounds(node types.MiningNode, endTime time.Time) error {
 	for _, rollupPeriod := range roundRollupPeriods {
 		// finalize summed statistics
-		rounds, err := tsdb.GetPendingRoundsAtEndTime(j.tsdb.Reader(), endTime, node.Chain(), int(rollupPeriod))
+		rounds, err := tsdb.GetPendingRoundsAtEndTime(c.tsdb.Reader(), endTime, node.Chain(), int(rollupPeriod))
 		if err != nil {
 			return err
 		}
@@ -248,25 +233,25 @@ func (j *ChartRoundJob) finalize(node types.MiningNode, endTime time.Time) error
 			}
 		}
 
-		if err := tsdb.InsertFinalRounds(j.tsdb.Writer(), rounds...); err != nil {
+		if err := tsdb.InsertFinalRounds(c.tsdb.Writer(), rounds...); err != nil {
 			return err
 		}
 
 		// finalize averages after updated statistics
 		for _, round := range rounds {
-			round.AvgLuck, err = tsdb.GetRoundsAverageLuckSlow(j.tsdb.Reader(), endTime, node.Chain(),
+			round.AvgLuck, err = tsdb.GetRoundsAverageLuckSlow(c.tsdb.Reader(), endTime, node.Chain(),
 				int(rollupPeriod), rollupPeriod.Average())
 			if err != nil {
 				return err
 			}
-			round.AvgProfitability, err = tsdb.GetRoundsAverageProfitabilitySlow(j.tsdb.Reader(),
+			round.AvgProfitability, err = tsdb.GetRoundsAverageProfitabilitySlow(c.tsdb.Reader(),
 				endTime, node.Chain(), int(rollupPeriod), rollupPeriod.Average())
 			if err != nil {
 				return err
 			}
 		}
 
-		if err := tsdb.InsertFinalRounds(j.tsdb.Writer(), rounds...); err != nil {
+		if err := tsdb.InsertFinalRounds(c.tsdb.Writer(), rounds...); err != nil {
 			return err
 		}
 	}
@@ -274,10 +259,10 @@ func (j *ChartRoundJob) finalize(node types.MiningNode, endTime time.Time) error
 	return nil
 }
 
-func (j *ChartRoundJob) truncate(node types.MiningNode, endTime time.Time) error {
+func (c *Client) truncateRounds(node types.MiningNode, endTime time.Time) error {
 	for _, rollupPeriod := range roundRollupPeriods {
 		timestamp := endTime.Add(rollupPeriod.Retention() * -1)
-		err := tsdb.DeleteRoundsBeforeEndTime(j.tsdb.Writer(), timestamp, node.Chain(), int(rollupPeriod))
+		err := tsdb.DeleteRoundsBeforeEndTime(c.tsdb.Writer(), timestamp, node.Chain(), int(rollupPeriod))
 		if err != nil {
 			return err
 		}
@@ -286,46 +271,26 @@ func (j *ChartRoundJob) truncate(node types.MiningNode, endTime time.Time) error
 	return nil
 }
 
-func (j *ChartRoundJob) Run() {
-	defer j.logger.RecoverPanic()
-
-	ctx := context.Background()
-	lock, err := j.locker.Obtain(ctx, "cron:chrtrnd", time.Minute*5, nil)
+func (c *Client) ProcessRounds(timestamp time.Time, node types.MiningNode) error {
+	err := c.rollupRounds(node, timestamp)
 	if err != nil {
-		if err != redislock.ErrNotObtained {
-			j.logger.Error(err)
-		}
-		return
+		return fmt.Errorf("rollup: %s: %v", node.Chain(), err)
 	}
-	defer lock.Release(ctx)
 
-	for _, node := range j.nodes {
-		intervals, err := j.fetchIntervals(node.Chain())
-		if err != nil {
-			j.logger.Error(fmt.Errorf("round: interval: %s: %v", node.Chain(), err))
-			continue
-		}
-
-		for _, interval := range intervals {
-			if err := j.rollup(node, interval); err != nil {
-				j.logger.Error(fmt.Errorf("round: rollup: %s: %v", node.Chain(), err))
-				break
-			}
-
-			if err := j.finalize(node, interval); err != nil {
-				j.logger.Error(fmt.Errorf("round: finalize: %s: %v", node.Chain(), err))
-				break
-			}
-
-			if err := j.truncate(node, interval); err != nil {
-				j.logger.Error(fmt.Errorf("round: truncate: %s: %v", node.Chain(), err))
-				break
-			}
-
-			if err := j.redis.SetChartRoundsLastTime(node.Chain(), interval); err != nil {
-				j.logger.Error(fmt.Errorf("round: delete: %s: %v", node.Chain(), err))
-				break
-			}
-		}
+	err = c.finalizeRounds(node, timestamp)
+	if err != nil {
+		return fmt.Errorf("finalize: %s: %v", node.Chain(), err)
 	}
+
+	err = c.truncateRounds(node, timestamp)
+	if err != nil {
+		return fmt.Errorf("truncate: %s: %v", node.Chain(), err)
+	}
+
+	err = c.redis.SetChartRoundsLastTime(node.Chain(), timestamp)
+	if err != nil {
+		return fmt.Errorf("time: %s: %v", node.Chain(), err)
+	}
+
+	return nil
 }
