@@ -17,6 +17,7 @@ func generateHost(url string, logger *log.Logger) (*hostpool.HTTPPool, error) {
 	var (
 		hostHealthCheck = &hostpool.HTTPHealthCheck{
 			RPCRequest: &rpc.Request{
+				ID:      []byte(`1`),
 				JSONRPC: "2.0",
 				Method:  "eth_syncing",
 			},
