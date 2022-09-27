@@ -109,10 +109,10 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 				poolFee.Sub(poolFee, feeBalancePoolFee)
 				feeBalanceInput = &pooldb.BalanceInput{
 					RoundID: round.ID,
-					ChainID: "ETH",
+					ChainID: round.ChainID,
 					MinerID: miner.ID,
 
-					OutChainID: miner.ChainID,
+					OutChainID: "ETH",
 					Value:      dbcl.NullBigInt{Valid: true, BigInt: feeBalanceValue},
 					PoolFees:   dbcl.NullBigInt{Valid: true, BigInt: feeBalancePoolFee},
 					Pending:    true,
