@@ -7,7 +7,7 @@ import (
 type Response struct {
 	Code    string          `json:"code"`
 	Data    json.RawMessage `json:"data"`
-	Message string          `json:"message"`
+	Message string          `json:"msg"`
 }
 
 type PaginatedResponse struct {
