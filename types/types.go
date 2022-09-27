@@ -11,6 +11,8 @@ import (
 	"github.com/magicpool-co/pool/internal/tsdb"
 )
 
+/* stratum */
+
 type BlockBuilder interface {
 	SerializeHeader(work *StratumWork) ([]byte, []byte, error)
 	SerializeBlock(work *StratumWork) ([]byte, error)
@@ -40,6 +42,8 @@ type StratumWork struct {
 	CuckooSolution   *Solution // for cuckoo
 	EquihashSolution []byte    // for equihash
 }
+
+/* tx */
 
 type TxInput struct {
 	Index      uint32
@@ -77,14 +81,17 @@ type TxResponse struct {
 	Outputs     []*UTXOResponse
 }
 
+/* node */
+
 type PayoutNode interface {
 	Chain() string
 	Address() string
 	GetUnits() *Number
+	GetAccountingType() AccountingType
 	ValidateAddress(string) bool
 
 	// tx helpers
-	GetBalance(string) (*big.Int, error)
+	GetBalance() (*big.Int, error)
 	GetTx(string) (*TxResponse, error)
 	CreateTx([]*TxInput, []*TxOutput) (string, error)
 	BroadcastTx(string) (string, error)
@@ -116,4 +123,80 @@ type MiningNode interface {
 	SubmitWork(*StratumJob, *StratumWork) (ShareStatus, *pooldb.Round, error)
 	UnlockRound(*pooldb.Round) error
 	GetBlockExplorerURL(*pooldb.Round) string
+}
+
+/* exchange */
+
+type Exchange interface {
+	ID() ExchangeID
+
+	// account
+	GetAccountStatus() error
+
+	// rate
+	GetRate(string) (float64, error)
+	GetHistoricalRate(string, string, time.Time) (float64, error)
+	GetOutputThresholds() map[string]*big.Int
+	GetPrices(map[string]map[string]*big.Int) (map[string]map[string]float64, error)
+
+	// wallet
+	GetWalletStatus(string) (bool, error)
+	GetWalletBalance(string) (float64, float64, error)
+
+	// deposit
+	GetDepositAddress(string) (string, error)
+	GetDepositByTxID(string, string) (*Deposit, error)
+	GetDepositByID(string, string) (*Deposit, error)
+
+	// transfer
+	TransferToTradeAccount(string, float64) error
+	TransferToMainAccount(string, float64) error
+
+	// trade
+	GenerateTradePath(string, string) ([]*Trade, error)
+	CreateTrade(string, TradeDirection, float64) (string, error)
+	GetTradeByID(string, string, float64) (*Trade, error)
+
+	// withdrawal
+	CreateWithdrawal(string, string, float64) (string, error)
+	GetWithdrawalByID(string, string) (*Withdrawal, error)
+}
+
+type Deposit struct {
+	ID        string
+	TxID      string
+	Value     string
+	Fee       string
+	Completed bool
+}
+
+type Market struct {
+	Market    string
+	Base      string
+	Quote     string
+	Direction TradeDirection
+}
+
+type Trade struct {
+	ID        string
+	FromChain string
+	ToChain   string
+	Market    string
+	Direction TradeDirection
+	Increment int
+
+	Value    string
+	Proceeds string
+	Fees     string
+	Price    string
+
+	Completed bool
+}
+
+type Withdrawal struct {
+	ID        string
+	TxID      string
+	Value     string
+	Fee       string
+	Completed bool
 }

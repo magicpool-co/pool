@@ -2,6 +2,7 @@ package pooldb
 
 import (
 	"database/sql"
+	"math/big"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -117,6 +118,8 @@ func GetMiner(q dbcl.Querier, id uint64) (*Miner, error) {
 	err := q.Get(output, query, id)
 	if err != nil && err != sql.ErrNoRows {
 		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
 	}
 
 	return output, nil
@@ -131,6 +134,15 @@ func GetMinerID(q dbcl.Querier, address, chain string) (uint64, error) {
 		chain_id = ?;`
 
 	return dbcl.GetUint64(q, query, address, chain)
+}
+
+func GetMinerAddress(q dbcl.Querier, minerID uint64) (string, error) {
+	const query = `SELECT address
+	FROM miners
+	WHERE
+		id = ?;`
+
+	return dbcl.GetString(q, query, minerID)
 }
 
 func GetMiners(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error) {
@@ -210,6 +222,8 @@ func GetOldestActiveIPAddress(q dbcl.Querier, minerID uint64) (*IPAddress, error
 	err := q.Get(output, query, minerID)
 	if err != nil && err != sql.ErrNoRows {
 		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
 	}
 
 	return output, nil
@@ -227,6 +241,8 @@ func GetRound(q dbcl.Querier, id uint64) (*Round, error) {
 	err := q.Get(output, query, id)
 	if err != nil && err != sql.ErrNoRows {
 		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
 	}
 
 	return output, nil
@@ -246,6 +262,8 @@ func GetLastRoundBeforeTime(q dbcl.Querier, chain string, timestamp time.Time) (
 	err := q.Get(output, query, chain, timestamp)
 	if err != nil && err != sql.ErrNoRows {
 		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
 	}
 
 	return output, nil
@@ -368,6 +386,19 @@ func GetMatureUnspentRounds(q dbcl.Querier, chain string) ([]*Round, error) {
 	return output, err
 }
 
+func GetSumImmatureRoundValueByChain(q dbcl.Querier, chain string) (*big.Int, error) {
+	const query = `SELECT sum(value)
+	FROM rounds
+	WHERE
+		chain_id = ?
+	AND
+		mature IS FALSE
+	AND
+		orphan IS FALSE;`
+
+	return dbcl.GetBigInt(q, query, chain)
+}
+
 /* Share Queries */
 
 func GetSharesByRound(q dbcl.Querier, roundID uint64) ([]*Share, error) {
@@ -378,6 +409,272 @@ func GetSharesByRound(q dbcl.Querier, roundID uint64) ([]*Share, error) {
 
 	output := []*Share{}
 	err := q.Select(&output, query, roundID)
+
+	return output, err
+}
+
+/* utxos */
+
+func GetUnspentUTXOsByChain(q dbcl.Querier, chainID string) ([]*UTXO, error) {
+	const query = `SELECT *
+	FROM utxos
+	WHERE
+		chain_id = ?
+	AND
+		spent = FALSE;`
+
+	output := []*UTXO{}
+	err := q.Select(&output, query, chainID)
+
+	return output, err
+}
+
+func GetSumUnspentUTXOValueByChain(q dbcl.Querier, chainID string) (*big.Int, error) {
+	const query = `SELECT sum(value)
+	FROM utxos
+	WHERE
+		chain_id = ?
+	AND
+		spent = FALSE;`
+
+	return dbcl.GetBigInt(q, query, chainID)
+}
+
+/* batch queries */
+
+func GetExchangeBatch(q dbcl.Querier, batchID uint64) (*ExchangeBatch, error) {
+	const query = `SELECT *
+	FROM exchange_batches
+	WHERE
+		id = ?;`
+
+	output := new(ExchangeBatch)
+	err := q.Get(output, query, batchID)
+	if err != nil && err != sql.ErrNoRows {
+		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return output, nil
+}
+
+func GetActiveExchangeBatches(q dbcl.Querier) ([]*ExchangeBatch, error) {
+	const query = `SELECT *
+	FROM exchange_batches
+	WHERE
+		completed_at IS NULL`
+
+	output := []*ExchangeBatch{}
+	err := q.Select(&output, query)
+
+	return output, err
+}
+
+func GetExchangeInputs(q dbcl.Querier, batchID uint64) ([]*ExchangeInput, error) {
+	const query = `SELECT *
+	FROM exchange_inputs
+	WHERE
+		batch_id = ?;`
+
+	output := []*ExchangeInput{}
+	err := q.Select(&output, query, batchID)
+
+	return output, err
+}
+
+func GetExchangeDeposits(q dbcl.Querier, batchID uint64) ([]*ExchangeDeposit, error) {
+	const query = `SELECT *
+	FROM exchange_deposits
+	WHERE
+		batch_id = ?;`
+
+	output := []*ExchangeDeposit{}
+	err := q.Select(&output, query, batchID)
+
+	return output, err
+}
+
+func GetExchangeTradesByStage(q dbcl.Querier, batchID uint64, stage int) ([]*ExchangeTrade, error) {
+	const query = `SELECT *
+	FROM exchange_trades
+	WHERE
+		batch_id = ?
+	AND
+		stage_id = ?;`
+
+	output := []*ExchangeTrade{}
+	err := q.Select(&output, query, batchID, stage)
+
+	return output, err
+}
+
+func GetExchangeTradeByPathAndStage(q dbcl.Querier, batchID uint64, path, stage int) (*ExchangeTrade, error) {
+	const query = `SELECT *
+	FROM exchange_trades
+	WHERE
+		batch_id = ?
+	AND
+		path_id = ?
+	AND
+		stage_id = ?;`
+
+	output := new(ExchangeTrade)
+	err := q.Get(output, query, batchID, path, stage)
+	if err != nil && err != sql.ErrNoRows {
+		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return output, nil
+}
+
+func GetFinalExchangeTrades(q dbcl.Querier, batchID uint64) ([]*ExchangeTrade, error) {
+	const query = `WITH cte AS (
+		SELECT path_id, max(stage_id) max_stage
+		FROM exchange_trades
+		WHERE
+			batch_id = ?
+		GROUP BY path_id
+	)
+	SELECT exchange_trades.*
+	FROM exchange_trades
+	JOIN cte ON exchange_trades.stage_id = cte.max_stage AND exchange_trades.path_id = cte.path_id
+	WHERE
+		batch_id = ?;`
+
+	output := []*ExchangeTrade{}
+	err := q.Select(&output, query, batchID, batchID)
+
+	return output, err
+}
+
+func GetExchangeWithdrawals(q dbcl.Querier, batchID uint64) ([]*ExchangeWithdrawal, error) {
+	const query = `SELECT *
+	FROM exchange_withdrawals
+	WHERE
+		batch_id = ?;`
+
+	output := []*ExchangeWithdrawal{}
+	err := q.Select(&output, query, batchID)
+
+	return output, err
+}
+
+/* balance queries */
+
+func GetPendingBalanceInputsWithoutBatch(q dbcl.Querier) ([]*BalanceInput, error) {
+	const query = `SELECT *
+	FROM balance_inputs
+	WHERE
+		pending = TRUE
+	AND
+		batch_id IS NULL;`
+
+	output := []*BalanceInput{}
+	err := q.Select(&output, query)
+
+	return output, err
+}
+
+func GetBalanceInputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceInput, error) {
+	const query = `SELECT *
+	FROM balance_inputs
+	WHERE
+		batch_id = ?;`
+
+	output := []*BalanceInput{}
+	err := q.Select(&output, query, batchID)
+
+	return output, err
+}
+
+func GetSumBalanceInputValueByChain(q dbcl.Querier, chain string) (*big.Int, error) {
+	const query = `SELECT sum(value)
+	FROM balance_inputs
+	WHERE
+		chain_id = ?
+	AND
+		pending = TRUE;`
+
+	return dbcl.GetBigInt(q, query, chain)
+}
+
+func GetBalanceOutputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceOutput, error) {
+	const query = `SELECT *
+	FROM balance_outputs
+	WHERE
+		in_batch_id = ?;`
+
+	output := []*BalanceOutput{}
+	err := q.Select(&output, query, batchID)
+
+	return output, err
+}
+
+func GetSumBalanceOutputValueByChain(q dbcl.Querier, chain string) (*big.Int, error) {
+	const query = `SELECT sum(value)
+	FROM balance_outputs
+	WHERE
+		chain_id = ?
+	AND
+		out_payout_id IS NULL;`
+
+	return dbcl.GetBigInt(q, query, chain)
+}
+
+func GetSumBalanceOutputValueByMiner(q dbcl.Querier, minerID uint64, chain string) (*big.Int, error) {
+	const query = `SELECT sum(value)
+	FROM balance_outputs
+	WHERE
+		miner_id = ?
+	AND
+		chain_id = ?
+	AND
+		out_payout_id IS NULL;`
+
+	return dbcl.GetBigInt(q, query, minerID, chain)
+}
+
+func GetSumBalanceOutputAboveThreshold(q dbcl.Querier, chain, threshold string) ([]*BalanceOutput, error) {
+	const query = `WITH cte as (
+		SELECT
+			miner_id, 
+			sum(value) value, 
+			sum(pool_fees) pool_fees, 
+			sum(exchange_fees) exchange_fees
+		FROM balance_outputs
+		WHERE
+			chain_id = ?
+		AND
+			out_payout_id IS NULL
+		GROUP BY miner_id
+	)
+	SELECT DISTINCT *
+	FROM cte
+	WHERE value >= ?;`
+
+	output := []*BalanceOutput{}
+	err := q.Select(&output, query, chain, threshold)
+
+	return output, err
+}
+
+/* payout */
+
+func GetUnconfirmedPayouts(q dbcl.Querier, chain string) ([]*Payout, error) {
+	const query = `SELECT *
+	FROM payouts
+	WHERE
+		chain_id = ?
+	AND
+		confirmed = FALSE
+	and
+		failed = FALSE;`
+
+	output := []*Payout{}
+	err := q.Select(&output, query, chain)
 
 	return output, err
 }

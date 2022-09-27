@@ -8,8 +8,8 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
-func (node Node) GetBalance(address string) (*big.Int, error) {
-	return node.getBalance(address)
+func (node Node) GetBalance() (*big.Int, error) {
+	return node.getBalance(node.address)
 }
 
 func (node Node) GetTx(txid string) (*types.TxResponse, error) {

@@ -87,9 +87,9 @@ func (node Node) getBaseFee() (*big.Int, error) {
 	return nextBaseFee, nil
 }
 
-func (node Node) GetBalance(address string) (*big.Int, error) {
+func (node Node) GetBalance() (*big.Int, error) {
 	if node.erc20 != nil {
-		data := ethtx.GenerateContractData("balanceOf(address)", ethCommon.HexToAddress(address).Bytes())
+		data := ethtx.GenerateContractData("balanceOf(address)", ethCommon.HexToAddress(node.address).Bytes())
 		params := []interface{}{
 			map[string]interface{}{"to": node.erc20.Address, "data": "0x" + hex.EncodeToString(data)},
 			"latest",
@@ -97,7 +97,7 @@ func (node Node) GetBalance(address string) (*big.Int, error) {
 		return node.sendCall(params)
 	}
 
-	return node.getBalance(address)
+	return node.getBalance(node.address)
 }
 
 func (node Node) GetTx(txid string) (*types.TxResponse, error) {
@@ -136,7 +136,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	} else {
 		toAddress = output.Address
 		value = new(big.Int).Set(input.Value)
-		gasLimit, err := node.sendEstimateGas(node.address, toAddress)
+		gasLimit, err = node.sendEstimateGas(node.address, toAddress)
 		if err != nil {
 			return "", err
 		} else if gasLimit != 21000 {

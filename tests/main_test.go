@@ -42,6 +42,8 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+/* internal */
+
 func TestPoolDBReads(t *testing.T) {
 	if err := pooldbClient.UpgradeMigrations(); err != nil {
 		t.Errorf("TestPoolDBReads: failed on upgrade pooldb migrations: %v\n", err)
@@ -102,6 +104,46 @@ func TestRedisWrites(t *testing.T) {
 	suite.Run(t, new(RedisWritesSuite))
 }
 
+/* core */
+
+func TestCredit(t *testing.T) {
+	if err := pooldbClient.UpgradeMigrations(); err != nil {
+		t.Errorf("TestCredit: failed on upgrade pooldb migrations: %v\n", err)
+		return
+	} else if err := tsdbClient.UpgradeMigrations(); err != nil {
+		t.Errorf("TestCredit: failed on upgrade tsdb migrations: %v\n", err)
+		return
+	}
+
+	suite.Run(t, new(CreditSuite))
+
+	if err := pooldbClient.DowngradeMigrations(); err != nil {
+		t.Errorf("TestCredit: failed on downgrade pooldb migrations: %v\n", err)
+	} else if err := tsdbClient.DowngradeMigrations(); err != nil {
+		t.Errorf("TestCredit: failed on downgrade tsdb migrations: %v\n", err)
+	}
+}
+
+func TestTrade(t *testing.T) {
+	if err := pooldbClient.UpgradeMigrations(); err != nil {
+		t.Errorf("TestTrade: failed on upgrade pooldb migrations: %v\n", err)
+		return
+	} else if err := tsdbClient.UpgradeMigrations(); err != nil {
+		t.Errorf("TestTrade: failed on upgrade tsdb migrations: %v\n", err)
+		return
+	}
+
+	suite.Run(t, new(TradeSuite))
+
+	if err := pooldbClient.DowngradeMigrations(); err != nil {
+		t.Errorf("TestTrade: failed on downgrade pooldb migrations: %v\n", err)
+	} else if err := tsdbClient.DowngradeMigrations(); err != nil {
+		t.Errorf("TestTrade: failed on downgrade tsdb migrations: %v\n", err)
+	}
+}
+
+/* application */
+
 func TestPool(t *testing.T) {
 	if err := pooldbClient.UpgradeMigrations(); err != nil {
 		t.Errorf("TestPool: failed on upgrade pooldb migrations: %v\n", err)
@@ -112,23 +154,5 @@ func TestPool(t *testing.T) {
 
 	if err := pooldbClient.DowngradeMigrations(); err != nil {
 		t.Errorf("TestPool: failed on downgrade pooldb migrations: %v\n", err)
-	}
-}
-
-func TestWorker(t *testing.T) {
-	if err := pooldbClient.UpgradeMigrations(); err != nil {
-		t.Errorf("TestWorker: failed on upgrade pooldb migrations: %v\n", err)
-		return
-	} else if err := tsdbClient.UpgradeMigrations(); err != nil {
-		t.Errorf("TestWorker: failed on upgrade tsdb migrations: %v\n", err)
-		return
-	}
-
-	suite.Run(t, new(WorkerSuite))
-
-	if err := pooldbClient.DowngradeMigrations(); err != nil {
-		t.Errorf("TestWorker: failed on downgrade pooldb migrations: %v\n", err)
-	} else if err := tsdbClient.DowngradeMigrations(); err != nil {
-		t.Errorf("TestWorker: failed on downgrade tsdb migrations: %v\n", err)
 	}
 }

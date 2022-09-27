@@ -134,8 +134,8 @@ func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 	return res, nil
 }
 
-func (node Node) GetBalance(addr string) (*big.Int, error) {
-	address, err := blockchair.New(node.blockchairKey).GetAddressBTC(addr)
+func (node Node) GetBalance() (*big.Int, error) {
+	address, err := blockchair.New(node.blockchairKey).GetAddressBTC(node.address)
 	if err != nil {
 		return nil, err
 	}

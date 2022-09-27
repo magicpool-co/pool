@@ -38,6 +38,31 @@ type Address struct {
 	URL     string `json:"url"`
 }
 
+type ExchangeInformation struct {
+	Timezone   string    `json:"timezone"`
+	ServerTime int64     `json:"serverTime"`
+	Symbols    []*Symbol `json:"symbols"`
+}
+
+type Symbol struct {
+	Symbol                     string   `json:"symbol"`
+	Status                     string   `json:"status"`
+	BaseAsset                  string   `json:"baseAsset"`
+	BaseAssetPrecision         int      `json:"baseAssetPrecision"`
+	QuoteAsset                 string   `json:"quoteAsset"`
+	QuotePrecision             string   `json:"quotePrecision"`
+	QuoteAssetPrecision        string   `json:"quoteAssetPrecision"`
+	QuoteCommissionPrecision   string   `json:"quoteCommissionPrecision"`
+	OrderTypes                 []string `json:"orderTypes"`
+	IcebergAllowed             bool     `json:"icebergAllowed"`
+	OcoAllowed                 bool     `json:"ocoAllowed"`
+	QuoteOrderQtyMarketAllowed bool     `json:"quoteOrderQtyMarketAllowed"`
+	AllowTrailingStop          bool     `json:"allowTrailingStop"`
+	CancelReplaceAllowed       bool     `json:"cancelReplaceAllowed"`
+	IsSpotTradingAllowed       bool     `json:"isSpotTradingAllowed"`
+	IsMarginTradingAllowed     bool     `json:"isMarginTradingAllowed"`
+}
+
 type Deposit struct {
 	Amount        string `json:"amount"`
 	Coin          string `json:"coin"`
@@ -50,6 +75,12 @@ type Deposit struct {
 	TransferType  int    `json:"transferType"`
 	UnlockConfirm string `json:"unlockConfirm"`
 	ConfirmTimes  string `json:"confirmTimes"`
+}
+
+type TradeFee struct {
+	Symbol          string `json:"symbol"`
+	MakerCommission string `json:"makerCommission"`
+	TakerCommission string `json:"takerCommission"`
 }
 
 type Order struct {
@@ -83,6 +114,7 @@ type Withdrawal struct {
 	Network         string `json:"network"`
 	TransferType    int    `json:"transferType"`
 	Status          int    `json:"status"`
+	TransactionFee  string `json:"transactionFee"`
 	ConfirmNo       int    `json:"confirmNo"`
 	Info            string `json:"info"`
 	TxID            string `json:"txId"`
