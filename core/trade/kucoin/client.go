@@ -30,7 +30,7 @@ type Client struct {
 
 func New(apiKey, secretKey, secretPasphrase string) *Client {
 	const (
-		mainnetURL = "https://api.kucoin.com/api/v1/status"
+		mainnetURL = "https://api.kucoin.com"
 		testnetURL = "https://openapi-sandbox.kucoin.com"
 	)
 
