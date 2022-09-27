@@ -1,6 +1,6 @@
 module github.com/magicpool-co/pool
 
-go 1.18
+go 1.19
 
 require (
 	github.com/Conflux-Chain/go-conflux-sdk v1.4.2
