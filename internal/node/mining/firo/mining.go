@@ -80,35 +80,42 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 		return nil, err
 	}
 
-	rawBlocks, err := node.getBlockMany(hashes)
-	if err != nil {
-		return nil, err
-	}
-
 	devRewards, err := node.getCurrentDevRewards()
 	if err != nil {
 		return nil, err
 	}
 
-	blocks := make([]*tsdb.RawBlock, len(rawBlocks))
-	for i, block := range rawBlocks {
-		coinbaseTx, err := node.getSpecialTxesCoinbase(block.Hash)
+	blocks := make([]*tsdb.RawBlock, len(hashes))
+	for i := 0; i < len(hashes); i += 25 {
+		limit := i + 25
+		if len(hashes) < limit {
+			limit = len(hashes)
+		}
+
+		rawBlocks, err := node.getBlockMany(hashes[i:limit])
 		if err != nil {
 			return nil, err
 		}
 
-		value, err := node.getRewardsFromTX(coinbaseTx, devRewards)
-		if err != nil {
-			return nil, err
-		}
+		for j, block := range rawBlocks {
+			coinbaseTx, err := node.getSpecialTxesCoinbase(block.Hash)
+			if err != nil {
+				return nil, err
+			}
 
-		blocks[i] = &tsdb.RawBlock{
-			ChainID:    node.Chain(),
-			Height:     start + uint64(i),
-			Value:      float64(value),
-			Difficulty: block.Difficulty,
-			TxCount:    uint64(len(block.Transactions)),
-			Timestamp:  time.Unix(block.Time, 0),
+			value, err := node.getRewardsFromTX(coinbaseTx, devRewards)
+			if err != nil {
+				return nil, err
+			}
+
+			blocks[i+j] = &tsdb.RawBlock{
+				ChainID:    node.Chain(),
+				Height:     start + uint64(i+j),
+				Value:      float64(value),
+				Difficulty: block.Difficulty,
+				TxCount:    uint64(len(block.Transactions)),
+				Timestamp:  time.Unix(block.Time, 0),
+			}
 		}
 	}
 
