@@ -66,7 +66,7 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:     100000,
 		ExtraNonceSize: 4,
 		JobListSize:    5,
-		PollingPeriod:  time.Millisecond * 100,
+		PollingPeriod:  time.Second,
 	},
 	"RVN": &pool.Options{
 		Chain:          "RVN",
