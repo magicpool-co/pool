@@ -112,9 +112,10 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 					ChainID: "ETH",
 					MinerID: miner.ID,
 
-					Value:    dbcl.NullBigInt{Valid: true, BigInt: feeBalanceValue},
-					PoolFees: dbcl.NullBigInt{Valid: true, BigInt: feeBalancePoolFee},
-					Pending:  true,
+					OutChainID: miner.ChainID,
+					Value:      dbcl.NullBigInt{Valid: true, BigInt: feeBalanceValue},
+					PoolFees:   dbcl.NullBigInt{Valid: true, BigInt: feeBalancePoolFee},
+					Pending:    true,
 				}
 			}
 		}
@@ -126,9 +127,10 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 				ChainID: round.ChainID,
 				MinerID: miner.ID,
 
-				Value:    dbcl.NullBigInt{Valid: true, BigInt: value},
-				PoolFees: dbcl.NullBigInt{Valid: true, BigInt: poolFee},
-				Pending:  round.ChainID != miner.ChainID,
+				OutChainID: miner.ChainID,
+				Value:      dbcl.NullBigInt{Valid: true, BigInt: value},
+				PoolFees:   dbcl.NullBigInt{Valid: true, BigInt: poolFee},
+				Pending:    round.ChainID != miner.ChainID,
 			}
 
 			if balanceInput.Pending {
