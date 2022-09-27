@@ -26,18 +26,12 @@ func (node Node) GetBlockExplorerURL(round *pooldb.Round) string {
 }
 
 func parseBlockReward(blockReward *BlockRewardInfo) (*big.Int, error) {
-	baseReward, err := common.HexToBig(blockReward.BaseReward)
+	totalReward, err := common.HexToBig(blockReward.TotalReward)
 	if err != nil {
 		return nil, err
 	}
 
-	txFees, err := common.HexToBig(blockReward.TxFee)
-	if err != nil {
-		return nil, err
-	}
-	baseReward.Add(baseReward, txFees)
-
-	return baseReward, nil
+	return totalReward, nil
 }
 
 func (node Node) getStatusByHost(hostID string) (uint64, bool, error) {
