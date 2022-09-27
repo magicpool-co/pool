@@ -37,7 +37,7 @@ func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel
 		hostHealthCheck = &hostpool.HTTPHealthCheck{
 			RPCRequest: &rpc.Request{
 				JSONRPC: "2.0",
-				Method:  "getinfo",
+				Method:  "getbestblockhash",
 			},
 		}
 	)
