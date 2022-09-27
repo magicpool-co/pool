@@ -115,7 +115,7 @@ func (c *Client) do(method, path string, payload map[string]string, target inter
 	if err != nil {
 		return err
 	} else if response.Code != "200000" {
-		return fmt.Errorf("failed executing request: %s: %s: %s", fullURL, response.Code, response.Message)
+		return fmt.Errorf("failed executing request: %s: %s: %s", fullUrl, response.Code, response.Message)
 	} else if res.StatusCode != 200 && res.StatusCode != 201 {
 		return fmt.Errorf("status: %v message:%s", res.Status, string(response.Data))
 	}
