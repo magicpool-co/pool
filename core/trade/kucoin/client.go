@@ -59,6 +59,7 @@ func (c *Client) do(method, path string, payload map[string]string, target inter
 	var err error
 	switch method {
 	case "GET":
+		query = url.Values{}
 		for k, v := range payload {
 			query.Set(k, v)
 		}
