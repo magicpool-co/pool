@@ -20,7 +20,7 @@ func newNumberFromFloat64(value float64, units string, scaleUnits bool) Number {
 	if scaleUnits {
 		scale, scaledValue := common.GetDefaultUnitScale(value)
 		value /= scaledValue
-		units = " " + units + scale
+		units = " " + scale + units
 	}
 
 	n := Number{
