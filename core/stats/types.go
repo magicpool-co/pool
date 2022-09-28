@@ -25,7 +25,7 @@ func newNumberFromFloat64(value float64, units string, scaleUnits bool) Number {
 
 	n := Number{
 		Value:     value,
-		Formatted: strconv.FormatFloat(value, 'f', 0, 64) + units,
+		Formatted: strconv.FormatFloat(value, 'f', 1, 64) + units,
 		Units:     units,
 	}
 
