@@ -110,13 +110,13 @@ type Block struct {
 	Pending         bool    `json:"pending"`
 	Mature          bool    `json:"mature"`
 	Height          uint64  `json:"height"`
-	ExplorerURL     string  `json:"explurerUrl`
+	ExplorerURL     string  `json:"explorerUrl"`
 	Difficulty      Number  `json:"difficulty"`
 	Hashrate        Number  `json:"hashrate"`
-	Luck            Number  `json:"number"`
+	Luck            Number  `json:"luck"`
 	Value           Number  `json:"value"`
 	MinerValue      *Number `json:"minerValue,omitempty"`
-	MinerPercentage *Number `json:minerPercentage,omitempty"`
+	MinerPercentage *Number `json:"minerPercentage,omitempty"`
 	Timestamp       int64   `json:"timestamp"`
 }
 
@@ -130,6 +130,6 @@ type Payout struct {
 	PoolFees     Number `json:"poolFees"`
 	ExchangeFees Number `json:"exchangeFees"`
 	TxFees       Number `json:"txFees"`
-	TotalFees    Number `json:totalFees"`
+	TotalFees    Number `json:"totalFees"`
 	Timestamp    int64  `json:"timestamp"`
 }
