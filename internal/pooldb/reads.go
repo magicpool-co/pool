@@ -452,6 +452,19 @@ func GetSumImmatureRoundValueByChain(q dbcl.Querier, chain string) (*big.Int, er
 	return dbcl.GetBigInt(q, query, chain)
 }
 
+func GetSumUnspentRoundValueByChain(q dbcl.Querier, chain string) (*big.Int, error) {
+	const query = `SELECT sum(value)
+	FROM rounds
+	WHERE
+		chain_id = ?
+	AND
+		spent IS FALSE
+	AND
+		orphan IS FALSE;`
+
+	return dbcl.GetBigInt(q, query, chain)
+}
+
 /* Share Queries */
 
 func GetSharesByRound(q dbcl.Querier, roundID uint64) ([]*Share, error) {

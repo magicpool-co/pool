@@ -177,6 +177,11 @@ func (suite *PooldbReadsSuite) TestReadRound() {
 	if err != nil {
 		suite.T().Errorf("failed: GetSumImmatureRoundValueByChain: %v", err)
 	}
+
+	_, err = pooldb.GetSumUnspentRoundValueByChain(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetSumUnspentRoundValueByChain: %v", err)
+	}
 }
 
 func (suite *PooldbReadsSuite) TestReadShare() {
