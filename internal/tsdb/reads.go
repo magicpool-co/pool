@@ -533,3 +533,145 @@ func GetWorkerSharesAverageSlow(q dbcl.Querier, workerID uint64, timestamp time.
 
 	return dbcl.GetFloat64(q, query, timestamp, timestamp, workerID, chain, period)
 }
+
+/* sums */
+
+func GetGlobalSharesSum(q dbcl.Querier, period int, duration time.Duration) ([]*Share, error) {
+	var query = fmt.Sprintf(`SELECT
+		chain_id,
+		IFNULL(SUM(accepted_shares), 0) accepted_shares,
+		IFNULL(SUM(rejected_shares), 0) rejected_shares,
+		IFNULL(SUM(invalid_shares), 0) invalid_shares
+	FROM global_shares
+    WHERE
+		end_time BETWEEN DATE_SUB(CURRENT_TIMESTAMP, %s) AND CURRENT_TIMESTAMP
+	AND
+		period = ?
+	GROUP BY chain_id`, dbcl.ConvertDurationToInterval(duration))
+
+	output := []*Share{}
+	err := q.Select(&output, query, period)
+
+	return output, err
+}
+
+func GetGlobalSharesLast(q dbcl.Querier, period int) ([]*Share, error) {
+	const query = `SELECT
+		chain_id,
+		miners,
+		workers,
+		hashrate,
+		avg_hashrate,
+		reported_hashrate
+	FROM global_shares
+	WHERE
+		end_time = (
+			SELECT MAX(end_time)
+			FROM global_shares
+			WHERE
+				period = ?
+		)
+	AND
+		period = ?;`
+
+	output := []*Share{}
+	err := q.Select(&output, query, period, period)
+
+	return output, err
+}
+
+func GetMinerSharesSum(q dbcl.Querier, minerID uint64, period int, duration time.Duration) ([]*Share, error) {
+	var query = fmt.Sprintf(`SELECT
+		chain_id,
+		IFNULL(SUM(accepted_shares), 0) accepted_shares,
+		IFNULL(SUM(rejected_shares), 0) rejected_shares,
+		IFNULL(SUM(invalid_shares), 0) invalid_shares
+	FROM miner_shares
+    WHERE
+		end_time BETWEEN DATE_SUB(CURRENT_TIMESTAMP, %s) AND CURRENT_TIMESTAMP
+	AND
+		miner_id = ?
+	AND
+		period = ?
+	GROUP BY chain_id`, dbcl.ConvertDurationToInterval(duration))
+
+	output := []*Share{}
+	err := q.Select(&output, query, minerID, period)
+
+	return output, err
+}
+
+func GetMinerSharesLast(q dbcl.Querier, minerID uint64, period int) ([]*Share, error) {
+	const query = `SELECT
+		chain_id,
+		hashrate,
+		avg_hashrate,
+		reported_hashrate
+	FROM miner_shares
+	WHERE
+		end_time = (
+			SELECT MAX(end_time)
+			FROM miner_shares
+			WHERE
+				miner_id = ?
+			AND
+				period = ?
+		)
+    AND
+		miner_id = ?
+	AND
+		period = ?;`
+
+	output := []*Share{}
+	err := q.Select(&output, query, minerID, period, minerID, period)
+
+	return output, err
+}
+
+func GetWorkerSharesSum(q dbcl.Querier, workerID uint64, period int, duration time.Duration) ([]*Share, error) {
+	var query = fmt.Sprintf(`SELECT
+		chain_id,
+		IFNULL(SUM(accepted_shares), 0) accepted_shares,
+		IFNULL(SUM(rejected_shares), 0) rejected_shares,
+		IFNULL(SUM(invalid_shares), 0) invalid_shares
+	FROM worker_shares
+    WHERE
+		end_time BETWEEN DATE_SUB(CURRENT_TIMESTAMP, %s) AND CURRENT_TIMESTAMP
+	AND
+		worker_id = ?
+	AND
+		period = ?
+	GROUP BY chain_id`, dbcl.ConvertDurationToInterval(duration))
+
+	output := []*Share{}
+	err := q.Select(&output, query, workerID, period)
+
+	return output, err
+}
+
+func GetWorkerSharesLast(q dbcl.Querier, workerID uint64, period int) ([]*Share, error) {
+	const query = `SELECT
+		chain_id,
+		hashrate,
+		avg_hashrate,
+		reported_hashrate
+	FROM worker_shares
+    WHERE
+		end_time = (
+			SELECT MAX(end_time)
+			FROM worker_shares
+			WHERE
+				worker_id = ?
+			AND
+				period = ?
+		)
+    AND
+		worker_id = ?
+    AND
+		period = ?;`
+
+	output := []*Share{}
+	err := q.Select(&output, query, workerID, period, workerID, period)
+
+	return output, err
+}

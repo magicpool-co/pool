@@ -66,6 +66,10 @@ type Worker struct {
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
+
+	// column not present in the table, only
+	// helpful for a specific join query (GetWorkersByMiner)
+	LastShare time.Time `db:"last_share"`
 }
 
 type IPAddress struct {
@@ -101,7 +105,12 @@ type Round struct {
 	RejectedShares uint64  `db:"rejected_shares"`
 	InvalidShares  uint64  `db:"invalid_shares"`
 	Difficulty     uint64  `db:"difficulty"`
-	Luck           float32 `db:"luck"`
+	Luck           float64 `db:"luck"`
+
+	// columns not present in the table, only helpful for
+	// a specific join query (GetRoundsByMiner)
+	MinerAcceptedShares uint64          `db:"miner_accepted_shares"`
+	MinerValue          dbcl.NullBigInt `db:"miner_value"`
 
 	Pending bool `db:"pending"`
 	Uncle   bool `db:"uncle"`

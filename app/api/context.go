@@ -7,6 +7,7 @@ import (
 
 	"github.com/goccy/go-json"
 
+	"github.com/magicpool-co/pool/core/stats"
 	"github.com/magicpool-co/pool/internal/charter"
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/metrics"
@@ -22,6 +23,7 @@ type Context struct {
 	pooldb  *dbcl.Client
 	tsdb    *dbcl.Client
 	redis   *redis.Client
+	stats   *stats.Client
 }
 
 func NewContext(logger *log.Logger, metricsClient *metrics.Client, pooldbClient, tsdbClient *dbcl.Client, redisClient *redis.Client) *Context {
@@ -31,6 +33,7 @@ func NewContext(logger *log.Logger, metricsClient *metrics.Client, pooldbClient,
 		pooldb:  pooldbClient,
 		tsdb:    tsdbClient,
 		redis:   redisClient,
+		stats:   stats.New(pooldbClient, tsdbClient, redisClient),
 	}
 
 	return ctx
@@ -66,27 +69,41 @@ func (ctx *Context) writeOkResponse(w http.ResponseWriter, body interface{}) {
 }
 
 func (ctx *Context) getMinerID(miner string) (uint64, error) {
-	parts := strings.Split(miner, ":")
-	if len(parts) != 2 {
-		return 0, errMinerNotFound
-	}
+	minerID, err := ctx.redis.GetMinerID(miner)
+	if err != nil || minerID == 0 {
+		if err != nil {
+			ctx.logger.Error(err)
+		}
 
-	minerID, err := pooldb.GetMinerID(ctx.pooldb.Reader(), parts[0], parts[1])
-	if err != nil {
-		return 0, err
-	} else if minerID == 0 {
-		return 0, errMinerNotFound
+		parts := strings.Split(miner, ":")
+		if len(parts) != 2 {
+			return 0, errMinerNotFound
+		}
+
+		minerID, err = pooldb.GetMinerID(ctx.pooldb.Reader(), parts[0], parts[1])
+		if err != nil {
+			return 0, err
+		} else if minerID == 0 {
+			return 0, errMinerNotFound
+		}
 	}
 
 	return minerID, nil
 }
 
 func (ctx *Context) getWorkerID(minerID uint64, worker string) (uint64, error) {
-	workerID, err := pooldb.GetWorkerID(ctx.pooldb.Reader(), minerID, worker)
-	if err != nil {
-		return 0, err
-	} else if workerID == 0 {
-		return 0, errWorkerNotFound
+	workerID, err := ctx.redis.GetWorkerID(minerID, worker)
+	if err != nil || workerID == 0 {
+		if err != nil {
+			ctx.logger.Error(err)
+		}
+
+		workerID, err = pooldb.GetWorkerID(ctx.pooldb.Reader(), minerID, worker)
+		if err != nil {
+			return 0, err
+		} else if workerID == 0 {
+			return 0, errWorkerNotFound
+		}
 	}
 
 	return workerID, nil
@@ -107,18 +124,43 @@ type dashboardArgs struct {
 
 func (ctx *Context) getDashboard(args dashboardArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var dashboard *stats.Dashboard
+		var err error
 		if args.miner == "" && args.worker != "" {
 			ctx.writeErrorResponse(w, errInvalidParameters)
 			return
 		} else if args.worker != "" {
+			minerID, err := ctx.getMinerID(args.miner)
+			if err != nil {
+				ctx.writeErrorResponse(w, err)
+				return
+			}
 
+			workerID, err := ctx.getWorkerID(minerID, args.worker)
+			if err != nil {
+				ctx.writeErrorResponse(w, err)
+				return
+			}
+
+			dashboard, err = ctx.stats.GetWorkerDashboard(workerID)
 		} else if args.miner != "" {
+			minerID, err := ctx.getMinerID(args.miner)
+			if err != nil {
+				ctx.writeErrorResponse(w, err)
+				return
+			}
 
+			dashboard, err = ctx.stats.GetMinerDashboard(minerID)
 		} else {
-
+			dashboard, err = ctx.stats.GetGlobalDashboard()
 		}
 
-		ctx.writeOkResponse(w, nil)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		ctx.writeOkResponse(w, dashboard)
 	})
 }
 
@@ -184,10 +226,6 @@ func (ctx *Context) getShareCharts(args shareChartArgs) http.Handler {
 			}
 
 			data, err = charter.FetchWorkerShares(ctx.tsdb, workerID, args.chain, period)
-			if err != nil {
-				ctx.writeErrorResponse(w, err)
-				return
-			}
 		} else if args.miner != "" {
 			minerID, err := ctx.getMinerID(args.miner)
 			if err != nil {
@@ -196,17 +234,13 @@ func (ctx *Context) getShareCharts(args shareChartArgs) http.Handler {
 			}
 
 			data, err = charter.FetchMinerShares(ctx.tsdb, minerID, args.chain, period)
-			if err != nil {
-				ctx.writeErrorResponse(w, err)
-				return
-			}
 		} else {
-			var err error
 			data, err = charter.FetchGlobalShares(ctx.tsdb, args.chain, period)
-			if err != nil {
-				ctx.writeErrorResponse(w, err)
-				return
-			}
+		}
+
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
 		}
 
 		ctx.writeOkResponse(w, data)
@@ -214,10 +248,9 @@ func (ctx *Context) getShareCharts(args shareChartArgs) http.Handler {
 }
 
 type payoutArgs struct {
-	page   string
-	size   string
-	miner  string
-	worker string
+	page  string
+	size  string
+	miner string
 }
 
 func (ctx *Context) getPayouts(args payoutArgs) http.Handler {
@@ -234,26 +267,38 @@ func (ctx *Context) getPayouts(args payoutArgs) http.Handler {
 			return
 		}
 
-		if args.miner == "" && args.worker != "" {
-			ctx.writeErrorResponse(w, errInvalidParameters)
-			return
-		} else if args.worker != "" {
+		var payouts []*stats.Payout
+		var count uint64
+		if args.miner != "" {
+			minerID, err := ctx.getMinerID(args.miner)
+			if err != nil {
+				ctx.writeErrorResponse(w, err)
+				return
+			}
 
-		} else if args.miner != "" {
-
+			payouts, count, err = ctx.stats.GetMinerPayouts(minerID, page, size)
 		} else {
-
+			payouts, count, err = ctx.stats.GetGlobalPayouts(page, size)
 		}
 
-		ctx.writeOkResponse(w, paginatedResponse{Page: page, Size: size})
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		items := make([]interface{}, len(payouts))
+		for i, payout := range payouts {
+			items[i] = payout
+		}
+
+		ctx.writeOkResponse(w, paginatedResponse{Page: page, Size: size, Results: count, Items: items})
 	})
 }
 
 type blockArgs struct {
-	page   string
-	size   string
-	miner  string
-	worker string
+	page  string
+	size  string
+	miner string
 }
 
 func (ctx *Context) getBlocks(args blockArgs) http.Handler {
@@ -270,17 +315,30 @@ func (ctx *Context) getBlocks(args blockArgs) http.Handler {
 			return
 		}
 
-		if args.miner == "" && args.worker != "" {
-			ctx.writeErrorResponse(w, errInvalidParameters)
-			return
-		} else if args.worker != "" {
+		var blocks []*stats.Block
+		var count uint64
+		if args.miner != "" {
+			minerID, err := ctx.getMinerID(args.miner)
+			if err != nil {
+				ctx.writeErrorResponse(w, err)
+				return
+			}
 
-		} else if args.miner != "" {
-
+			blocks, count, err = ctx.stats.GetMinerBlocks(minerID, page, size)
 		} else {
-
+			blocks, count, err = ctx.stats.GetGlobalBlocks(page, size)
 		}
 
-		ctx.writeOkResponse(w, paginatedResponse{Page: page, Size: size})
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		items := make([]interface{}, len(blocks))
+		for i, block := range blocks {
+			items[i] = block
+		}
+
+		ctx.writeOkResponse(w, paginatedResponse{Page: page, Size: size, Results: count, Items: items})
 	})
 }

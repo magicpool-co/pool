@@ -5,6 +5,17 @@ import (
 	"net/http"
 )
 
+var (
+	errInvalidParameters   = newHttpError(400, "InvalidParameters", "Invalid parameters")
+	errRouteNotFound       = newHttpError(404, "RouteNotFound", "Route not found")
+	errChainNotFound       = newHttpError(404, "ChainNotFound", "Chain not found")
+	errPeriodNotFound      = newHttpError(404, "PeriodNotFound", "Period not found")
+	errMinerNotFound       = newHttpError(404, "MinerNotFound", "Miner not found")
+	errWorkerNotFound      = newHttpError(404, "WorkerNotFound", "Worker not found")
+	errMethodNotAllowed    = newHttpError(405, "MethodNotAllowed", "Method not allowed")
+	errInternalServerError = newHttpError(500, "InternalServerError", "Internal server error")
+)
+
 type middleware func(*Context, http.Handler) http.Handler
 
 type httpResponse struct {
@@ -42,21 +53,10 @@ func newHttpError(status int, name, msg string) httpResponse {
 	return res
 }
 
-var (
-	errInvalidParameters   = newHttpError(400, "InvalidParameters", "Invalid parameters")
-	errRouteNotFound       = newHttpError(404, "RouteNotFound", "Route not found")
-	errChainNotFound       = newHttpError(404, "ChainNotFound", "Chain not found")
-	errPeriodNotFound      = newHttpError(404, "PeriodNotFound", "Period not found")
-	errMinerNotFound       = newHttpError(404, "MinerNotFound", "Miner not found")
-	errWorkerNotFound      = newHttpError(404, "WorkerNotFound", "Worker not found")
-	errMethodNotAllowed    = newHttpError(405, "MethodNotAllowed", "Method not allowed")
-	errInternalServerError = newHttpError(500, "InternalServerError", "Internal server error")
-)
-
 type paginatedResponse struct {
 	Page    uint64        `json:"page"`
 	Size    uint64        `json:"size"`
-	Results int           `json:"results"`
+	Results uint64        `json:"results"`
 	Next    bool          `json:"next"`
 	Items   []interface{} `json:"items"`
 }

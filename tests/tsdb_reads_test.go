@@ -164,3 +164,37 @@ func (suite *TsdbReadsSuite) TestReadSharesAverage() {
 		suite.T().Errorf("failed: GetWorkerSharesAverageSlow: %v", err)
 	}
 }
+
+func (suite *TsdbReadsSuite) TestReadSharesSumLast() {
+	var err error
+
+	_, err = tsdb.GetGlobalSharesSum(tsdbClient.Reader(), 1, time.Hour*24)
+	if err != nil {
+		suite.T().Errorf("failed: GetGlobalSharesSum: %v", err)
+	}
+
+	_, err = tsdb.GetGlobalSharesLast(tsdbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetGlobalSharesLast: %v", err)
+	}
+
+	_, err = tsdb.GetMinerSharesSum(tsdbClient.Reader(), 1, 1, time.Hour*24)
+	if err != nil {
+		suite.T().Errorf("failed: GetMinerSharesSum: %v", err)
+	}
+
+	_, err = tsdb.GetMinerSharesLast(tsdbClient.Reader(), 1, 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetMinerSharesLast: %v", err)
+	}
+
+	_, err = tsdb.GetWorkerSharesSum(tsdbClient.Reader(), 1, 1, time.Hour*24)
+	if err != nil {
+		suite.T().Errorf("failed: GetWorkerSharesSum: %v", err)
+	}
+
+	_, err = tsdb.GetWorkerSharesLast(tsdbClient.Reader(), 1, 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetWorkerSharesLast: %v", err)
+	}
+}

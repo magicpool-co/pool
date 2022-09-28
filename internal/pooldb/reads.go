@@ -183,18 +183,6 @@ func GetRecipients(q dbcl.Querier) ([]*Miner, error) {
 
 /* workers */
 
-func GetWorkersByMinerID(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
-	const query = `SELECT *
-	FROM workers
-	WHERE
-		miner_id = ?;`
-
-	output := []*Worker{}
-	err := q.Select(&output, query, minerID)
-
-	return output, err
-}
-
 func GetWorkerID(q dbcl.Querier, minerID uint64, name string) (uint64, error) {
 	const query = `SELECT id
 	FROM workers
@@ -206,7 +194,43 @@ func GetWorkerID(q dbcl.Querier, minerID uint64, name string) (uint64, error) {
 	return dbcl.GetUint64(q, query, minerID, name)
 }
 
+func GetWorkersByMiner(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
+	const query = `SELECT
+		workers.name,
+		ip_addresses.active,
+		ip_addresses.last_share
+	FROM workers
+	JOIN ip_addresses ON workers.id = ip_addresses.worker_id
+	WHERE
+		workers.miner_id = ?;`
+
+	output := []*Worker{}
+	err := q.Select(&output, query, minerID)
+
+	return output, err
+}
+
 /* ip addresses */
+
+func GetActiveMinerCount(q dbcl.Querier) (uint64, error) {
+	const query = `SELECT COUNT(DISTINCT miner_id)
+	FROM ip_addresses
+	WHERE
+		active IS TRUE;`
+
+	return dbcl.GetUint64(q, query)
+}
+
+func GetActiveWorkerCount(q dbcl.Querier) (uint64, error) {
+	const query = `SELECT COUNT(DISTINCT worker_id)
+	FROM ip_addresses
+	WHERE
+		worker_id != 0
+	AND
+		active IS TRUE;`
+
+	return dbcl.GetUint64(q, query)
+}
 
 func GetOldestActiveIPAddress(q dbcl.Querier, minerID uint64) (*IPAddress, error) {
 	const query = `SELECT *
@@ -280,14 +304,14 @@ func GetRoundMinTimestamp(q dbcl.Querier, chain string) (time.Time, error) {
 	return dbcl.GetTime(q, query, chain)
 }
 
-func GetRounds(q dbcl.Querier, page, size int) ([]*Round, error) {
+func GetRounds(q dbcl.Querier, page, size uint64) ([]*Round, error) {
 	const query = `SELECT *
 	FROM rounds
 	ORDER BY id DESC
 	LIMIT ? OFFSET ?`
 
 	output := []*Round{}
-	err := q.Select(&output, query, size+1, page*size)
+	err := q.Select(&output, query, size, page*size)
 
 	return output, err
 }
@@ -297,6 +321,35 @@ func GetRoundsCount(q dbcl.Querier) (uint64, error) {
 	FROM rounds`
 
 	return dbcl.GetUint64(q, query)
+}
+
+func GetRoundsByMiner(q dbcl.Querier, minerID, page, size uint64) ([]*Round, error) {
+	const query = `SELECT 
+		rounds.*, 
+		shares.count miner_accepted_shares,
+		balance_inputs.value miner_value 
+	FROM rounds
+	JOIN shares ON rounds.id = shares.round_id
+	JOIN balance_inputs ON rounds.id = balance_inputs.round_id AND balance_inputs.miner_id = shares.miner_id
+	WHERE
+		shares.miner_id = ?
+	ORDER BY id DESC
+	LIMIT ? OFFSET ?`
+
+	output := []*Round{}
+	err := q.Select(&output, query, minerID, size, page*size)
+
+	return output, err
+}
+
+func GetRoundsByMinerCount(q dbcl.Querier, minerID uint64) (uint64, error) {
+	const query = `SELECT count(rounds.id)
+	FROM rounds
+	JOIN shares ON rounds.id = shares.round_id
+	WHERE
+		shares.miner_id = ?;`
+
+	return dbcl.GetUint64(q, query, minerID)
 }
 
 func GetRoundsBetweenTime(q dbcl.Querier, chain string, start, end time.Time) ([]*Round, error) {
@@ -677,4 +730,46 @@ func GetUnconfirmedPayouts(q dbcl.Querier, chain string) ([]*Payout, error) {
 	err := q.Select(&output, query, chain)
 
 	return output, err
+}
+
+func GetPayouts(q dbcl.Querier, page, size uint64) ([]*Payout, error) {
+	const query = `SELECT *
+	FROM payouts
+	ORDER BY id DESC
+	LIMIT ? OFFSET ?`
+
+	output := []*Payout{}
+	err := q.Select(&output, query, size, page*size)
+
+	return output, err
+}
+
+func GetPayoutsCount(q dbcl.Querier) (uint64, error) {
+	const query = `SELECT COUNT(id)
+	FROM payouts`
+
+	return dbcl.GetUint64(q, query)
+}
+
+func GetPayoutsByMiner(q dbcl.Querier, minerID, page, size uint64) ([]*Payout, error) {
+	const query = `SELECT *
+	FROM payouts
+	WHERE
+		miner_id = ?
+	ORDER BY id DESC
+	LIMIT ? OFFSET ?`
+
+	output := []*Payout{}
+	err := q.Select(&output, query, minerID, size, page*size)
+
+	return output, err
+}
+
+func GetPayoutsByMinerCount(q dbcl.Querier, minerID uint64) (uint64, error) {
+	const query = `SELECT COUNT(id)
+	FROM payouts
+	WHERE
+		miner_id = ?;`
+
+	return dbcl.GetUint64(q, query, minerID)
 }

@@ -6,6 +6,26 @@ import (
 	"strings"
 )
 
+func GetDefaultUnitScale(val float64) (string, float64) {
+	if val < 1_000.0 {
+		return "", 1.0
+	} else if val < 1_000_000.0 {
+		return "K", 1_000.0
+	} else if val < 1_000_000_000.0 {
+		return "M", 1_000_000.0
+	} else if val < 1_000_000_000_000.0 {
+		return "G", 1_000_000_000.0
+	} else if val < 1_000_000_000_000_000.0 {
+		return "T", 1_000_000_000_000.0
+	} else if val < 1_000_000_000_000_000_000.0 {
+		return "P", 1_000_000_000_000_000.0
+	} else if val < 1_000_000_000_000_000_000_000.0 {
+		return "E", 1_000_000_000_000_000_000.0
+	}
+
+	return "", 1.0
+}
+
 func GetDefaultUnits(chain string) (*big.Int, error) {
 	var units uint64
 	switch strings.ToUpper(chain) {

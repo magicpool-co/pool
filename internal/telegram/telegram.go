@@ -144,7 +144,7 @@ func (t *Client) NotifyNewHost(host, env string) error {
 
 /* info channel */
 
-func (t *Client) NotifyNewBlockCandidate(chain, explorerURL string, height uint64, luck float32) error {
+func (t *Client) NotifyNewBlockCandidate(chain, explorerURL string, height uint64, luck float64) error {
 	msg := fmt.Sprintf("found %s block candidate with %.1f%% luck at [%d](%s)",
 		strings.ToUpper(chain), luck, height, explorerURL)
 
