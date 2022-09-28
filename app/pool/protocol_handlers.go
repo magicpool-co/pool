@@ -305,11 +305,11 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 				p.metrics.IncrementCounter("accepted_shares_total", p.chain)
 			}
 
+			// need to replace ":" with "|" for IPv6 compatibility
+			ip := strings.ReplaceAll(c.GetIP(), ":", "|")
+
 			p.lastShareMu.Lock()
-			if _, ok := p.lastShareIndex[c.GetCompoundID()]; !ok {
-				p.lastShareIndex[c.GetCompoundID()] = make(map[string]time.Time)
-			}
-			p.lastShareIndex[c.GetCompoundID()][c.GetIP()] = submitTime
+			p.lastShareIndex[c.GetCompoundID()+":"+ip] = submitTime.Unix()
 			p.lastShareMu.Unlock()
 		case types.RejectedShare:
 			err := p.redis.AddRejectedShare(p.chain, interval, c.GetCompoundID())

@@ -14,6 +14,19 @@ func (c *Client) SetMinerID(miner string, minerID uint64) error {
 	return c.baseSet(c.getMinersKey(miner), strconv.FormatUint(minerID, 10))
 }
 
+func (c *Client) SetMinerIPAddressesBulk(chain string, values map[string]int64) error {
+	members := make([]*redis.Z, 0)
+	for k, v := range values {
+		members = append(members, &redis.Z{Member: k, Score: float64(v)})
+	}
+
+	return c.baseZAddBatch(c.getMinerIPAddressesKey(chain), members)
+}
+
+func (c *Client) DeleteMinerIPAddresses(chain string) error {
+	return c.baseDel(c.getMinerIPAddressesKey(chain))
+}
+
 func (c *Client) SetWorkerID(minerID uint64, worker string, workerID uint64) error {
 	return c.baseSet(c.getWorkersKey(minerID, worker), strconv.FormatUint(workerID, 10))
 }

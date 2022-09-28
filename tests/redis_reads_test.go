@@ -18,6 +18,11 @@ func (suite *RedisReadsSuite) TestGetMiners() {
 		suite.T().Errorf("failed: GetMinerID: %v", err)
 	}
 
+	_, err = redisClient.GetMinerIPAddresses("")
+	if err != nil {
+		suite.T().Errorf("failed: GetMinerIPAddresses: %v", err)
+	}
+
 	_, err = redisClient.GetWorkerID(0, "")
 	if err != nil {
 		suite.T().Errorf("failed: GetWorkerID: %v", err)

@@ -25,8 +25,8 @@ func (c *Client) getWorkersKey(minerID uint64, worker string) string {
 	return c.getKey("pool", "wrkrs", "ids", compoundID)
 }
 
-func (c *Client) getMinerIPsLastShareKey(minerID uint64) string {
-	return c.getKey("pool", "mnrs", strconv.FormatUint(minerID, 10), "ips", "lshr")
+func (c *Client) getMinerIPAddressesKey(chain string) string {
+	return c.getKey("pool", "mnrs", strings.ToLower(chain), "ips")
 }
 
 /* rounds */

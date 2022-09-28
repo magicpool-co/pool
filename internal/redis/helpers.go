@@ -95,6 +95,10 @@ func (c *Client) baseSet(key, value string) error {
 	return c.writeClient.Set(context.Background(), key, value, 0).Err()
 }
 
+func (c *Client) baseDel(key string) error {
+	return c.writeClient.Del(context.Background(), key).Err()
+}
+
 func (c *Client) baseZAddBatch(key string, members []*redis.Z) error {
 	if len(members) == 0 {
 		return nil

@@ -16,6 +16,10 @@ func (c *Client) GetMinerID(miner string) (uint64, error) {
 	return c.baseGetUint64(c.getMinersKey(miner))
 }
 
+func (c *Client) GetMinerIPAddresses(chain string) (map[string]float64, error) {
+	return c.baseZRangeWithScores(c.getMinerIPAddressesKey(chain))
+}
+
 func (c *Client) GetWorkerID(minerID uint64, worker string) (uint64, error) {
 	return c.baseGetUint64(c.getWorkersKey(minerID, worker))
 }

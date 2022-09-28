@@ -6,14 +6,12 @@ import (
 	"math/big"
 	"runtime/debug"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/metrics"
-	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/redis"
 	"github.com/magicpool-co/pool/internal/telegram"
 	"github.com/magicpool-co/pool/pkg/common"
@@ -59,7 +57,7 @@ type Pool struct {
 	reportedIndex map[string]string
 
 	lastShareMu    sync.Mutex
-	lastShareIndex map[string]map[string]time.Time
+	lastShareIndex map[string]int64
 
 	db       *dbcl.Client
 	redis    *redis.Client
@@ -90,7 +88,7 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 		jobManager:    newJobManager(ctx, node, logger, opt.JobListSize, opt.JobListAgeLimit),
 
 		reportedIndex:  make(map[string]string),
-		lastShareIndex: make(map[string]map[string]time.Time),
+		lastShareIndex: make(map[string]int64),
 
 		db:       dbClient,
 		redis:    redisClient,
@@ -189,7 +187,7 @@ func (p *Pool) startReportedHashratePusher() {
 func (p *Pool) startIPAddressPusher() {
 	defer p.recoverPanic()
 
-	ticker := time.NewTicker(time.Minute * 5)
+	ticker := time.NewTicker(time.Minute)
 	for {
 		select {
 		case <-p.ctx.Done():
@@ -198,49 +196,12 @@ func (p *Pool) startIPAddressPusher() {
 			// copy and replace last share index
 			p.lastShareMu.Lock()
 			lastShareIndex := p.lastShareIndex
-			p.lastShareIndex = make(map[string]map[string]time.Time)
+			p.lastShareIndex = make(map[string]int64)
 			p.lastShareMu.Unlock()
 
-			// process the index into a slice of addresses
-			addresses := make([]*pooldb.IPAddress, 0)
-			for compoundID, index := range lastShareIndex {
-				parts := strings.Split(compoundID, ":")
-				if len(parts) != 2 {
-					p.logger.Error(fmt.Errorf("invalid compoundID: %s", compoundID))
-					continue
-				}
-
-				minerID, err := strconv.ParseUint(parts[0], 10, 64)
-				if err != nil || minerID == 0 {
-					p.logger.Error(fmt.Errorf("invalid compoundID: %s", compoundID))
-					continue
-				}
-
-				workerID, err := strconv.ParseUint(parts[1], 10, 64)
-				if err != nil {
-					p.logger.Error(fmt.Errorf("invalid compoundID: %s", compoundID))
-					continue
-				}
-
-				for ip, lastShare := range index {
-					address := &pooldb.IPAddress{
-						MinerID:   minerID,
-						WorkerID:  workerID,
-						ChainID:   p.chain,
-						IPAddress: ip,
-
-						Active:    true,
-						LastShare: lastShare,
-					}
-					addresses = append(addresses, address)
-				}
-			}
-
-			// insert the ip addresses and set old addresses to inactive
-			// @TODO: UpdateIPAddressesSetInactive should be run on the worker, where it will run once
-			if err := pooldb.InsertIPAddresses(p.db.Writer(), addresses...); err != nil {
-				p.logger.Error(err)
-			} else if err := pooldb.UpdateIPAddressesSetInactive(p.db.Writer(), time.Hour); err != nil {
+			// process set ip address in bulk
+			err := p.redis.SetMinerIPAddressesBulk(p.chain, lastShareIndex)
+			if err != nil {
 				p.logger.Error(err)
 			}
 		}
