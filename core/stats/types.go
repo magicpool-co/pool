@@ -19,8 +19,8 @@ type Number struct {
 func newNumberFromFloat64(value float64, units string, scaleUnits bool) Number {
 	if scaleUnits {
 		scale, scaledValue := common.GetDefaultUnitScale(value)
-		value = scaledValue
-		units = " " + scale + scale
+		value /= scaledValue
+		units = " " + units + scale
 	}
 
 	n := Number{

@@ -16,10 +16,20 @@ var (
 func processHashrateInfo(shares []*tsdb.Share) map[string]*HashrateInfo {
 	idx := make(map[string]*HashrateInfo)
 	for _, share := range shares {
+		var units string
+		switch share.ChainID {
+		case "FLUX":
+			units = "S/s"
+		case "AE", "CTXC":
+			units = "Gps"
+		default:
+			units = "H/s"
+		}
+
 		idx[share.ChainID] = &HashrateInfo{
-			Hashrate:         newNumberFromFloat64(share.Hashrate, "H/s", true),
-			AvgHashrate:      newNumberFromFloat64(share.AvgHashrate, "H/s", true),
-			ReportedHashrate: newNumberFromFloat64(share.ReportedHashrate, "H/s", true),
+			Hashrate:         newNumberFromFloat64(share.Hashrate, units, true),
+			AvgHashrate:      newNumberFromFloat64(share.AvgHashrate, units, true),
+			ReportedHashrate: newNumberFromFloat64(share.ReportedHashrate, units, true),
 		}
 	}
 
