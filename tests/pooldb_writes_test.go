@@ -208,7 +208,7 @@ func (suite *PooldbWritesSuite) TestWriteUTXO() {
 	}
 }
 
-func (suite *PooldbWritesSuite) WriteExchangeBatch() {
+func (suite *PooldbWritesSuite) TestWriteExchangeBatch() {
 	tests := []struct {
 		batch *pooldb.ExchangeBatch
 	}{
@@ -232,7 +232,7 @@ func (suite *PooldbWritesSuite) WriteExchangeBatch() {
 	}
 }
 
-func (suite *PooldbWritesSuite) WriteExchangeInput() {
+func (suite *PooldbWritesSuite) TestWriteExchangeInput() {
 	tests := []struct {
 		input *pooldb.ExchangeInput
 	}{
@@ -259,14 +259,15 @@ func (suite *PooldbWritesSuite) WriteExchangeInput() {
 	}
 }
 
-func (suite *PooldbWritesSuite) WriteExchangeDeposit() {
+func (suite *PooldbWritesSuite) TestWriteExchangeDeposit() {
 	tests := []struct {
 		deposit *pooldb.ExchangeDeposit
 	}{
 		{
 			&pooldb.ExchangeDeposit{
-				ChainID: "ETC",
-				Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				ChainID:   "ETC",
+				NetworkID: "ETC",
+				Value:     dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
 			},
 		},
 	}
@@ -292,7 +293,7 @@ func (suite *PooldbWritesSuite) WriteExchangeDeposit() {
 	}
 }
 
-func (suite *PooldbWritesSuite) WriteExchangeTrade() {
+func (suite *PooldbWritesSuite) TestWriteExchangeTrade() {
 	tests := []struct {
 		trade *pooldb.ExchangeTrade
 	}{
@@ -326,14 +327,15 @@ func (suite *PooldbWritesSuite) WriteExchangeTrade() {
 	}
 }
 
-func (suite *PooldbWritesSuite) WriteExchangeWithdrawal() {
+func (suite *PooldbWritesSuite) TestWriteExchangeWithdrawal() {
 	tests := []struct {
 		withdrawal *pooldb.ExchangeWithdrawal
 	}{
 		{
 			&pooldb.ExchangeWithdrawal{
-				ChainID: "ETC",
-				Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				ChainID:   "ETC",
+				NetworkID: "ETC",
+				Value:     dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
 			},
 		},
 	}

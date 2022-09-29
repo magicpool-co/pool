@@ -63,6 +63,7 @@ CREATE TABLE exchange_deposits (
 	fees			decimal(25,0),
 	registered		bool			NOT NULL,
 	confirmed		bool			NOT NULL,
+	spent			bool			NOT NULL,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -231,4 +232,3 @@ ALTER TABLE balance_inputs ADD INDEX idx_balance_inputs_batch_id (batch_id);
 ALTER TABLE balance_inputs ADD CONSTRAINT fk_balance_inputs_batch_id FOREIGN KEY (batch_id) REFERENCES exchange_batches(id);
 
 ALTER TABLE balance_inputs ADD COLUMN pool_fees decimal(25,0) NOT NULL AFTER value;
-

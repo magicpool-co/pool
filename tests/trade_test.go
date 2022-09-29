@@ -14,38 +14,38 @@ func (suite *TradeSuite) TestCheckForNewBatch() {
 
 }
 
-func (suite *TradeSuite) InitiateDeposits() {
+func (suite *TradeSuite) TestInitiateDeposits() {
 
 }
 
-func (suite *TradeSuite) RegisterDeposits() {
+func (suite *TradeSuite) TestRegisterDeposits() {
 
 }
 
-func (suite *TradeSuite) ConfirmDeposits() {
+func (suite *TradeSuite) TestConfirmDeposits() {
 
 }
 
-func (suite *TradeSuite) InitiateTrades() {
+func (suite *TradeSuite) TestInitiateTrades() {
 
 }
 
-func (suite *TradeSuite) InitiateTradeStage() {
+func (suite *TradeSuite) TestInitiateTradeStage() {
 
 }
 
-func (suite *TradeSuite) ConfirmTradeStage() {
+func (suite *TradeSuite) TestConfirmTradeStage() {
 
 }
 
-func (suite *TradeSuite) InitiateWithdrawals() {
+func (suite *TradeSuite) TestInitiateWithdrawals() {
 
 }
 
-func (suite *TradeSuite) ConfirmWithdrawals() {
+func (suite *TradeSuite) TestConfirmWithdrawals() {
 
 }
 
-func (suite *TradeSuite) CreditWithdrawals() {
+func (suite *TradeSuite) TestCreditWithdrawals() {
 
 }
