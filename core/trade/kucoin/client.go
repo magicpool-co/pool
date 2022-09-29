@@ -78,6 +78,11 @@ func (c *Client) do(method, path string, payload map[string]string, target inter
 		fullUrl += "?" + queryString
 	}
 
+	parsedURL, err := url.Parse(fullUrl)
+	if err != nil {
+		return err
+	}
+
 	headers := http.Header{
 		"Content-Type": []string{"application/json"},
 	}
@@ -87,7 +92,7 @@ func (c *Client) do(method, path string, payload map[string]string, target inter
 		var sigData bytes.Buffer
 		sigData.WriteString(timestamp)
 		sigData.WriteString(method)
-		sigData.WriteString(fullUrl)
+		sigData.WriteString(parsedURL.RequestURI())
 		sigData.Write(body)
 		sig := crypto.HmacSha256(c.secretKey, sigData.String())
 
