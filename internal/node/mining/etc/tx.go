@@ -8,6 +8,10 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
+func (node Node) GetTxExplorerURL(txid string) string {
+	return "https://blockscout.com/etc/mainnet/tx/" + txid
+}
+
 func (node Node) GetBalance() (*big.Int, error) {
 	return node.getBalance(node.address)
 }

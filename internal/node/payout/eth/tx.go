@@ -87,6 +87,10 @@ func (node Node) getBaseFee() (*big.Int, error) {
 	return nextBaseFee, nil
 }
 
+func (node Node) GetTxExplorerURL(txid string) string {
+	return "https://etherscan.io/tx/" + txid
+}
+
 func (node Node) GetBalance() (*big.Int, error) {
 	if node.erc20 != nil {
 		data := ethtx.GenerateContractData("balanceOf(address)", ethCommon.HexToAddress(node.address).Bytes())

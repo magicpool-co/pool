@@ -12,6 +12,10 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
+func (node Node) GetTxExplorerURL(txid string) string {
+	return "https://explorer.firo.org/tx/" + txid
+}
+
 func (node Node) GetBalance() (*big.Int, error) {
 	type response struct {
 		Balance uint64 `json:"balanceSat"`

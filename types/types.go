@@ -91,6 +91,7 @@ type PayoutNode interface {
 	ValidateAddress(string) bool
 
 	// tx helpers
+	GetTxExplorerURL(string) string
 	GetBalance() (*big.Int, error)
 	GetTx(string) (*TxResponse, error)
 	CreateTx([]*TxInput, []*TxOutput) (string, error)

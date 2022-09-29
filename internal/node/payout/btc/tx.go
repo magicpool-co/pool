@@ -98,6 +98,10 @@ func getFeeRate() (uint64, error) {
 	return 0, fmt.Errorf("unable to find BTC fee rate")
 }
 
+func (node Node) GetTxExplorerURL(txid string) string {
+	return "https://blockchair.com/bitcoin/transaction/" + txid
+}
+
 func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 	tx, err := blockchair.New(node.blockchairKey).GetTxBTC(txid)
 	if err != nil {

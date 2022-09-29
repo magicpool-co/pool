@@ -80,10 +80,12 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 			Value: dbcl.NullBigInt{Valid: true, BigInt: value},
 		}
 
-		_, err = pooldb.InsertExchangeDeposit(c.pooldb.Writer(), deposit)
+		depositID, err := pooldb.InsertExchangeDeposit(c.pooldb.Writer(), deposit)
 		if err != nil {
 			return err
 		}
+
+		c.telegram.NotifyInitiateDeposit(depositID, chain, txid, c.nodes[chain].GetTxExplorerURL(txid))
 	}
 
 	return c.updateBatchStatus(batchID, DepositsActive)
@@ -183,6 +185,8 @@ func (c *Client) ConfirmDeposits(batchID uint64) error {
 		if err != nil {
 			return err
 		}
+
+		c.telegram.NotifyFinalizeDeposit(deposit.ID)
 	}
 
 	if confirmedAll {

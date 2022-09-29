@@ -69,7 +69,7 @@ func (c *Client) InitiateWithdrawals(batchID uint64) error {
 	for chain, value := range values {
 		// @TODO: check if withdrawal has already been executed
 		floatValue := common.BigIntToFloat64(value, c.nodes[chain].GetUnits().Big())
-		withdrawalID, err := c.exchange.CreateWithdrawal(chain, c.nodes[chain].Address(), floatValue)
+		exchangeWithdrawalID, err := c.exchange.CreateWithdrawal(chain, c.nodes[chain].Address(), floatValue)
 		if err != nil {
 			return err
 		}
@@ -79,7 +79,7 @@ func (c *Client) InitiateWithdrawals(batchID uint64) error {
 			ChainID:   chain,
 			NetworkID: chain,
 
-			ExchangeWithdrawalID: withdrawalID,
+			ExchangeWithdrawalID: exchangeWithdrawalID,
 
 			Value:       dbcl.NullBigInt{Valid: true, BigInt: value},
 			DepositFees: dbcl.NullBigInt{Valid: true, BigInt: depositFees[chain]},
@@ -88,10 +88,12 @@ func (c *Client) InitiateWithdrawals(batchID uint64) error {
 			Spent:       false,
 		}
 
-		_, err = pooldb.InsertExchangeWithdrawal(c.pooldb.Writer(), withdrawal)
+		withdrawalID, err := pooldb.InsertExchangeWithdrawal(c.pooldb.Writer(), withdrawal)
 		if err != nil {
 			return err
 		}
+
+		c.telegram.NotifyInitiateWithdrawal(withdrawalID, chain)
 	}
 
 	return c.updateBatchStatus(batchID, WithdrawalsActive)
@@ -157,6 +159,8 @@ func (c *Client) ConfirmWithdrawals(batchID uint64) error {
 		if err != nil {
 			return err
 		}
+
+		c.telegram.NotifyFinalizeWithdrawal(withdrawal.ID)
 	}
 
 	if completedAll {

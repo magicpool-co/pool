@@ -146,7 +146,8 @@ func (c *Client) InitiateTradeStage(batchID uint64, stage int) error {
 
 		// process the trade value as a float and execute the trade
 		value := common.BigIntToFloat64(trade.Value.BigInt, units)
-		tradeID, err := c.exchange.CreateTrade(trade.Market, types.TradeDirection(trade.Direction), value)
+		direction := types.TradeDirection(trade.Direction)
+		tradeID, err := c.exchange.CreateTrade(trade.Market, direction, value)
 		if err != nil {
 			return err
 		}
@@ -161,6 +162,8 @@ func (c *Client) InitiateTradeStage(batchID uint64, stage int) error {
 		if err != nil {
 			return err
 		}
+
+		c.telegram.NotifyInitiateTrade(trade.ID, trade.PathID, trade.StageID, trade.Market, direction.String())
 	}
 
 	return c.updateBatchStatus(batchID, tradeStageStatus)
@@ -327,6 +330,8 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 		if err != nil {
 			return err
 		}
+
+		c.telegram.NotifyFinalizeTrade(trade.ID)
 	}
 
 	if completedAll {
