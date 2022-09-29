@@ -33,11 +33,36 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		return "", fmt.Errorf("need at least one output")
 	}
 
+	const fee = 1000000
+	var feeCounter uint64
+	for _, output := range outputs {
+		if output.SplitFee {
+			feeCounter++
+		}
+	}
+
+	feeDistribution := fee / feeCounter
+	remainder := fee - feeDistribution
+	var remainderDistributed bool
+
 	addresses := make([]string, len(outputs))
 	amounts := make([]uint64, len(outputs))
 	for i, output := range outputs {
+		value := output.Value.Uint64()
+		if output.SplitFee {
+			value -= feeDistribution
+			if !remainderDistributed {
+				value -= remainder
+				remainderDistributed = true
+			}
+		}
+
+		if value <= 0 {
+			return "", fmt.Errorf("not enough balance to pay fees")
+		}
+
 		addresses[i] = output.Address
-		amounts[i] = output.Value.Uint64()
+		amounts[i] = value
 	}
 
 	return node.postWalletPaymentSend(addresses, amounts)
