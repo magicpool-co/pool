@@ -199,8 +199,10 @@ func (p *HTTPPool) ExecHTTPSticky(hostID, method, path string, body, target inte
 	var res []byte
 	var err error
 	var failed bool
+	var count int
 	for {
-		hc := p.getConn(hostID)
+		count++
+		hc := p.getConn(hostID, count)
 		if hc == nil {
 			failed = true
 			break
@@ -305,16 +307,18 @@ func (p *HTTPPool) ExecRPCBulk(reqs []*rpc.Request) ([]*rpc.Response, error) {
 }
 
 // pop the fastest healthy connection
-func (p *HTTPPool) getConn(hostID string) *httpConn {
+func (p *HTTPPool) getConn(hostID string, count int) *httpConn {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	if hostID != "" {
+	if hostID != "" && hostID != "single" {
 		hc, ok := p.index[hostID]
 		if ok && hc.healthy() {
 			return hc
 		}
 
+		return nil
+	} else if hostID == "single" && count > 1 {
 		return nil
 	}
 

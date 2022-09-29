@@ -218,7 +218,7 @@ func (node Node) postWalletPaymentSend(addresses []string, amounts []uint64) (st
 	}
 
 	var txid string
-	err := node.httpHost.ExecHTTP("POST", "/wallet/payment/send", body, &txid)
+	_, err := node.httpHost.ExecHTTPSticky("single", "POST", "/wallet/payment/send", body, &txid)
 
 	return txid, err
 }
