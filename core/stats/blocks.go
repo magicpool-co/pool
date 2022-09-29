@@ -2,9 +2,39 @@ package stats
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 )
+
+func getBlockExplorerURL(chain, hash string, height uint64) (string, error) {
+	heightStr := strconv.FormatUint(height, 10)
+
+	var explorerURL string
+	var err error
+	switch chain {
+	case "AE":
+		explorerURL = "https://explorer.aeternity.io/generations/" + heightStr
+	case "CFX":
+		explorerURL = "https://www.confluxscan.io/block/" + hash
+	case "CTXC":
+		explorerURL = "https://cerebro.cortexlabs.ai/#/block/" + heightStr
+	case "ERGO":
+		explorerURL = "https://explorer.ergoplatform.com/en/blocks/" + hash
+	case "ETC":
+		explorerURL = "https://blockscout.com/etc/mainnet/block/" + heightStr
+	case "FIRO":
+		explorerURL = "https://explorer.firo.org/block/" + hash
+	case "FLUX":
+		explorerURL = "https://explorer.runonflux.io/block/" + hash
+	case "RVN":
+		explorerURL = "https://ravencoin.network/block/" + hash
+	default:
+		err = fmt.Errorf("no block explorer found for chain")
+	}
+
+	return explorerURL, err
+}
 
 func newBlock(dbRound *pooldb.Round) (*Block, error) {
 	if !dbRound.Value.Valid {
@@ -43,13 +73,19 @@ func newBlock(dbRound *pooldb.Round) (*Block, error) {
 		parsedMinerPercentage = newNumberFromFloat64Ptr(minerPercentage, "%", false)
 	}
 
+	explorerURL, err := getBlockExplorerURL(dbRound.ChainID, dbRound.Hash, dbRound.Height)
+	if err != nil {
+		return nil, err
+	}
+
 	block := &Block{
 		Chain:           dbRound.ChainID,
 		Type:            blockType,
 		Pending:         dbRound.Pending,
 		Mature:          dbRound.Mature,
+		Hash:            dbRound.Hash,
 		Height:          dbRound.Height,
-		ExplorerURL:     "",
+		ExplorerURL:     explorerURL,
 		Difficulty:      newNumberFromFloat64(float64(dbRound.Difficulty), "", true),
 		Hashrate:        Number{},
 		Luck:            newNumberFromFloat64(dbRound.Luck, "%", false),
