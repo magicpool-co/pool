@@ -36,20 +36,20 @@ func getBlockExplorerURL(chain, hash string, height uint64) (string, error) {
 	return explorerURL, err
 }
 
-func newBlock(dbRound *pooldb.Round) (*Block, error) {
+func newRound(dbRound *pooldb.Round) (*Round, error) {
 	if !dbRound.Value.Valid {
 		return nil, fmt.Errorf("no value for round %d", dbRound.ID)
 	}
 
-	var blockType string
+	var roundType string
 	if dbRound.Pending {
-		blockType = "immature"
+		roundType = "pending"
 	} else if dbRound.Orphan {
-		blockType = "orphan"
+		roundType = "orphan"
 	} else if dbRound.Uncle {
-		blockType = "uncle"
+		roundType = "uncle"
 	} else if dbRound.Mature {
-		blockType = "block"
+		roundType = "block"
 	} else {
 		return nil, fmt.Errorf("unknown block status for round %d", dbRound.ID)
 	}
@@ -78,9 +78,9 @@ func newBlock(dbRound *pooldb.Round) (*Block, error) {
 		return nil, err
 	}
 
-	block := &Block{
+	round := &Round{
 		Chain:           dbRound.ChainID,
-		Type:            blockType,
+		Type:            roundType,
 		Pending:         dbRound.Pending,
 		Mature:          dbRound.Mature,
 		Hash:            dbRound.Hash,
@@ -95,10 +95,10 @@ func newBlock(dbRound *pooldb.Round) (*Block, error) {
 		Timestamp:       dbRound.CreatedAt.Unix(),
 	}
 
-	return block, nil
+	return round, nil
 }
 
-func (c *Client) GetGlobalBlocks(page, size uint64) ([]*Block, uint64, error) {
+func (c *Client) GetGlobalRounds(page, size uint64) ([]*Round, uint64, error) {
 	count, err := pooldb.GetRoundsCount(c.pooldb.Reader())
 	if err != nil {
 		return nil, 0, err
@@ -109,18 +109,18 @@ func (c *Client) GetGlobalBlocks(page, size uint64) ([]*Block, uint64, error) {
 		return nil, 0, err
 	}
 
-	blocks := make([]*Block, len(dbRounds))
+	rounds := make([]*Round, len(dbRounds))
 	for i, dbRound := range dbRounds {
-		blocks[i], err = newBlock(dbRound)
+		rounds[i], err = newRound(dbRound)
 		if err != nil {
 			return nil, 0, err
 		}
 	}
 
-	return blocks, count, nil
+	return rounds, count, nil
 }
 
-func (c *Client) GetMinerBlocks(minerIDs []uint64, page, size uint64) ([]*Block, uint64, error) {
+func (c *Client) GetMinerRounds(minerIDs []uint64, page, size uint64) ([]*Round, uint64, error) {
 	if len(minerIDs) == 0 {
 		return nil, 0, nil
 	}
@@ -135,13 +135,13 @@ func (c *Client) GetMinerBlocks(minerIDs []uint64, page, size uint64) ([]*Block,
 		return nil, 0, err
 	}
 
-	blocks := make([]*Block, len(dbRounds))
+	rounds := make([]*Round, len(dbRounds))
 	for i, dbRound := range dbRounds {
-		blocks[i], err = newBlock(dbRound)
+		rounds[i], err = newRound(dbRound)
 		if err != nil {
 			return nil, 0, err
 		}
 	}
 
-	return blocks, count, nil
+	return rounds, count, nil
 }

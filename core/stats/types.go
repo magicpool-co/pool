@@ -109,9 +109,9 @@ type Dashboard struct {
 	UnpaidBalance   map[string]Number        `json:"unpaidBalance"`
 }
 
-/* blocks */
+/* rounds */
 
-type Block struct {
+type Round struct {
 	Chain           string  `json:"chain"`
 	Type            string  `json:"type"`
 	Pending         bool    `json:"pending"`

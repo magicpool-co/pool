@@ -93,10 +93,10 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		period := r.URL.Query().Get("period")
 		handler = rtr.ctx.getShareChart(shareChartArgs{chain: chain, period: period})
 
-	case rtr.match(path, "/global/blocks"):
+	case rtr.match(path, "/global/rounds"):
 		method = "GET"
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
-		handler = rtr.ctx.getBlocks(blockArgs{page: page, size: size})
+		handler = rtr.ctx.getRounds(roundArgs{page: page, size: size})
 
 	case rtr.match(path, "/global/payouts"):
 		method = "GET"
@@ -113,10 +113,10 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		period := r.URL.Query().Get("period")
 		handler = rtr.ctx.getShareChart(shareChartArgs{chain: chain, period: period, miner: miner})
 
-	case rtr.match(path, "/miner/+/blocks", &miner):
+	case rtr.match(path, "/miner/+/rounds", &miner):
 		method = "GET"
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
-		handler = rtr.ctx.getBlocks(blockArgs{page: page, size: size, miner: miner})
+		handler = rtr.ctx.getRounds(roundArgs{page: page, size: size, miner: miner})
 
 	case rtr.match(path, "/miner/+/payouts", &miner):
 		method = "GET"

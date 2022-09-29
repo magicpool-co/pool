@@ -340,13 +340,13 @@ func (ctx *Context) getPayouts(args payoutArgs) http.Handler {
 	})
 }
 
-type blockArgs struct {
+type roundArgs struct {
 	page  string
 	size  string
 	miner string
 }
 
-func (ctx *Context) getBlocks(args blockArgs) http.Handler {
+func (ctx *Context) getRounds(args roundArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		page, err := strconv.ParseUint(args.page, 10, 64)
 		if err != nil {
@@ -360,7 +360,7 @@ func (ctx *Context) getBlocks(args blockArgs) http.Handler {
 			return
 		}
 
-		var blocks []*stats.Block
+		var rounds []*stats.Round
 		var count uint64
 		if args.miner != "" {
 			minerIDs, err := ctx.getMinerIDs(args.miner)
@@ -369,9 +369,9 @@ func (ctx *Context) getBlocks(args blockArgs) http.Handler {
 				return
 			}
 
-			blocks, count, err = ctx.stats.GetMinerBlocks(minerIDs, page, size)
+			rounds, count, err = ctx.stats.GetMinerRounds(minerIDs, page, size)
 		} else {
-			blocks, count, err = ctx.stats.GetGlobalBlocks(page, size)
+			rounds, count, err = ctx.stats.GetGlobalRounds(page, size)
 		}
 
 		if err != nil {
@@ -379,9 +379,9 @@ func (ctx *Context) getBlocks(args blockArgs) http.Handler {
 			return
 		}
 
-		items := make([]interface{}, len(blocks))
-		for i, block := range blocks {
-			items[i] = block
+		items := make([]interface{}, len(rounds))
+		for i, round := range rounds {
+			items[i] = round
 		}
 
 		ctx.writeOkResponse(w, paginatedResponse{Page: page, Size: size, Results: count, Items: items})

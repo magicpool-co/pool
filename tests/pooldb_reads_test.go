@@ -100,12 +100,12 @@ func (suite *PooldbReadsSuite) TestReadWorker() {
 		suite.T().Errorf("failed: GetActiveWorkersCount: %v", err)
 	}
 
-	_, err = pooldb.GetActiveWorkersByMinersCount(pooldbClient.Reader(), []uint64{0,1})
+	_, err = pooldb.GetActiveWorkersByMinersCount(pooldbClient.Reader(), []uint64{0, 1})
 	if err != nil {
 		suite.T().Errorf("failed: GetActiveWorkersByMinersCount: %v", err)
 	}
 
-	_, err = pooldb.GetInactiveWorkersByMinersCount(pooldbClient.Reader(), []uint64{0,1})
+	_, err = pooldb.GetInactiveWorkersByMinersCount(pooldbClient.Reader(), []uint64{0, 1})
 	if err != nil {
 		suite.T().Errorf("failed: GetInactiveWorkersByMinersCount: %v", err)
 	}

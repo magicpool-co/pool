@@ -178,12 +178,12 @@ func (suite *TsdbReadsSuite) TestReadSharesSumLast() {
 		suite.T().Errorf("failed: GetGlobalSharesLast: %v", err)
 	}
 
-	_, err = tsdb.GetMinersSharesSum(tsdbClient.Reader(), []uint64{0,1}, 1, time.Hour*24)
+	_, err = tsdb.GetMinersSharesSum(tsdbClient.Reader(), []uint64{0, 1}, 1, time.Hour*24)
 	if err != nil {
 		suite.T().Errorf("failed: GetMinersSharesSum: %v", err)
 	}
 
-	_, err = tsdb.GetMinersSharesLast(tsdbClient.Reader(), []uint64{0,1}, 1)
+	_, err = tsdb.GetMinersSharesLast(tsdbClient.Reader(), []uint64{0, 1}, 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetMinersSharesLast: %v", err)
 	}
