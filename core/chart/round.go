@@ -135,6 +135,7 @@ func (c *Client) rollupRounds(node types.MiningNode, endTime time.Time) error {
 		profitability = marketRate * (value / roundTime) / hashrate
 	}
 
+	// @TODO: recalculate cumulative luck instead of averaging it (since averaging is a worthless calc)
 	avgLuck, err := tsdb.GetRoundsAverageLuckSlow(c.tsdb.Reader(), endTime, node.Chain(), int(roundPeriod), roundPeriod.Average())
 	if err != nil {
 		return err
@@ -239,6 +240,7 @@ func (c *Client) finalizeRounds(node types.MiningNode, endTime time.Time) error 
 
 		// finalize averages after updated statistics
 		for _, round := range rounds {
+			// @TODO: recalculate cumulative luck instead of averaging it (since averaging is a worthless calc)
 			round.AvgLuck, err = tsdb.GetRoundsAverageLuckSlow(c.tsdb.Reader(), endTime, node.Chain(),
 				int(rollupPeriod), rollupPeriod.Average())
 			if err != nil {
