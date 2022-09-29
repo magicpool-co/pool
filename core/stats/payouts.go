@@ -125,12 +125,12 @@ func (c *Client) GetMinerPayouts(minerIDs []uint64, page, size uint64) ([]*Payou
 		return nil, 0, nil
 	}
 
-	count, err := pooldb.GetPayoutsByMinerCount(c.pooldb.Reader(), minerIDs)
+	count, err := pooldb.GetPayoutsByMinersCount(c.pooldb.Reader(), minerIDs)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	dbPayouts, err := pooldb.GetPayoutsByMiner(c.pooldb.Reader(), minerIDs, page, size)
+	dbPayouts, err := pooldb.GetPayoutsByMiners(c.pooldb.Reader(), minerIDs, page, size)
 	if err != nil {
 		return nil, 0, err
 	}

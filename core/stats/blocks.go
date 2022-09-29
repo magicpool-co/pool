@@ -125,12 +125,12 @@ func (c *Client) GetMinerBlocks(minerIDs []uint64, page, size uint64) ([]*Block,
 		return nil, 0, nil
 	}
 
-	count, err := pooldb.GetRoundsByMinerCount(c.pooldb.Reader(), minerIDs)
+	count, err := pooldb.GetRoundsByMinersCount(c.pooldb.Reader(), minerIDs)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	dbRounds, err := pooldb.GetRoundsByMiner(c.pooldb.Reader(), minerIDs, page, size)
+	dbRounds, err := pooldb.GetRoundsByMiners(c.pooldb.Reader(), minerIDs, page, size)
 	if err != nil {
 		return nil, 0, err
 	}

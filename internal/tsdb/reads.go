@@ -592,8 +592,8 @@ func GetGlobalSharesLast(q dbcl.Querier, period int) ([]*Share, error) {
 	return output, err
 }
 
-func GetMinerSharesSum(q dbcl.Querier, minerID uint64, period int, duration time.Duration) ([]*Share, error) {
-	var query = fmt.Sprintf(`SELECT
+func GetMinersSharesSum(q dbcl.Querier, minerIDs []uint64, period int, duration time.Duration) ([]*Share, error) {
+	var rawQuery = fmt.Sprintf(`SELECT
 		chain_id,
 		IFNULL(SUM(accepted_shares), 0) accepted_shares,
 		IFNULL(SUM(rejected_shares), 0) rejected_shares,
@@ -602,23 +602,33 @@ func GetMinerSharesSum(q dbcl.Querier, minerID uint64, period int, duration time
     WHERE
 		end_time BETWEEN DATE_SUB(CURRENT_TIMESTAMP, %s) AND CURRENT_TIMESTAMP
 	AND
-		miner_id = ?
+		miner_id IN (?)
 	AND
 		period = ?
 	GROUP BY chain_id`, dbcl.ConvertDurationToInterval(duration))
 
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs, period)
+	if err != nil {
+		return nil, err
+	}
+
 	output := []*Share{}
-	err := q.Select(&output, query, minerID, period)
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
 
 	return output, err
 }
 
-func GetMinerSharesLast(q dbcl.Querier, minerID uint64, period int) ([]*Share, error) {
-	const query = `SELECT
+func GetMinersSharesLast(q dbcl.Querier, minerIDs []uint64, period int) ([]*Share, error) {
+	const rawQuery = `SELECT
 		chain_id,
-		hashrate,
-		avg_hashrate,
-		reported_hashrate
+		IFNULL(SUM(hashrate), 0) hashrate,
+		IFNULL(SUM(avg_hashrate), 0) avg_hashrate,
+		IFNULL(SUM(reported_hashrate), 0) reported_hashrate
 	FROM miner_shares
 	WHERE
 		end_time = (
@@ -630,12 +640,23 @@ func GetMinerSharesLast(q dbcl.Querier, minerID uint64, period int) ([]*Share, e
 				period = ?
 		)
     AND
-		miner_id = ?
+		miner_id IN (?)
 	AND
-		period = ?;`
+		period = ?
+	GROUP BY chain_id;`
+
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs[0], period, minerIDs, period)
+	if err != nil {
+		return nil, err
+	}
 
 	output := []*Share{}
-	err := q.Select(&output, query, minerID, period, minerID, period)
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
 
 	return output, err
 }

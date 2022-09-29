@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
@@ -84,47 +85,99 @@ func (c *Client) GetGlobalDashboard() (*Dashboard, error) {
 	dashboard := &Dashboard{
 		Miners:        newNumberFromUint64Ptr(activeMiners),
 		ActiveWorkers: newNumberFromUint64Ptr(activeWorkers),
-		Hashrate:      processHashrateInfo(lastShares),
-		Shares:        processShareInfo(sumShares),
+		HashrateInfo:  processHashrateInfo(lastShares),
+		SharesInfo:    processShareInfo(sumShares),
 	}
 
 	return dashboard, nil
 }
 
 func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
-	totalSumShares, totalLastShares := make([]*tsdb.Share, 0), make([]*tsdb.Share, 0)
-	var totalActiveWorkers, totalInactiveWorkers uint64
-	for _, minerID := range minerIDs {
-		sumShares, err := tsdb.GetMinerSharesSum(c.tsdb.Reader(), minerID, dashboardAggPeriod, dashboardAggDuration)
-		if err != nil {
-			return nil, err
-		}
-		totalSumShares = append(totalSumShares, sumShares...)
+	// fetch last shares
+	lastShares, err := tsdb.GetMinersSharesLast(c.tsdb.Reader(), minerIDs, dashboardAggPeriod)
+	if err != nil {
+		return nil, err
+	}
 
-		lastShares, err := tsdb.GetMinerSharesLast(c.tsdb.Reader(), minerID, dashboardAggPeriod)
-		if err != nil {
-			return nil, err
-		}
-		totalLastShares = append(totalLastShares, lastShares...)
+	// fetch sum shares
+	sumShares, err := tsdb.GetMinersSharesSum(c.tsdb.Reader(), minerIDs, dashboardAggPeriod, dashboardAggDuration)
+	if err != nil {
+		return nil, err
+	}
 
-		activeWorkers, err := pooldb.GetActiveWorkersByMinerCount(c.pooldb.Reader(), minerID)
-		if err != nil {
-			return nil, err
-		}
-		totalActiveWorkers += activeWorkers
+	// fetch sum active workers
+	activeWorkers, err := pooldb.GetActiveWorkersByMinersCount(c.pooldb.Reader(), minerIDs)
+	if err != nil {
+		return nil, err
+	}
 
-		inactiveWorkers, err := pooldb.GetInactiveWorkersByMinerCount(c.pooldb.Reader(), minerID)
+	// fetch sum inactive workers
+	inactiveWorkers, err := pooldb.GetInactiveWorkersByMinersCount(c.pooldb.Reader(), minerIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// fetch pending balances for all minerIDs
+	pendingBalances, err := pooldb.GetPendingBalanceInputSumsByMiners(c.pooldb.Reader(), minerIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// sum pending balances by chain
+	pendingBalanceBig := make(map[string]*big.Int)
+	for _, balance := range pendingBalances {
+		if !balance.Value.Valid {
+			continue
+		} else if _, ok := pendingBalanceBig[balance.ChainID]; !ok {
+			pendingBalanceBig[balance.ChainID] = new(big.Int)
+		}
+		pendingBalanceBig[balance.ChainID].Add(pendingBalanceBig[balance.ChainID], balance.Value.BigInt)
+	}
+
+	// convert pending balances to number type
+	pendingBalance := make(map[string]Number)
+	for chain, balance := range pendingBalanceBig {
+		var err error
+		pendingBalance[chain], err = newNumberFromBigInt(balance, chain)
 		if err != nil {
 			return nil, err
 		}
-		totalInactiveWorkers += inactiveWorkers
+	}
+
+	// fetch unpaid balances for all minerIDs
+	unpaidBalances, err := pooldb.GetUnpaidBalanceOutputSumsByMiners(c.pooldb.Reader(), minerIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// sum unpaid balances by chain
+	unpaidBalanceBig := make(map[string]*big.Int)
+	for _, balance := range unpaidBalances {
+		if !balance.Value.Valid {
+			continue
+		} else if _, ok := unpaidBalanceBig[balance.ChainID]; !ok {
+			unpaidBalanceBig[balance.ChainID] = new(big.Int)
+		}
+		unpaidBalanceBig[balance.ChainID].Add(unpaidBalanceBig[balance.ChainID], balance.Value.BigInt)
+	}
+
+	// convert unpaid balances to number type
+	unpaidBalance := make(map[string]Number)
+	for chain, balance := range unpaidBalanceBig {
+		var err error
+		unpaidBalance[chain], err = newNumberFromBigInt(balance, chain)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	dashboard := &Dashboard{
-		ActiveWorkers:   newNumberFromUint64Ptr(totalActiveWorkers),
-		InactiveWorkers: newNumberFromUint64Ptr(totalInactiveWorkers),
-		Hashrate:        processHashrateInfo(totalLastShares),
-		Shares:          processShareInfo(totalSumShares),
+		ActiveWorkers:   newNumberFromUint64Ptr(activeWorkers),
+		InactiveWorkers: newNumberFromUint64Ptr(inactiveWorkers),
+		HashrateInfo:    processHashrateInfo(lastShares),
+		SharesInfo:      processShareInfo(sumShares),
+		PendingBalance:  pendingBalance,
+		UnpaidBalance:   unpaidBalance,
 	}
 
 	return dashboard, nil
@@ -142,8 +195,8 @@ func (c *Client) GetWorkerDashboard(workerID uint64) (*Dashboard, error) {
 	}
 
 	dashboard := &Dashboard{
-		Hashrate: processHashrateInfo(lastShares),
-		Shares:   processShareInfo(sumShares),
+		HashrateInfo: processHashrateInfo(lastShares),
+		SharesInfo:   processShareInfo(sumShares),
 	}
 
 	return dashboard, nil

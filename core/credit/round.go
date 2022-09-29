@@ -80,7 +80,7 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 		switch miner.ChainID {
 		case "USDC":
 			// fetch the miner's current ETH balance
-			ethBalance, err := pooldb.GetSumBalanceOutputValueByMiner(pooldbClient.Reader(), miner.ID, "ETH")
+			ethBalance, err := pooldb.GetUnpaidBalanceOutputSumByMiner(pooldbClient.Reader(), miner.ID, "ETH")
 			if err != nil {
 				return err
 			}

@@ -92,22 +92,19 @@ type ShareInfo struct {
 }
 
 type Worker struct {
-	Name           string `json:"name"`
-	Active         bool   `json:"active"`
-	Hashrate       Number `json:"hashrate"`
-	AvgHashrate    Number `json:"avgHashrate"`
-	AcceptedShares Number `json:"acceptedShares"`
-	RejectedShares Number `json:"rejectedShares"`
-	InvalidShares  Number `json:"invalidShares"`
-	LastSeen       int64  `json:"lastSeen"`
+	Name         string                   `json:"name"`
+	Active       bool                     `json:"active"`
+	HashrateInfo map[string]*HashrateInfo `json:"hashrateInfo"`
+	SharesInfo   map[string]*ShareInfo    `json:"shareInfo"`
+	LastSeen     int64                    `json:"lastSeen"`
 }
 
 type Dashboard struct {
 	Miners          *Number                  `json:"miners,omitempty"`
 	ActiveWorkers   *Number                  `json:"activeWorkers,omitempty"`
 	InactiveWorkers *Number                  `json:"inactiveWorkers,omitempty"`
-	Hashrate        map[string]*HashrateInfo `json:"hashrate"`
-	Shares          map[string]*ShareInfo    `json:"shareInfo"`
+	HashrateInfo    map[string]*HashrateInfo `json:"hashrateInfo"`
+	SharesInfo      map[string]*ShareInfo    `json:"shareInfo"`
 	PendingBalance  map[string]Number        `json:"pendingBalance"`
 	UnpaidBalance   map[string]Number        `json:"unpaidBalance"`
 }

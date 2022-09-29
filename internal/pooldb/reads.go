@@ -232,30 +232,50 @@ func GetActiveWorkersCount(q dbcl.Querier) (uint64, error) {
 	return dbcl.GetUint64(q, query)
 }
 
-func GetActiveWorkersByMinerCount(q dbcl.Querier, minerID uint64) (uint64, error) {
-	const query = `SELECT COUNT(DISTINCT worker_id)
+func GetActiveWorkersByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64, error) {
+	const rawQuery = `SELECT COUNT(DISTINCT worker_id)
 	FROM ip_addresses
 	WHERE
-		miner_id = ?
+		miner_id IN (?)
 	AND
 		worker_id != 0
 	AND
 		active IS TRUE;`
 
-	return dbcl.GetUint64(q, query, minerID)
+	if len(minerIDs) == 0 {
+		return 0, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs)
+	if err != nil {
+		return 0, err
+	}
+	query = q.Rebind(query)
+
+	return dbcl.GetUint64(q, query, args...)
 }
 
-func GetInactiveWorkersByMinerCount(q dbcl.Querier, minerID uint64) (uint64, error) {
-	const query = `SELECT COUNT(DISTINCT worker_id)
+func GetInactiveWorkersByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64, error) {
+	const rawQuery = `SELECT COUNT(DISTINCT worker_id)
 	FROM ip_addresses
 	WHERE
-		miner_id = ?
+		miner_id IN (?)
 	AND
 		worker_id != 0
 	AND
 		active IS FALSE;`
 
-	return dbcl.GetUint64(q, query, minerID)
+	if len(minerIDs) == 0 {
+		return 0, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs)
+	if err != nil {
+		return 0, err
+	}
+	query = q.Rebind(query)
+
+	return dbcl.GetUint64(q, query, args...)
 }
 
 func GetOldestActiveIPAddress(q dbcl.Querier, minerID uint64) (*IPAddress, error) {
@@ -349,7 +369,7 @@ func GetRoundsCount(q dbcl.Querier) (uint64, error) {
 	return dbcl.GetUint64(q, query)
 }
 
-func GetRoundsByMiner(q dbcl.Querier, minerIDs []uint64, page, size uint64) ([]*Round, error) {
+func GetRoundsByMiners(q dbcl.Querier, minerIDs []uint64, page, size uint64) ([]*Round, error) {
 	const rawQuery = `SELECT 
 		rounds.*, 
 		shares.count miner_accepted_shares,
@@ -378,7 +398,7 @@ func GetRoundsByMiner(q dbcl.Querier, minerIDs []uint64, page, size uint64) ([]*
 	return output, err
 }
 
-func GetRoundsByMinerCount(q dbcl.Querier, minerIDs []uint64) (uint64, error) {
+func GetRoundsByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64, error) {
 	const rawQuery = `SELECT count(rounds.id)
 	FROM rounds
 	JOIN shares ON rounds.id = shares.round_id
@@ -702,7 +722,7 @@ func GetBalanceInputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceInput, e
 	return output, err
 }
 
-func GetSumBalanceInputValueByChain(q dbcl.Querier, chain string) (*big.Int, error) {
+func GetPendingBalanceInputSumByChain(q dbcl.Querier, chain string) (*big.Int, error) {
 	const query = `SELECT sum(value)
 	FROM balance_inputs
 	WHERE
@@ -711,6 +731,33 @@ func GetSumBalanceInputValueByChain(q dbcl.Querier, chain string) (*big.Int, err
 		pending = TRUE;`
 
 	return dbcl.GetBigInt(q, query, chain)
+}
+
+func GetPendingBalanceInputSumsByMiners(q dbcl.Querier, minerIDs []uint64) ([]*BalanceInput, error) {
+	const rawQuery = `SELECT 
+		chain_id,
+		sum(value) value
+	FROM balance_inputs
+	WHERE
+		miner_id IN (?)
+	AND
+		pending = TRUE
+	GROUP BY chain_id;`
+
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	output := []*BalanceInput{}
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
+
+	return output, err
 }
 
 func GetBalanceOutputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceOutput, error) {
@@ -725,7 +772,7 @@ func GetBalanceOutputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceOutput,
 	return output, err
 }
 
-func GetSumBalanceOutputValueByChain(q dbcl.Querier, chain string) (*big.Int, error) {
+func GetUnpaidBalanceOutputByChain(q dbcl.Querier, chain string) (*big.Int, error) {
 	const query = `SELECT sum(value)
 	FROM balance_outputs
 	WHERE
@@ -736,7 +783,7 @@ func GetSumBalanceOutputValueByChain(q dbcl.Querier, chain string) (*big.Int, er
 	return dbcl.GetBigInt(q, query, chain)
 }
 
-func GetSumBalanceOutputValueByMiner(q dbcl.Querier, minerID uint64, chain string) (*big.Int, error) {
+func GetUnpaidBalanceOutputSumByMiner(q dbcl.Querier, minerID uint64, chain string) (*big.Int, error) {
 	const query = `SELECT sum(value)
 	FROM balance_outputs
 	WHERE
@@ -749,7 +796,34 @@ func GetSumBalanceOutputValueByMiner(q dbcl.Querier, minerID uint64, chain strin
 	return dbcl.GetBigInt(q, query, minerID, chain)
 }
 
-func GetSumBalanceOutputAboveThreshold(q dbcl.Querier, chain, threshold string) ([]*BalanceOutput, error) {
+func GetUnpaidBalanceOutputSumsByMiners(q dbcl.Querier, minerIDs []uint64) ([]*BalanceOutput, error) {
+	const rawQuery = `SELECT 
+		chain_id,
+		sum(value) value
+	FROM balance_outputs
+	WHERE
+		miner_id IN (?)
+	AND
+		out_payout_id IS NULL
+	GROUP BY chain_id;`
+
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	output := []*BalanceOutput{}
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
+
+	return output, err
+}
+
+func GetUnpaidBalanceOutputsAboveThreshold(q dbcl.Querier, chain, threshold string) ([]*BalanceOutput, error) {
 	const query = `WITH cte as (
 		SELECT
 			miner_id, 
@@ -810,7 +884,7 @@ func GetPayoutsCount(q dbcl.Querier) (uint64, error) {
 	return dbcl.GetUint64(q, query)
 }
 
-func GetPayoutsByMiner(q dbcl.Querier, minerIDs []uint64, page, size uint64) ([]*Payout, error) {
+func GetPayoutsByMiners(q dbcl.Querier, minerIDs []uint64, page, size uint64) ([]*Payout, error) {
 	const rawQuery = `SELECT *
 	FROM payouts
 	WHERE
@@ -834,7 +908,7 @@ func GetPayoutsByMiner(q dbcl.Querier, minerIDs []uint64, page, size uint64) ([]
 	return output, err
 }
 
-func GetPayoutsByMinerCount(q dbcl.Querier, minerIDs []uint64) (uint64, error) {
+func GetPayoutsByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64, error) {
 	const rawQuery = `SELECT COUNT(id)
 	FROM payouts
 	WHERE

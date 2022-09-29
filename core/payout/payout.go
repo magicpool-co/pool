@@ -33,7 +33,7 @@ func (c *Client) InitiatePayouts() error {
 			return err
 		}
 
-		balanceOutputs, err := pooldb.GetSumBalanceOutputAboveThreshold(c.pooldb.Reader(), node.Chain(), defaultThreshold.String())
+		balanceOutputs, err := pooldb.GetUnpaidBalanceOutputsAboveThreshold(c.pooldb.Reader(), node.Chain(), defaultThreshold.String())
 		if err != nil {
 			return err
 		}
@@ -47,7 +47,7 @@ func (c *Client) InitiatePayouts() error {
 
 			feeBalance := new(big.Int)
 			if balanceOutput.ChainID == "USDC" {
-				feeBalance, err = pooldb.GetSumBalanceOutputValueByMiner(c.pooldb.Reader(), balanceOutput.MinerID, "ETH")
+				feeBalance, err = pooldb.GetUnpaidBalanceOutputSumByMiner(c.pooldb.Reader(), balanceOutput.MinerID, "ETH")
 				if err != nil {
 					return err
 				}
