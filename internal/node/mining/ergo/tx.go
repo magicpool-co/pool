@@ -33,7 +33,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		return "", fmt.Errorf("need at least one output")
 	}
 
-	const fee = 2000000
+	const fee = 1000000 + 1
 	var feeCounter uint64
 	for _, output := range outputs {
 		if output.SplitFee {

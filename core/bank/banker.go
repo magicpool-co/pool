@@ -99,11 +99,11 @@ func SendOutgoingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txOutputs 
 			},
 		}
 
-		// since ERGO requires an extra 1000000 to send token transactions (even
+		// since ERGO requires an extra 1 to send token transactions (even
 		// though it is never spent), we add it back as a UTXO and balance output
 		switch node.Chain() {
 		case "ERGO":
-			const ergoTxRemainder = 1000000
+			const ergoTxRemainder = 1
 			remainderUTXO := &pooldb.UTXO{
 				ChainID: node.Chain(),
 				TxID:    txid,
