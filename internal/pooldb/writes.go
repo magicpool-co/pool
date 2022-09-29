@@ -146,7 +146,7 @@ func UpdateExchangeBatch(q dbcl.Querier, obj *ExchangeBatch, updateCols []string
 }
 
 func InsertExchangeInputs(q dbcl.Querier, objects ...*ExchangeInput) error {
-	const table = "exchange_batches"
+	const table = "exchange_inputs"
 	cols := []string{"batch_id", "in_chain_id", "out_chain_id", "value"}
 
 	rawObjects := make([]interface{}, len(objects))
