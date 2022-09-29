@@ -22,6 +22,7 @@ type Worker struct {
 	pooldb      *dbcl.Client
 	tsdb        *dbcl.Client
 	redis       *redis.Client
+	exchange    types.Exchange
 	aws         *aws.Client
 	metrics     *metrics.Client
 	telegram    *telegram.Client
@@ -43,8 +44,10 @@ func NewWorker(env string, mainnet bool, logger *log.Logger, miningNodes []types
 		redis:       redisClient,
 		pooldb:      pooldbClient,
 		tsdb:        tsdbClient,
+		exchange:    exchange,
 		aws:         awsClient,
 		metrics:     metricsClient,
+		telegram:    telegramClient,
 	}
 
 	return worker
@@ -128,12 +131,14 @@ func (w *Worker) Start() {
 		nodes:  w.miningNodes,
 	})
 
-	// w.cron.AddJob("*/5 * * * *", &TradeJob{
-	// 	locker: locker,
-	// 	logger: w.logger,
-	// 	pooldb: w.pooldb,
-	// 	nodes:  w.payoutNodes,
-	// })
+	w.cron.AddJob("*/5 * * * *", &TradeJob{
+		locker:   locker,
+		logger:   w.logger,
+		pooldb:   w.pooldb,
+		nodes:    w.payoutNodes,
+		exchange: w.exchange,
+		telegram: w.telegram,
+	})
 
 	w.cron.AddJob("* * * * *", &ChartJob{
 		locker: locker,

@@ -2,6 +2,7 @@ package trade
 
 import (
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/magicpool-co/pool/core/trade/binance"
@@ -10,8 +11,27 @@ import (
 	"github.com/magicpool-co/pool/internal/accounting"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/telegram"
+	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
+)
+
+var (
+	tempInputThresholds = map[string]*big.Int{
+		"CFX":  common.MustParseBigInt("2000000000000000000000000"), // 2,000,000 CFX
+		"CTXC": common.MustParseBigInt("500000000000000000000000"),  // 500,000 CTXC
+		"ERGO": new(big.Int).SetUint64(10_000_000_000),              // 10 ERGO
+		"ETC":  common.MustParseBigInt("3000000000000000000000"),    // 3000 ETC
+		"FIRO": new(big.Int).SetUint64(10_000_000_000_000),          // 100,000 FIRO
+		"FLUX": new(big.Int).SetUint64(30_000_000_000_000),          // 300,000 FLUX
+		"RVN":  new(big.Int).SetUint64(20_000_000_000_000),          // 200,000 RVN
+	}
+
+	tempOutputThresholds = map[string]*big.Int{
+		"BTC":  new(big.Int).SetUint64(500_000),                   // 0.005 BTC
+		"ETH":  new(big.Int).SetUint64(5_000_000_000_000_000_000), // 5 ETH
+		"USDC": new(big.Int).SetUint64(20_000_000_000),            // 20,000 USDC
+	}
 )
 
 /* exchange */
@@ -97,17 +117,25 @@ func (c *Client) CheckForNewBatch() error {
 		return err
 	}
 
+	// temporarily restrict profit switches to only use funds from ERGO
+	adjustedBalanceInputs := make([]*pooldb.BalanceInput, 0)
+	for _, balanceInput := range balanceInputs {
+		if balanceInput.ChainID == "ERGO" {
+			adjustedBalanceInputs = append(adjustedBalanceInputs, balanceInput)
+		}
+	}
+
 	// calculate the input paths from balance inputs, fetch the
 	// exchange's output thresholds and current prices. though input
 	// thresholds are global (since exchanges don't charge any deposit
 	// fees, the only deposit fee is the network tx fee), output thresholds
 	// are exchange specific since withdrawal fees can vary across exchanges.
-	inputPaths, err := balanceInputsToInputPaths(balanceInputs)
+	inputPaths, err := balanceInputsToInputPaths(adjustedBalanceInputs)
 	if err != nil {
 		return err
 	}
 
-	outputThresholds := c.exchange.GetOutputThresholds()
+	// outputThresholds := c.exchange.GetOutputThresholds()
 	prices, err := c.exchange.GetPrices(inputPaths)
 	if err != nil {
 		return err
@@ -119,7 +147,9 @@ func (c *Client) CheckForNewBatch() error {
 	// values are estimated through the current prices - see the exchange accountant
 	// for more details on this process).
 	outputPaths, err := accounting.CalculateExchangePaths(inputPaths,
-		accounting.DefaultInputThresholds, outputThresholds, prices)
+		tempInputThresholds, tempOutputThresholds, prices)
+	// outputPaths, err := accounting.CalculateExchangePaths(inputPaths,
+	// 	accounting.DefaultInputThresholds, outputThresholds, prices)
 	if err != nil {
 		return err
 	} else if len(outputPaths) == 0 {
@@ -145,7 +175,7 @@ func (c *Client) CheckForNewBatch() error {
 		return err
 	}
 
-	for _, balanceInput := range balanceInputs {
+	for _, balanceInput := range adjustedBalanceInputs {
 		balanceInput.BatchID = types.Uint64Ptr(batchID)
 		err = pooldb.UpdateBalanceInput(tx, balanceInput, []string{"batch_id"})
 		if err != nil {
