@@ -5,12 +5,14 @@ import (
 	"math/big"
 )
 
-func SafeRoundedFloat(val float64) float64 {
+func SafeRoundedFloat(val float64, decimals int) float64 {
 	if math.IsInf(val, 0) || math.IsNaN(val) {
 		return 0
 	}
 
-	return math.Round(val*1000) / 1000
+	exp := math.Pow(10, float64(decimals))
+
+	return math.Round(val*exp) / exp
 }
 
 func int64Pow(x, n int) int {

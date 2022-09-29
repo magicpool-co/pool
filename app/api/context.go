@@ -188,7 +188,7 @@ type blockChartArgs struct {
 	period string
 }
 
-func (ctx *Context) getBlockCharts(args blockChartArgs) http.Handler {
+func (ctx *Context) getBlockChart(args blockChartArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		period, err := types.ParsePeriodType(args.period)
 		if err != nil {
@@ -199,7 +199,33 @@ func (ctx *Context) getBlockCharts(args blockChartArgs) http.Handler {
 			return
 		}
 
-		data, err := ctx.stats.GetBlockCharts(args.chain, period)
+		data, err := ctx.stats.GetBlockChart(args.chain, period)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		ctx.writeOkResponse(w, data)
+	})
+}
+
+type roundChartArgs struct {
+	chain  string
+	period string
+}
+
+func (ctx *Context) getRoundChart(args roundChartArgs) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		period, err := types.ParsePeriodType(args.period)
+		if err != nil {
+			ctx.writeErrorResponse(w, errPeriodNotFound)
+			return
+		} else if !validateChain(args.chain) {
+			ctx.writeErrorResponse(w, errChainNotFound)
+			return
+		}
+
+		data, err := ctx.stats.GetRoundChart(args.chain, period)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
@@ -216,7 +242,7 @@ type shareChartArgs struct {
 	worker string
 }
 
-func (ctx *Context) getShareCharts(args shareChartArgs) http.Handler {
+func (ctx *Context) getShareChart(args shareChartArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		period, err := types.ParsePeriodType(args.period)
 		if err != nil {
@@ -244,7 +270,7 @@ func (ctx *Context) getShareCharts(args shareChartArgs) http.Handler {
 				return
 			}
 
-			data, err = ctx.stats.GetWorkerShareCharts(workerID, args.chain, period)
+			data, err = ctx.stats.GetWorkerShareChart(workerID, args.chain, period)
 		} else if args.miner != "" {
 			minerIDs, err := ctx.getMinerIDs(args.miner)
 			if err != nil {
@@ -252,9 +278,9 @@ func (ctx *Context) getShareCharts(args shareChartArgs) http.Handler {
 				return
 			}
 
-			data, err = ctx.stats.GetMinerShareCharts(minerIDs, args.chain, period)
+			data, err = ctx.stats.GetMinerShareChart(minerIDs, args.chain, period)
 		} else {
-			data, err = ctx.stats.GetGlobalShareCharts(args.chain, period)
+			data, err = ctx.stats.GetGlobalShareChart(args.chain, period)
 		}
 
 		if err != nil {

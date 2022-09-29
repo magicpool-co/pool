@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/magicpool-co/pool/internal/tsdb"
 	"github.com/magicpool-co/pool/pkg/common"
 )
 
@@ -148,4 +149,151 @@ type Payout struct {
 	TxFees       Number `json:"txFees"`
 	TotalFees    Number `json:"totalFees"`
 	Timestamp    int64  `json:"timestamp"`
+}
+
+/* block chart */
+
+type BlockChart struct {
+	Timestamp        []int64   `json:"timestamp"`
+	Value            []float64 `json:"value"`
+	Difficulty       []float64 `json:"difficulty"`
+	BlockTime        []float64 `json:"blockTime"`
+	Hashrate         []float64 `json:"hashrate"`
+	UncleRate        []float64 `json:"uncleRate"`
+	Profitability    []float64 `json:"profitability"`
+	AvgProfitability []float64 `json:"avgProfitability"`
+	BlockCount       []uint64  `json:"blockCount"`
+	UncleCount       []uint64  `json:"uncleCount"`
+	TxCount          []uint64  `json:"txCount"`
+}
+
+func (chart *BlockChart) Len() int {
+	return len(chart.Timestamp)
+}
+
+func (chart *BlockChart) Swap(i, j int) {
+	chart.Timestamp[i], chart.Timestamp[j] = chart.Timestamp[j], chart.Timestamp[i]
+	chart.Value[i], chart.Value[j] = chart.Value[j], chart.Value[i]
+	chart.Difficulty[i], chart.Difficulty[j] = chart.Difficulty[j], chart.Difficulty[i]
+	chart.BlockTime[i], chart.BlockTime[j] = chart.BlockTime[j], chart.BlockTime[i]
+	chart.Hashrate[i], chart.Hashrate[j] = chart.Hashrate[j], chart.Hashrate[i]
+	chart.UncleRate[i], chart.UncleRate[j] = chart.UncleRate[j], chart.UncleRate[i]
+	chart.Profitability[i], chart.Profitability[j] = chart.Profitability[j], chart.Profitability[i]
+	chart.AvgProfitability[i], chart.AvgProfitability[j] = chart.AvgProfitability[j], chart.AvgProfitability[i]
+	chart.BlockCount[i], chart.BlockCount[j] = chart.BlockCount[j], chart.BlockCount[i]
+	chart.UncleCount[i], chart.UncleCount[j] = chart.UncleCount[j], chart.UncleCount[i]
+	chart.TxCount[i], chart.TxCount[j] = chart.TxCount[j], chart.TxCount[i]
+}
+
+func (chart *BlockChart) Less(i, j int) bool {
+	return chart.Timestamp[i] < chart.Timestamp[j]
+}
+
+func (chart *BlockChart) AddPoint(block *tsdb.Block) {
+	chart.Timestamp = append(chart.Timestamp, block.EndTime.Unix())
+	chart.Value = append(chart.Value, common.SafeRoundedFloat(block.Value, 3))
+	chart.Difficulty = append(chart.Difficulty, common.SafeRoundedFloat(block.Difficulty, 3))
+	chart.BlockTime = append(chart.BlockTime, common.SafeRoundedFloat(block.BlockTime, 3))
+	chart.Hashrate = append(chart.Hashrate, common.SafeRoundedFloat(block.Hashrate, 3))
+	chart.UncleRate = append(chart.UncleRate, common.SafeRoundedFloat(block.UncleRate, 5))
+	chart.Profitability = append(chart.Profitability, common.SafeRoundedFloat(block.Profitability, 10))
+	chart.AvgProfitability = append(chart.AvgProfitability, common.SafeRoundedFloat(block.AvgProfitability, 10))
+	chart.BlockCount = append(chart.BlockCount, block.Count)
+	chart.UncleCount = append(chart.UncleCount, block.UncleCount)
+	chart.TxCount = append(chart.TxCount, block.TxCount)
+}
+
+/* round chart */
+
+type RoundChart struct {
+	Timestamp        []int64   `json:"timestamp"`
+	Value            []float64 `json:"value"`
+	Difficulty       []float64 `json:"difficulty"`
+	RoundTime        []float64 `json:"roundTime"`
+	Hashrate         []float64 `json:"hashrate"`
+	UncleRate        []float64 `json:"uncleRate"`
+	Luck             []float64 `json:"luck"`
+	AvgLuck          []float64 `json:"avgLuck"`
+	Profitability    []float64 `json:"profitability"`
+	AvgProfitability []float64 `json:"avgProfitability"`
+}
+
+func (chart *RoundChart) Len() int {
+	return len(chart.Timestamp)
+}
+
+func (chart *RoundChart) Swap(i, j int) {
+	chart.Timestamp[i], chart.Timestamp[j] = chart.Timestamp[j], chart.Timestamp[i]
+	chart.Value[i], chart.Value[j] = chart.Value[j], chart.Value[i]
+	chart.Difficulty[i], chart.Difficulty[j] = chart.Difficulty[j], chart.Difficulty[i]
+	chart.RoundTime[i], chart.RoundTime[j] = chart.RoundTime[j], chart.RoundTime[i]
+	chart.Hashrate[i], chart.Hashrate[j] = chart.Hashrate[j], chart.Hashrate[i]
+	chart.UncleRate[i], chart.UncleRate[j] = chart.UncleRate[j], chart.UncleRate[i]
+	chart.Luck[i], chart.Luck[j] = chart.Luck[j], chart.Luck[i]
+	chart.AvgLuck[i], chart.AvgLuck[j] = chart.AvgLuck[j], chart.AvgLuck[i]
+	chart.Profitability[i], chart.Profitability[j] = chart.Profitability[j], chart.Profitability[i]
+	chart.AvgProfitability[i], chart.AvgProfitability[j] = chart.AvgProfitability[j], chart.AvgProfitability[i]
+}
+
+func (chart *RoundChart) Less(i, j int) bool {
+	return chart.Timestamp[i] < chart.Timestamp[j]
+}
+
+func (chart *RoundChart) AddPoint(round *tsdb.Round) {
+	chart.Timestamp = append(chart.Timestamp, round.EndTime.Unix())
+	chart.Value = append(chart.Value, common.SafeRoundedFloat(round.Value, 3))
+	chart.Difficulty = append(chart.Difficulty, common.SafeRoundedFloat(round.Difficulty, 3))
+	chart.RoundTime = append(chart.RoundTime, common.SafeRoundedFloat(round.RoundTime, 3))
+	chart.Hashrate = append(chart.Hashrate, common.SafeRoundedFloat(round.Hashrate, 3))
+	chart.UncleRate = append(chart.UncleRate, common.SafeRoundedFloat(round.UncleRate, 3))
+	chart.Luck = append(chart.Luck, common.SafeRoundedFloat(round.Luck, 3))
+	chart.AvgLuck = append(chart.AvgLuck, common.SafeRoundedFloat(round.AvgLuck, 3))
+	chart.Profitability = append(chart.Profitability, common.SafeRoundedFloat(round.Profitability, 3))
+	chart.AvgProfitability = append(chart.AvgProfitability, common.SafeRoundedFloat(round.AvgProfitability, 3))
+}
+
+/* share chart */
+
+type ShareChart struct {
+	Timestamp        []int64   `json:"timestamp"`
+	Miners           []uint64  `json:"miners"`
+	Workers          []uint64  `json:"workers"`
+	AcceptedShares   []uint64  `json:"acceptedShares"`
+	RejectedShares   []uint64  `json:"rejectedShares"`
+	InvalidShares    []uint64  `json:"invalidShares"`
+	Hashrate         []float64 `json:"hashrate"`
+	AvgHashrate      []float64 `json:"avgHashrate"`
+	ReportedHashrate []float64 `json:"reportedHashrate"`
+}
+
+func (chart *ShareChart) Len() int {
+	return len(chart.Timestamp)
+}
+
+func (chart *ShareChart) Swap(i, j int) {
+	chart.Timestamp[i], chart.Timestamp[j] = chart.Timestamp[j], chart.Timestamp[i]
+	chart.Miners[i], chart.Miners[j] = chart.Miners[j], chart.Miners[i]
+	chart.Workers[i], chart.Workers[j] = chart.Workers[j], chart.Workers[i]
+	chart.AcceptedShares[i], chart.AcceptedShares[j] = chart.AcceptedShares[j], chart.AcceptedShares[i]
+	chart.RejectedShares[i], chart.RejectedShares[j] = chart.RejectedShares[j], chart.RejectedShares[i]
+	chart.InvalidShares[i], chart.InvalidShares[j] = chart.InvalidShares[j], chart.InvalidShares[i]
+	chart.Hashrate[i], chart.Hashrate[j] = chart.Hashrate[j], chart.Hashrate[i]
+	chart.AvgHashrate[i], chart.AvgHashrate[j] = chart.AvgHashrate[j], chart.AvgHashrate[i]
+	chart.ReportedHashrate[i], chart.ReportedHashrate[j] = chart.ReportedHashrate[j], chart.ReportedHashrate[i]
+}
+
+func (chart *ShareChart) Less(i, j int) bool {
+	return chart.Timestamp[i] < chart.Timestamp[j]
+}
+
+func (chart *ShareChart) AddPoint(share *tsdb.Share) {
+	chart.Timestamp = append(chart.Timestamp, share.EndTime.Unix())
+	chart.Miners = append(chart.Miners, share.Miners)
+	chart.Workers = append(chart.Workers, share.Workers)
+	chart.AcceptedShares = append(chart.AcceptedShares, share.AcceptedShares)
+	chart.RejectedShares = append(chart.RejectedShares, share.RejectedShares)
+	chart.InvalidShares = append(chart.InvalidShares, share.InvalidShares)
+	chart.Hashrate = append(chart.Hashrate, common.SafeRoundedFloat(share.Hashrate, 3))
+	chart.AvgHashrate = append(chart.AvgHashrate, common.SafeRoundedFloat(share.AvgHashrate, 3))
+	chart.ReportedHashrate = append(chart.ReportedHashrate, common.SafeRoundedFloat(share.ReportedHashrate, 3))
 }

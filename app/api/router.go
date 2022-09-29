@@ -75,17 +75,23 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		method = "GET"
 		handler = rtr.ctx.getDashboard(dashboardArgs{})
 
-	case rtr.match(path, "/global/charts/shares"):
-		method = "GET"
-		chain := r.URL.Query().Get("chain")
-		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getShareCharts(shareChartArgs{chain: chain, period: period})
-
 	case rtr.match(path, "/global/charts/blocks"):
 		method = "GET"
 		chain := r.URL.Query().Get("chain")
 		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getBlockCharts(blockChartArgs{chain: chain, period: period})
+		handler = rtr.ctx.getBlockChart(blockChartArgs{chain: chain, period: period})
+
+	case rtr.match(path, "/global/charts/rounds"):
+		method = "GET"
+		chain := r.URL.Query().Get("chain")
+		period := r.URL.Query().Get("period")
+		handler = rtr.ctx.getRoundChart(roundChartArgs{chain: chain, period: period})
+
+	case rtr.match(path, "/global/charts/shares"):
+		method = "GET"
+		chain := r.URL.Query().Get("chain")
+		period := r.URL.Query().Get("period")
+		handler = rtr.ctx.getShareChart(shareChartArgs{chain: chain, period: period})
 
 	case rtr.match(path, "/global/blocks"):
 		method = "GET"
@@ -105,7 +111,7 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		method = "GET"
 		chain := r.URL.Query().Get("chain")
 		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getShareCharts(shareChartArgs{chain: chain, period: period, miner: miner})
+		handler = rtr.ctx.getShareChart(shareChartArgs{chain: chain, period: period, miner: miner})
 
 	case rtr.match(path, "/miner/+/blocks", &miner):
 		method = "GET"
@@ -125,7 +131,7 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		method = "GET"
 		chain := r.URL.Query().Get("chain")
 		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getShareCharts(shareChartArgs{chain: chain, period: period, miner: miner, worker: worker})
+		handler = rtr.ctx.getShareChart(shareChartArgs{chain: chain, period: period, miner: miner, worker: worker})
 
 	default:
 		rtr.ctx.writeErrorResponse(w, errRouteNotFound)
