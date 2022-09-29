@@ -267,8 +267,6 @@ func (c *Client) GetWalletStatus(chain string) (bool, error) {
 	err := c.do("GET", "/api/v2/currencies/"+formatChain(chain), nil, &obj, false)
 	if err != nil {
 		return false, err
-	} else if !obj.IsDebitEnabled {
-		return false, fmt.Errorf("trading is disabled for %s", chain)
 	}
 
 	for _, chainObj := range obj.Chains {
