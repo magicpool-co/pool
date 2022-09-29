@@ -194,7 +194,7 @@ func (c *Client) GetRate(market string) (float64, error) {
 
 func (c *Client) GetHistoricalRate(base, quote string, timestamp time.Time) (float64, error) {
 	payload := map[string]string{
-		"symbol":  base + "-" + quote,
+		"symbol":  formatChain(base) + "-" + formatChain(quote),
 		"type":    "5min",
 		"startAt": strconv.FormatInt(timestamp.Add(-1*time.Hour).Unix(), 10),
 		"endAt":   strconv.FormatInt(timestamp.Add(time.Hour).Unix(), 10),
@@ -264,7 +264,7 @@ func (c *Client) GetPrices(inputPaths map[string]map[string]*big.Int) (map[strin
 
 func (c *Client) GetWalletStatus(chain string) (bool, error) {
 	var obj *Currency
-	err := c.do("GET", "/api/v2/currencies/"+chain, nil, &obj, false)
+	err := c.do("GET", "/api/v2/currencies/"+formatChain(chain), nil, &obj, false)
 	if err != nil {
 		return false, err
 	} else if !obj.IsDebitEnabled {
@@ -272,7 +272,7 @@ func (c *Client) GetWalletStatus(chain string) (bool, error) {
 	}
 
 	for _, chainObj := range obj.Chains {
-		if chainObj.ChainName == chain {
+		if chainObj.ChainName == formatChain(chain) {
 			if !chainObj.IsDepositEnabled {
 				return false, fmt.Errorf("deposits are disabled for %s", chain)
 			} else if !chainObj.IsWithdrawEnabled {
