@@ -157,8 +157,8 @@ func (t *Client) NotifyInitiateExchangeBatch(id uint64) error {
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyInitiateDeposit(id uint64, chain, txid, explorerURL string) error {
-	msg := fmt.Sprintf("initated exchange deposit %d for %s at [%s](%s)", id, chain, txid, explorerURL)
+func (t *Client) NotifyInitiateDeposit(id uint64, chain, txid, explorerURL string, value float64) error {
+	msg := fmt.Sprintf("initated exchange deposit %d for %.4f %s at [%s](%s)", id, value, chain, txid, explorerURL)
 
 	return t.sendMessage(msg, t.InfoChatID)
 }
@@ -169,8 +169,8 @@ func (t *Client) NotifyFinalizeDeposit(id uint64) error {
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyInitiateTrade(id uint64, pathID, stageID int, market, direction string) error {
-	msg := fmt.Sprintf("initated exchange trade %d (%d:%d) for %s %s", id, pathID, stageID, direction, market)
+func (t *Client) NotifyInitiateTrade(id uint64, pathID, stageID int, market, direction string, value float64) error {
+	msg := fmt.Sprintf("initated exchange trade %d (%d:%d) for %s %.4f %s", id, pathID, stageID, direction, value, market)
 
 	return t.sendMessage(msg, t.InfoChatID)
 }
@@ -181,8 +181,8 @@ func (t *Client) NotifyFinalizeTrade(id uint64) error {
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyInitiateWithdrawal(id uint64, chain string) error {
-	msg := fmt.Sprintf("initated exchange withdrawal %d for %s", id, chain)
+func (t *Client) NotifyInitiateWithdrawal(id uint64, chain string, value float64) error {
+	msg := fmt.Sprintf("initated exchange withdrawal %d for %.4f %s", id, value, chain)
 
 	return t.sendMessage(msg, t.InfoChatID)
 }

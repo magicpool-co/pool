@@ -93,7 +93,7 @@ func (c *Client) InitiateWithdrawals(batchID uint64) error {
 			return err
 		}
 
-		c.telegram.NotifyInitiateWithdrawal(withdrawalID, chain)
+		c.telegram.NotifyInitiateWithdrawal(withdrawalID, chain, floatValue)
 	}
 
 	return c.updateBatchStatus(batchID, WithdrawalsActive)

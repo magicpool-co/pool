@@ -85,7 +85,8 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 			return err
 		}
 
-		c.telegram.NotifyInitiateDeposit(depositID, chain, txid, c.nodes[chain].GetTxExplorerURL(txid))
+		floatValue := common.BigIntToFloat64(value, c.nodes[chain].GetUnits().Big())
+		c.telegram.NotifyInitiateDeposit(depositID, chain, txid, c.nodes[chain].GetTxExplorerURL(txid), floatValue)
 	}
 
 	return c.updateBatchStatus(batchID, DepositsActive)
