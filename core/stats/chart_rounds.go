@@ -1,10 +1,9 @@
-package charter
+package stats
 
 import (
 	"time"
 
 	"github.com/magicpool-co/pool/internal/tsdb"
-	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
 
@@ -24,8 +23,8 @@ func processRawRounds(rawRounds []*tsdb.Round) [][]interface{} {
 	return nil
 }
 
-func FetchRounds(tsdbClient *dbcl.Client, chain string, period types.PeriodType) (interface{}, error) {
-	raw, err := tsdb.GetRounds(tsdbClient.Reader(), chain, int(period))
+func (c *Client) GetRoundCharts(chain string, period types.PeriodType) (interface{}, error) {
+	raw, err := tsdb.GetRounds(c.tsdb.Reader(), chain, int(period))
 	if err != nil {
 		return nil, err
 	}

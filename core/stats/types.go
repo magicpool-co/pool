@@ -16,6 +16,20 @@ type Number struct {
 	Units     string  `json:"units"`
 }
 
+func newNumberFromUint64(value uint64) Number {
+	n := Number{
+		Value:     float64(value),
+		Formatted: strconv.FormatUint(value, 10),
+	}
+
+	return n
+}
+
+func newNumberFromUint64Ptr(value uint64) *Number {
+	n := newNumberFromUint64(value)
+	return &n
+}
+
 func newNumberFromFloat64(value float64, units string, scaleUnits bool) Number {
 	if scaleUnits {
 		scale, scaledValue := common.GetDefaultUnitScale(value)
@@ -92,10 +106,9 @@ type Worker struct {
 }
 
 type Dashboard struct {
-	MinersCount     *Number                  `json:"minersCount,omitempty"`
-	WorkersCount    *Number                  `json:"workersCount,omitempty"`
-	WorkersActive   []*Worker                `json:"workersActive,omitempty"`
-	WorkersInactive []*Worker                `json:"workersInactive,omitempty"`
+	Miners          *Number                  `json:"miners,omitempty"`
+	ActiveWorkers   *Number                  `json:"activeWorkers,omitempty"`
+	InactiveWorkers *Number                  `json:"inactiveWorkers,omitempty"`
 	Hashrate        map[string]*HashrateInfo `json:"hashrate"`
 	Shares          map[string]*ShareInfo    `json:"shareInfo"`
 	PendingBalance  map[string]Number        `json:"pendingBalance"`
@@ -109,6 +122,7 @@ type Block struct {
 	Type            string  `json:"type"`
 	Pending         bool    `json:"pending"`
 	Mature          bool    `json:"mature"`
+	Hash            string  `json:"hash"`
 	Height          uint64  `json:"height"`
 	ExplorerURL     string  `json:"explorerUrl"`
 	Difficulty      Number  `json:"difficulty"`
@@ -126,6 +140,8 @@ type Payout struct {
 	Chain        string `json:"chain"`
 	Address      string `json:"address"`
 	TxID         string `json:"txid"`
+	ExplorerURL  string `json:"explorerUrl"`
+	Confirmed    bool   `json:"confirmed"`
 	Value        Number `json:"value"`
 	PoolFees     Number `json:"poolFees"`
 	ExchangeFees Number `json:"exchangeFees"`

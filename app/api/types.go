@@ -7,6 +7,7 @@ import (
 
 var (
 	errInvalidParameters   = newHttpError(400, "InvalidParameters", "Invalid parameters")
+	errTooManyMiners       = newHttpError(400, "TooManyMiners", "Too many miners requested")
 	errRouteNotFound       = newHttpError(404, "RouteNotFound", "Route not found")
 	errChainNotFound       = newHttpError(404, "ChainNotFound", "Chain not found")
 	errPeriodNotFound      = newHttpError(404, "PeriodNotFound", "Period not found")

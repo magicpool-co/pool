@@ -1,4 +1,4 @@
-package charter
+package stats
 
 import (
 	"sort"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/magicpool-co/pool/internal/tsdb"
 	"github.com/magicpool-co/pool/pkg/common"
-	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
 
@@ -71,8 +70,8 @@ func processRawShares(items []*tsdb.Share, period types.PeriodType) [][]interfac
 	return shares
 }
 
-func FetchGlobalShares(tsdbClient *dbcl.Client, chain string, period types.PeriodType) (interface{}, error) {
-	raw, err := tsdb.GetGlobalShares(tsdbClient.Reader(), chain, int(period))
+func (c *Client) GetGlobalShareCharts(chain string, period types.PeriodType) (interface{}, error) {
+	raw, err := tsdb.GetGlobalShares(c.tsdb.Reader(), chain, int(period))
 	if err != nil {
 		return nil, err
 	}
@@ -85,8 +84,12 @@ func FetchGlobalShares(tsdbClient *dbcl.Client, chain string, period types.Perio
 	return data, nil
 }
 
-func FetchMinerShares(tsdbClient *dbcl.Client, minerID uint64, chain string, period types.PeriodType) (interface{}, error) {
-	raw, err := tsdb.GetMinerShares(tsdbClient.Reader(), minerID, chain, int(period))
+func (c *Client) GetMinerShareCharts(minerIDs []uint64, chain string, period types.PeriodType) (interface{}, error) {
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	raw, err := tsdb.GetMinerShares(c.tsdb.Reader(), minerIDs[0], chain, int(period))
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +102,8 @@ func FetchMinerShares(tsdbClient *dbcl.Client, minerID uint64, chain string, per
 	return data, nil
 }
 
-func FetchWorkerShares(tsdbClient *dbcl.Client, workerID uint64, chain string, period types.PeriodType) (interface{}, error) {
-	raw, err := tsdb.GetWorkerShares(tsdbClient.Reader(), workerID, chain, int(period))
+func (c *Client) GetWorkerShareCharts(workerID uint64, chain string, period types.PeriodType) (interface{}, error) {
+	raw, err := tsdb.GetWorkerShares(c.tsdb.Reader(), workerID, chain, int(period))
 	if err != nil {
 		return nil, err
 	}

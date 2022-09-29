@@ -212,7 +212,7 @@ func GetWorkersByMiner(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
 
 /* ip addresses */
 
-func GetActiveMinerCount(q dbcl.Querier) (uint64, error) {
+func GetActiveMinersCount(q dbcl.Querier) (uint64, error) {
 	const query = `SELECT COUNT(DISTINCT miner_id)
 	FROM ip_addresses
 	WHERE
@@ -221,7 +221,7 @@ func GetActiveMinerCount(q dbcl.Querier) (uint64, error) {
 	return dbcl.GetUint64(q, query)
 }
 
-func GetActiveWorkerCount(q dbcl.Querier) (uint64, error) {
+func GetActiveWorkersCount(q dbcl.Querier) (uint64, error) {
 	const query = `SELECT COUNT(DISTINCT worker_id)
 	FROM ip_addresses
 	WHERE
@@ -230,6 +230,32 @@ func GetActiveWorkerCount(q dbcl.Querier) (uint64, error) {
 		active IS TRUE;`
 
 	return dbcl.GetUint64(q, query)
+}
+
+func GetActiveWorkersByMinerCount(q dbcl.Querier, minerID uint64) (uint64, error) {
+	const query = `SELECT COUNT(DISTINCT worker_id)
+	FROM ip_addresses
+	WHERE
+		miner_id = ?
+	AND
+		worker_id != 0
+	AND
+		active IS TRUE;`
+
+	return dbcl.GetUint64(q, query, minerID)
+}
+
+func GetInactiveWorkersByMinerCount(q dbcl.Querier, minerID uint64) (uint64, error) {
+	const query = `SELECT COUNT(DISTINCT worker_id)
+	FROM ip_addresses
+	WHERE
+		miner_id = ?
+	AND
+		worker_id != 0
+	AND
+		active IS FALSE;`
+
+	return dbcl.GetUint64(q, query, minerID)
 }
 
 func GetOldestActiveIPAddress(q dbcl.Querier, minerID uint64) (*IPAddress, error) {

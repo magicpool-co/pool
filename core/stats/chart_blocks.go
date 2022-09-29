@@ -1,4 +1,4 @@
-package charter
+package stats
 
 import (
 	"sort"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/magicpool-co/pool/internal/tsdb"
 	"github.com/magicpool-co/pool/pkg/common"
-	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
 
@@ -75,8 +74,8 @@ func processRawBlocks(items []*tsdb.Block, period types.PeriodType) [][]interfac
 	return blocks
 }
 
-func FetchBlocks(tsdbClient *dbcl.Client, chain string, period types.PeriodType) (interface{}, error) {
-	raw, err := tsdb.GetBlocks(tsdbClient.Reader(), chain, int(period))
+func (c *Client) GetBlockCharts(chain string, period types.PeriodType) (interface{}, error) {
+	raw, err := tsdb.GetBlocks(c.tsdb.Reader(), chain, int(period))
 	if err != nil {
 		return nil, err
 	}

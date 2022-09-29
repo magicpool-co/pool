@@ -8,7 +8,6 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/core/stats"
-	"github.com/magicpool-co/pool/internal/charter"
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/metrics"
 	"github.com/magicpool-co/pool/internal/pooldb"
@@ -69,26 +68,46 @@ func (ctx *Context) writeOkResponse(w http.ResponseWriter, body interface{}) {
 }
 
 func (ctx *Context) getMinerID(miner string) (uint64, error) {
-	minerID, err := ctx.redis.GetMinerID(miner)
-	if err != nil || minerID == 0 {
-		if err != nil {
-			ctx.logger.Error(err)
-		}
+	minerIDs, err := ctx.getMinerIDs(miner)
+	if err != nil {
+		return 0, err
+	} else if len(minerIDs) != 1 {
+		return 0, errMinerNotFound
+	}
 
-		parts := strings.Split(miner, ":")
-		if len(parts) != 2 {
-			return 0, errMinerNotFound
-		}
+	return minerIDs[0], nil
+}
 
-		minerID, err = pooldb.GetMinerID(ctx.pooldb.Reader(), parts[0], parts[1])
-		if err != nil {
-			return 0, err
-		} else if minerID == 0 {
-			return 0, errMinerNotFound
+func (ctx *Context) getMinerIDs(rawMiner string) ([]uint64, error) {
+	miners := strings.Split(rawMiner, ",")
+	if len(miners) > 10 {
+		return nil, errTooManyMiners
+	}
+
+	minerIDs := make([]uint64, len(miners))
+	for i, miner := range miners {
+		var err error
+		minerIDs[i], err = ctx.redis.GetMinerID(miner)
+		if err != nil || minerIDs[i] == 0 {
+			if err != nil {
+				ctx.logger.Error(err)
+			}
+
+			parts := strings.Split(miner, ":")
+			if len(parts) != 2 {
+				return nil, errMinerNotFound
+			}
+
+			minerIDs[i], err = pooldb.GetMinerID(ctx.pooldb.Reader(), parts[0], parts[1])
+			if err != nil {
+				return nil, err
+			} else if minerIDs[i] == 0 {
+				return nil, errMinerNotFound
+			}
 		}
 	}
 
-	return minerID, nil
+	return minerIDs, nil
 }
 
 func (ctx *Context) getWorkerID(minerID uint64, worker string) (uint64, error) {
@@ -144,13 +163,13 @@ func (ctx *Context) getDashboard(args dashboardArgs) http.Handler {
 
 			dashboard, err = ctx.stats.GetWorkerDashboard(workerID)
 		} else if args.miner != "" {
-			minerID, err := ctx.getMinerID(args.miner)
+			minerIDs, err := ctx.getMinerIDs(args.miner)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
 			}
 
-			dashboard, err = ctx.stats.GetMinerDashboard(minerID)
+			dashboard, err = ctx.stats.GetMinerDashboard(minerIDs)
 		} else {
 			dashboard, err = ctx.stats.GetGlobalDashboard()
 		}
@@ -180,7 +199,7 @@ func (ctx *Context) getBlockCharts(args blockChartArgs) http.Handler {
 			return
 		}
 
-		data, err := charter.FetchBlocks(ctx.tsdb, args.chain, period)
+		data, err := ctx.stats.GetBlockCharts(args.chain, period)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
@@ -225,17 +244,17 @@ func (ctx *Context) getShareCharts(args shareChartArgs) http.Handler {
 				return
 			}
 
-			data, err = charter.FetchWorkerShares(ctx.tsdb, workerID, args.chain, period)
+			data, err = ctx.stats.GetWorkerShareCharts(workerID, args.chain, period)
 		} else if args.miner != "" {
-			minerID, err := ctx.getMinerID(args.miner)
+			minerIDs, err := ctx.getMinerIDs(args.miner)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
 			}
 
-			data, err = charter.FetchMinerShares(ctx.tsdb, minerID, args.chain, period)
+			data, err = ctx.stats.GetMinerShareCharts(minerIDs, args.chain, period)
 		} else {
-			data, err = charter.FetchGlobalShares(ctx.tsdb, args.chain, period)
+			data, err = ctx.stats.GetGlobalShareCharts(args.chain, period)
 		}
 
 		if err != nil {
@@ -270,13 +289,13 @@ func (ctx *Context) getPayouts(args payoutArgs) http.Handler {
 		var payouts []*stats.Payout
 		var count uint64
 		if args.miner != "" {
-			minerID, err := ctx.getMinerID(args.miner)
+			minerIDs, err := ctx.getMinerIDs(args.miner)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
 			}
 
-			payouts, count, err = ctx.stats.GetMinerPayouts(minerID, page, size)
+			payouts, count, err = ctx.stats.GetMinerPayouts(minerIDs, page, size)
 		} else {
 			payouts, count, err = ctx.stats.GetGlobalPayouts(page, size)
 		}
@@ -318,13 +337,13 @@ func (ctx *Context) getBlocks(args blockArgs) http.Handler {
 		var blocks []*stats.Block
 		var count uint64
 		if args.miner != "" {
-			minerID, err := ctx.getMinerID(args.miner)
+			minerIDs, err := ctx.getMinerIDs(args.miner)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
 			}
 
-			blocks, count, err = ctx.stats.GetMinerBlocks(minerID, page, size)
+			blocks, count, err = ctx.stats.GetMinerBlocks(minerIDs, page, size)
 		} else {
 			blocks, count, err = ctx.stats.GetGlobalBlocks(page, size)
 		}

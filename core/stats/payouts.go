@@ -86,13 +86,17 @@ func (c *Client) GetGlobalPayouts(page, size uint64) ([]*Payout, uint64, error) 
 	return payouts, count, nil
 }
 
-func (c *Client) GetMinerPayouts(minerID, page, size uint64) ([]*Payout, uint64, error) {
-	count, err := pooldb.GetPayoutsByMinerCount(c.pooldb.Reader(), minerID)
+func (c *Client) GetMinerPayouts(minerIDs []uint64, page, size uint64) ([]*Payout, uint64, error) {
+	if len(minerIDs) == 0 {
+		return nil, 0, nil
+	}
+
+	count, err := pooldb.GetPayoutsByMinerCount(c.pooldb.Reader(), minerIDs[0])
 	if err != nil {
 		return nil, 0, err
 	}
 
-	dbPayouts, err := pooldb.GetPayoutsByMiner(c.pooldb.Reader(), minerID, page, size)
+	dbPayouts, err := pooldb.GetPayoutsByMiner(c.pooldb.Reader(), minerIDs[0], page, size)
 	if err != nil {
 		return nil, 0, err
 	}

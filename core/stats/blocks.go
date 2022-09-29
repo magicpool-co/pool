@@ -84,13 +84,17 @@ func (c *Client) GetGlobalBlocks(page, size uint64) ([]*Block, uint64, error) {
 	return blocks, count, nil
 }
 
-func (c *Client) GetMinerBlocks(minerID, page, size uint64) ([]*Block, uint64, error) {
-	count, err := pooldb.GetRoundsByMinerCount(c.pooldb.Reader(), minerID)
+func (c *Client) GetMinerBlocks(minerIDs []uint64, page, size uint64) ([]*Block, uint64, error) {
+	if len(minerIDs) == 0 {
+		return nil, 0, nil
+	}
+
+	count, err := pooldb.GetRoundsByMinerCount(c.pooldb.Reader(), minerIDs[0])
 	if err != nil {
 		return nil, 0, err
 	}
 
-	dbRounds, err := pooldb.GetRoundsByMiner(c.pooldb.Reader(), minerID, page, size)
+	dbRounds, err := pooldb.GetRoundsByMiner(c.pooldb.Reader(), minerIDs[0], page, size)
 	if err != nil {
 		return nil, 0, err
 	}

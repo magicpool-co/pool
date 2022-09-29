@@ -71,63 +71,60 @@ func (c *Client) GetGlobalDashboard() (*Dashboard, error) {
 		return nil, err
 	}
 
-	activeMiners, err := pooldb.GetActiveMinerCount(c.pooldb.Reader())
+	activeMiners, err := pooldb.GetActiveMinersCount(c.pooldb.Reader())
 	if err != nil {
 		return nil, err
 	}
 
-	activeWorkers, err := pooldb.GetActiveWorkerCount(c.pooldb.Reader())
+	activeWorkers, err := pooldb.GetActiveWorkersCount(c.pooldb.Reader())
 	if err != nil {
 		return nil, err
 	}
 
 	dashboard := &Dashboard{
-		MinersCount:  newNumberFromFloat64Ptr(float64(activeMiners), "", false),
-		WorkersCount: newNumberFromFloat64Ptr(float64(activeWorkers), "", false),
-		Hashrate:     processHashrateInfo(lastShares),
-		Shares:       processShareInfo(sumShares),
+		Miners:        newNumberFromUint64Ptr(activeMiners),
+		ActiveWorkers: newNumberFromUint64Ptr(activeWorkers),
+		Hashrate:      processHashrateInfo(lastShares),
+		Shares:        processShareInfo(sumShares),
 	}
 
 	return dashboard, nil
 }
 
-func (c *Client) GetMinerDashboard(minerID uint64) (*Dashboard, error) {
-	sumShares, err := tsdb.GetMinerSharesSum(c.tsdb.Reader(), minerID, dashboardAggPeriod, dashboardAggDuration)
-	if err != nil {
-		return nil, err
-	}
-
-	lastShares, err := tsdb.GetMinerSharesLast(c.tsdb.Reader(), minerID, dashboardAggPeriod)
-	if err != nil {
-		return nil, err
-	}
-
-	dbWorkers, err := pooldb.GetWorkersByMiner(c.pooldb.Reader(), minerID)
-	if err != nil {
-		return nil, err
-	}
-
-	activeWorkers := make([]*Worker, 0)
-	inactiveWorkers := make([]*Worker, 0)
-	for _, dbWorker := range dbWorkers {
-		worker := &Worker{
-			Name:     dbWorker.Name,
-			Active:   dbWorker.Active,
-			LastSeen: dbWorker.LastShare.Unix(),
+func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
+	totalSumShares, totalLastShares := make([]*tsdb.Share, 0), make([]*tsdb.Share, 0)
+	var totalActiveWorkers, totalInactiveWorkers uint64
+	for _, minerID := range minerIDs {
+		sumShares, err := tsdb.GetMinerSharesSum(c.tsdb.Reader(), minerID, dashboardAggPeriod, dashboardAggDuration)
+		if err != nil {
+			return nil, err
 		}
+		totalSumShares = append(totalSumShares, sumShares...)
 
-		if worker.Active {
-			activeWorkers = append(activeWorkers, worker)
-		} else {
-			inactiveWorkers = append(inactiveWorkers, worker)
+		lastShares, err := tsdb.GetMinerSharesLast(c.tsdb.Reader(), minerID, dashboardAggPeriod)
+		if err != nil {
+			return nil, err
 		}
+		totalLastShares = append(totalLastShares, lastShares...)
+
+		activeWorkers, err := pooldb.GetActiveWorkersByMinerCount(c.pooldb.Reader(), minerID)
+		if err != nil {
+			return nil, err
+		}
+		totalActiveWorkers += activeWorkers
+
+		inactiveWorkers, err := pooldb.GetInactiveWorkersByMinerCount(c.pooldb.Reader(), minerID)
+		if err != nil {
+			return nil, err
+		}
+		totalInactiveWorkers += inactiveWorkers
 	}
 
 	dashboard := &Dashboard{
-		WorkersActive:   activeWorkers,
-		WorkersInactive: inactiveWorkers,
-		Hashrate:        processHashrateInfo(lastShares),
-		Shares:          processShareInfo(sumShares),
+		ActiveWorkers:   newNumberFromUint64Ptr(totalActiveWorkers),
+		InactiveWorkers: newNumberFromUint64Ptr(totalInactiveWorkers),
+		Hashrate:        processHashrateInfo(totalLastShares),
+		Shares:          processShareInfo(totalSumShares),
 	}
 
 	return dashboard, nil
