@@ -218,7 +218,7 @@ func (node Node) sendRawTransaction(tx string) (string, error) {
 	if node.mocked {
 		res = mock.SendRawTransaction(tx)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("sendrawtransaction", tx)
+		res, err = node.rpcHost.ExecRPCFromArgsOnce("sendrawtransaction", tx)
 		if err != nil {
 			return "", err
 		}

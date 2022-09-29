@@ -154,7 +154,7 @@ func (node Node) sendCall(params []interface{}) (*big.Int, error) {
 }
 
 func (node Node) sendRawTransaction(tx string) (string, error) {
-	res, err := node.rpcHost.ExecRPCFromArgs("eth_sendRawTransaction", tx)
+	res, err := node.rpcHost.ExecRPCFromArgsOnce("eth_sendRawTransaction", tx)
 	if err != nil {
 		return "", err
 	}

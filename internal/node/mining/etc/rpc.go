@@ -321,7 +321,7 @@ func (node Node) sendRawTransaction(tx string) (string, error) {
 	if node.mocked {
 		res = mock.SendRawTransaction(tx)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("eth_sendRawTransaction", tx)
+		res, err = node.rpcHost.ExecRPCFromArgsOnce("eth_sendRawTransaction", tx)
 		if err != nil {
 			return "", err
 		}

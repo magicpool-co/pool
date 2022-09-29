@@ -94,7 +94,7 @@ func (node Node) sendEstimateGas(from, to string, data []byte, amount, gasPrice 
 }
 
 func (node Node) sendRawTransaction(tx string) (string, error) {
-	res, err := node.rpcHost.ExecRPCFromArgs("eth_sendRawTransaction", tx)
+	res, err := node.rpcHost.ExecRPCFromArgsOnce("eth_sendRawTransaction", tx)
 	if err != nil {
 		return "", err
 	}

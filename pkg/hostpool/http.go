@@ -18,6 +18,7 @@ import (
 const (
 	httpTimeout    = time.Second * 5
 	httpStickiness = 1.2 // 20% stickiness
+	onceHostID     = "once"
 )
 
 var (
@@ -245,6 +246,13 @@ func (p *HTTPPool) ExecHTTP(method, path string, body, target interface{}) error
 	return err
 }
 
+// Executes a HTTP call the same way as ExecHTTP, except it will only attempt
+// the request once instead of rotating through all hosts.
+func (p *HTTPPool) ExecHTTPOnce(method, path string, body, target interface{}) error {
+	_, err := p.ExecHTTPSticky(onceHostID, method, path, body, target)
+	return err
+}
+
 // Executes an RPC call to all healthy hosts, unless req.HostID is set, in which case it
 // will only try the defined host. It is just a convenient wrapper for
 // ExecHTTP that reduces the verbosity of RPC calls.
@@ -281,6 +289,18 @@ func (p *HTTPPool) ExecRPCFromArgs(method string, params ...interface{}) (*rpc.R
 	return p.ExecRPC(req)
 }
 
+// Executes an RPC call the same way as ExecRPCFromArgs, except it will only attempt
+// the request once instead of rotating through all hosts.
+func (p *HTTPPool) ExecRPCFromArgsOnce(method string, params ...interface{}) (*rpc.Response, error) {
+	req, err := rpc.NewRequest(method, params...)
+	if err != nil {
+		return nil, err
+	}
+	req.HostID = onceHostID
+
+	return p.ExecRPC(req)
+}
+
 // Executes a bulk RPC call to all healthy hosts.
 func (p *HTTPPool) ExecRPCBulk(reqs []*rpc.Request) ([]*rpc.Response, error) {
 	if len(reqs) == 0 {
@@ -311,14 +331,14 @@ func (p *HTTPPool) getConn(hostID string, count int) *httpConn {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	if hostID != "" && hostID != "single" {
+	if hostID != "" && hostID != onceHostID {
 		hc, ok := p.index[hostID]
 		if ok && hc.healthy() {
 			return hc
 		}
 
 		return nil
-	} else if hostID == "single" && count > 1 {
+	} else if hostID == onceHostID && count > 1 {
 		return nil
 	}
 
