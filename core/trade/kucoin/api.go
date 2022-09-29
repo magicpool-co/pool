@@ -270,7 +270,7 @@ func (c *Client) GetWalletStatus(chain string) (bool, error) {
 	}
 
 	for _, chainObj := range obj.Chains {
-		if chainObj.ChainName == formatChain(chain) {
+		if unformatChain(chainObj.ChainName) == chain {
 			if !chainObj.IsDepositEnabled {
 				return false, fmt.Errorf("deposits are disabled for %s", chain)
 			} else if !chainObj.IsWithdrawEnabled {
