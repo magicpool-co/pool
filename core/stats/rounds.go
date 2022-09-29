@@ -2,6 +2,7 @@ package stats
 
 import (
 	"fmt"
+	"math/big"
 	"strconv"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
@@ -37,8 +38,9 @@ func getBlockExplorerURL(chain, hash string, height uint64) (string, error) {
 }
 
 func newRound(dbRound *pooldb.Round) (*Round, error) {
-	if !dbRound.Value.Valid {
-		return nil, fmt.Errorf("no value for round %d", dbRound.ID)
+	value := new(big.Int)
+	if dbRound.Value.Valid {
+		value = value.Set(dbRound.Value.BigInt)
 	}
 
 	var roundType string
@@ -54,7 +56,7 @@ func newRound(dbRound *pooldb.Round) (*Round, error) {
 		return nil, fmt.Errorf("unknown block status for round %d", dbRound.ID)
 	}
 
-	parsedValue, err := newNumberFromBigInt(dbRound.Value.BigInt, dbRound.ChainID)
+	parsedValue, err := newNumberFromBigInt(value, dbRound.ChainID)
 	if err != nil {
 		return nil, err
 	}
