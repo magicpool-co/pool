@@ -14,7 +14,6 @@ import (
 type Number struct {
 	Value     float64 `json:"value"`
 	Formatted string  `json:"formatted"`
-	Units     string  `json:"units"`
 }
 
 func newNumberFromUint64(value uint64) Number {
@@ -41,7 +40,6 @@ func newNumberFromFloat64(value float64, units string, scaleUnits bool) Number {
 	n := Number{
 		Value:     value,
 		Formatted: strconv.FormatFloat(value, 'f', 1, 64) + units,
-		Units:     units,
 	}
 
 	return n
@@ -58,13 +56,11 @@ func newNumberFromBigInt(value *big.Int, chain string) (Number, error) {
 	if err != nil {
 		return Number{}, err
 	}
-
 	valueFloat := common.BigIntToFloat64(value, units)
 
 	n := Number{
 		Value:     valueFloat,
 		Formatted: strconv.FormatFloat(valueFloat, 'f', 4, 64) + " " + chain,
-		Units:     " " + chain,
 	}
 
 	return n, nil
