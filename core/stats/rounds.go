@@ -43,17 +43,13 @@ func newRound(dbRound *pooldb.Round) (*Round, error) {
 		value = value.Set(dbRound.Value.BigInt)
 	}
 
-	var roundType string
+	roundType := "block"
 	if dbRound.Pending {
 		roundType = "pending"
 	} else if dbRound.Orphan {
 		roundType = "orphan"
 	} else if dbRound.Uncle {
 		roundType = "uncle"
-	} else if dbRound.Mature {
-		roundType = "block"
-	} else {
-		return nil, fmt.Errorf("unknown block status for round %d", dbRound.ID)
 	}
 
 	parsedValue, err := newNumberFromBigInt(value, dbRound.ChainID)
