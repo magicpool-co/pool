@@ -40,10 +40,15 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 			feeCounter++
 		}
 	}
-
-	feeDistribution := fee / feeCounter
-	remainder := fee - feeDistribution
-	var remainderDistributed bool
+	var feeDistribution uint64
+	var remainderDistributed, forceRemainder bool
+	if feeCounter != 0 {
+		feeDistribution = fee / feeCounter
+	} else {
+		feeCounter = 1
+		forceRemainder = true
+	}
+	remainder := fee - (feeDistribution * feeCounter)
 
 	addresses := make([]string, len(outputs))
 	amounts := make([]uint64, len(outputs))
@@ -51,10 +56,12 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		value := output.Value.Uint64()
 		if output.SplitFee {
 			value -= feeDistribution
-			if !remainderDistributed {
-				value -= remainder
-				remainderDistributed = true
-			}
+		}
+
+		// distribute remainder, force remainder if no one is set to split fees
+		if !remainderDistributed && (output.SplitFee || forceRemainder) {
+			value -= remainder
+			remainderDistributed = true
 		}
 
 		if value <= 0 {
