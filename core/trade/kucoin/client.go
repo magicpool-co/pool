@@ -99,7 +99,7 @@ func (c *Client) do(method, path string, payload map[string]string, target inter
 		headers.Set("KC-API-KEY", c.apiKey)
 		headers.Set("KC-API-PASSPHRASE", c.encryptedPassphrase)
 		headers.Set("KC-API-TIMESTAMP", timestamp)
-		headers.Set("KC-API-SIGN", string(sig))
+		headers.Set("KC-API-SIGN", base64.StdEncoding.EncodeToString(sig))
 		headers.Set("KC-API-KEY-VERSION", "2")
 	}
 
