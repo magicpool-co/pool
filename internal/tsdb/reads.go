@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+
 	"github.com/magicpool-co/pool/pkg/dbcl"
 )
 
@@ -75,11 +77,11 @@ func GetPendingGlobalSharesByEndTime(q dbcl.Querier, timestamp time.Time, chain 
 	return output, err
 }
 
-func GetMinerShares(q dbcl.Querier, minerID uint64, chain string, period int) ([]*Share, error) {
-	const query = `SELECT *
+func GetMinerShares(q dbcl.Querier, minerIDs []uint64, chain string, period int) ([]*Share, error) {
+	const rawQuery = `SELECT *
 	FROM miner_shares
 	WHERE
-		miner_id = ?
+		miner_id IN (?)
 	AND
 		chain_id = ?
 	AND
@@ -87,8 +89,18 @@ func GetMinerShares(q dbcl.Querier, minerID uint64, chain string, period int) ([
 	AND
 		pending = FALSE;`
 
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs, chain, period)
+	if err != nil {
+		return nil, err
+	}
+
 	output := []*Share{}
-	err := q.Select(&output, query, minerID, chain, period)
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
 
 	return output, err
 }

@@ -112,6 +112,47 @@ func (c *Client) GetRoundChart(chain string, period types.PeriodType) (*RoundCha
 
 /* share chart */
 
+func sumShares(items []*tsdb.Share) []*tsdb.Share {
+	idx := make(map[time.Time]*tsdb.Share)
+	duplicateIdx := make(map[time.Time][]*tsdb.Share)
+	for _, item := range items {
+		if _, ok := idx[item.EndTime]; !ok {
+			idx[item.EndTime] = item
+			continue
+		} else if _, ok := duplicateIdx[item.EndTime]; !ok {
+			duplicateIdx[item.EndTime] = make([]*tsdb.Share, 0)
+		}
+
+		duplicateIdx[item.EndTime] = append(duplicateIdx[item.EndTime], item)
+	}
+
+	for timestamp, duplicateItems := range duplicateIdx {
+		for _, item := range duplicateItems {
+			idx[timestamp].Miners += item.Miners
+			idx[timestamp].Workers += item.Workers
+			idx[timestamp].AcceptedShares += item.AcceptedShares
+			idx[timestamp].RejectedShares += item.RejectedShares
+			idx[timestamp].InvalidShares += item.InvalidShares
+			idx[timestamp].Hashrate += item.Hashrate
+			idx[timestamp].AvgHashrate += item.AvgHashrate
+			idx[timestamp].ReportedHashrate += item.ReportedHashrate
+		}
+	}
+
+	var count int
+	uniqueItems := make([]*tsdb.Share, len(idx))
+	for _, item := range idx {
+		uniqueItems[count] = item
+		count++
+	}
+
+	sort.Slice(uniqueItems, func(i, j int) bool {
+		return uniqueItems[i].EndTime.Before(uniqueItems[j].EndTime)
+	})
+
+	return uniqueItems
+}
+
 func getShareChart(items []*tsdb.Share, period types.PeriodType) *ShareChart {
 	var endTime time.Time
 	if len(items) == 0 {
@@ -164,13 +205,14 @@ func (c *Client) GetGlobalShareChart(chain string, period types.PeriodType) (*Sh
 }
 
 func (c *Client) GetMinerShareChart(minerIDs []uint64, chain string, period types.PeriodType) (*ShareChart, error) {
-	if len(minerIDs) == 0 {
-		return nil, nil
-	}
-
-	items, err := tsdb.GetMinerShares(c.tsdb.Reader(), minerIDs[0], chain, int(period))
+	items, err := tsdb.GetMinerShares(c.tsdb.Reader(), minerIDs, chain, int(period))
 	if err != nil {
 		return nil, err
+	}
+
+	// sum shares if more than one miner
+	if len(minerIDs) > 1 {
+		items = sumShares(items)
 	}
 
 	return getShareChart(items, period), nil

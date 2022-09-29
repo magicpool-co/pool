@@ -148,12 +148,12 @@ func (suite *PooldbReadsSuite) TestReadRound() {
 		suite.T().Errorf("failed: GetRoundsCount: %v", err)
 	}
 
-	_, err = pooldb.GetRoundsByMiner(pooldbClient.Reader(), 0, 0, 10)
+	_, err = pooldb.GetRoundsByMiner(pooldbClient.Reader(), []uint64{0, 1}, 0, 10)
 	if err != nil {
 		suite.T().Errorf("failed: GetRoundsByMiner: %v", err)
 	}
 
-	_, err = pooldb.GetRoundsByMinerCount(pooldbClient.Reader(), 0)
+	_, err = pooldb.GetRoundsByMinerCount(pooldbClient.Reader(), []uint64{0, 1})
 	if err != nil {
 		suite.T().Errorf("failed: GetRoundsByMinerCount: %v", err)
 	}
@@ -338,12 +338,12 @@ func (suite *PooldbReadsSuite) TestReadPayout() {
 		suite.T().Errorf("failed: GetPayouts: %v", err)
 	}
 
-	_, err = pooldb.GetPayoutsByMiner(pooldbClient.Reader(), 0, 10, 10)
+	_, err = pooldb.GetPayoutsByMiner(pooldbClient.Reader(), []uint64{0, 1}, 10, 10)
 	if err != nil {
 		suite.T().Errorf("failed: GetPayoutsByMiner: %v", err)
 	}
 
-	_, err = pooldb.GetPayoutsByMinerCount(pooldbClient.Reader(), 0)
+	_, err = pooldb.GetPayoutsByMinerCount(pooldbClient.Reader(), []uint64{0, 1})
 	if err != nil {
 		suite.T().Errorf("failed: GetPayoutsByMinerCount: %v", err)
 	}

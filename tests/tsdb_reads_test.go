@@ -95,7 +95,7 @@ func (suite *TsdbReadsSuite) TestReadShares() {
 		suite.T().Errorf("failed: GetPendingGlobalSharesByEndTime: %v", err)
 	}
 
-	_, err = tsdb.GetMinerShares(tsdbClient.Reader(), 1, "ETH", 1)
+	_, err = tsdb.GetMinerShares(tsdbClient.Reader(), []uint64{0, 1}, "ETH", 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetMinerShares: %v", err)
 	}
