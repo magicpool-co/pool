@@ -87,6 +87,7 @@ func SendOutgoingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txOutputs 
 
 	// if the remainder is non-zero, add the final UTXO
 	var outputUTXOs []*pooldb.UTXO
+	var outputBalances []*pooldb.BalanceOutput
 	if remainder.Cmp(common.Big0) > 0 {
 		outputUTXOs = []*pooldb.UTXO{
 			&pooldb.UTXO{
@@ -96,6 +97,31 @@ func SendOutgoingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txOutputs 
 				Value:   dbcl.NullBigInt{Valid: true, BigInt: remainder},
 				Spent:   false,
 			},
+		}
+
+		// since ERGO requires an extra 1000000 to send token transactions (even
+		// though it is never spent), we add it back as a UTXO and balance output
+		switch node.Chain() {
+		case "ERGO":
+			const ergoTxRemainder = 1000000
+			remainderUTXO := &pooldb.UTXO{
+				ChainID: node.Chain(),
+				TxID:    txid,
+				Index:   0,
+				Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(ergoTxRemainder)},
+			}
+			outputUTXOs = append(outputUTXOs, remainderUTXO)
+
+			outputBalances = []*pooldb.BalanceOutput{
+				&pooldb.BalanceOutput{
+					ChainID: "ERGO",
+					MinerID: 1,
+
+					Value:        dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(ergoTxRemainder)},
+					PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+					ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				},
+			}
 		}
 	}
 
@@ -110,6 +136,11 @@ func SendOutgoingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txOutputs 
 
 	// insert output utxos
 	err = pooldb.InsertUTXOs(pooldbClient.Writer(), outputUTXOs...)
+	if err != nil {
+		return txid, err
+	}
+
+	err = pooldb.InsertBalanceOutputs(pooldbClient.Writer(), outputBalances...)
 	if err != nil {
 		return txid, err
 	}
