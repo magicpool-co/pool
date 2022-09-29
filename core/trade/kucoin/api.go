@@ -231,11 +231,11 @@ func (c *Client) GetPrices(inputPaths map[string]map[string]*big.Int) (map[strin
 	for fromChain, outputPaths := range inputPaths {
 		prices[fromChain] = make(map[string]float64)
 		for toChain := range outputPaths {
-			if _, ok := presetTradePaths[fromChain]; !ok {
+			if _, ok := presetTradePaths[formatChain(fromChain)]; !ok {
 				return nil, fmt.Errorf("no trade path found for %s->%s", fromChain, toChain)
 			}
 
-			markets := presetTradePaths[fromChain][toChain]
+			markets := presetTradePaths[formatChain(fromChain)][formatChain(toChain)]
 			if len(markets) == 0 {
 				return nil, fmt.Errorf("no trade path found for %s->%s", fromChain, toChain)
 			}
