@@ -33,6 +33,7 @@ func (j *TradeJob) Run() {
 		if err != redislock.ErrNotObtained {
 			j.logger.Error(err)
 		}
+		return
 	}
 	defer lock.Release(ctx)
 
