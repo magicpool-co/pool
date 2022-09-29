@@ -16,6 +16,10 @@ func (node Node) GetTxExplorerURL(txid string) string {
 	return "https://explorer.firo.org/tx/" + txid
 }
 
+func (node Node) GetAddressExplorerURL(address string) string {
+	return "https://explorer.firo.org/address/" + address
+}
+
 func (node Node) GetBalance() (*big.Int, error) {
 	type response struct {
 		Balance uint64 `json:"balanceSat"`

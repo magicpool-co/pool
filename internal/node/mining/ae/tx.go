@@ -12,6 +12,10 @@ func (node Node) GetTxExplorerURL(txid string) string {
 	return "https://explorer.aeternity.io/transactions/" + txid
 }
 
+func (node Node) GetAddressExplorerURL(address string) string {
+	return "https://explorer.aeternity.io/account/" + address
+}
+
 func (node Node) GetBalance() (*big.Int, error) {
 	return node.getBalance(node.address)
 }

@@ -12,6 +12,10 @@ func (node Node) GetTxExplorerURL(txid string) string {
 	return "https://cerebro.cortexlabs.ai/#/tx/" + txid
 }
 
+func (node Node) GetAddressExplorerURL(address string) string {
+	return "https://cerebro.cortexlabs.ai/#/address/" + address
+}
+
 func (node Node) GetBalance() (*big.Int, error) {
 	return node.getBalance(node.address)
 }

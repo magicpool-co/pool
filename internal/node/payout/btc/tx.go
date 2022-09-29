@@ -102,6 +102,10 @@ func (node Node) GetTxExplorerURL(txid string) string {
 	return "https://blockchair.com/bitcoin/transaction/" + txid
 }
 
+func (node Node) GetAddressExplorerURL(address string) string {
+	return "https://blockchair.com/bitcoin/address/" + address
+}
+
 func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 	tx, err := blockchair.New(node.blockchairKey).GetTxBTC(txid)
 	if err != nil {

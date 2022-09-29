@@ -12,6 +12,10 @@ func (node Node) GetTxExplorerURL(txid string) string {
 	return "https://blockscout.com/etc/mainnet/tx/" + txid
 }
 
+func (node Node) GetAddressExplorerURL(address string) string {
+	return "https://blockscout.com/etc/mainnet/address/" + address
+}
+
 func (node Node) GetBalance() (*big.Int, error) {
 	return node.getBalance(node.address)
 }

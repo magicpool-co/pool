@@ -11,6 +11,10 @@ func (node Node) GetTxExplorerURL(txid string) string {
 	return "https://explorer.ergoplatform.com/en/transactions/" + txid
 }
 
+func (node Node) GetAddressExplorerURL(address string) string {
+	return "https://explorer.ergoplatform.com/en/addresses/" + address
+}
+
 func (node Node) GetBalance() (*big.Int, error) {
 	balance, err := node.getWalletBalances()
 	if err != nil {
