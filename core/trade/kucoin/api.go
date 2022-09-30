@@ -569,10 +569,10 @@ func (c *Client) checkWithdrawalQuota(chain string, quantity float64) error {
 		return err
 	} else if !obj.IsWithdrawEnabled {
 		return fmt.Errorf("withdrawals are not enabled for %s", chain)
-	} else if remainingQuota, err := strconv.ParseFloat(obj.AvailableAmount, 64); err != nil {
-		return err
-	} else if remainingQuota < quantity {
-		return fmt.Errorf("%f is greater than the withdrawal limit %f for %s", quantity, remainingQuota, chain)
+	// } else if remainingQuota, err := strconv.ParseFloat(obj.AvailableAmount, 64); err != nil {
+	//	return err
+	// } else if remainingQuota < quantity {
+	//	return fmt.Errorf("%f is greater than the withdrawal limit %f for %s", quantity, remainingQuota, chain)
 	}
 
 	return nil
