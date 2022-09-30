@@ -44,8 +44,8 @@ func (c *Client) InitiateWithdrawals(batchID uint64) error {
 		}
 
 		values[trade.ToChainID].Add(values[trade.ToChainID], trade.Proceeds.BigInt)
-		values[trade.ToChainID].Add(values[trade.ToChainID], trade.CumulativeDepositFees.BigInt)
-		values[trade.ToChainID].Add(values[trade.ToChainID], trade.CumulativeTradeFees.BigInt)
+		depositFees[trade.ToChainID].Add(depositFees[trade.ToChainID], trade.CumulativeDepositFees.BigInt)
+		tradeFees[trade.ToChainID].Add(tradeFees[trade.ToChainID], trade.CumulativeTradeFees.BigInt)
 	}
 
 	// validate each proposed withdrawal
