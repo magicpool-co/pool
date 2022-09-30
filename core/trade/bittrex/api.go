@@ -228,9 +228,9 @@ func (c *Client) GenerateTradePath(fromChain, toChain string) ([]*types.Trade, e
 		var localFromChain, localToChain string
 		switch market.Direction {
 		case types.TradeBuy:
-			localFromChain, localToChain = market.Base, market.Quote
-		case types.TradeSell:
 			localFromChain, localToChain = market.Quote, market.Base
+		case types.TradeSell:
+			localFromChain, localToChain = market.Base, market.Quote
 		default:
 			return nil, fmt.Errorf("unknown trade direction %d", market.Direction)
 		}
