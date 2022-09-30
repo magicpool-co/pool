@@ -215,21 +215,25 @@ func GetWorkersByMiner(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
 /* ip addresses */
 
 func GetActiveMiners(q dbcl.Querier, page, size uint64) ([]*Miner, error) {
-	const query = `SELECT
+	const query = `WITH cte AS (
+		SELECT
+			miner_id,
+			MAX(last_share) last_share
+		FROM ip_addresses
+		WHERE
+			ip_addresses.active = TRUE
+		GROUP BY miner_id
+	) SELECT
 		miners.id,
 		miners.chain_id,
 		miners.address,
-		ip_addresses.active,
+		TRUE active,
 		miners.created_at,
-		ip_addresses.last_share
+		cte.last_share
 	FROM miners
-	JOIN ip_addresses ON miners.id = ip_addresses.miner_id
-	WHERE
-		worker_id = 0
-	AND
-		ip_addresses.active IS TRUE
+	JOIN cte ON miners.id = cte.miner_id
 	ORDER BY id DESC
-	LIMIT ? OFFSET ?`
+	LIMIT ? OFFSET ?;`
 
 	output := []*Miner{}
 	err := q.Select(&output, query, size, page*size)
@@ -238,7 +242,7 @@ func GetActiveMiners(q dbcl.Querier, page, size uint64) ([]*Miner, error) {
 }
 
 func GetActiveMinersCount(q dbcl.Querier) (uint64, error) {
-	const query = `SELECT COUNT(miners.id)
+	const query = `SELECT COUNT(DISTINCT miners.id)
 	FROM miners
 	JOIN ip_addresses ON miners.id = ip_addresses.miner_id
 	WHERE
