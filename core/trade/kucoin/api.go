@@ -14,148 +14,6 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
-/* helpers */
-
-func formatChain(chain string) string {
-	chain = strings.ToUpper(chain)
-	switch chain {
-	case "ERGO":
-		return "ERG"
-	default:
-		return chain
-	}
-}
-
-func unformatChain(chain string) string {
-	chain = strings.ToUpper(chain)
-	switch chain {
-	case "ERG":
-		return "ERGO"
-	default:
-		return chain
-	}
-}
-
-func chainToNetwork(chain string) string {
-	network := strings.ToLower(chain)
-	switch network {
-	default:
-		return network
-	}
-}
-
-func parseIncrement(increment string) int {
-	parts := strings.Split(increment, ".")
-	if len(parts) != 2 {
-		return 1
-	} else if parts[1][len(parts[1])-1:] != "1" {
-		return len(parts[1]) - 1
-	}
-
-	return len(parts[1])
-}
-
-func calcFeesAsBig(value, feeRate string, units *big.Int) (*big.Int, error) {
-	feeParts := strings.Split(feeRate, ".")
-	if len(feeParts) != 2 {
-		return nil, fmt.Errorf("invalid fee rate %s", feeRate)
-	}
-
-	feeDec := feeParts[1]
-	num := len(feeDec)
-	mult, err := strconv.ParseUint(strings.TrimLeft(feeDec, "0"), 10, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	var moved int
-	if num <= 0 || value == "0" {
-		return new(big.Int), nil
-	}
-
-	parts := strings.Split(value, ".")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid float %s", value)
-	}
-
-	newInt := parts[0]
-	newDec := ""
-	if newInt != "0" {
-		for i := len(newInt) - 1; i >= 0; i-- {
-			newDec = newInt[i:] + newDec
-			newInt = newInt[:i]
-
-			moved++
-			if moved == num {
-				if newInt == "" {
-					newInt = "0"
-				}
-				break
-			}
-		}
-	}
-
-	for i := 0; i < num-moved; i++ {
-		newDec = "0" + newDec
-	}
-
-	feeStr := newInt + "." + newDec + parts[1]
-
-	feeBig, err := common.StringDecimalToBigint(feeStr, units)
-	if err != nil {
-		return nil, err
-	}
-
-	feeBig.Mul(feeBig, new(big.Int).SetUint64(mult))
-
-	return feeBig, nil
-}
-
-func safeSubtractFees(chain, quantity, feeRate string) (float64, float64, error) {
-	var precision int
-	switch chain {
-	case "BTC", "ETH":
-		precision = 6
-	case "USDC", "USDT":
-		precision = 4
-	default:
-		return 0, 0, fmt.Errorf("unsupported chain to split fees on %s", chain)
-	}
-
-	// max precision *should be 1e8, add 3 for 1e3 fee
-	units := new(big.Int).SetUint64(1e11)
-
-	// convert quantity into safe big int
-	quantityBig, err := common.StringDecimalToBigint(quantity, units)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	// calculate fees safely as big int
-	feeBig, err := calcFeesAsBig(quantity, feeRate, units)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	// subtract fees from quantity
-	quantityBig.Sub(quantityBig, feeBig)
-
-	// safely convert quantity back to float
-	quantityFloat := common.BigIntToFloat64(quantityBig, units)
-
-	// round quantity down to defined precision
-	quantityFloat = common.FloorFloatByIncrement(quantityFloat, 8-precision, 1e8)
-
-	// calculate the fees (ignoring floating point errors)
-	initialFloat, err := strconv.ParseFloat(quantity, 64)
-	if err != nil {
-		return 0, 0, err
-	}
-	feesFloat := initialFloat - quantityFloat
-
-	return quantityFloat, feesFloat, nil
-}
-
 /* general */
 
 func (c *Client) ID() types.ExchangeID {
@@ -576,8 +434,15 @@ func (c *Client) CreateTrade(market string, direction types.TradeDirection, quan
 	} else if !symbol.EnableTrading {
 		return "", fmt.Errorf("market %s is not enabled", market)
 	} else {
-		baseIncrement = parseIncrement(symbol.BaseIncrement)
-		quoteIncrement = parseIncrement(symbol.QuoteIncrement)
+		baseIncrement, err = parseIncrement(symbol.BaseIncrement)
+		if err != nil {
+			return "", err
+		}
+
+		quoteIncrement, err = parseIncrement(symbol.QuoteIncrement)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	switch direction {
@@ -587,17 +452,17 @@ func (c *Client) CreateTrade(market string, direction types.TradeDirection, quan
 			return "", err
 		}
 
-		base := strings.Split(market, "-")[0]
+		quote := strings.Split(market, "-")[1]
 		quantityStr := strconv.FormatFloat(quantity, 'f', 8, 64)
-		newQuantity, _, err := safeSubtractFees(base, quantityStr, feeRate)
+		newQuantity, _, err := safeSubtractFee(quote, quantityStr, feeRate)
 		if err != nil {
 			return "", err
 		}
 
-		quantity = common.FloorFloatByIncrement(newQuantity, 8-baseIncrement, 1e8)
+		quantity = common.FloorFloatByIncrement(newQuantity, quoteIncrement, 1e8)
 		payload["funds"] = strconv.FormatFloat(newQuantity, 'f', 8, 64)
 	case types.TradeSell:
-		quantity = common.FloorFloatByIncrement(quantity, 8-quoteIncrement, 1e8)
+		quantity = common.FloorFloatByIncrement(quantity, baseIncrement, 1e8)
 		payload["size"] = strconv.FormatFloat(quantity, 'f', 8, 64)
 	default:
 		return "", fmt.Errorf("invalid trade direction %d", direction)
@@ -659,7 +524,7 @@ func (c *Client) GetTradeByID(market, tradeID string, inputValue float64) (*type
 			return nil, err
 		}
 
-		proceedsFloat, feesFloat, err := safeSubtractFees(obj.FeeCurrency, obj.DealFunds, feeRate)
+		proceedsFloat, feesFloat, err := safeSubtractFee(obj.FeeCurrency, obj.DealFunds, feeRate)
 		if err != nil {
 			return nil, err
 		}

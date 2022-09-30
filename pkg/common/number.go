@@ -5,30 +5,30 @@ import (
 	"math/big"
 )
 
-func SafeRoundedFloat(val float64, decimals int) float64 {
-	if math.IsInf(val, 0) || math.IsNaN(val) {
+func AlmostEqualFloat64(a, b float64) bool {
+	const equalityThreshold = 1e-6
+	return math.Abs(a-b) <= equalityThreshold
+}
+
+func SafeRoundedFloat(value float64, decimals int) float64 {
+	if math.IsInf(value, 0) || math.IsNaN(value) {
 		return 0
 	}
 
 	exp := math.Pow(10, float64(decimals))
 
-	return math.Round(val*exp) / exp
+	return math.Round(value*exp) / exp
 }
 
-func int64Pow(x, n int) int {
-	val := 1
-	for i := 0; i < n; i++ {
-		val *= x
+func FloorFloatByIncrement(value float64, incr, exp int) float64 {
+	if incr > exp || incr == 0 {
+		return value
 	}
 
-	return val
-}
-
-func FloorFloatByIncrement(val float64, incr, exp int) float64 {
-	intIncr := new(big.Int).SetUint64(uint64(int64Pow(10, incr)))
+	intIncr := new(big.Int).SetUint64(uint64(exp / incr))
 	intExp := new(big.Int).SetUint64(uint64(exp))
 
-	intVal := Float64ToBigInt(val, intExp)
+	intVal := Float64ToBigInt(value, intExp)
 	rem := new(big.Int).Mod(intVal, intIncr)
 	intVal.Sub(intVal, rem)
 
