@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/magicpool-co/pool/internal/accounting"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/dbcl"
@@ -47,27 +48,27 @@ func (c *Client) InitiateTrades(batchID uint64) error {
 
 	// estimate (ignore rounding errors) the proportional
 	// deposit fees for each trade path
+	depositValueIdx := make(map[string]map[string]*big.Int)
 	depositFeeIdx := make(map[string]map[string]*big.Int)
 	for fromChainID, outputIdx := range outputPaths {
-		depositFeeIdx[fromChainID] = make(map[string]*big.Int)
-		for toChainID, value := range outputIdx {
-			if _, ok := depositValues[fromChainID]; !ok {
-				return fmt.Errorf("no deposit value for %s", fromChainID)
-			} else if _, ok := depositFees[fromChainID]; !ok {
-				return fmt.Errorf("no deposit fee for %s", fromChainID)
-			}
+		if _, ok := depositValues[fromChainID]; !ok {
+			return fmt.Errorf("no deposit value for %s", fromChainID)
+		} else if _, ok := depositFees[fromChainID]; !ok {
+			return fmt.Errorf("no deposit fee for %s", fromChainID)
+		}
 
-			depositFee := new(big.Int).Mul(value, depositFees[fromChainID])
-			depositFee.Div(depositFee, depositFees[fromChainID])
-			depositFeeIdx[fromChainID][toChainID] = depositFee
+		depositValueIdx[fromChainID], depositFeeIdx[fromChainID], err = accounting.CalculateProportionalValues(
+			depositValues[fromChainID], depositFees[fromChainID], outputIdx)
+		if err != nil {
+			return err
 		}
 	}
 
 	// iterate through the trade paths and create the initial trades
 	var pathID int
 	trades := make([]*pooldb.ExchangeTrade, 0)
-	for fromChainID, outputIdx := range outputPaths {
-		for toChainID, value := range outputIdx {
+	for fromChainID, outputIdx := range depositValueIdx {
+		for toChainID, depositValue := range outputIdx {
 			// generate the respective exchange's trades for a given trade path
 			parsedTrades, err := c.exchange.GenerateTradePath(fromChainID, toChainID)
 			if err != nil {
@@ -79,7 +80,7 @@ func (c *Client) InitiateTrades(batchID uint64) error {
 				// for the first trade, set the initial trade value and deposit fees
 				var initialTradeValue, initialDepositFees dbcl.NullBigInt
 				if i == 0 {
-					initialTradeValue = dbcl.NullBigInt{Valid: true, BigInt: value}
+					initialTradeValue = dbcl.NullBigInt{Valid: true, BigInt: depositValue}
 					initialDepositFees = dbcl.NullBigInt{Valid: true, BigInt: depositFeeIdx[fromChainID][toChainID]}
 				}
 
