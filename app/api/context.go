@@ -157,25 +157,24 @@ type existsArgs struct {
 
 func (ctx *Context) getExists(args existsArgs) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		exists := true
 		if args.miner == "" {
-			ctx.writeErrorResponse(w, errInvalidParameters)
-		}
-
-		minerID, err := ctx.getMinerID(args.miner)
-		if err != nil {
-			ctx.writeErrorResponse(w, err)
-			return
-		}
-
-		if args.worker != "" {
-			_, err := ctx.getWorkerID(minerID, args.worker)
+			exists = false
+		} else {
+			minerID, err := ctx.getMinerID(args.miner)
 			if err != nil {
-				ctx.writeErrorResponse(w, err)
-				return
+				exists = false
+			}
+
+			if exists && args.worker != "" {
+				_, err := ctx.getWorkerID(minerID, args.worker)
+				if err != nil {
+					exists = false
+				}
 			}
 		}
 
-		ctx.writeOkResponse(w, map[string]interface{}{"exists": true})
+		ctx.writeOkResponse(w, map[string]interface{}{"exists": exists})
 	})
 }
 
