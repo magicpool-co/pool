@@ -242,13 +242,11 @@ func GetActiveMiners(q dbcl.Querier, page, size uint64) ([]*Miner, error) {
 }
 
 func GetActiveMinersCount(q dbcl.Querier) (uint64, error) {
-	const query = `SELECT COUNT(DISTINCT miners.id)
-	FROM miners
-	JOIN ip_addresses ON miners.id = ip_addresses.miner_id
+	const query = `SELECT
+		COUNT(DISTINCT miner_id)
+	FROM ip_addresses
 	WHERE
-		worker_id = 0
-	AND
-		ip_addresses.active IS TRUE;`
+		active = TRUE;`
 
 	return dbcl.GetUint64(q, query)
 }
