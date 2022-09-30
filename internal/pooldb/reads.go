@@ -196,8 +196,10 @@ func GetWorkerID(q dbcl.Querier, minerID uint64, name string) (uint64, error) {
 
 func GetWorkersByMiner(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
 	const query = `SELECT
+		workers.id,
 		workers.name,
 		ip_addresses.active,
+		workers.created_at,
 		ip_addresses.last_share
 	FROM workers
 	JOIN ip_addresses ON workers.id = ip_addresses.worker_id
@@ -212,11 +214,37 @@ func GetWorkersByMiner(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
 
 /* ip addresses */
 
-func GetActiveMinersCount(q dbcl.Querier) (uint64, error) {
-	const query = `SELECT COUNT(DISTINCT miner_id)
-	FROM ip_addresses
+func GetActiveMiners(q dbcl.Querier, page, size uint64) ([]*Miner, error) {
+	const query = `SELECT
+		miners.id,
+		miners.chain_id,
+		miners.address,
+		ip_addresses.active,
+		miners.created_at,
+		ip_addresses.last_share
+	FROM miners
+	JOIN ip_addresses ON miners.id = ip_addresses.miner_id
 	WHERE
-		active IS TRUE;`
+		worker_id = 0
+	AND
+		ip_addresses.active IS TRUE
+	ORDER BY id DESC
+	LIMIT ? OFFSET ?`
+
+	output := []*Miner{}
+	err := q.Select(&output, query, size, page*size)
+
+	return output, err
+}
+
+func GetActiveMinersCount(q dbcl.Querier) (uint64, error) {
+	const query = `SELECT COUNT(miners.id)
+	FROM miners
+	JOIN ip_addresses ON miners.id = ip_addresses.miner_id
+	WHERE
+		worker_id = 0
+	AND
+		ip_addresses.active IS TRUE;`
 
 	return dbcl.GetUint64(q, query)
 }

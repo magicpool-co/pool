@@ -103,6 +103,15 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
 		handler = rtr.ctx.getPayouts(payoutArgs{page: page, size: size})
 
+	case rtr.match(path, "/global/miners", &miner):
+		method = "GET"
+		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
+		handler = rtr.ctx.getMiners(minersArgs{page: page, size: size})
+
+	case rtr.match(path, "/miner/+", &miner):
+		method = "GET"
+		handler = rtr.ctx.getExists(existsArgs{miner: miner})
+
 	case rtr.match(path, "/miner/+/dashboard", &miner):
 		method = "GET"
 		handler = rtr.ctx.getDashboard(dashboardArgs{miner: miner})
@@ -122,6 +131,15 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		method = "GET"
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
 		handler = rtr.ctx.getPayouts(payoutArgs{page: page, size: size, miner: miner})
+
+	case rtr.match(path, "/miner/+/workers", &miner):
+		method = "GET"
+		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
+		handler = rtr.ctx.getWorkers(workersArgs{page: page, size: size, miner: miner})
+
+	case rtr.match(path, "/worker/+/+", &miner, &worker):
+		method = "GET"
+		handler = rtr.ctx.getExists(existsArgs{miner: miner, worker: worker})
 
 	case rtr.match(path, "/worker/+/+/dashboard", &miner, &worker):
 		method = "GET"

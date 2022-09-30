@@ -56,6 +56,10 @@ type Miner struct {
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
+
+	// column not present in the table, only
+	// helpful for a specific join query (GetActiveWorkers)
+	LastShare time.Time `db:"last_share"`
 }
 
 type Worker struct {

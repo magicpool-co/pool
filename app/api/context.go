@@ -67,6 +67,20 @@ func (ctx *Context) writeOkResponse(w http.ResponseWriter, body interface{}) {
 	json.NewEncoder(w).Encode(res)
 }
 
+func (ctx *Context) parsePageSize(rawPage, rawSize string) (uint64, uint64, error) {
+	page, err := strconv.ParseUint(rawPage, 10, 64)
+	if err != nil {
+		return 0, 0, errInvalidParameters
+	}
+
+	size, err := strconv.ParseUint(rawSize, 10, 64)
+	if err != nil {
+		return 0, 0, errInvalidParameters
+	}
+
+	return page, size, nil
+}
+
 func (ctx *Context) getMinerID(miner string) (uint64, error) {
 	minerIDs, err := ctx.getMinerIDs(miner)
 	if err != nil {
@@ -133,6 +147,93 @@ func (ctx *Context) getWorkerID(minerID uint64, worker string) (uint64, error) {
 func (ctx *Context) getBase() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx.writeOkResponse(w, nil)
+	})
+}
+
+type existsArgs struct {
+	miner  string
+	worker string
+}
+
+func (ctx *Context) getExists(args existsArgs) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if args.miner == "" {
+			ctx.writeErrorResponse(w, errInvalidParameters)
+		}
+
+		minerID, err := ctx.getMinerID(args.miner)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		if args.worker != "" {
+			_, err := ctx.getWorkerID(minerID, args.worker)
+			if err != nil {
+				ctx.writeErrorResponse(w, err)
+				return
+			}
+		}
+
+		ctx.writeOkResponse(w, map[string]interface{}{"exists": true})
+	})
+}
+
+type minersArgs struct {
+	page string
+	size string
+}
+
+func (ctx *Context) getMiners(args minersArgs) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		page, size, err := ctx.parsePageSize(args.page, args.size)
+		if err != nil {
+			ctx.writeErrorResponse(w, errInvalidParameters)
+			return
+		}
+
+		miners, count, err := ctx.stats.GetMiners(page, size)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		items := make([]interface{}, len(miners))
+		for i, miner := range miners {
+			items[i] = miner
+		}
+
+		ctx.writeOkResponse(w, paginatedResponse{Page: page, Size: size, Results: count, Items: items})
+	})
+}
+
+type workersArgs struct {
+	miner string
+	page  string
+	size  string
+}
+
+func (ctx *Context) getWorkers(args workersArgs) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		page, size, err := ctx.parsePageSize(args.page, args.size)
+		if err != nil {
+			ctx.writeErrorResponse(w, errInvalidParameters)
+			return
+		}
+
+		minerID, err := ctx.getMinerID(args.miner)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		workers, err := ctx.stats.GetWorkers(minerID, page, size)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		ctx.writeOkResponse(w, workers)
 	})
 }
 
@@ -300,13 +401,7 @@ type payoutArgs struct {
 
 func (ctx *Context) getPayouts(args payoutArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		page, err := strconv.ParseUint(args.page, 10, 64)
-		if err != nil {
-			ctx.writeErrorResponse(w, errInvalidParameters)
-			return
-		}
-
-		size, err := strconv.ParseUint(args.size, 10, 64)
+		page, size, err := ctx.parsePageSize(args.page, args.size)
 		if err != nil {
 			ctx.writeErrorResponse(w, errInvalidParameters)
 			return
@@ -348,13 +443,7 @@ type roundArgs struct {
 
 func (ctx *Context) getRounds(args roundArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		page, err := strconv.ParseUint(args.page, 10, 64)
-		if err != nil {
-			ctx.writeErrorResponse(w, errInvalidParameters)
-			return
-		}
-
-		size, err := strconv.ParseUint(args.size, 10, 64)
+		page, size, err := ctx.parsePageSize(args.page, args.size)
 		if err != nil {
 			ctx.writeErrorResponse(w, errInvalidParameters)
 			return

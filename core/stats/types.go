@@ -91,12 +91,29 @@ type ShareInfo struct {
 	InvalidShareRate  Number `json:"invalidShareRate"`
 }
 
+type Miner struct {
+	ID           uint64                   `json:"-"`
+	Chain        string                   `json:"chain"`
+	Address      string                   `json:"address"`
+	Active       bool                     `json:"active"`
+	HashrateInfo map[string]*HashrateInfo `json:"hashrateInfo"`
+	SharesInfo   map[string]*ShareInfo    `json:"shareInfo"`
+	FirstSeen    int64                    `json:"firstSeen"`
+	LastSeen     int64                    `json:"lastSeen"`
+}
+
 type Worker struct {
 	Name         string                   `json:"name"`
 	Active       bool                     `json:"active"`
 	HashrateInfo map[string]*HashrateInfo `json:"hashrateInfo"`
 	SharesInfo   map[string]*ShareInfo    `json:"shareInfo"`
+	FirstSeen    int64                    `json:"firstSeen"`
 	LastSeen     int64                    `json:"lastSeen"`
+}
+
+type WorkerList struct {
+	Active   []*Worker `json:"active"`
+	Inactive []*Worker `json:"inactive"`
 }
 
 type Dashboard struct {
