@@ -158,7 +158,7 @@ func (c *Client) InitiateTradeStage(batchID uint64, stage int) error {
 		trade.Initiated = true
 		trade.Confirmed = false
 
-		cols := []string{"exchange_trade_id", "initiated", "confirmed"}
+		cols := []string{"exchange_trade_id", "order_price", "initiated", "confirmed"}
 		err = pooldb.UpdateExchangeTrade(c.pooldb.Writer(), trade, cols)
 		if err != nil {
 			return err
