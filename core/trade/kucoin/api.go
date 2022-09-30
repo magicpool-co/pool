@@ -425,13 +425,8 @@ func (c *Client) transferToAccount(chain, from, to string, value float64) error 
 
 	var obj *Order
 	err := c.do("POST", "/api/v2/accounts/inner-transfer", payload, &obj, true)
-	if err != nil {
-		return err
-	} else if obj.ID == "" {
-		return fmt.Errorf("transfer not found")
-	}
 
-	return nil
+	return err
 }
 
 func (c *Client) TransferToMainAccount(chain string, value float64) error {
