@@ -172,10 +172,10 @@ func (c *Client) ConfirmDeposits(batchID uint64) error {
 
 		// transfer the balance from the main account to the
 		// trade account (kucoin only, empty method otherwise)
-		/*err = c.exchange.TransferToTradeAccount(deposit.ChainID, common.BigIntToFloat64(valueBig, units))
+		err = c.exchange.TransferToTradeAccount(deposit.ChainID, common.BigIntToFloat64(valueBig, units))
 		if err != nil {
 			return err
-		}*/
+		}
 
 		deposit.Confirmed = true
 		deposit.Value = dbcl.NullBigInt{Valid: true, BigInt: valueBig}
