@@ -124,20 +124,12 @@ func (c *Client) CheckForNewBatch() error {
 		return err
 	}
 
-	// temporarily restrict profit switches to only use funds from ERGO
-	adjustedBalanceInputs := make([]*pooldb.BalanceInput, 0)
-	for _, balanceInput := range balanceInputs {
-		if balanceInput.ChainID == "ERGO" {
-			adjustedBalanceInputs = append(adjustedBalanceInputs, balanceInput)
-		}
-	}
-
 	// calculate the input paths from balance inputs, fetch the
 	// exchange's output thresholds and current prices. though input
 	// thresholds are global (since exchanges don't charge any deposit
 	// fees, the only deposit fee is the network tx fee), output thresholds
 	// are exchange specific since withdrawal fees can vary across exchanges.
-	inputPaths, err := balanceInputsToInputPaths(adjustedBalanceInputs)
+	inputPaths, err := balanceInputsToInputPaths(balanceInputs)
 	if err != nil {
 		return err
 	}
@@ -182,7 +174,7 @@ func (c *Client) CheckForNewBatch() error {
 		return err
 	}
 
-	for _, balanceInput := range adjustedBalanceInputs {
+	for _, balanceInput := range balanceInputs {
 		balanceInput.BatchID = types.Uint64Ptr(batchID)
 		err = pooldb.UpdateBalanceInput(tx, balanceInput, []string{"batch_id"})
 		if err != nil {
