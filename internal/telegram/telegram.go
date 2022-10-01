@@ -170,7 +170,7 @@ func (t *Client) NotifyFinalizeDeposit(id uint64) error {
 }
 
 func (t *Client) NotifyInitiateTrade(id uint64, pathID, stageID int, market, direction string, value float64) error {
-	msg := fmt.Sprintf("initated exchange trade %d \\(stage: %d, path: %d\\) for %s %.4f %s",
+	msg := fmt.Sprintf("initated exchange trade %d \\(path: %d, stage: %d\\) for %s %.4f %s",
 		id, pathID, stageID, direction, value, market)
 
 	return t.sendMessage(msg, t.InfoChatID)
