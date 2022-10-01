@@ -187,6 +187,12 @@ func CalculateProportionalValues[K string | uint64](value, fee *big.Int, proport
 		}
 	}
 
+	if _, ok := proportionalValues[smallestKey]; !ok {
+		return nil, nil, fmt.Errorf("key not found in proportionalValues: %v", key)
+	} else if _, ok := proportionalFees[smallestKey]; !ok {
+		return nil, nil, fmt.Errorf("key not found in proportionalFees: %v", key)
+	}
+
 	// distribute the remainder fees
 	proportionalValues[smallestKey].Add(proportionalValues[smallestKey], remainderValue)
 	proportionalFees[smallestKey].Add(proportionalFees[smallestKey], remainderFee)
