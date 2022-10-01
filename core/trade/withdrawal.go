@@ -294,6 +294,10 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 			return fmt.Errorf("no cumulative fees for withdrawal %d", withdrawal.ID)
 		}
 
+		// create an index to aggregate sum user values and fees
+		// for the withdrawal's output chain
+		balanceOutputIdx := make(map[uint64]*pooldb.BalanceOutput)
+
 		// calculate the exact proportional values and fees for each trade path
 		proportionalValues, proportionalFees, err := accounting.CalculateProportionalValues(withdrawal.Value.BigInt,
 			withdrawal.CumulativeFees.BigInt, finalProportions[withdrawal.ChainID])
@@ -328,21 +332,28 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 					return fmt.Errorf("no pool fees found for miner %d and chain %s", minerID, withdrawal.ChainID)
 				}
 
-				poolFee := poolFeeIdx[minerID][withdrawal.ChainID]
-				exchangeFee := minerProportionalFees[minerID]
+				// in the case of a miner having multiple input chains going to
+				// the same output chain in a batch, an index is used to sum
+				// the cumulative value (and avoid pool fee duplication)
+				if _, ok := balanceOutputIdx[minerID]; !ok {
+					balanceOutputIdx[minerID] = &pooldb.BalanceOutput{
+						ChainID: withdrawal.ChainID,
+						MinerID: minerID,
 
-				balanceOutput := &pooldb.BalanceOutput{
-					ChainID: withdrawal.ChainID,
-					MinerID: minerID,
+						InBatchID: types.Uint64Ptr(batchID),
 
-					InBatchID: types.Uint64Ptr(batchID),
-
-					Value:        dbcl.NullBigInt{Valid: true, BigInt: value},
-					PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: poolFee},
-					ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: exchangeFee},
+						Value:        dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+						PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: poolFeeIdx[minerID][withdrawal.ChainID]},
+						ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: minerProportionalFees[minerID]},
+					}
 				}
-				balanceOutputs = append(balanceOutputs, balanceOutput)
+				balanceOutputIdx[minerID].Value.BigInt.Add(balanceOutputIdx[minerID].Value.BigInt, value)
 			}
+		}
+
+		// add every item in the idx to the global slice
+		for _, balanceOutput := range balanceOutputIdx {
+			balanceOutputs = append(balanceOutputs, balanceOutput)
 		}
 	}
 
