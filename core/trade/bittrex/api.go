@@ -35,25 +35,23 @@ func (c *Client) GetRate(market string) (float64, error) {
 	return strconv.ParseFloat(obj.LastTradeRate, 64)
 }
 
-func (c *Client) GetHistoricalRate(base, quote string, timestamp time.Time) (float64, error) {
-	path := "/markets/" + base + "-" + quote + "/candles/MINUTE_5"
-	if time.Since(timestamp) < time.Hour*24 {
+func (c *Client) GetHistoricalRates(market string, startTime, endTime time.Time, invert bool) (map[time.Time]float64, error) {
+	path := "/markets/" + market + "/candles/MINUTE_5"
+	if time.Since(startTime) < time.Hour*24 {
 		path += "/recent"
 	} else {
-		path += fmt.Sprintf("/historical/%d/%d/%d", timestamp.Year(), timestamp.Month(), timestamp.Day())
+		path += fmt.Sprintf("/historical/%d/%d/%d", startTime.Year(), startTime.Month(), startTime.Day())
 	}
 
 	objs := make([]*HistoricalRateResponse, 0)
 	err := c.do("GET", path, nil, &objs, false)
 	if err != nil {
-		return 0, err
-	} else if len(objs) == 0 {
-		return 0, fmt.Errorf("no results found for rate")
+		return nil, err
 	}
 
-	closestRate := objs[len(objs)-1]
+	rates := make(map[time.Time]float64)
 
-	return strconv.ParseFloat(closestRate.Close, 64)
+	return rates, nil
 }
 
 func (c *Client) GetOutputThresholds() map[string]*big.Int {

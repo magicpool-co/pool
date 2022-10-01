@@ -7,5 +7,7 @@ CREATE TABLE prices (
 
 	timestamp				datetime		NOT NULL,
 
-	PRIMARY KEY (chain_id, timestamp)
+	PRIMARY KEY (chain_id, timestamp),
+	INDEX idx_prices_chain_id (chain_id),
+	INDEX idx_prices_timestamp (timestamp)
 );

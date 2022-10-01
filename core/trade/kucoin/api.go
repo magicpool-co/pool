@@ -50,33 +50,45 @@ func (c *Client) GetRate(market string) (float64, error) {
 	return strconv.ParseFloat(obj.Price, 64)
 }
 
-func (c *Client) GetHistoricalRate(base, quote string, timestamp time.Time) (float64, error) {
+func (c *Client) GetHistoricalRates(market string, startTime, endTime time.Time, invert bool) (map[time.Time]float64, error) {
+	const maxResults = 1000
+
 	payload := map[string]string{
-		"symbol":  formatChain(base) + "-" + formatChain(quote),
-		"type":    "5min",
-		"startAt": strconv.FormatInt(timestamp.Add(-1*time.Hour).Unix(), 10),
-		"endAt":   strconv.FormatInt(timestamp.Add(time.Hour).Unix(), 10),
+		"symbol":  market,
+		"type":    "15min",
+		"startAt": strconv.FormatInt(startTime.Unix(), 10),
+		"endAt":   strconv.FormatInt(endTime.Unix(), 10),
 	}
 
-	objs := make([][]interface{}, 0)
+	objs := make([][]string, 0)
 	err := c.do("GET", "/api/v1/market/candles", payload, &objs, false)
 	if err != nil {
-		return 0, err
-	} else if len(objs) == 0 {
-		return 0, fmt.Errorf("no results found for rate")
+		return nil, err
 	}
 
-	kline := objs[len(objs)-1]
-	if len(kline) != 7 {
-		return 0, fmt.Errorf("invalid kline of length %d", len(kline))
+	rates := make(map[time.Time]float64, len(objs))
+	for _, kline := range objs {
+		if len(kline) != 7 {
+			return nil, fmt.Errorf("invalid kline of length %d", len(kline))
+		}
+
+		rawTimestamp, err := strconv.ParseInt(kline[0], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		timestamp := time.Unix(rawTimestamp, 0)
+
+		rate, err := strconv.ParseFloat(kline[2], 64)
+		if err != nil {
+			return nil, err
+		} else if invert && rate > 0 {
+			rate = 1 / rate
+		}
+
+		rates[timestamp] = rate
 	}
 
-	rawClosePrice, ok := kline[2].(string)
-	if !ok {
-		return 0, fmt.Errorf("unable to cast kline[2] %v as string", kline[2])
-	}
-
-	return strconv.ParseFloat(rawClosePrice, 64)
+	return rates, nil
 }
 
 func (c *Client) GetOutputThresholds() map[string]*big.Int {

@@ -14,6 +14,15 @@ type TsdbReadsSuite struct {
 	suite.Suite
 }
 
+func (suite *TsdbReadsSuite) TestReadPrices() {
+	var err error
+
+	_, err = tsdb.GetPriceMaxTimestamp(tsdbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetPriceMaxTimestamp: %v", err)
+	}
+}
+
 func (suite *TsdbReadsSuite) TestReadRawBlocks() {
 	var err error
 

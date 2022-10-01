@@ -26,8 +26,6 @@ var (
 	btcUsdtBuy  = &types.Market{Market: "BTC-USDT", Base: "BTC", Quote: "USDT", Direction: types.TradeBuy}
 	ethUsdtBuy  = &types.Market{Market: "ETH-USDT", Base: "ETH", Quote: "USDT", Direction: types.TradeBuy}
 	usdcUsdtBuy = &types.Market{Market: "USDC-USDT", Base: "USDC", Quote: "USDT", Direction: types.TradeBuy}
-
-	ethBtcBuy = &types.Market{Market: "ETH-BTC", Base: "ETH", Quote: "BTC", Direction: types.TradeBuy}
 )
 
 var (
@@ -48,7 +46,7 @@ var (
 				ergBtcSell,
 			},
 			"ETH": []*types.Market{
-				ergBtcSell, ethBtcBuy,
+				ergUsdtSell, ethUsdtBuy,
 			},
 			"USDC": []*types.Market{
 				ergUsdtSell, usdcUsdtBuy,
@@ -70,7 +68,7 @@ var (
 				fluxBtcSell,
 			},
 			"ETH": []*types.Market{
-				fluxBtcSell, ethBtcBuy,
+				fluxUsdtSell, ethUsdtBuy,
 			},
 			"USDC": []*types.Market{
 				fluxUsdtSell, usdcUsdtBuy,

@@ -137,7 +137,7 @@ type Exchange interface {
 
 	// rate
 	GetRate(string) (float64, error)
-	GetHistoricalRate(string, string, time.Time) (float64, error)
+	GetHistoricalRates(string, time.Time, time.Time, bool) (map[time.Time]float64, error)
 	GetOutputThresholds() map[string]*big.Int
 	GetPrices(map[string]map[string]*big.Int) (map[string]map[string]float64, error)
 

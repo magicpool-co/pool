@@ -100,4 +100,12 @@ func (j *ChartJob) Run() {
 			}
 		}
 	}
+
+	// prices
+	for _, node := range j.nodes {
+		err := client.ProcessPrices(node.Chain())
+		if err != nil {
+			j.logger.Error(fmt.Errorf("price: interval: %s: %v", node.Chain(), err))
+		}
+	}
 }

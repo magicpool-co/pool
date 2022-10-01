@@ -42,7 +42,7 @@ func New(apiKey, secretKey string) *Client {
 	)
 
 	client := &Client{
-		url:        testnetURL,
+		url:        mainnetURL,
 		apiKey:     apiKey,
 		secretKey:  secretKey,
 		httpClient: &http.Client{},
@@ -61,10 +61,12 @@ func (c *Client) do(method, path string, payload map[string]string, target inter
 	var query, body url.Values
 	switch method {
 	case "GET":
+		query = url.Values{}
 		for k, v := range payload {
 			query.Set(k, v)
 		}
 	case "POST":
+		body = url.Values{}
 		for k, v := range payload {
 			body.Set(k, v)
 		}

@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goccy/go-json"
+
 	"github.com/magicpool-co/pool/types"
 )
 
@@ -50,33 +52,51 @@ func (c *Client) GetRate(market string) (float64, error) {
 	return strconv.ParseFloat(obj.Price, 64)
 }
 
-func (c *Client) GetHistoricalRate(base, quote string, timestamp time.Time) (float64, error) {
+func (c *Client) GetHistoricalRates(market string, startTime, endTime time.Time, invert bool) (map[time.Time]float64, error) {
+	const maxResults = 1000
+
 	payload := map[string]string{
-		"symbol":    strings.ToUpper(base + quote),
-		"interval":  "5m",
-		"startTime": strconv.FormatInt(timestamp.Add(-1*time.Hour).UnixMilli(), 10),
-		"endTime":   strconv.FormatInt(timestamp.Add(time.Hour).UnixMilli(), 10),
+		"symbol":    market,
+		"interval":  "15m",
+		"startTime": strconv.FormatInt(startTime.UnixMilli(), 10),
+		"endTime":   strconv.FormatInt(endTime.UnixMilli(), 10),
+		"limit":     "1000",
 	}
 
-	objs := make([][]interface{}, 0)
+	objs := make([][]json.RawMessage, 0)
 	err := c.do("GET", "/api/v3/klines", payload, &objs, securityTypeNone)
 	if err != nil {
-		return 0, err
-	} else if len(objs) == 0 {
-		return 0, fmt.Errorf("no results found for rate")
+		return nil, err
 	}
 
-	kline := objs[len(objs)-1]
-	if len(kline) != 12 {
-		return 0, fmt.Errorf("invalid kline of length %d", len(kline))
+	rates := make(map[time.Time]float64, len(objs))
+	for _, kline := range objs {
+		if len(kline) != 12 {
+			return nil, fmt.Errorf("invalid kline of length %d", len(kline))
+		}
+
+		var rawTimestamp int64
+		if err := json.Unmarshal(kline[0], &rawTimestamp); err != nil {
+			return nil, err
+		}
+		timestamp := time.Unix(rawTimestamp/1000, 0)
+
+		var rawRate string
+		if err := json.Unmarshal(kline[4], &rawRate); err != nil {
+			return nil, err
+		}
+
+		rate, err := strconv.ParseFloat(rawRate, 64)
+		if err != nil {
+			return nil, err
+		} else if invert && rate > 0 {
+			rate = 1 / rate
+		}
+
+		rates[timestamp] = rate
 	}
 
-	rawClosePrice, ok := kline[4].(string)
-	if !ok {
-		return 0, fmt.Errorf("unable to cast kline[4] %v as string", kline[4])
-	}
-
-	return strconv.ParseFloat(rawClosePrice, 64)
+	return rates, nil
 }
 
 func (c *Client) GetOutputThresholds() map[string]*big.Int {

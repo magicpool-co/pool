@@ -271,6 +271,15 @@ func GetPendingBlocksAtEndTime(q dbcl.Querier, timestamp time.Time, chain string
 	return output, err
 }
 
+func GetPriceMaxTimestamp(q dbcl.Querier, chain string) (time.Time, error) {
+	const query = `SELECT MAX(timestamp) 
+	FROM prices
+	WHERE
+		chain_id = ?;`
+
+	return dbcl.GetTime(q, query, chain)
+}
+
 func GetBlockMaxEndTime(q dbcl.Querier, chain string, period int) (time.Time, error) {
 	const query = `SELECT MAX(end_time) 
 	FROM blocks
