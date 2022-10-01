@@ -33,6 +33,14 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	input := inputs[0]
 	output := outputs[0]
 
+	if len(output.Address) > 2 && output.Address[:2] == "0x" {
+		var err error
+		output.Address, err = ETHAddressToCFX(output.Address, node.networkPrefix)
+		if err != nil {
+			return "", err
+		}
+	}
+
 	nonce, err := node.getPendingNonce(node.address)
 	if err != nil {
 		return "", err
