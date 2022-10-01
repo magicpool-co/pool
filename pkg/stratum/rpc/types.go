@@ -71,9 +71,9 @@ func NewRequestWithID(rawID interface{}, method string, inputs ...interface{}) (
 }
 
 type Error struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
+	Code    int             `json:"code"`
+	Message string          `json:"message"`
+	Data    json.RawMessage `json:"data,omitempty"`
 }
 
 func (err *Error) Error() string {

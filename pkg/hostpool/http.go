@@ -30,6 +30,7 @@ type HTTPError struct {
 	StatusCode int
 	Status     string
 	Body       []byte
+	Data       []byte
 }
 
 // String representation of an HTTPError.
@@ -37,7 +38,7 @@ func (err HTTPError) Error() string {
 	if len(err.Body) == 0 {
 		return err.Status
 	}
-	return fmt.Sprintf("%v: %s", err.Status, err.Body)
+	return fmt.Sprintf("%v: %s: %s", err.Status, err.Body, err.Data)
 }
 
 // HTTPPool represents a pool of HTTP hosts with methods to make standard HTTP calls.
@@ -269,7 +270,7 @@ func (p *HTTPPool) ExecRPC(req *rpc.Request) (*rpc.Response, error) {
 		return nil, HTTPError{
 			Status:     res.Error.Message,
 			StatusCode: res.Error.Code,
-			// Body:       []byte(res.Error.Data), // @TODO: actually implement this
+			Body:       []byte(res.Error.Data),
 		}
 	}
 
