@@ -57,7 +57,6 @@ func (c *Client) InitiateWithdrawals(batchID uint64) error {
 			return fmt.Errorf("no node for %s", chain)
 		}
 
-		// @TODO: maybe ignore this and just let it error out if they're disabled?
 		walletActive, err := c.exchange.GetWalletStatus(chain)
 		if err != nil {
 			return err

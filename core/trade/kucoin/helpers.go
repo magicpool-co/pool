@@ -24,6 +24,8 @@ func unformatChain(chain string) string {
 	switch chain {
 	case "ERG":
 		return "ERGO"
+	case "ERC20":
+		return "ETH"
 	default:
 		return chain
 	}

@@ -245,6 +245,8 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 		} else if prevTrade != nil {
 			if prevTrade.CumulativeFillPrice == nil {
 				return fmt.Errorf("no cumulative fill price for trade %d", prevTrade.ID)
+			} else if !prevTrade.Proceeds.Valid {
+				return fmt.Errorf("no proceeds for trade %d", prevTrade.ID)
 			} else if !prevTrade.CumulativeDepositFees.Valid {
 				return fmt.Errorf("no cumulative deposit fees for trade %d", prevTrade.ID)
 			} else if !prevTrade.CumulativeTradeFees.Valid {
@@ -254,9 +256,31 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 			// set cumulative fill price to previous cumulative fill price
 			cumulativeFillPrice = types.Float64Value(prevTrade.CumulativeFillPrice)
 
+			// adjust previous deposit fees to be proprtional to the amount
+			// the current trade used (against the total value of the previous trade)
+			previousDepositFees := prevTrade.CumulativeDepositFees.BigInt
+			previousDepositFees.Mul(previousDepositFees, trade.Value.BigInt)
+			previousDepositFees.Div(previousDepositFees, prevTrade.Proceeds.BigInt)
+
+			// adjust previous deposit fees to be proprtional to the amount
+			// the current trade used (against the total value of the previous trade)
+			previousTradeFees := prevTrade.CumulativeTradeFees.BigInt
+			previousTradeFees.Mul(previousTradeFees, trade.Value.BigInt)
+			previousTradeFees.Div(previousTradeFees, prevTrade.Proceeds.BigInt)
+
 			// adjust cumulative deposit and trade fees to the current chain's price
-			cumulativeDepositFees = fillPrice * common.BigIntToFloat64(prevTrade.CumulativeDepositFees.BigInt, fromUnits)
-			cumulativeTradeFees = fillPrice * common.BigIntToFloat64(prevTrade.CumulativeTradeFees.BigInt, fromUnits)
+			if fillPrice > 0 {
+				switch types.TradeDirection(trade.Direction) {
+				case types.TradeBuy:
+					cumulativeFillPrice /= fillPrice
+					cumulativeDepositFees = common.BigIntToFloat64(previousDepositFees, fromUnits) / fillPrice
+					cumulativeTradeFees = common.BigIntToFloat64(previousTradeFees, fromUnits) / fillPrice
+				case types.TradeSell:
+					cumulativeFillPrice *= fillPrice
+					cumulativeDepositFees = common.BigIntToFloat64(previousDepositFees, fromUnits) * fillPrice
+					cumulativeTradeFees = common.BigIntToFloat64(previousTradeFees, fromUnits) * fillPrice
+				}
+			}
 		} else {
 			if !trade.CumulativeDepositFees.Valid {
 				return fmt.Errorf("no cumulative deposit fees for trade %d", trade.ID)
@@ -264,18 +288,16 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 
 			// set cumulative fill price to 1
 			cumulativeFillPrice = 1
-
-			// adjust initial cumulative deposit fees to the current chain's price
-			cumulativeDepositFees = fillPrice * common.BigIntToFloat64(trade.CumulativeDepositFees.BigInt, fromUnits)
-		}
-
-		// adjust cumulative fill price to account for previous
-		if fillPrice > 0 {
-			switch types.TradeDirection(trade.Direction) {
-			case types.TradeBuy:
-				cumulativeFillPrice /= fillPrice
-			case types.TradeSell:
-				cumulativeFillPrice *= fillPrice
+			if fillPrice > 0 {
+				depositFees := trade.CumulativeDepositFees.BigInt
+				switch types.TradeDirection(trade.Direction) {
+				case types.TradeBuy:
+					cumulativeFillPrice = 1 / fillPrice
+					cumulativeDepositFees = common.BigIntToFloat64(depositFees, fromUnits) / fillPrice
+				case types.TradeSell:
+					cumulativeFillPrice = fillPrice
+					cumulativeDepositFees = common.BigIntToFloat64(depositFees, fromUnits) * fillPrice
+				}
 			}
 		}
 
