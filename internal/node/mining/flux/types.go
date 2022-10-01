@@ -17,11 +17,13 @@ import (
 )
 
 var (
-	mainnetPrefixP2PKH = []byte{0x1C, 0xB8}
-	mainnetPrefixP2SH  = []byte{0x1C, 0xBD}
+	mainnetPrefixP2PKH      = []byte{0x1C, 0xB8}
+	mainnetPrefixP2SH       = []byte{0x1C, 0xBD}
+	mainnetDevWalletAmounts = []uint64{562500000, 937500000, 2250000000}
 
-	testnetPrefixP2PKH = []byte{0x1D, 0x25}
-	testnetPrefixP2SH  = []byte{0x1C, 0xBA}
+	testnetPrefixP2PKH      = []byte{0x1D, 0x25}
+	testnetPrefixP2SH       = []byte{0x1C, 0xBA}
+	testnetDevWalletAmounts = []uint64{562500000, 937500000, 2250000000}
 )
 
 func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
@@ -57,9 +59,11 @@ func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel
 func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
 	prefixP2PKH := mainnetPrefixP2PKH
 	prefixP2SH := mainnetPrefixP2SH
+	devWalletAmounts := mainnetDevWalletAmounts
 	if !mainnet {
 		prefixP2PKH = testnetPrefixP2PKH
 		prefixP2SH = testnetPrefixP2SH
+		devWalletAmounts = testnetDevWalletAmounts
 	}
 
 	host, err := generateHost(urls, logger, tunnel)
@@ -80,32 +84,34 @@ func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel
 	address := base58.CheckEncode(prefixP2PKH, pubKeyHash)
 
 	node := &Node{
-		mocked:      host == nil,
-		mainnet:     mainnet,
-		prefixP2PKH: prefixP2PKH,
-		prefixP2SH:  prefixP2SH,
-		address:     address,
-		wif:         crypto.PrivKeyToWIFUncompressed(privKey),
-		privKey:     privKey,
-		rpcHost:     host,
-		pow:         equihash.NewFlux(),
-		logger:      logger,
+		mocked:           host == nil,
+		mainnet:          mainnet,
+		prefixP2PKH:      prefixP2PKH,
+		prefixP2SH:       prefixP2SH,
+		devWalletAmounts: devWalletAmounts,
+		address:          address,
+		wif:              crypto.PrivKeyToWIFUncompressed(privKey),
+		privKey:          privKey,
+		rpcHost:          host,
+		pow:              equihash.NewFlux(),
+		logger:           logger,
 	}
 
 	return node, nil
 }
 
 type Node struct {
-	mocked      bool
-	mainnet     bool
-	prefixP2PKH []byte
-	prefixP2SH  []byte
-	address     string
-	wif         string
-	privKey     *secp256k1.PrivateKey
-	rpcHost     *hostpool.HTTPPool
-	pow         *equihash.Client
-	logger      *log.Logger
+	mocked           bool
+	mainnet          bool
+	prefixP2PKH      []byte
+	prefixP2SH       []byte
+	devWalletAmounts []uint64
+	address          string
+	wif              string
+	privKey          *secp256k1.PrivateKey
+	rpcHost          *hostpool.HTTPPool
+	pow              *equihash.Client
+	logger           *log.Logger
 }
 
 type BlockchainInfo struct {

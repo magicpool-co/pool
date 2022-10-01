@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sort"
 	"strconv"
 	"time"
 
@@ -126,6 +127,20 @@ func (node Node) getCurrentDevRewards() ([]uint64, error) {
 	}
 	if template.StratusFluxnodeAddress != "" && template.StratusFluxnodePayout != 0 {
 		devRewards = append(devRewards, template.StratusFluxnodePayout)
+	}
+
+	sort.Slice(devRewards, func(i, j int) bool {
+		return devRewards[i] < devRewards[j]
+	})
+
+	if len(devRewards) != len(node.devWalletAmounts) {
+		return nil, fmt.Errorf("dev rewards mismatch: have %v, want %v", devRewards, node.devWalletAmounts)
+	}
+
+	for i, devReward := range devRewards {
+		if devReward != node.devWalletAmounts[i] {
+			return nil, fmt.Errorf("dev rewards mismatch: have %v, want %v", devRewards, node.devWalletAmounts)
+		}
 	}
 
 	return devRewards, nil
