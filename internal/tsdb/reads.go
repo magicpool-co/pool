@@ -28,11 +28,12 @@ func GetBlocks(q dbcl.Querier, chain string, period int) ([]*Block, error) {
 
 func GetBlocksProfitability(q dbcl.Querier, period int) ([]*Block, error) {
 	const query = `SELECT
-		chain_id,
-		profitability,
-		avg_profitability,
-		end_time
+		blocks.chain_id,
+		blocks.profitability * prices.price_usd profitability,
+		blocks.avg_profitability * prices.price_usd avg_profitability,
+		blocks.end_time
 	FROM blocks
+	JOIN prices ON blocks.end_time = prices.timestamp AND blocks.chain_id = prices.chain_id
 	WHERE
 		period = ?
 	AND
