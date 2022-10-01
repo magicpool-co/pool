@@ -220,7 +220,7 @@ func (c *Client) ProcessPrices(chain string) error {
 	case "ERGO":
 		idx, err = getKucoinNativeAllExceptETH("ERG", startTime, endTime)
 	case "ETC":
-		idx, err = getKucoinNativeAll("ETC", startTime, endTime)
+		idx, err = getKucoinNativeUSDTOnly("ETC", startTime, endTime)
 	case "ETHW":
 		idx, err = getKucoinNativeUSDTOnly("ETHW", startTime, endTime)
 	case "FIRO":
