@@ -115,15 +115,17 @@ type Transaction struct {
 	Input       string `json:"input"`
 	Nonce       string `json:"nonce"`
 	Index       string `json:"transactionIndex"`
+	Type        string `json:"type"`
 	V           string `json:"v"`
 	R           string `json:"r"`
 	S           string `json:"s"`
 }
 
 type TransactionReceipt struct {
-	TxHash      string `json:"transactionHash"`
-	GasUsed     string `json:"gasUsed"`
-	BlockHash   string `json:"blockHash"`
-	BlockNumber string `json:"blockNumber"`
-	Status      string `json:"status"`
+	TxHash            string `json:"transactionHash"`
+	GasUsed           string `json:"gasUsed"`
+	EffectiveGasPrice string `json:"effectiveGasPrice"`
+	BlockHash         string `json:"blockHash"`
+	BlockNumber       string `json:"blockNumber"`
+	Status            string `json:"status"`
 }

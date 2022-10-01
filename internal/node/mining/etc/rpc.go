@@ -11,6 +11,34 @@ import (
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 )
 
+func (node Node) getTransactionByHash(txid string) (*Transaction, error) {
+	res, err := node.rpcHost.ExecRPCFromArgs("eth_getTransactionByHash", txid)
+	if err != nil {
+		return nil, err
+	}
+
+	tx := new(Transaction)
+	if err := json.Unmarshal(res.Result, tx); err != nil {
+		return nil, err
+	}
+
+	return tx, nil
+}
+
+func (node Node) getTransactionReceipt(txid string) (*TransactionReceipt, error) {
+	res, err := node.rpcHost.ExecRPCFromArgs("eth_getTransactionReceipt", txid)
+	if err != nil {
+		return nil, err
+	}
+
+	receipt := new(TransactionReceipt)
+	if err := json.Unmarshal(res.Result, receipt); err != nil {
+		return nil, err
+	}
+
+	return receipt, nil
+}
+
 func (node Node) getTransactionReceiptMany(txids []string) ([]*TransactionReceipt, error) {
 	var responses []*rpc.Response
 	if node.mocked {

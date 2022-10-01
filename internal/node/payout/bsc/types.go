@@ -90,5 +90,6 @@ type TransactionReceipt struct {
 	GasUsed           string `json:"gasUsed"`
 	EffectiveGasPrice string `json:"effectiveGasPrice"`
 	BlockHash         string `json:"blockHash"`
+	BlockNumber       string `json:"blockNumber"`
 	Status            string `json:"status"`
 }

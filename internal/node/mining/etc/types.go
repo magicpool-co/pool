@@ -102,23 +102,21 @@ type Block struct {
 }
 
 type Transaction struct {
-	Hash                 string `json:"hash"`
-	BlockHash            string `json:"blockHash"`
-	BlockNumber          string `json:"blockNumber"`
-	From                 string `json:"from"`
-	To                   string `json:"to"`
-	Value                string `json:"value"`
-	Gas                  string `json:"gas"`
-	GasPrice             string `json:"gasPrice"`
-	MaxFeePerGas         string `json:"maxFeePerGas"`
-	MaxPriorityFeePerGas string `json:"maxPriorityFeePerGas"`
-	Input                string `json:"input"`
-	Nonce                string `json:"nonce"`
-	Index                string `json:"transactionIndex"`
-	Type                 string `json:"type"`
-	V                    string `json:"v"`
-	R                    string `json:"r"`
-	S                    string `json:"s"`
+	Hash        string `json:"hash"`
+	BlockHash   string `json:"blockHash"`
+	BlockNumber string `json:"blockNumber"`
+	From        string `json:"from"`
+	To          string `json:"to"`
+	Value       string `json:"value"`
+	Gas         string `json:"gas"`
+	GasPrice    string `json:"gasPrice"`
+	Input       string `json:"input"`
+	Nonce       string `json:"nonce"`
+	Index       string `json:"transactionIndex"`
+	Type        string `json:"type"`
+	V           string `json:"v"`
+	R           string `json:"r"`
+	S           string `json:"s"`
 }
 
 type TransactionReceipt struct {
@@ -126,5 +124,6 @@ type TransactionReceipt struct {
 	GasUsed           string `json:"gasUsed"`
 	EffectiveGasPrice string `json:"effectiveGasPrice"`
 	BlockHash         string `json:"blockHash"`
+	BlockNumber       string `json:"blockNumber"`
 	Status            string `json:"status"`
 }
