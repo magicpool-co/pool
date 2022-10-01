@@ -1,6 +1,8 @@
 package ethtx
 
 import (
+	"fmt"
+
 	"crypto/ecdsa"
 	"encoding/hex"
 	"math/big"
@@ -32,6 +34,10 @@ func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, baseFe
 	maxFee := new(big.Int).Mul(baseFee, big.NewInt(2))
 	maxFee.Add(maxFee, priorityTip)
 	fees := new(big.Int).Mul(maxFee, new(big.Int).SetUint64(gasLimit))
+	if value.Cmp(fees) <= 0 {
+		return "", nil, fmt.Errorf("fees greater than value")
+	}
+	value = new(big.Int).Sub(value, fees)
 
 	signer := ethTypes.NewLondonSigner(new(big.Int).SetUint64(chainID))
 	tx := ethTypes.NewTx(&ethTypes.DynamicFeeTx{
@@ -62,8 +68,14 @@ func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, baseFe
 	return string(encodedTx), fees, nil
 }
 
-func NewLegacyTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, gasPrice *big.Int, gasLimit, nonce, chainID uint64) (string, error) {
+func NewLegacyTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, gasPrice *big.Int, gasLimit, nonce, chainID uint64) (string, *big.Int, error) {
 	toAddress := ethCommon.HexToAddress(address)
+
+	fees := new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gasLimit))
+	if value.Cmp(fees) <= 0 {
+		return "", nil, fmt.Errorf("fees greater than value")
+	}
+	value = new(big.Int).Sub(value, fees)
 
 	signer := ethTypes.NewLondonSigner(new(big.Int).SetUint64(chainID))
 	tx := ethTypes.NewTx(&ethTypes.LegacyTx{
@@ -77,17 +89,17 @@ func NewLegacyTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, 
 
 	signedTx, err := ethTypes.SignTx(tx, signer, privKey)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	txBin, err := signedTx.MarshalBinary()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	encodedTx := make([]byte, len(txBin)*2+2)
 	copy(encodedTx, "0x")
 	hex.Encode(encodedTx[2:], txBin)
 
-	return string(encodedTx), nil
+	return string(encodedTx), fees, nil
 }

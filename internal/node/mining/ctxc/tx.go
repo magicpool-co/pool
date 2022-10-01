@@ -52,7 +52,9 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		return "", err
 	}
 
-	return ethtx.NewLegacyTx(node.privKey.ToECDSA(), output.Address, nil, output.Value, gasPrice, gasLimit, nonce, chainID)
+	tx, _, err := ethtx.NewLegacyTx(node.privKey.ToECDSA(), output.Address, nil, output.Value, gasPrice, gasLimit, nonce, chainID)
+
+	return tx, err
 }
 
 func (node Node) BroadcastTx(tx string) (string, error) {

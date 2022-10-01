@@ -1,6 +1,8 @@
 package cfxtx
 
 import (
+	"fmt"
+
 	"crypto/ecdsa"
 	"encoding/hex"
 	"math/big"
@@ -25,6 +27,12 @@ func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, gasPri
 	if gasPrice.Cmp(new(big.Int).SetUint64(1)) != 1 {
 		gasPrice = new(big.Int).SetUint64(1)
 	}
+
+	gasTotal := new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gasLimit))
+	if value.Cmp(gasTotal) <= 0 {
+		return "", fmt.Errorf("gas total greater than value")
+	}
+	value = new(big.Int).Sub(value, gasTotal)
 
 	tx := cfxTypes.UnsignedTransaction{
 		UnsignedTransactionBase: cfxTypes.UnsignedTransactionBase{
