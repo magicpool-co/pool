@@ -26,6 +26,24 @@ func GetBlocks(q dbcl.Querier, chain string, period int) ([]*Block, error) {
 	return output, err
 }
 
+func GetBlocksProfitability(q dbcl.Querier, period int) ([]*Block, error) {
+	const query = `SELECT
+		chain_id,
+		profitability,
+		avg_profitability,
+		end_time
+	FROM blocks
+	WHERE
+		period = ?
+	AND
+		pending = FALSE;`
+
+	output := []*Block{}
+	err := q.Select(&output, query, period)
+
+	return output, err
+}
+
 func GetRounds(q dbcl.Querier, chain string, period int) ([]*Round, error) {
 	const query = `SELECT *
 	FROM rounds

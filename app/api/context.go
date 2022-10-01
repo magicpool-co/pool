@@ -309,6 +309,28 @@ func (ctx *Context) getBlockChart(args blockChartArgs) http.Handler {
 	})
 }
 
+type blockProfitabilityChartArgs struct {
+	period string
+}
+
+func (ctx *Context) getBlockProfitabilityChart(args blockProfitabilityChartArgs) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		period, err := types.ParsePeriodType(args.period)
+		if err != nil {
+			ctx.writeErrorResponse(w, errPeriodNotFound)
+			return
+		}
+
+		data, err := ctx.stats.GetBlockProfitabilityChart(period)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		ctx.writeOkResponse(w, data)
+	})
+}
+
 type roundChartArgs struct {
 	chain  string
 	period string

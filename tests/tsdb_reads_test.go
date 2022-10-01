@@ -41,6 +41,11 @@ func (suite *TsdbReadsSuite) TestReadBlocks() {
 		suite.T().Errorf("failed: GetBlocks: %v", err)
 	}
 
+	_, err = tsdb.GetBlocksProfitability(tsdbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetBlocksProfitability: %v", err)
+	}
+
 	_, err = tsdb.GetPendingBlocksAtEndTime(tsdbClient.Reader(), time.Now(), "ETH", 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetPendingBlocksAtEndTime: %v", err)

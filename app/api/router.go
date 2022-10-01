@@ -81,6 +81,11 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		period := r.URL.Query().Get("period")
 		handler = rtr.ctx.getBlockChart(blockChartArgs{chain: chain, period: period})
 
+	case rtr.match(path, "/global/charts/blocks/profitability"):
+		method = "GET"
+		period := r.URL.Query().Get("period")
+		handler = rtr.ctx.getBlockProfitabilityChart(blockProfitabilityChartArgs{period: period})
+
 	case rtr.match(path, "/global/charts/rounds"):
 		method = "GET"
 		chain := r.URL.Query().Get("chain")

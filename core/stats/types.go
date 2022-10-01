@@ -165,16 +165,16 @@ type Payout struct {
 
 type BlockChart struct {
 	Timestamp        []int64   `json:"timestamp"`
-	Value            []float64 `json:"value"`
-	Difficulty       []float64 `json:"difficulty"`
-	BlockTime        []float64 `json:"blockTime"`
-	Hashrate         []float64 `json:"hashrate"`
-	UncleRate        []float64 `json:"uncleRate"`
-	Profitability    []float64 `json:"profitability"`
-	AvgProfitability []float64 `json:"avgProfitability"`
-	BlockCount       []uint64  `json:"blockCount"`
-	UncleCount       []uint64  `json:"uncleCount"`
-	TxCount          []uint64  `json:"txCount"`
+	Value            []float64 `json:"value,omitempty"`
+	Difficulty       []float64 `json:"difficulty,omitempty"`
+	BlockTime        []float64 `json:"blockTime,omitempty"`
+	Hashrate         []float64 `json:"hashrate,omitempty"`
+	UncleRate        []float64 `json:"uncleRate,omitempty"`
+	Profitability    []float64 `json:"profitability,omitempty"`
+	AvgProfitability []float64 `json:"avgProfitability,omitempty"`
+	BlockCount       []uint64  `json:"blockCount,omitempty"`
+	UncleCount       []uint64  `json:"uncleCount,omitempty"`
+	TxCount          []uint64  `json:"txCount,omitempty"`
 }
 
 func (chart *BlockChart) Len() int {

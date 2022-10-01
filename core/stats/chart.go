@@ -60,6 +60,75 @@ func (c *Client) GetBlockChart(chain string, period types.PeriodType) (*BlockCha
 	return chart, nil
 }
 
+func (c *Client) GetBlockProfitabilityChart(period types.PeriodType) (map[string]*BlockChart, error) {
+	items, err := tsdb.GetBlocksProfitability(c.tsdb.Reader(), int(period))
+	if err != nil {
+		return nil, err
+	}
+
+	itemsIdx := make(map[string][]*tsdb.Block)
+	for _, item := range items {
+		if _, ok := itemsIdx[item.ChainID]; !ok {
+			itemsIdx[item.ChainID] = make([]*tsdb.Block, 0)
+		}
+		itemsIdx[item.ChainID] = append(itemsIdx[item.ChainID], item)
+	}
+
+	chartIdx := make(map[string]*BlockChart)
+	for chain, items := range itemsIdx {
+		var endTime time.Time
+		if len(items) == 0 {
+			endTime = time.Now()
+		} else {
+			endTime = items[0].EndTime
+			if newEndTime := items[len(items)-1].EndTime; newEndTime.After(endTime) {
+				endTime = newEndTime
+			}
+		}
+
+		index := period.GenerateRange(common.NormalizeDate(endTime, period.Rollup(), true))
+		chartIdx[chain] = &BlockChart{
+			Timestamp:        make([]int64, 0),
+			Value:            make([]float64, 0),
+			Difficulty:       make([]float64, 0),
+			BlockTime:        make([]float64, 0),
+			Hashrate:         make([]float64, 0),
+			UncleRate:        make([]float64, 0),
+			Profitability:    make([]float64, 0),
+			AvgProfitability: make([]float64, 0),
+			BlockCount:       make([]uint64, 0),
+			UncleCount:       make([]uint64, 0),
+			TxCount:          make([]uint64, 0),
+		}
+
+		for _, item := range items {
+			if exists := index[item.EndTime]; !exists {
+				chartIdx[chain].AddPoint(item)
+				index[item.EndTime] = true
+			}
+		}
+
+		for timestamp, exists := range index {
+			if !exists {
+				chartIdx[chain].AddPoint(&tsdb.Block{EndTime: timestamp})
+			}
+		}
+
+		sort.Sort(chartIdx[chain])
+
+		chartIdx[chain].Value = nil
+		chartIdx[chain].Difficulty = nil
+		chartIdx[chain].BlockTime = nil
+		chartIdx[chain].Hashrate = nil
+		chartIdx[chain].UncleRate = nil
+		chartIdx[chain].BlockCount = nil
+		chartIdx[chain].UncleCount = nil
+		chartIdx[chain].TxCount = nil
+	}
+
+	return chartIdx, nil
+}
+
 /* round chart */
 
 func (c *Client) GetRoundChart(chain string, period types.PeriodType) (*RoundChart, error) {
