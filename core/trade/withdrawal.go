@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/magicpool-co/pool/core/bank"
 	"github.com/magicpool-co/pool/internal/accounting"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
@@ -125,6 +126,8 @@ func (c *Client) ConfirmWithdrawals(batchID uint64) error {
 			return fmt.Errorf("no deposit fees for withdrawal %d", withdrawal.ID)
 		} else if !withdrawal.TradeFees.Valid {
 			return fmt.Errorf("no trade fees for withdrawal %d", withdrawal.ID)
+		} else if _, ok := c.nodes[withdrawal.ChainID]; !ok {
+			return fmt.Errorf("no node for %s", withdrawal.ChainID)
 		}
 
 		// fetch the withdrawal from the exchange
@@ -164,6 +167,14 @@ func (c *Client) ConfirmWithdrawals(batchID uint64) error {
 		withdrawal.Value = dbcl.NullBigInt{Valid: true, BigInt: valueBig}
 		withdrawal.WithdrawalFees = dbcl.NullBigInt{Valid: true, BigInt: withdrawalFeesBig}
 		withdrawal.CumulativeFees = dbcl.NullBigInt{Valid: true, BigInt: cumulativeFeesBig}
+
+		// register the tx with the bank
+		registered, err := bank.RegisterIncomingTx(c.nodes[withdrawal.ChainID], c.pooldb, parsedWithdrawal.TxID)
+		if err != nil {
+			return err
+		} else if !registered {
+			continue
+		}
 
 		cols := []string{"exchange_txid", "value", "withdrawal_fees", "cumulative_fees", "confirmed"}
 		err = pooldb.UpdateExchangeWithdrawal(c.pooldb.Writer(), withdrawal, cols)

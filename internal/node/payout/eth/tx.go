@@ -109,7 +109,97 @@ func (node Node) GetBalance() (*big.Int, error) {
 }
 
 func (node Node) GetTx(txid string) (*types.TxResponse, error) {
-	return nil, nil
+	tx, err := node.getTransactionByHash(txid)
+	if err != nil || tx == nil || len(tx.BlockNumber) <= 2 {
+		return nil, err
+	}
+
+	txReceipt, err := node.getTransactionReceipt(txid)
+	if err != nil {
+		return nil, err
+	}
+
+	txType, err := common.HexToUint64(tx.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	height, err := common.HexToUint64(tx.BlockNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := common.HexToBig(tx.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	gasUsed, err := common.HexToBig(txReceipt.GasUsed)
+	if err != nil {
+		return nil, err
+	}
+
+	gasTotal, err := common.HexToBig(tx.Gas)
+	if err != nil {
+		return nil, err
+	}
+
+	gasPrice, err := common.HexToBig(tx.GasPrice)
+	if err != nil {
+		return nil, err
+	}
+
+	confirmed := txReceipt.Status == "0x1"
+	gasLeftover := new(big.Int).Sub(gasTotal, gasUsed)
+	fees := new(big.Int).Mul(gasUsed, gasPrice)
+	feeBalance := new(big.Int).Mul(gasLeftover, gasPrice)
+
+	// handle type 2 (EIP1559) transaction fees
+	if txType == 2 {
+		block, err := node.getBlockByNumber(height)
+		if err != nil {
+			return nil, err
+		}
+
+		baseFeePerGas, err := common.HexToBig(block.BaseFee)
+		if err != nil {
+			return nil, err
+		}
+
+		maxFeePerGas, err := common.HexToBig(tx.MaxFeePerGas)
+		if err != nil {
+			return nil, err
+		}
+
+		maxPriorityFeePerGas, err := common.HexToBig(tx.MaxPriorityFeePerGas)
+		if err != nil {
+			return nil, err
+		}
+
+		// maxPriorityFeePerGas is included in maxFeePerGas and will always be spent
+		// unless baseFeePerGas is greater than maxFeePerGas (which would be unlikely)
+		feeSavings := new(big.Int).Sub(maxFeePerGas, baseFeePerGas)
+		feeSavings.Sub(feeSavings, maxPriorityFeePerGas)
+		if feeSavings.Cmp(common.Big0) < 0 {
+			return nil, fmt.Errorf("invalid fee balance calc: base %s, max %s, priority %s",
+				baseFeePerGas, maxFeePerGas, maxPriorityFeePerGas)
+		}
+
+		feeSavings.Mul(feeSavings, gasUsed)
+		gasSavings := new(big.Int).Mul(maxFeePerGas, gasLeftover)
+		feeBalance = new(big.Int).Add(feeSavings, gasSavings)
+	}
+
+	res := &types.TxResponse{
+		Hash:        tx.Hash,
+		BlockNumber: height,
+		Value:       value,
+		Fee:         fees,
+		FeeBalance:  feeBalance,
+		Confirmed:   confirmed,
+	}
+
+	return res, nil
 }
 
 func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, error) {

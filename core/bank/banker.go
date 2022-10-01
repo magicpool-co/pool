@@ -148,6 +148,66 @@ func SendOutgoingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txOutputs 
 	return txid, nil
 }
 
-func ConfirmOutgoingTx(node types.PayoutNode, txid string) {}
+func ConfirmOutgoingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txid string) (bool, error) {
+	tx, err := node.GetTx(txid)
+	if err != nil {
+		return false, err
+	} else if tx == nil || !tx.Confirmed {
+		return false, nil
+	}
 
-func RegisterIncomingTx(node types.PayoutNode, txid string) {}
+	switch node.GetAccountingType() {
+	case types.AccountStructure:
+		if tx.FeeBalance != nil && tx.FeeBalance.Cmp(common.Big0) > 0 {
+			utxo := &pooldb.UTXO{
+				ChainID: node.Chain(),
+				TxID:    txid,
+				Index:   0,
+				Value:   dbcl.NullBigInt{Valid: true, BigInt: tx.FeeBalance},
+				Spent:   false,
+			}
+
+			err = pooldb.InsertUTXOs(pooldbClient.Writer(), utxo)
+			if err != nil {
+				return true, err
+			}
+		}
+	}
+
+	return true, nil
+}
+
+func RegisterIncomingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txid string) (bool, error) {
+	tx, err := node.GetTx(txid)
+	if err != nil {
+		return false, err
+	} else if tx == nil || !tx.Confirmed {
+		return false, nil
+	}
+
+	switch node.GetAccountingType() {
+	case types.UTXOStructure:
+		utxos := make([]*pooldb.UTXO, 0)
+		for _, output := range tx.Outputs {
+			if output.Address != node.Address() {
+				continue
+			}
+
+			utxo := &pooldb.UTXO{
+				ChainID: node.Chain(),
+				TxID:    txid,
+				Index:   output.Index,
+				Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(output.Value)},
+				Spent:   false,
+			}
+			utxos = append(utxos, utxo)
+		}
+
+		err = pooldb.InsertUTXOs(pooldbClient.Writer(), utxos...)
+		if err != nil {
+			return true, err
+		}
+	}
+
+	return true, nil
+}
