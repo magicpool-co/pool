@@ -112,6 +112,13 @@ func (c *Client) updateBatchStatus(batchID uint64, status Status) error {
 /* core methods */
 
 func (c *Client) CheckForNewBatch() error {
+	activeBatches, err := pooldb.GetActiveExchangeBatches(c.pooldb.Reader())
+	if err != nil {
+		return err
+	} else if len(activeBatches) > 0 {
+		return nil
+	}
+
 	balanceInputs, err := pooldb.GetPendingBalanceInputsWithoutBatch(c.pooldb.Reader())
 	if err != nil {
 		return err
