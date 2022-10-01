@@ -364,9 +364,9 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 		minerID := balanceInput.MinerID
 		chainID := balanceInput.OutChainID
 		if _, ok := balanceOutputIdx[minerID]; !ok {
-			return fmt.Errorf("no balance output found for miner %d", minerID)
+			return fmt.Errorf("no balance output found for miner %d (%v)", minerID, balanceOutputIdx)
 		} else if _, ok := balanceOutputIdx[minerID][chainID]; !ok {
-			return fmt.Errorf("no balance output found for miner %d and chain %s", minerID, chainID)
+			return fmt.Errorf("no balance output found for miner %d and chain %s (%v)", minerID, chainID, balanceOutputIdx)
 		}
 
 		balanceInput.BalanceOutputID = types.Uint64Ptr(balanceOutputIdx[minerID][chainID])
