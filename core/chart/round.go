@@ -128,11 +128,9 @@ func (c *Client) rollupRounds(node types.MiningNode, endTime time.Time) error {
 	var hashrate, luck, profitability float64
 	if acceptedShares > 0 {
 		minedDifficulty := float64(node.GetShareDifficulty().Value()) * acceptedShares
-		marketRate := getMarketRate(node.Chain(), endTime)
-
 		hashrate = node.CalculateHashrate(roundTime, difficulty)
 		luck = 100 * (difficulty / minedDifficulty)
-		profitability = marketRate * (value / roundTime) / hashrate
+		profitability = (value / roundTime) / hashrate
 	}
 
 	// @TODO: recalculate cumulative luck instead of averaging it (since averaging is a worthless calc)
@@ -227,10 +225,9 @@ func (c *Client) finalizeRounds(node types.MiningNode, endTime time.Time) error 
 			}
 			if round.AcceptedShares > 0 {
 				minedDifficulty := float64(node.GetShareDifficulty().Value()) * round.AcceptedShares
-				marketRate := getMarketRate(node.Chain(), endTime)
 				round.Hashrate = node.CalculateHashrate(round.RoundTime, round.Difficulty)
 				round.Luck = 100 * (round.Difficulty / minedDifficulty)
-				round.Profitability = marketRate * (round.Value / round.RoundTime) / round.Hashrate
+				round.Profitability = (round.Value / round.RoundTime) / round.Hashrate
 			}
 		}
 

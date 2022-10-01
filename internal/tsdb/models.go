@@ -37,6 +37,16 @@ type Block struct {
 	EndTime    time.Time `db:"end_time"`
 }
 
+type Price struct {
+	ChainID string `db:"chain_id"`
+
+	PriceUSD float64 `db:"price_usd"`
+	PriceBTC float64 `db:"price_btc"`
+	PriceETH float64 `db:"price_eth"`
+
+	Timestamp time.Time `db:"timestamp"`
+}
+
 type Round struct {
 	ChainID string `db:"chain_id"`
 

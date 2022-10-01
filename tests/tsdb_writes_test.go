@@ -15,6 +15,32 @@ type TsdbWritesSuite struct {
 	suite.Suite
 }
 
+func (suite *TsdbWritesSuite) TestWritePrices() {
+	tests := []struct {
+		price *tsdb.Price
+	}{
+		{
+			price: &tsdb.Price{
+				ChainID: "ETH",
+
+				PriceUSD: 0.1,
+				PriceBTC: 0.1,
+				PriceETH: 0.1,
+
+				Timestamp: time.Now(),
+			},
+		},
+	}
+
+	var err error
+	for i, tt := range tests {
+		err = tsdb.InsertPrices(tsdbClient.Writer(), tt.price)
+		if err != nil {
+			suite.T().Errorf("failed on %d: InsertPrices: %v", i, err)
+		}
+	}
+}
+
 func (suite *TsdbWritesSuite) TestWriteRawBlock() {
 	tests := []struct {
 		block *tsdb.RawBlock

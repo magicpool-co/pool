@@ -101,6 +101,18 @@ func DeleteWorkerSharesBeforeEndTime(q dbcl.Querier, timestamp time.Time, chain 
 	return err
 }
 
+func InsertPrices(q dbcl.Querier, objects ...*Price) error {
+	const table = "prices"
+	cols := []string{"chain_id", "price_usd", "price_btc", "price_eth", "timestamp"}
+
+	rawObjects := make([]interface{}, len(objects))
+	for i, object := range objects {
+		rawObjects[i] = object
+	}
+
+	return dbcl.ExecBulkInsert(q, table, cols, rawObjects)
+}
+
 func InsertBlocks(q dbcl.Querier, objects ...*Block) error {
 	const table = "blocks"
 	cols := []string{"chain_id", "value", "difficulty", "block_time", "hashrate", "uncle_rate",
