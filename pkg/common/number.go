@@ -38,7 +38,9 @@ func FloorFloatByIncrement(value float64, incr, exp int) float64 {
 func SplitBigPercentage(input *big.Int, numerator, denominator uint64) *big.Int {
 	output := new(big.Int)
 	output.Mul(input, new(big.Int).SetUint64(numerator))
-	output.Div(output, new(big.Int).SetUint64(denominator))
+	if denominator > 0 {
+		output.Div(output, new(big.Int).SetUint64(denominator))
+	}
 
 	return output
 }

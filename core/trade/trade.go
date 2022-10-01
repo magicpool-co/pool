@@ -245,7 +245,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 		} else if prevTrade != nil {
 			if prevTrade.CumulativeFillPrice == nil {
 				return fmt.Errorf("no cumulative fill price for trade %d", prevTrade.ID)
-			} else if !prevTrade.Proceeds.Valid {
+			} else if !prevTrade.Proceeds.Valid || prevTrade.Proceeds.BigInt.Cmp(common.Big0) <= 0 {
 				return fmt.Errorf("no proceeds for trade %d", prevTrade.ID)
 			} else if !prevTrade.CumulativeDepositFees.Valid {
 				return fmt.Errorf("no cumulative deposit fees for trade %d", prevTrade.ID)

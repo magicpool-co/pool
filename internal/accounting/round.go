@@ -168,6 +168,11 @@ func ProcessFeeBalance(roundChain, minerChain string, value, poolFee, feeBalance
 		return feeBalanceValue, feeBalancePoolFee, nil
 	}
 
+	// protect against divide by zero
+	if estimatedValue.Cmp(common.Big0) <= 0 {
+		return nil, nil, fmt.Errorf("empty estimated value")
+	}
+
 	// value * (neededFeeBalance / estimatedValue) is the formula
 	// for calculating the proportional value that goes to USDC
 	proportionalValue := new(big.Int).Mul(value, neededFeeBalance)
