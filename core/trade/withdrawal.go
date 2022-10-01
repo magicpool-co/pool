@@ -314,6 +314,8 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 					ChainID: withdrawal.ChainID,
 					MinerID: minerID,
 
+					InBatchID: types.Uint64Ptr(batchID),
+
 					Value:        dbcl.NullBigInt{Valid: true, BigInt: value},
 					PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: poolFee},
 					ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: exchangeFee},
@@ -364,9 +366,9 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 		minerID := balanceInput.MinerID
 		chainID := balanceInput.OutChainID
 		if _, ok := balanceOutputIdx[minerID]; !ok {
-			return fmt.Errorf("no balance output found for miner %d (%v)", minerID, balanceOutputIdx)
+			return fmt.Errorf("no balance output found for miner %d", minerID)
 		} else if _, ok := balanceOutputIdx[minerID][chainID]; !ok {
-			return fmt.Errorf("no balance output found for miner %d and chain %s (%v)", minerID, chainID, balanceOutputIdx)
+			return fmt.Errorf("no balance output found for miner %d and chain %s", minerID, chainID)
 		}
 
 		balanceInput.BalanceOutputID = types.Uint64Ptr(balanceOutputIdx[minerID][chainID])
