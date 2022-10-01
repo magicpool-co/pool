@@ -185,9 +185,20 @@ func RegisterIncomingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txid s
 		return false, nil
 	}
 
+	var utxos []*pooldb.UTXO
 	switch node.GetAccountingType() {
+	case types.AccountStructure:
+		utxos = []*pooldb.UTXO{
+			&pooldb.UTXO{
+				ChainID: node.Chain(),
+				TxID:    txid,
+				Index:   0,
+				Value:   dbcl.NullBigInt{Valid: true, BigInt: tx.Value},
+				Spent:   false,
+			},
+		}
 	case types.UTXOStructure:
-		utxos := make([]*pooldb.UTXO, 0)
+		utxos = make([]*pooldb.UTXO, 0)
 		for _, output := range tx.Outputs {
 			if output.Address != node.Address() {
 				continue
@@ -202,11 +213,11 @@ func RegisterIncomingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txid s
 			}
 			utxos = append(utxos, utxo)
 		}
+	}
 
-		err = pooldb.InsertUTXOs(pooldbClient.Writer(), utxos...)
-		if err != nil {
-			return true, err
-		}
+	err = pooldb.InsertUTXOs(pooldbClient.Writer(), utxos...)
+	if err != nil {
+		return true, err
 	}
 
 	return true, nil
