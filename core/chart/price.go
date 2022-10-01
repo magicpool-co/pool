@@ -109,9 +109,6 @@ func getKucoinNativeAll(chain string, startTime, endTime time.Time) (*priceIndex
 	}
 
 	unifyRanges(usdt, btc, eth)
-	if err := checkGaps(startTime, endTime, usdt); err != nil {
-		return nil, err
-	}
 
 	return &priceIndex{usd: usdt, btc: btc, eth: eth}, nil
 }
@@ -136,9 +133,6 @@ func getKucoinNativeAllExceptETH(chain string, startTime, endTime time.Time) (*p
 	}
 
 	unifyRanges(usdt, btc, eth)
-	if err := checkGaps(startTime, endTime, usdt); err != nil {
-		return nil, err
-	}
 
 	for timestamp, usdtPrice := range usdt {
 		eth[timestamp] *= usdtPrice
@@ -167,9 +161,6 @@ func getKucoinNativeUSDTOnly(chain string, startTime, endTime time.Time) (*price
 	}
 
 	unifyRanges(usdt, btc, eth)
-	if err := checkGaps(startTime, endTime, usdt); err != nil {
-		return nil, err
-	}
 
 	for timestamp, usdtPrice := range usdt {
 		btc[timestamp] *= usdtPrice
@@ -197,9 +188,6 @@ func getBinanceNativeAllExceptETH(chain string, startTime, endTime time.Time) (*
 	}
 
 	unifyRanges(usdt, btc, eth)
-	if err := checkGaps(startTime, endTime, usdt); err != nil {
-		return nil, err
-	}
 
 	for timestamp, usdtPrice := range usdt {
 		eth[timestamp] *= usdtPrice
@@ -214,6 +202,8 @@ func (c *Client) ProcessPrices(chain string) error {
 		return err
 	} else if startTime.IsZero() {
 		startTime = priceStart
+	} else {
+		startTime = startTime.Add(pricePeriod.Rollup())
 	}
 
 	endTime := common.NormalizeDate(time.Now().UTC(), pricePeriod.Rollup(), true)
