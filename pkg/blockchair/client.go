@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	baseUrl = "https://api.blockchair.com/"
+	baseUrl = "https://api.blockchair.com"
 )
 
 type Client struct {
