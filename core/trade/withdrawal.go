@@ -65,6 +65,16 @@ func (c *Client) InitiateWithdrawals(batchID uint64) error {
 		}
 	}
 
+	// make sure any withdrawals don't end up going through twice
+	withdrawals, err := pooldb.GetExchangeWithdrawals(c.pooldb.Reader(), batchID)
+	if err != nil {
+		return err
+	}
+
+	for _, withdrawal := range withdrawals {
+		delete(values, withdrawal.ChainID)
+	}
+
 	// execute the withdrawal for each chain
 	for chain, value := range values {
 		// @TODO: check if withdrawal has already been executed

@@ -62,6 +62,16 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 		}
 	}
 
+	// make sure any deposits don't end up going through twice
+	deposits, err := pooldb.GetExchangeDeposits(c.pooldb.Reader(), batchID)
+	if err != nil {
+		return err
+	}
+
+	for _, deposit := range deposits {
+		delete(values, deposit.ChainID)
+	}
+
 	// execute the deposit for each chain
 	for chain, value := range values {
 		// @TODO: check if deposit has already been executed
