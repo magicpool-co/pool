@@ -299,7 +299,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 		} else {
 			nextTrade.Value = dbcl.NullBigInt{Valid: true, BigInt: proceeds}
 			cols := []string{"value"}
-			err = pooldb.UpdateExchangeTrade(c.pooldb.Writer(), trade, cols)
+			err = pooldb.UpdateExchangeTrade(c.pooldb.Writer(), nextTrade, cols)
 			if err != nil {
 				return err
 			}
