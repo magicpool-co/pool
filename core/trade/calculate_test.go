@@ -211,6 +211,40 @@ func TestFinalTradesToFinalProportions(t *testing.T) {
 				},
 			},
 		},
+		{
+			finalTrades: []*pooldb.ExchangeTrade{
+				&pooldb.ExchangeTrade{
+					InitialChainID: "ETC",
+					ToChainID:      "BTC",
+					Value:          dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(6132400)},
+				},
+				&pooldb.ExchangeTrade{
+					InitialChainID: "ETC",
+					ToChainID:      "ETH",
+					Value:          dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(2997019000000000000)},
+				},
+				&pooldb.ExchangeTrade{
+					InitialChainID: "FLUX",
+					ToChainID:      "ETH",
+					Value:          dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(199449400000000000)},
+				},
+				&pooldb.ExchangeTrade{
+					InitialChainID: "FLUX",
+					ToChainID:      "BTC",
+					Value:          dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(1675000)},
+				},
+			},
+			finalProportions: map[string]map[string]*big.Int{
+				"BTC": map[string]*big.Int{
+					"ETC":  new(big.Int).SetUint64(6132400),
+					"FLUX": new(big.Int).SetUint64(1675000),
+				},
+				"ETH": map[string]*big.Int{
+					"ETC":  new(big.Int).SetUint64(2997019000000000000),
+					"FLUX": new(big.Int).SetUint64(199449400000000000),
+				},
+			},
+		},
 	}
 
 	for i, tt := range tests {

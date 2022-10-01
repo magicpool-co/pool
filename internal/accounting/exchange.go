@@ -134,6 +134,10 @@ func CalculateExchangePaths(inputPaths map[string]map[string]*big.Int, inputThre
 }
 
 func CalculateProportionalValues[K string | uint64](value, fee *big.Int, proportions map[K]*big.Int) (map[K]*big.Int, map[K]*big.Int, error) {
+	if value.Cmp(common.Big0) <= 0 {
+		return nil, nil, fmt.Errorf("input value is not positive: %s, %s, %v", value, fee, proportions)
+	}
+
 	// keep track of the used value and fees to make sure any remainders are distributed
 	usedValue := new(big.Int)
 	usedFee := new(big.Int)
@@ -142,6 +146,11 @@ func CalculateProportionalValues[K string | uint64](value, fee *big.Int, proport
 	sumInputValue := new(big.Int)
 	for _, inputValue := range proportions {
 		sumInputValue.Add(sumInputValue, inputValue)
+	}
+
+	// protect against divide by zero
+	if sumInputValue.Cmp(common.Big0) <= 0 {
+		return nil, nil, fmt.Errorf("sum input value is not positive")
 	}
 
 	// iterate through the proportions, calculating the proportional
