@@ -149,12 +149,13 @@ func (c *Client) ConfirmWithdrawals(batchID uint64) error {
 		cumulativeFeesBig.Add(cumulativeFeesBig, withdrawal.TradeFees.BigInt)
 		cumulativeFeesBig.Add(cumulativeFeesBig, withdrawalFeesBig)
 
+		withdrawal.ExchangeTxID = types.StringPtr(parsedWithdrawal.TxID)
 		withdrawal.Confirmed = true
 		withdrawal.Value = dbcl.NullBigInt{Valid: true, BigInt: valueBig}
 		withdrawal.WithdrawalFees = dbcl.NullBigInt{Valid: true, BigInt: withdrawalFeesBig}
 		withdrawal.CumulativeFees = dbcl.NullBigInt{Valid: true, BigInt: cumulativeFeesBig}
 
-		cols := []string{"value", "withdrawal_fees", "cumulative_fees", "confirmed"}
+		cols := []string{"exchange_txid", "value", "withdrawal_fees", "cumulative_fees", "confirmed"}
 		err = pooldb.UpdateExchangeWithdrawal(c.pooldb.Writer(), withdrawal, cols)
 		if err != nil {
 			return err
