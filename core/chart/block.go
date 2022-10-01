@@ -42,8 +42,7 @@ func (c *Client) rollupBlocks(node types.MiningNode, endTime time.Time) error {
 	}
 	block.Hashrate = node.CalculateHashrate(block.BlockTime, block.Difficulty)
 	if block.Hashrate > 0 {
-		marketRate := getMarketRate(node.Chain(), block.EndTime)
-		block.Profitability = marketRate * (block.Value / block.BlockTime) / block.Hashrate
+		block.Profitability = (block.Value / block.BlockTime) / block.Hashrate
 	}
 	block.AvgProfitability, err = tsdb.GetBlocksAverageSlow(c.tsdb.Reader(), block.EndTime, node.Chain(), int(blockPeriod), blockPeriod.Average())
 	if err != nil {
@@ -101,8 +100,7 @@ func (c *Client) finalizeBlocks(node types.MiningNode, endTime time.Time) error 
 			}
 			block.Hashrate = node.CalculateHashrate(block.BlockTime, block.Difficulty)
 			if block.Hashrate > 0 {
-				marketRate := getMarketRate(node.Chain(), block.EndTime)
-				block.Profitability = marketRate * (block.Value / block.BlockTime) / block.Hashrate
+				block.Profitability = (block.Value / block.BlockTime) / block.Hashrate
 			}
 		}
 
