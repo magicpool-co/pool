@@ -175,7 +175,7 @@ func TestFinalTradesToFinalProportions(t *testing.T) {
 				&pooldb.ExchangeTrade{
 					InitialChainID: "ETC",
 					ToChainID:      "ETH",
-					Value:          dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(32)},
+					Proceeds:       dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(32)},
 				},
 			},
 			finalProportions: map[string]map[string]*big.Int{
@@ -189,17 +189,17 @@ func TestFinalTradesToFinalProportions(t *testing.T) {
 				&pooldb.ExchangeTrade{
 					InitialChainID: "ETC",
 					ToChainID:      "ETH",
-					Value:          dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(5818283841)},
+					Proceeds:       dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(5818283841)},
 				},
 				&pooldb.ExchangeTrade{
 					InitialChainID: "ETC",
 					ToChainID:      "ETH",
-					Value:          dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(94124512312)},
+					Proceeds:       dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(94124512312)},
 				},
 				&pooldb.ExchangeTrade{
 					InitialChainID: "ETC",
 					ToChainID:      "BTC",
-					Value:          dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(5124885812)},
+					Proceeds:       dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(5124885812)},
 				},
 			},
 			finalProportions: map[string]map[string]*big.Int{
@@ -216,22 +216,22 @@ func TestFinalTradesToFinalProportions(t *testing.T) {
 				&pooldb.ExchangeTrade{
 					InitialChainID: "ETC",
 					ToChainID:      "BTC",
-					Value:          dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(6132400)},
+					Proceeds:       dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(6132400)},
 				},
 				&pooldb.ExchangeTrade{
 					InitialChainID: "ETC",
 					ToChainID:      "ETH",
-					Value:          dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(2997019000000000000)},
+					Proceeds:       dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(2997019000000000000)},
 				},
 				&pooldb.ExchangeTrade{
 					InitialChainID: "FLUX",
 					ToChainID:      "ETH",
-					Value:          dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(199449400000000000)},
+					Proceeds:       dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(199449400000000000)},
 				},
 				&pooldb.ExchangeTrade{
 					InitialChainID: "FLUX",
 					ToChainID:      "BTC",
-					Value:          dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(1675000)},
+					Proceeds:       dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(1675000)},
 				},
 			},
 			finalProportions: map[string]map[string]*big.Int{
@@ -269,19 +269,19 @@ func TestFinalTradesToAvgWeightedPrice(t *testing.T) {
 					InitialChainID:      "ETC",
 					ToChainID:           "ETH",
 					CumulativeFillPrice: types.Float64Ptr(0.05),
-					Value:               dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(5818283841)},
+					Proceeds:            dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(5818283841)},
 				},
 				&pooldb.ExchangeTrade{
 					InitialChainID:      "ETC",
 					ToChainID:           "ETH",
 					CumulativeFillPrice: types.Float64Ptr(0.04),
-					Value:               dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(9412451231)},
+					Proceeds:            dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(9412451231)},
 				},
 				&pooldb.ExchangeTrade{
 					InitialChainID:      "ETC",
 					ToChainID:           "BTC",
 					CumulativeFillPrice: types.Float64Ptr(0.05),
-					Value:               dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(5124885812)},
+					Proceeds:            dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(5124885812)},
 				},
 			},
 			avgWeightedPrices: map[string]map[string]float64{

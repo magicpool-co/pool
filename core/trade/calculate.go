@@ -106,12 +106,12 @@ func finalTradesToFinalProportions(finalTrades []*pooldb.ExchangeTrade) (map[str
 	// initial chain is the secondary key
 	proportions := make(map[string]map[string]*big.Int)
 	for _, finalTrade := range finalTrades {
-		if !finalTrade.Value.Valid {
-			return nil, fmt.Errorf("no value for trade %d", finalTrade.ID)
+		if !finalTrade.Proceeds.Valid {
+			return nil, fmt.Errorf("no proceeds for trade %d", finalTrade.ID)
 		}
 		initialChainID := finalTrade.InitialChainID
 		finalChainID := finalTrade.ToChainID
-		value := finalTrade.Value.BigInt
+		proceeds := finalTrade.Proceeds.BigInt
 
 		if _, ok := proportions[finalChainID]; !ok {
 			proportions[finalChainID] = make(map[string]*big.Int)
@@ -120,7 +120,7 @@ func finalTradesToFinalProportions(finalTrades []*pooldb.ExchangeTrade) (map[str
 			proportions[finalChainID][initialChainID] = new(big.Int)
 		}
 
-		proportions[finalChainID][initialChainID].Add(proportions[finalChainID][initialChainID], value)
+		proportions[finalChainID][initialChainID].Add(proportions[finalChainID][initialChainID], proceeds)
 	}
 
 	return proportions, nil
@@ -134,8 +134,8 @@ func finalTradesToAvgWeightedPrice(finalTrades []*pooldb.ExchangeTrade) (map[str
 	prices := make(map[string]map[string]float64)
 	weights := make(map[string]map[string]float64)
 	for _, finalTrade := range finalTrades {
-		if !finalTrade.Value.Valid {
-			return nil, fmt.Errorf("no value for trade %d", finalTrade.ID)
+		if !finalTrade.Proceeds.Valid {
+			return nil, fmt.Errorf("no proceeds for trade %d", finalTrade.ID)
 		} else if finalTrade.CumulativeFillPrice == nil {
 			return nil, fmt.Errorf("no cumulative fill price for trade %d", finalTrade.ID)
 		}
@@ -154,7 +154,7 @@ func finalTradesToAvgWeightedPrice(finalTrades []*pooldb.ExchangeTrade) (map[str
 			return nil, err
 		}
 
-		weight := common.BigIntToFloat64(finalTrade.Value.BigInt, units)
+		weight := common.BigIntToFloat64(finalTrade.Proceeds.BigInt, units)
 		prices[initialChainID][finalChainID] += types.Float64Value(finalTrade.CumulativeFillPrice) * weight
 		weights[initialChainID][finalChainID] += weight
 	}
