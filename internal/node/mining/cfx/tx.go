@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/big"
 
+	ethCommon "github.com/ethereum/go-ethereum/common"
+
 	"github.com/magicpool-co/pool/pkg/crypto/tx/cfxtx"
 	"github.com/magicpool-co/pool/types"
 )
@@ -35,7 +37,8 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 
 	if len(output.Address) > 2 && output.Address[:2] == "0x" {
 		var err error
-		output.Address, err = ETHAddressToCFX(output.Address, node.networkPrefix)
+		rawAddress := ethCommon.HexToAddress(output.Address).Bytes()
+		output.Address, err = ETHAddressToCFX(rawAddress, node.networkPrefix)
 		if err != nil {
 			return "", err
 		}
