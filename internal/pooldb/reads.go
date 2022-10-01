@@ -763,6 +763,19 @@ func GetPendingBalanceInputSumByChain(q dbcl.Querier, chain string) (*big.Int, e
 	return dbcl.GetBigInt(q, query, chain)
 }
 
+func GetPendingBalanceInputSumWithoutBatchByChain(q dbcl.Querier, chain string) (*big.Int, error) {
+	const query = `SELECT sum(value)
+	FROM balance_inputs
+	WHERE
+		chain_id = ?
+	AND
+		pending = TRUE
+	AND
+		batch_id IS NULL;`
+
+	return dbcl.GetBigInt(q, query, chain)
+}
+
 func GetPendingBalanceInputSumsByMiners(q dbcl.Querier, minerIDs []uint64) ([]*BalanceInput, error) {
 	const rawQuery = `SELECT 
 		chain_id,

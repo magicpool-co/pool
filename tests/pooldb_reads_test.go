@@ -300,6 +300,11 @@ func (suite *PooldbReadsSuite) TestReadBalanceInput() {
 		suite.T().Errorf("failed: GetPendingBalanceInputSumByChain: %v", err)
 	}
 
+	_, err = pooldb.GetPendingBalanceInputSumWithoutBatchByChain(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetPendingBalanceInputSumWithoutBatchByChain: %v", err)
+	}
+
 	_, err = pooldb.GetPendingBalanceInputSumsByMiners(pooldbClient.Reader(), []uint64{0, 1})
 	if err != nil {
 		suite.T().Errorf("failed: GetPendingBalanceInputSumsByMiners: %v", err)

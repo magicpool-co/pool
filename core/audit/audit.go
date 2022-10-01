@@ -35,7 +35,7 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 		return fmt.Errorf("mismatch for utxo and wallet: have %s, want %s", utxoBalance, walletBalance)
 	}
 
-	inputBalance, err := pooldb.GetPendingBalanceInputSumByChain(pooldbClient.Reader(), chain)
+	inputBalance, err := pooldb.GetPendingBalanceInputSumWithoutBatchByChain(pooldbClient.Reader(), chain)
 	if err != nil {
 		return err
 	}
