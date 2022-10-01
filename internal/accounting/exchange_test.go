@@ -295,6 +295,38 @@ func TestCalculateProportionalValues(t *testing.T) {
 		proportionalFees   map[string]*big.Int
 	}{
 		{
+			value: new(big.Int).SetUint64(3191468400000000000),
+			fee:   new(big.Int).SetUint64(8400456920411368),
+			proportions: map[string]*big.Int{
+				"ETC":  new(big.Int).SetUint64(2997019000000000000),
+				"FLUX": new(big.Int).SetUint64(199449400000000000),
+			},
+			proportionalValues: map[string]*big.Int{
+				"ETC":  new(big.Int).SetUint64(2992330984000842931),
+				"FLUX": new(big.Int).SetUint64(199137415999157069),
+			},
+			proportionalFees: map[string]*big.Int{
+				"ETC":  new(big.Int).SetUint64(7876295288623645),
+				"FLUX": new(big.Int).SetUint64(524161631787723),
+			},
+		},
+		{
+			value: new(big.Int).SetUint64(7757400),
+			fee:   new(big.Int).SetUint64(57983),
+			proportions: map[string]*big.Int{
+				"ETC":  new(big.Int).SetUint64(6132400),
+				"FLUX": new(big.Int).SetUint64(1675000),
+			},
+			proportionalValues: map[string]*big.Int{
+				"ETC":  new(big.Int).SetUint64(6093128),
+				"FLUX": new(big.Int).SetUint64(1664272),
+			},
+			proportionalFees: map[string]*big.Int{
+				"ETC":  new(big.Int).SetUint64(45544),
+				"FLUX": new(big.Int).SetUint64(12439),
+			},
+		},
+		{
 			value: new(big.Int).SetUint64(39_049_076_512_513),
 			fee:   new(big.Int).SetUint64(40_139_932_481),
 			proportions: map[string]*big.Int{
