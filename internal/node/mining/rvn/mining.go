@@ -93,11 +93,12 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 			if err != nil {
 				return nil, err
 			}
+			valueBig := new(big.Int).SetUint64(value)
 
 			blocks[i+j] = &tsdb.RawBlock{
 				ChainID:    node.Chain(),
 				Height:     start + uint64(i+j),
-				Value:      float64(value),
+				Value:      common.BigIntToFloat64(valueBig, node.GetUnits().Big()),
 				Difficulty: block.Difficulty,
 				TxCount:    uint64(len(block.Transactions)),
 				Timestamp:  time.Unix(block.Time, 0),
