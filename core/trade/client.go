@@ -18,19 +18,19 @@ import (
 
 var (
 	tempInputThresholds = map[string]*big.Int{
-		"CFX":  common.MustParseBigInt("2000000000000000000000000"), // 2,000,000 CFX
-		"CTXC": common.MustParseBigInt("500000000000000000000000"),  // 500,000 CTXC
-		"ERGO": new(big.Int).SetUint64(10_000_000_000),              // 10 ERGO
-		"ETC":  common.MustParseBigInt("3000000000000000000000"),    // 3000 ETC
-		"FIRO": new(big.Int).SetUint64(10_000_000_000_000),          // 100,000 FIRO
-		"FLUX": new(big.Int).SetUint64(30_000_000_000_000),          // 300,000 FLUX
-		"RVN":  new(big.Int).SetUint64(20_000_000_000_000),          // 200,000 RVN
+		"CFX":  common.MustParseBigInt("2000000000000000000"),      // 2 CFX
+		"CTXC": common.MustParseBigInt("500000000000000000000000"), // 500,000 CTXC
+		"ERGO": new(big.Int).SetUint64(10_000_000_000),             // 10 ERGO
+		"ETC":  common.MustParseBigInt("100000000000000000000"),    // 100 ETC
+		"FIRO": new(big.Int).SetUint64(10_000_000_000_000),         // 100,000 FIRO
+		"FLUX": new(big.Int).SetUint64(30_000_000_000),             // 300 FLUX
+		"RVN":  new(big.Int).SetUint64(20_000_000_000_000),         // 200,000 RVN
 	}
 
 	tempOutputThresholds = map[string]*big.Int{
-		"BTC":  new(big.Int).SetUint64(500_000),                   // 0.005 BTC
-		"ETH":  new(big.Int).SetUint64(5_000_000_000_000_000_000), // 5 ETH
-		"USDC": new(big.Int).SetUint64(20_000_000_000),            // 20,000 USDC
+		"BTC":  new(big.Int).SetUint64(500_000),                 // 0.005 BTC
+		"ETH":  new(big.Int).SetUint64(100_000_000_000_000_000), // 0.1 ETH
+		"USDC": new(big.Int).SetUint64(20_000_000_000),          // 20,000 USDC
 	}
 )
 
