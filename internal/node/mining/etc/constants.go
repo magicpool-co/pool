@@ -18,7 +18,14 @@ var (
 )
 
 func (node Node) Chain() string {
-	return "ETC"
+	switch node.ethType {
+	case ETC:
+		return "ETC"
+	case ETHW:
+		return "ETHW"
+	default:
+		return ""
+	}
 }
 
 func (node Node) Address() string {
