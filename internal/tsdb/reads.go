@@ -191,6 +191,15 @@ func GetGlobalShareMaxEndTime(q dbcl.Querier, chain string, period int) (time.Ti
 	return dbcl.GetTime(q, query, chain, period)
 }
 
+func GetRawBlockMaxTimestamp(q dbcl.Querier, chain string) (time.Time, error) {
+	const query = `SELECT MAX(timestamp)
+	FROM raw_blocks
+	WHERE
+		chain_id = ?;`
+
+	return dbcl.GetTime(q, query, chain)
+}
+
 func GetRawBlockMaxHeight(q dbcl.Querier, chain string) (uint64, error) {
 	const query = `SELECT IFNULL(MAX(height), 0)
 	FROM raw_blocks

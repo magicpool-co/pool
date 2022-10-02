@@ -228,6 +228,16 @@ func (c *Client) FetchBlockIntervals(chain string) ([]time.Time, error) {
 		return nil, err
 	}
 
+	// protect against charting when no blocks actually exist
+	lastRawTime, err := tsdb.GetRawBlockMaxTimestamp(c.tsdb.Reader(), chain)
+	if err != nil {
+		return nil, err
+	} else if lastRawTime.IsZero() {
+		return nil, nil
+	} else if lastTime.Sub(lastRawTime) < blockDelay {
+		lastTime = lastRawTime
+	}
+
 	intervals := make([]time.Time, 0)
 	for {
 		endTime := lastTime.Add(blockPeriod.Rollup())
