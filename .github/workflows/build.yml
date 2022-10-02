@@ -52,7 +52,7 @@ jobs:
 
   build:
     name: Build and Push
-    needs: [init, test]
+    needs: [init]
     runs-on: [self-hosted, linux, ARM64]
     strategy:
       matrix:
