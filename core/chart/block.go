@@ -183,8 +183,8 @@ func (c *Client) CollectBlocks(node types.MiningNode) error {
 
 	switch node.Chain() {
 	case "CFX":
-		if currentHeight-lastHeight > 5000 {
-			currentHeight = lastHeight + 5000
+		if currentHeight-lastHeight > 10000 {
+			currentHeight = lastHeight + 10000
 		}
 	case "CTXC", "ETC":
 		if currentHeight-lastHeight > 1000 {
