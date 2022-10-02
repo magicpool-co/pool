@@ -35,7 +35,9 @@ func GetMiningNode(mainnet bool, chain, privKey string, urls []string, logger *l
 	case "ERGO":
 		return ergo.New(mainnet, urls, privKey, logger, tunnel)
 	case "ETC":
-		return etc.New(mainnet, urls, privKey, logger, tunnel)
+		return etc.New(etc.ETC, mainnet, urls, privKey, logger, tunnel)
+	case "ETHW":
+		return etc.New(etc.ETHW, mainnet, urls, privKey, logger, tunnel)
 	case "FIRO":
 		return firo.New(mainnet, urls, privKey, logger, tunnel)
 	case "FLUX":

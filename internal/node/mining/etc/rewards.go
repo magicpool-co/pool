@@ -4,6 +4,11 @@ import (
 	"math/big"
 )
 
+const (
+	byzantiumHeight      = 4370000
+	constantinopleHeight = 7280000
+)
+
 var (
 	// magic numbers
 	big0  = new(big.Int)
@@ -12,11 +17,17 @@ var (
 	big5  = new(big.Int).SetUint64(5)
 	big32 = new(big.Int).SetUint64(32)
 
-	homesteadReward   = new(big.Int).SetUint64(5_000_000_000_000_000_000)
+	frontierReward       = new(big.Int).SetUint64(5_000_000_000_000_000_000)
+	byzantiumReward      = new(big.Int).SetUint64(3_000_000_000_000_000_000)
+	constantinopleReward = new(big.Int).SetUint64(2_000_000_000_000_000_000)
+	homesteadReward      = new(big.Int).SetUint64(5_000_000_000_000_000_000)
+
 	ecip1017EraLength = new(big.Int).SetUint64(5_000_000)
 )
 
-func getBlockEra(height uint64) *big.Int {
+/* etc */
+
+func getBlockEraETC(height uint64) *big.Int {
 	blockNum := new(big.Int).SetUint64(height)
 	if blockNum.Cmp(big0) < 0 {
 		return new(big.Int)
@@ -31,8 +42,8 @@ func getBlockEra(height uint64) *big.Int {
 	return era
 }
 
-func getBlockReward(height, uncleCount uint64) *big.Int {
-	era := getBlockEra(height)
+func getBlockRewardETC(height, uncleCount uint64) *big.Int {
+	era := getBlockEraETC(height)
 	blockReward := new(big.Int)
 	blockReward.Mul(homesteadReward, new(big.Int).Exp(big4, era, nil))
 	blockReward.Div(blockReward, new(big.Int).Exp(big5, era, nil))
@@ -46,9 +57,39 @@ func getBlockReward(height, uncleCount uint64) *big.Int {
 	return blockReward
 }
 
-func getUncleReward(height uint64) *big.Int {
-	baseReward := getBlockReward(height, 0)
+func getUncleRewardETC(height, uncleHeight uint64) *big.Int {
+	baseReward := getBlockRewardETC(height, 0)
 	uncleReward := new(big.Int).Div(baseReward, big32)
 
 	return uncleReward
+}
+
+/* ethw */
+
+func getBlockRewardETHW(height, uncleCount uint64) *big.Int {
+	blockReward := new(big.Int)
+	if height >= constantinopleHeight {
+		blockReward.Set(constantinopleReward)
+	} else if height >= byzantiumHeight {
+		blockReward.Set(byzantiumReward)
+	} else {
+		blockReward.Set(frontierReward)
+	}
+
+	if uncleCount > 0 {
+		uncleInclusionReward := new(big.Int).Div(blockReward, big32)
+		uncleReward := new(big.Int).Mul(uncleInclusionReward, new(big.Int).SetUint64(uncleCount))
+		blockReward.Add(blockReward, uncleReward)
+	}
+
+	return blockReward
+}
+
+func getUncleRewardETHW(height, uncleHeight uint64) *big.Int {
+	baseReward := getBlockRewardETHW(height, 0)
+	k := height - uncleHeight
+	baseReward.Mul(baseReward, new(big.Int).SetUint64(8-k))
+	baseReward.Div(baseReward, big.NewInt(8))
+
+	return baseReward
 }

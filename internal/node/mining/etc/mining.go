@@ -286,7 +286,13 @@ func (node Node) GetDifficultyRequest() (interface{}, error) {
 }
 
 func (node Node) calculateBlockReward(height uint64, block *Block) (*big.Int, error) {
-	blockReward := getBlockReward(height, uint64(len(block.Uncles)))
+	var blockReward *big.Int
+	switch node.ethType {
+	case ETC:
+		blockReward = getBlockRewardETC(height, uint64(len(block.Uncles)))
+	case ETHW:
+		blockReward = getBlockRewardETHW(height, uint64(len(block.Uncles)))
+	}
 
 	txids := make([]string, len(block.Transactions))
 	for i, tx := range block.Transactions {
@@ -400,7 +406,13 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 				if err != nil {
 					return err
 				} else if nonce == types.Uint64Value(round.Nonce) {
-					uncleReward := getUncleReward(checkHeight)
+					var uncleReward *big.Int
+					switch node.ethType {
+					case ETC:
+						uncleReward = getUncleRewardETC(checkHeight, round.Height)
+					case ETHW:
+						uncleReward = getUncleRewardETHW(checkHeight, round.Height)
+					}
 
 					rawTimestamp, err := common.HexToUint64(uncle.Timestamp)
 					if err != nil {

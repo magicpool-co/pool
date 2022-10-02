@@ -3,6 +3,7 @@ package etc
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/sencha-dev/powkit/ethash"
@@ -14,9 +15,23 @@ import (
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 )
 
-func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
+type EthType int
+
+const (
+	ETC EthType = iota
+	ETHW
+)
+
+func generateHost(ethType EthType, urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
+	var port int
+	switch ethType {
+	case ETC:
+		port = 8544
+	case ETHW:
+		port = 8545
+	}
+
 	var (
-		port            = 8544
 		hostHealthCheck = &hostpool.HTTPHealthCheck{
 			RPCRequest: &rpc.Request{
 				JSONRPC: "2.0",
@@ -40,8 +55,14 @@ func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel
 	return host, nil
 }
 
-func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
-	host, err := generateHost(urls, logger, tunnel)
+func New(ethType EthType, mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
+	switch ethType {
+	case ETC, ETHW:
+	default:
+		return nil, fmt.Errorf("unknown eth type")
+	}
+
+	host, err := generateHost(ethType, urls, logger, tunnel)
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +77,7 @@ func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel
 	address := "0x" + hex.EncodeToString(crypto.Keccak256(pubKeyBytes[1:])[12:])
 
 	node := &Node{
+		ethType: ethType,
 		mocked:  host == nil,
 		mainnet: mainnet,
 		address: address,
@@ -69,6 +91,7 @@ func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel
 }
 
 type Node struct {
+	ethType EthType
 	mocked  bool
 	mainnet bool
 	address string

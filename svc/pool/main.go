@@ -47,8 +47,8 @@ var defaultOptions = map[string]*pool.Options{
 		JobListAgeLimit: 7,
 		PollingPeriod:   time.Millisecond * 100,
 	},
-	"ETH": &pool.Options{
-		Chain:           "ETH",
+	"ETHW": &pool.Options{
+		Chain:           "ETHW",
 		WindowSize:      2000000,
 		JobListSize:     25,
 		JobListAgeLimit: 7,
