@@ -53,6 +53,11 @@ func (c *Client) GetRate(market string) (float64, error) {
 func (c *Client) GetHistoricalRates(market string, startTime, endTime time.Time, invert bool) (map[time.Time]float64, error) {
 	const maxResults = 1000
 
+	diff := endTime.Sub(startTime)
+	if diff/time.Minute*15 > maxResults {
+		endTime = startTime.Add(time.Minute * 15 * maxResults)
+	}
+
 	payload := map[string]string{
 		"symbol":  market,
 		"type":    "15min",
