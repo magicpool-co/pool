@@ -105,7 +105,8 @@ func (node Node) getBlockRewardInfoMany(epochHeights []uint64) ([][]*BlockReward
 			}
 		}
 
-		responses, err = node.rpcHost.ExecRPCBulk(reqs)
+		// responses, err = node.rpcHost.ExecRPCBulk(reqs)
+		responses, err = node.execRPCfromFallbackBulk(reqs)
 		if err != nil {
 			return nil, err
 		} else if len(responses) != len(reqs) {
@@ -174,7 +175,8 @@ func (node Node) getBlockByHashMany(blockHashes []string) ([]*Block, error) {
 			}
 		}
 
-		responses, err = node.rpcHost.ExecRPCBulk(reqs)
+		responses, err = node.execRPCfromFallbackBulk(reqs)
+		// responses, err = node.rpcHost.ExecRPCBulk(reqs)
 		if err != nil {
 			return nil, err
 		} else if len(responses) != len(reqs) {
@@ -184,10 +186,15 @@ func (node Node) getBlockByHashMany(blockHashes []string) ([]*Block, error) {
 
 	blocks := make([]*Block, len(responses))
 	for i, res := range responses {
-		err := json.Unmarshal(res.Result, &blocks[i])
-		if err != nil {
-			return nil, err
-		} else if blocks[i] == nil {
+		if res.Error == nil {
+			err := json.Unmarshal(res.Result, &blocks[i])
+			if err != nil {
+				return nil, err
+			}
+			break
+		}
+
+		if blocks[i] == nil {
 			// do fallback synchronously to not get the IP blacklisted
 			if err := node.execRPCfromFallback(reqs[i], &blocks[i]); err != nil {
 				return nil, err
@@ -214,7 +221,8 @@ func (node Node) getBlocksByEpochMany(epochHeights []uint64) ([][]string, error)
 			}
 		}
 
-		responses, err = node.rpcHost.ExecRPCBulk(reqs)
+		responses, err = node.execRPCfromFallbackBulk(reqs)
+		// responses, err = node.rpcHost.ExecRPCBulk(reqs)
 		if err != nil {
 			return nil, err
 		} else if len(responses) != len(reqs) {

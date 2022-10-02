@@ -210,8 +210,42 @@ func ExecRPC(url string, req *Request) (*Response, error) {
 	if err != nil {
 		return nil, err
 	} else if res.Error != nil {
-		return nil, fmt.Errorf("RPC Error %d: %s", res.Error.Code, res.Error.Message)
+		return nil, fmt.Errorf("RPC Error %d: %s: %s", res.Error.Code, res.Error.Message, res.Error.Data)
 	}
 
 	return res, nil
+}
+
+func ExecRPCBulk(url string, requests []*Request) ([]*Response, error) {
+	body, err := json.Marshal(requests)
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	httpRes, err := client.Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+
+	defer httpRes.Body.Close()
+	responses := make([]*Response, 0)
+	err = json.NewDecoder(httpRes.Body).Decode(&responses)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, res := range responses {
+		if res.Error != nil {
+			return nil, fmt.Errorf("RPC Error %d: %s: %s", res.Error.Code, res.Error.Message, res.Error.Data)
+		}
+	}
+
+	return responses, nil
 }

@@ -319,7 +319,7 @@ func (p *HTTPPool) ExecRPCBulk(reqs []*rpc.Request) ([]*rpc.Response, error) {
 			return nil, HTTPError{
 				Status:     res.Error.Message,
 				StatusCode: res.Error.Code,
-				// Body:       []byte(res.Error.Data), // @TODO: actually implement this
+				Body:       []byte(res.Error.Data),
 			}
 		}
 	}

@@ -144,6 +144,10 @@ func (node Node) execRPCfromFallback(req *rpc.Request, target interface{}) error
 	return nil
 }
 
+func (node Node) execRPCfromFallbackBulk(requests []*rpc.Request) ([]*rpc.Response, error) {
+	return rpc.ExecRPCBulk(node.fallbackURL, requests)
+}
+
 type Block struct {
 	Adaptive              bool     `json:"adaptive"`
 	Blame                 string   `json:"blame"`

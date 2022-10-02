@@ -83,38 +83,45 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 		heights[i] = start + uint64(i)
 	}
 
-	epochHashesList, err := node.getBlocksByEpochMany(heights)
-	if err != nil {
-		return nil, err
-	}
-
 	hashes := make([]string, 0)
-	for _, epochHashes := range epochHashesList {
-		for _, epochHash := range epochHashes {
-			hashes = append(hashes, epochHash)
-		}
-	}
-
-	blockRewardsList, err := node.getBlockRewardInfoMany(heights)
-	if err != nil {
-		return nil, err
-	}
-
 	rewardIndex := make(map[string]float64)
-	for _, blockRewards := range blockRewardsList {
-		for _, blockReward := range blockRewards {
-			reward, err := parseBlockReward(blockReward)
-			if err != nil {
-				return nil, err
-			}
+	for i := 0; i < len(heights); i += 100 {
+		limit := i + 100
+		if len(hashes) < limit {
+			limit = len(hashes)
+		}
 
-			rewardIndex[blockReward.BlockHash] = common.BigIntToFloat64(reward, node.GetUnits().Big())
+		epochHashesList, err := node.getBlocksByEpochMany(heights[i:limit])
+		if err != nil {
+			return nil, err
+		}
+
+		for _, epochHashes := range epochHashesList {
+			for _, epochHash := range epochHashes {
+				hashes = append(hashes, epochHash)
+			}
+		}
+
+		blockRewardsList, err := node.getBlockRewardInfoMany(heights[i:limit])
+		if err != nil {
+			return nil, err
+		}
+
+		for _, blockRewards := range blockRewardsList {
+			for _, blockReward := range blockRewards {
+				reward, err := parseBlockReward(blockReward)
+				if err != nil {
+					return nil, err
+				}
+
+				rewardIndex[blockReward.BlockHash] = common.BigIntToFloat64(reward, node.GetUnits().Big())
+			}
 		}
 	}
 
 	blocks := make([]*tsdb.RawBlock, len(hashes))
-	for i := 0; i < len(hashes); i += 25 {
-		limit := i + 25
+	for i := 0; i < len(hashes); i += 50 {
+		limit := i + 50
 		if len(hashes) < limit {
 			limit = len(hashes)
 		}
