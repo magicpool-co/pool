@@ -234,7 +234,7 @@ func (c *Client) FetchBlockIntervals(chain string) ([]time.Time, error) {
 		return nil, err
 	} else if lastRawTime.IsZero() {
 		return nil, nil
-	} else if lastTime.Sub(lastRawTime) < blockDelay {
+	} else if lastTime.Sub(lastRawTime) > blockDelay {
 		lastTime = lastRawTime
 	}
 
