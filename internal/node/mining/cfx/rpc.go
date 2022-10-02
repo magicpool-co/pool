@@ -118,7 +118,7 @@ func (node Node) getBlockRewardInfoMany(epochHeights []uint64) ([][]*BlockReward
 	for i, res := range responses {
 		err := json.Unmarshal(res.Result, &rewardsList[i])
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("a: %d: %d: %v: %s", i, epochHeights[i], err, res.Result)
 		}
 	}
 
@@ -189,7 +189,7 @@ func (node Node) getBlockByHashMany(blockHashes []string) ([]*Block, error) {
 		if res.Error == nil {
 			err := json.Unmarshal(res.Result, &blocks[i])
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("b: %d: %s: %v: %s", i, blockHashes[i], err, res.Result)
 			}
 			break
 		}
@@ -234,6 +234,7 @@ func (node Node) getBlocksByEpochMany(epochHeights []uint64) ([][]string, error)
 	for i, res := range responses {
 		err := json.Unmarshal(res.Result, &hashesList[i])
 		if err != nil {
+			return nil, fmt.Errorf("c: %c: %d: %v: %s", i, epochHeights[i], err, res.Result)
 			return nil, err
 		}
 	}
