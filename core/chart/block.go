@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	blockStart         = time.Unix(1661990400, 0)
 	blockDelay         = time.Minute * 5
 	blockPeriod        = types.Period15m
 	blockRollupPeriods = []types.PeriodType{types.Period4h, types.Period1d}
@@ -191,7 +192,7 @@ func (c *Client) FetchBlockIntervals(chain string) ([]time.Time, error) {
 
 	// handle initialization of intervals when there are no blocks in tsdb
 	if lastTime.IsZero() {
-		lastTime = common.NormalizeDate(time.Now(), blockPeriod.Rollup(), false)
+		lastTime = blockStart
 		err := c.redis.SetChartBlocksLastTime(chain, lastTime)
 
 		return nil, err
@@ -206,6 +207,10 @@ func (c *Client) FetchBlockIntervals(chain string) ([]time.Time, error) {
 
 		intervals = append(intervals, endTime)
 		lastTime = endTime
+	}
+
+	if len(intervals) > 4 {
+		intervals = intervals[:4]
 	}
 
 	return intervals, nil
