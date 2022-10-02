@@ -74,36 +74,53 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 	}
 
 	blocks := make([]*tsdb.RawBlock, len(rawBlocks))
-	for i, block := range rawBlocks {
-		height, err := common.HexToUint64(block.Number)
+	for i := 0; i < len(blocks); i += 25 {
+		limit := i + 25
+		if len(blocks) < limit {
+			limit = len(blocks)
+		}
+
+		heights := make([]uint64, limit-i)
+		for j := range heights {
+			heights[j] = start + uint64(i+j)
+		}
+
+		rawBlocks, err := node.getBlockByNumberMany(heights)
 		if err != nil {
 			return nil, err
 		}
 
-		rawTimestamp, err := common.HexToUint64(block.Timestamp)
-		if err != nil {
-			return nil, err
-		}
-		timestamp := time.Unix(int64(rawTimestamp), 0)
+		for j, block := range rawBlocks {
+			height, err := common.HexToUint64(block.Number)
+			if err != nil {
+				return nil, err
+			}
 
-		difficulty, err := common.HexToUint64(block.Difficulty)
-		if err != nil {
-			return nil, err
-		}
+			rawTimestamp, err := common.HexToUint64(block.Timestamp)
+			if err != nil {
+				return nil, err
+			}
+			timestamp := time.Unix(int64(rawTimestamp), 0)
 
-		blockReward, err := node.calculateBlockReward(height, block)
-		if err != nil {
-			return nil, err
-		}
+			difficulty, err := common.HexToUint64(block.Difficulty)
+			if err != nil {
+				return nil, err
+			}
 
-		blocks[i] = &tsdb.RawBlock{
-			ChainID:    node.Chain(),
-			Height:     height,
-			Value:      common.BigIntToFloat64(blockReward, node.GetUnits().Big()),
-			Difficulty: float64(difficulty),
-			UncleCount: uint64(len(block.Uncles)),
-			TxCount:    uint64(len(block.Transactions)),
-			Timestamp:  timestamp,
+			blockReward, err := node.calculateBlockReward(height, block)
+			if err != nil {
+				return nil, err
+			}
+
+			blocks[i+j] = &tsdb.RawBlock{
+				ChainID:    node.Chain(),
+				Height:     height,
+				Value:      common.BigIntToFloat64(blockReward, node.GetUnits().Big()),
+				Difficulty: float64(difficulty),
+				UncleCount: uint64(len(block.Uncles)),
+				TxCount:    uint64(len(block.Transactions)),
+				Timestamp:  timestamp,
+			}
 		}
 	}
 

@@ -62,8 +62,8 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 	}
 
 	blocks := make([]*tsdb.RawBlock, end-start+1)
-	for i := 0; i < len(blocks); i += 10 {
-		limit := i + 10
+	for i := 0; i < len(blocks); i += 25 {
+		limit := i + 25
 		if len(blocks) < limit {
 			limit = len(blocks)
 		}
