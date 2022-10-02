@@ -140,6 +140,13 @@ func (node Node) getCurrentDevRewards() ([]uint64, error) {
 }
 
 func (node Node) getRewardsFromTX(tx *Transaction, devRewards []uint64) (uint64, error) {
+	// copy dev rewards to avoid overwriting the slice
+	devRewardsCopy := make([]uint64, len(devRewards))
+	for i, devReward := range devRewards {
+		devRewardsCopy[i] = devReward
+	}
+	devRewards = devRewardsCopy
+
 	var amount uint64
 	for _, input := range tx.Inputs {
 		if len(input.Coinbase) > 0 {
