@@ -218,6 +218,10 @@ func ExecRPC(url string, req *Request) (*Response, error) {
 }
 
 func ExecRPCBulk(url string, requests []*Request) ([]*Response, error) {
+	if len(requests) == 0 {
+		return nil, nil
+	}
+
 	body, err := json.Marshal(requests)
 	if err != nil {
 		return nil, err
@@ -244,7 +248,7 @@ func ExecRPCBulk(url string, requests []*Request) ([]*Response, error) {
 	responses := make([]*Response, 0)
 	err = json.Unmarshal(data, &responses)
 	if err != nil {
-		return nil, fmt.Errorf("failed: %v: %s", err, data)
+		return nil, fmt.Errorf("failed: %v: %s: %s", err, body, data)
 	}
 	/*err = json.NewDecoder(httpRes.Body).Decode(&responses)
 	if err != nil {
