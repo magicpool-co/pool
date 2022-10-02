@@ -191,7 +191,6 @@ func (node Node) getBlockByHashMany(blockHashes []string) ([]*Block, error) {
 			if err != nil {
 				return nil, err
 			}
-			break
 		}
 
 		if blocks[i] == nil {
