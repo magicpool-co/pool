@@ -187,8 +187,8 @@ func (c *Client) CollectBlocks(node types.MiningNode) error {
 			currentHeight = lastHeight + 10000
 		}
 	case "CTXC", "ETC":
-		if currentHeight-lastHeight > 5000 {
-			currentHeight = lastHeight + 5000
+		if currentHeight-lastHeight > 1000 {
+			currentHeight = lastHeight + 1000
 		}
 	case "FLUX", "FIRO", "RVN":
 		if currentHeight-lastHeight > 500 {
@@ -239,8 +239,8 @@ func (c *Client) FetchBlockIntervals(chain string) ([]time.Time, error) {
 		lastTime = endTime
 	}
 
-	if len(intervals) > 10 {
-		intervals = intervals[:10]
+	if len(intervals) > 4 {
+		intervals = intervals[:4]
 	}
 
 	return intervals, nil
