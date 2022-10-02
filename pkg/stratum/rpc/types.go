@@ -3,6 +3,7 @@ package rpc
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/goccy/go-json"
@@ -235,11 +236,20 @@ func ExecRPCBulk(url string, requests []*Request) ([]*Response, error) {
 	}
 
 	defer httpRes.Body.Close()
-	responses := make([]*Response, 0)
-	err = json.NewDecoder(httpRes.Body).Decode(&responses)
+	data, err := ioutil.ReadAll(httpReq.Body)
 	if err != nil {
 		return nil, err
 	}
+
+	responses := make([]*Response, 0)
+	err = json.Unmarshal(data, &responses)
+	if err != nil {
+		return nil, fmt.Errorf("failed: %v: %s", err, data)
+	}
+	/*err = json.NewDecoder(httpRes.Body).Decode(&responses)
+	if err != nil {
+		return nil, err
+	}*/
 
 	for _, res := range responses {
 		if res.Error != nil {
