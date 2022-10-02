@@ -161,9 +161,25 @@ func (c *Client) CollectBlocks(node types.MiningNode) error {
 	} else if syncing {
 		return fmt.Errorf("node is syncing")
 	} else if lastHeight == 0 {
-		lastHeight = currentHeight - 1
+		switch node.Chain() {
+		case "FLUX":
+			lastHeight = 1198000
+		case "FIRO":
+			lastHeight = 530000
+		case "RVN":
+			lastHeight = 2432500
+		default:
+			lastHeight = currentHeight - 1
+		}
 	} else if lastHeight >= currentHeight {
 		return nil
+	}
+
+	switch node.Chain() {
+	case "FLUX", "FIRO", "RVN":
+		if currentHeight-lastHeight+1 > 500 {
+			currentHeight = lastHeight + 1 + 500
+		}
 	}
 
 	blocks, err := node.GetBlocks(lastHeight+1, currentHeight)
@@ -209,8 +225,8 @@ func (c *Client) FetchBlockIntervals(chain string) ([]time.Time, error) {
 		lastTime = endTime
 	}
 
-	if len(intervals) > 4 {
-		intervals = intervals[:4]
+	if len(intervals) > 10 {
+		intervals = intervals[:10]
 	}
 
 	return intervals, nil
