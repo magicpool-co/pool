@@ -232,14 +232,12 @@ func (c *Client) FetchBlockIntervals(chain string) ([]time.Time, error) {
 	lastRawTime, err := tsdb.GetRawBlockMaxTimestamp(c.tsdb.Reader(), chain)
 	if err != nil {
 		return nil, err
-	} else if lastRawTime.IsZero() || lastTime.Sub(lastRawTime) > blockDelay {
-		return nil, nil
 	}
 
 	intervals := make([]time.Time, 0)
 	for {
 		endTime := lastTime.Add(blockPeriod.Rollup())
-		if time.Now().UTC().Sub(endTime) < blockDelay {
+		if time.Now().UTC().Sub(endTime) < blockDelay || endTime.After(lastRawTime) {
 			break
 		}
 
