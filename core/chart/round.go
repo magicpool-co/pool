@@ -259,7 +259,7 @@ func (c *Client) finalizeRounds(node types.MiningNode, endTime time.Time) error 
 }
 
 func (c *Client) truncateRounds(node types.MiningNode, endTime time.Time) error {
-	for _, rollupPeriod := range roundRollupPeriods {
+	for _, rollupPeriod := range append([]types.PeriodType{roundPeriod}, roundRollupPeriods...) {
 		timestamp := endTime.Add(rollupPeriod.Retention() * -1)
 		err := tsdb.DeleteRoundsBeforeEndTime(c.tsdb.Writer(), timestamp, node.Chain(), int(rollupPeriod))
 		if err != nil {

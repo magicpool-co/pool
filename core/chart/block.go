@@ -138,7 +138,7 @@ func (c *Client) truncateBlocks(node types.MiningNode, endTime time.Time) error 
 		}
 	}
 
-	for _, rollupPeriod := range blockRollupPeriods {
+	for _, rollupPeriod := range append([]types.PeriodType{blockPeriod}, blockRollupPeriods...) {
 		timestamp := endTime.Add(rollupPeriod.Retention() * -1)
 		err = tsdb.DeleteBlocksBeforeEndTime(c.tsdb.Writer(), timestamp, node.Chain(), int(rollupPeriod))
 		if err != nil {
@@ -162,6 +162,12 @@ func (c *Client) CollectBlocks(node types.MiningNode) error {
 		return fmt.Errorf("node is syncing")
 	} else if lastHeight == 0 {
 		switch node.Chain() {
+		case "CFX":
+			lastHeight = 53100000
+		case "CTXC":
+			lastHeight = 6840000
+		case "ETC":
+			lastHeight = 15850000
 		case "FLUX":
 			lastHeight = 1198000
 		case "FIRO":
@@ -176,9 +182,17 @@ func (c *Client) CollectBlocks(node types.MiningNode) error {
 	}
 
 	switch node.Chain() {
+	case "CFX":
+		if currentHeight-lastHeight > 10000 {
+			currentHeight = lastHeight + 10000
+		}
+	case "CTXC", "ETC":
+		if currentHeight-lastHeight > 2500 {
+			currentHeight = lastHeight + 2500
+		}
 	case "FLUX", "FIRO", "RVN":
-		if currentHeight-lastHeight+1 > 500 {
-			currentHeight = lastHeight + 1 + 500
+		if currentHeight-lastHeight > 500 {
+			currentHeight = lastHeight + 500
 		}
 	}
 
