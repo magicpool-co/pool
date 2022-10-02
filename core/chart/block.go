@@ -225,8 +225,8 @@ func (c *Client) FetchBlockIntervals(chain string) ([]time.Time, error) {
 		lastTime = endTime
 	}
 
-	if len(intervals) > 4 {
-		intervals = intervals[:4]
+	if len(intervals) > 10 {
+		intervals = intervals[:10]
 	}
 
 	return intervals, nil
