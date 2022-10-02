@@ -74,7 +74,7 @@ func (node Node) PingHosts() ([]string, []uint64, []bool, []error) {
 }
 
 func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
-	const batchSize = 75
+	const batchSize = 100
 	if start > end {
 		return nil, fmt.Errorf("invalid range")
 	}
@@ -103,6 +103,8 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 			}
 		}
 
+		time.Sleep(time.Millisecond * 100)
+
 		blockRewardsList, err := node.getBlockRewardInfoMany(heights[i:limit])
 		if err != nil {
 			return nil, err
@@ -118,6 +120,8 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 				rewardIndex[blockReward.BlockHash] = common.BigIntToFloat64(reward, node.GetUnits().Big())
 			}
 		}
+
+		time.Sleep(time.Millisecond * 100)
 	}
 
 	blocks := make([]*tsdb.RawBlock, len(hashes))
@@ -131,6 +135,8 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		time.Sleep(time.Millisecond * 100)
 
 		for j, block := range rawBlocks {
 			if _, ok := rewardIndex[block.Hash]; !ok {
