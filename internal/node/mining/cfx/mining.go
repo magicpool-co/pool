@@ -74,7 +74,7 @@ func (node Node) PingHosts() ([]string, []uint64, []bool, []error) {
 }
 
 func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
-	const batchSize = 90
+	const batchSize = 75
 	if start > end {
 		return nil, fmt.Errorf("invalid range")
 	}
