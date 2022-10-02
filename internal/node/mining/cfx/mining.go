@@ -85,8 +85,8 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 
 	hashes := make([]string, 0)
 	rewardIndex := make(map[string]float64)
-	for i := 0; i < len(heights); i += 100 {
-		limit := i + 100
+	for i := 0; i < len(heights); i += 25 {
+		limit := i + 25
 		if len(hashes) < limit {
 			limit = len(hashes)
 		}
@@ -120,8 +120,8 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 	}
 
 	blocks := make([]*tsdb.RawBlock, len(hashes))
-	for i := 0; i < len(hashes); i += 50 {
-		limit := i + 50
+	for i := 0; i < len(hashes); i += 25 {
+		limit := i + 25
 		if len(hashes) < limit {
 			limit = len(hashes)
 		}
