@@ -57,13 +57,14 @@ func (node Node) PingHosts() ([]string, []uint64, []bool, []error) {
 }
 
 func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
+	const batchSize = 10
 	if start > end {
 		return nil, fmt.Errorf("invalid range")
 	}
 
 	blocks := make([]*tsdb.RawBlock, end-start+1)
-	for i := 0; i < len(blocks); i += 10 {
-		limit := i + 10
+	for i := 0; i < len(blocks); i += batchSize {
+		limit := i + batchSize
 		if len(blocks) < limit {
 			limit = len(blocks)
 		}

@@ -74,6 +74,7 @@ func (node Node) PingHosts() ([]string, []uint64, []bool, []error) {
 }
 
 func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
+	const batchSize = 25
 	if start > end {
 		return nil, fmt.Errorf("invalid range")
 	}
@@ -85,8 +86,8 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 
 	hashes := make([]string, 0)
 	rewardIndex := make(map[string]float64)
-	for i := 0; i < len(heights); i += 100 {
-		limit := i + 100
+	for i := 0; i < len(heights); i += batchSize {
+		limit := i + batchSize
 		if len(heights) < limit {
 			limit = len(heights)
 		}
@@ -120,18 +121,13 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 	}
 
 	blocks := make([]*tsdb.RawBlock, len(hashes))
-	for i := 0; i < len(hashes); i += 100 {
-		limit := i + 100
+	for i := 0; i < len(hashes); i += batchSize {
+		limit := i + batchSize
 		if len(hashes) < limit {
 			limit = len(hashes)
 		}
 
-		blockHashes := make([]string, limit-i)
-		for j := range blockHashes {
-			blockHashes[j] = hashes[i+j]
-		}
-
-		rawBlocks, err := node.getBlockByHashMany(blockHashes)
+		rawBlocks, err := node.getBlockByHashMany(hashes[i:limit])
 		if err != nil {
 			return nil, err
 		}
