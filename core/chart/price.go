@@ -13,7 +13,6 @@ import (
 )
 
 var (
-	priceStart  = time.Unix(1661990400, 0)
 	pricePeriod = types.Period15m
 	kucoinDelay = time.Second * 5
 )
@@ -201,7 +200,12 @@ func (c *Client) ProcessPrices(chain string) error {
 	if err != nil {
 		return err
 	} else if startTime.IsZero() {
-		startTime = priceStart
+		switch chain {
+		case "ETHW":
+			startTime = time.Unix(1664182800, 0)
+		default:
+			startTime = time.Unix(1661990400, 0)
+		}
 	} else {
 		startTime = startTime.Add(pricePeriod.Rollup())
 	}
