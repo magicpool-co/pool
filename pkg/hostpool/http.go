@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	httpTimeout    = time.Second * 5
+	httpTimeout    = time.Second * 10
 	httpStickiness = 1.2 // 20% stickiness
 	onceHostID     = "once"
 )
