@@ -103,8 +103,6 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 			}
 		}
 
-		time.Sleep(time.Millisecond * 100)
-
 		blockRewardsList, err := node.getBlockRewardInfoMany(heights[i:limit])
 		if err != nil {
 			return nil, err
@@ -120,8 +118,6 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 				rewardIndex[blockReward.BlockHash] = common.BigIntToFloat64(reward, node.GetUnits().Big())
 			}
 		}
-
-		time.Sleep(time.Millisecond * 100)
 	}
 
 	blocks := make([]*tsdb.RawBlock, len(hashes))
@@ -135,8 +131,6 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		time.Sleep(time.Millisecond * 100)
 
 		for j, block := range rawBlocks {
 			if _, ok := rewardIndex[block.Hash]; !ok {
