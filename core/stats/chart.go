@@ -42,15 +42,23 @@ func (c *Client) GetBlockChart(chain string, period types.PeriodType) (*BlockCha
 		TxCount:          make([]uint64, 0),
 	}
 
+	var firstTime, lastTime time.Time
 	for _, item := range items {
 		if exists := index[item.EndTime]; !exists {
 			chart.AddPoint(item)
 			index[item.EndTime] = true
+
+			if firstTime.IsZero() || item.EndTime.Before(firstTime) {
+				firstTime = item.EndTime
+			}
+			if lastTime.IsZero() || item.EndTime.Before(lastTime) {
+				lastTime = item.EndTime
+			}
 		}
 	}
 
 	for timestamp, exists := range index {
-		if !exists {
+		if !exists && !timestamp.Before(firstTime) && !timestamp.After(lastTime) {
 			chart.AddPoint(&tsdb.Block{EndTime: timestamp})
 		}
 	}
@@ -101,15 +109,23 @@ func (c *Client) GetBlockProfitabilityChart(period types.PeriodType) (map[string
 			TxCount:          make([]uint64, 0),
 		}
 
+		var firstTime, lastTime time.Time
 		for _, item := range items {
 			if exists := index[item.EndTime]; !exists {
 				chartIdx[chain].AddPoint(item)
 				index[item.EndTime] = true
+
+				if firstTime.IsZero() || item.EndTime.Before(firstTime) {
+					firstTime = item.EndTime
+				}
+				if lastTime.IsZero() || item.EndTime.Before(lastTime) {
+					lastTime = item.EndTime
+				}
 			}
 		}
 
 		for timestamp, exists := range index {
-			if !exists {
+			if !exists && !timestamp.Before(firstTime) && !timestamp.After(lastTime) {
 				chartIdx[chain].AddPoint(&tsdb.Block{EndTime: timestamp})
 			}
 		}
