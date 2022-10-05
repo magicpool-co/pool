@@ -139,7 +139,8 @@ func (c *Client) truncateBlocks(node types.MiningNode, endTime time.Time) error 
 	}
 
 	for _, rollupPeriod := range append([]types.PeriodType{blockPeriod}, blockRollupPeriods...) {
-		timestamp := endTime.Add(rollupPeriod.Retention() * -1)
+		// buffer the retention period by two hours for some data that runs behind
+		timestamp := endTime.Add((rollupPeriod.Retention() + time.Hour) * -2)
 		err = tsdb.DeleteBlocksBeforeEndTime(c.tsdb.Writer(), timestamp, node.Chain(), int(rollupPeriod))
 		if err != nil {
 			return err
