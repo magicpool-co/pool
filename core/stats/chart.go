@@ -136,11 +136,16 @@ func (c *Client) GetBlockProfitabilityChart(period types.PeriodType, average boo
 
 	for i, timestamp := range timestamps {
 		for chain, item := range itemsIdx[timestamp] {
+			value := item.Profitability
 			if average {
-				values[chain][i] = item.AvgProfitability
-			} else {
-				values[chain][i] = item.Profitability
+				value = item.AvgProfitability
 			}
+
+			if value == 0 && i > 0 {
+				value = values[chain][i-1]
+			}
+
+			values[chain][i] = value
 		}
 	}
 
