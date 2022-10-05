@@ -139,7 +139,7 @@ func (c *Client) GetBlockProfitabilityChart(period types.PeriodType, average boo
 		}
 	}
 
-	parsedTimestamps := make([]int64, 0)
+	parsedTimestamps := make([]int64, len(timestamps))
 	for i, timestamp := range timestamps {
 		parsedTimestamps[i] = timestamp.Unix()
 	}
