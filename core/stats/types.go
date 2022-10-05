@@ -163,6 +163,11 @@ type Payout struct {
 
 /* block chart */
 
+type BlockChartSingle struct {
+	Timestamps []int64              `json:"timestamps"`
+	Values     map[string][]float64 `json:"values"`
+}
+
 type BlockChart struct {
 	Timestamp        []int64   `json:"timestamp"`
 	Value            []float64 `json:"value,omitempty"`

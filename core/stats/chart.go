@@ -68,81 +68,81 @@ func (c *Client) GetBlockChart(chain string, period types.PeriodType) (*BlockCha
 	return chart, nil
 }
 
-func (c *Client) GetBlockProfitabilityChart(period types.PeriodType) (map[string]*BlockChart, error) {
+func (c *Client) GetBlockProfitabilityChart(period types.PeriodType, average bool) (*BlockChartSingle, error) {
 	items, err := tsdb.GetBlocksProfitability(c.tsdb.Reader(), int(period))
 	if err != nil {
 		return nil, err
 	}
 
-	itemsIdx := make(map[string][]*tsdb.Block)
+	var endTime time.Time
+	itemsIdx := make(map[time.Time]map[string]*tsdb.Block)
+	chainIdx := make(map[string]bool)
 	for _, item := range items {
-		if _, ok := itemsIdx[item.ChainID]; !ok {
-			itemsIdx[item.ChainID] = make([]*tsdb.Block, 0)
+		if _, ok := itemsIdx[item.EndTime]; !ok {
+			itemsIdx[item.EndTime] = make(map[string]*tsdb.Block)
 		}
-		itemsIdx[item.ChainID] = append(itemsIdx[item.ChainID], item)
+		itemsIdx[item.EndTime][item.ChainID] = item
+		chainIdx[item.ChainID] = true
+
+		if item.EndTime.After(endTime) {
+			endTime = item.EndTime
+		}
 	}
 
-	chartIdx := make(map[string]*BlockChart)
-	for chain, items := range itemsIdx {
-		var endTime time.Time
-		if len(items) == 0 {
-			endTime = time.Now()
-		} else {
-			endTime = items[0].EndTime
-			if newEndTime := items[len(items)-1].EndTime; newEndTime.After(endTime) {
-				endTime = newEndTime
-			}
-		}
-
-		index := period.GenerateRange(common.NormalizeDate(endTime, period.Rollup(), true))
-		chartIdx[chain] = &BlockChart{
-			Timestamp:        make([]int64, 0),
-			Value:            make([]float64, 0),
-			Difficulty:       make([]float64, 0),
-			BlockTime:        make([]float64, 0),
-			Hashrate:         make([]float64, 0),
-			UncleRate:        make([]float64, 0),
-			Profitability:    make([]float64, 0),
-			AvgProfitability: make([]float64, 0),
-			BlockCount:       make([]uint64, 0),
-			UncleCount:       make([]uint64, 0),
-			TxCount:          make([]uint64, 0),
-		}
-
-		var firstTime, lastTime time.Time
-		for _, item := range items {
-			if exists := index[item.EndTime]; !exists {
-				chartIdx[chain].AddPoint(item)
-				index[item.EndTime] = true
-
-				if firstTime.IsZero() || item.EndTime.Before(firstTime) {
-					firstTime = item.EndTime
-				}
-				if lastTime.IsZero() || item.EndTime.Before(lastTime) {
-					lastTime = item.EndTime
-				}
-			}
-		}
-
-		for timestamp, exists := range index {
-			if !exists && !timestamp.Before(firstTime) && !timestamp.After(lastTime) {
-				chartIdx[chain].AddPoint(&tsdb.Block{EndTime: timestamp})
-			}
-		}
-
-		sort.Sort(chartIdx[chain])
-
-		chartIdx[chain].Value = nil
-		chartIdx[chain].Difficulty = nil
-		chartIdx[chain].BlockTime = nil
-		chartIdx[chain].Hashrate = nil
-		chartIdx[chain].UncleRate = nil
-		chartIdx[chain].BlockCount = nil
-		chartIdx[chain].UncleCount = nil
-		chartIdx[chain].TxCount = nil
+	if endTime.IsZero() {
+		endTime = time.Now()
 	}
 
-	return chartIdx, nil
+	index := period.GenerateRange(common.NormalizeDate(endTime, period.Rollup(), true))
+	for timestamp := range index {
+		if _, ok := itemsIdx[timestamp]; !ok {
+			itemsIdx[timestamp] = make(map[string]*tsdb.Block)
+		}
+	}
+
+	for timestamp, chainIdx := range itemsIdx {
+		if _, ok := index[timestamp]; !ok {
+			delete(itemsIdx, timestamp)
+			continue
+		}
+
+		for chain := range chainIdx {
+			if _, ok := itemsIdx[timestamp][chain]; !ok {
+				itemsIdx[timestamp][chain] = &tsdb.Block{EndTime: timestamp}
+			}
+		}
+	}
+
+	var count int
+	timestamps := make([]int64, len(itemsIdx))
+	for timestamp := range itemsIdx {
+		timestamps[count] = timestamp.Unix()
+	}
+
+	sort.Slice(timestamps, func(i, j int) bool {
+		return timestamps[i] < timestamps[j]
+	})
+
+	values := make(map[string][]float64)
+	for _, timestamp := range timestamps {
+		for chain, item := range itemsIdx[time.Unix(timestamp, 0)] {
+			if _, ok := values[chain]; !ok {
+				values[chain] = make([]float64, 0)
+			}
+			if average {
+				values[chain] = append(values[chain], item.AvgProfitability)
+			} else {
+				values[chain] = append(values[chain], item.Profitability)
+			}
+		}
+	}
+
+	chart := &BlockChartSingle{
+		Timestamps: timestamps,
+		Values:     values,
+	}
+
+	return chart, nil
 }
 
 /* round chart */

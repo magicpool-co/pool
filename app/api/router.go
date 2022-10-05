@@ -84,7 +84,8 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case rtr.match(path, "/global/charts/blocks/profitability"):
 		method = "GET"
 		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getBlockProfitabilityChart(blockProfitabilityChartArgs{period: period})
+		average := strings.ToLower(r.URL.Query().Get("average")) == "true"
+		handler = rtr.ctx.getBlockProfitabilityChart(blockProfitabilityChartArgs{period: period, average: average})
 
 	case rtr.match(path, "/global/charts/rounds"):
 		method = "GET"

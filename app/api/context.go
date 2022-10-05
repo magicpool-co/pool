@@ -310,7 +310,8 @@ func (ctx *Context) getBlockChart(args blockChartArgs) http.Handler {
 }
 
 type blockProfitabilityChartArgs struct {
-	period string
+	period  string
+	average bool
 }
 
 func (ctx *Context) getBlockProfitabilityChart(args blockProfitabilityChartArgs) http.Handler {
@@ -321,7 +322,7 @@ func (ctx *Context) getBlockProfitabilityChart(args blockProfitabilityChartArgs)
 			return
 		}
 
-		data, err := ctx.stats.GetBlockProfitabilityChart(period)
+		data, err := ctx.stats.GetBlockProfitabilityChart(period, args.average)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
