@@ -117,6 +117,7 @@ func (c *Client) GetBlockProfitabilityChart(period types.PeriodType, average boo
 	timestamps := make([]int64, len(itemsIdx))
 	for timestamp := range itemsIdx {
 		timestamps[count] = timestamp.Unix()
+		count++
 	}
 
 	sort.Slice(timestamps, func(i, j int) bool {
