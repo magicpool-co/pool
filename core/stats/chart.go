@@ -113,31 +113,39 @@ func (c *Client) GetBlockProfitabilityChart(period types.PeriodType, average boo
 		}
 	}
 
-	timestamps := make([]int64, 0)
+	var count int
+	timestamps := make([]time.Time, len(itemsIdx))
 	for timestamp := range itemsIdx {
-		timestamps = append(timestamps, timestamp.Unix())
+		timestamps[count] = timestamp
+		count++
 	}
 
 	sort.Slice(timestamps, func(i, j int) bool {
-		return timestamps[i] < timestamps[j]
+		return timestamps[i].Before(timestamps[j])
 	})
 
 	values := make(map[string][]float64)
-	for _, timestamp := range timestamps {
-		for chain, item := range itemsIdx[time.Unix(timestamp, 0)] {
-			if _, ok := values[chain]; !ok {
-				values[chain] = make([]float64, 0)
-			}
+	for chain := range chainIdx {
+		values[chain] = make([]float64, len(timestamps))
+	}
+
+	for i, timestamp := range timestamps {
+		for chain, item := range itemsIdx[timestamp] {
 			if average {
-				values[chain] = append(values[chain], item.AvgProfitability)
+				values[chain][i] = item.AvgProfitability
 			} else {
-				values[chain] = append(values[chain], item.Profitability)
+				values[chain][i] = item.Profitability
 			}
 		}
 	}
 
+	parsedTimestamps := make([]int64, 0)
+	for i, timestamp := range timestamps {
+		parsedTimestamps[i] = timestamp.Unix()
+	}
+
 	chart := &BlockChartSingle{
-		Timestamps: timestamps,
+		Timestamps: parsedTimestamps,
 		Values:     values,
 	}
 
