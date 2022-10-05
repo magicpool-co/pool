@@ -74,18 +74,23 @@ func (c *Client) GetBlockProfitabilityChart(period types.PeriodType, average boo
 		return nil, err
 	}
 
-	var endTime time.Time
 	itemsIdx := make(map[time.Time]map[string]*tsdb.Block)
-	chainIdx := make(map[string]bool)
+	chainIdx := make(map[string]time.Time)
 	for _, item := range items {
 		if _, ok := itemsIdx[item.EndTime]; !ok {
 			itemsIdx[item.EndTime] = make(map[string]*tsdb.Block)
 		}
 		itemsIdx[item.EndTime][item.ChainID] = item
-		chainIdx[item.ChainID] = true
 
-		if item.EndTime.After(endTime) {
-			endTime = item.EndTime
+		if item.EndTime.After(chainIdx[item.ChainID]) {
+			chainIdx[item.ChainID] = item.EndTime
+		}
+	}
+
+	var endTime time.Time
+	for _, timestamp := range chainIdx {
+		if endTime.IsZero() || (!timestamp.IsZero() && timestamp.Before(endTime)) {
+			endTime = timestamp
 		}
 	}
 
