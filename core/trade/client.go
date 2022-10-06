@@ -17,19 +17,19 @@ import (
 )
 
 var (
-	tempInputThresholds = map[string]*big.Int{
+	inputThresholds = map[string]*big.Int{
 		"CFX":  common.MustParseBigInt("2000000000000000000000000"), // 2,000,000 CFX
-		"CTXC": common.MustParseBigInt("500000000000000000000000"),  // 500,000 CTXC
-		"ERGO": new(big.Int).SetUint64(100_000_000_000_000),         // 10 ERGO
+		"CTXC": common.MustParseBigInt("5000000000000000000000000"), // 5,000,000 CTXC
+		"ERGO": new(big.Int).SetUint64(10_000_000_000),              // 10 ERGO
 		"ETC":  common.MustParseBigInt("3000000000000000000000"),    // 3000 ETC
-		"FIRO": new(big.Int).SetUint64(10_000_000_000_000),          // 100,000 FIRO
-		"FLUX": new(big.Int).SetUint64(30_000_000_000_000),          // 300,000 FLUX
-		"RVN":  new(big.Int).SetUint64(20_000_000_000_000),          // 200,000 RVN
+		"FIRO": new(big.Int).SetUint64(10_000_000_000),              // 100 FIRO
+		"FLUX": new(big.Int).SetUint64(30_000_000_000),              // 300 FLUX
+		"RVN":  new(big.Int).SetUint64(500_000_000_000),             // 5,000 RVN
 	}
 
-	tempOutputThresholds = map[string]*big.Int{
-		"BTC":  new(big.Int).SetUint64(500_000),                   // 0.005 BTC
-		"ETH":  new(big.Int).SetUint64(5_000_000_000_000_000_000), // 5 ETH
+	outputThresholds = map[string]*big.Int{
+		"BTC":  new(big.Int).SetUint64(10_000_000),                // 0.1 BTC
+		"ETH":  new(big.Int).SetUint64(1_000_000_000_000_000_000), // 1 ETH
 		"USDC": new(big.Int).SetUint64(20_000_000_000),            // 20,000 USDC
 	}
 )
@@ -145,10 +145,8 @@ func (c *Client) CheckForNewBatch() error {
 	// the final price of each trade is only know at runtime, cumulative output
 	// values are estimated through the current prices - see the exchange accountant
 	// for more details on this process).
-	outputPaths, err := accounting.CalculateExchangePaths(inputPaths,
-		tempInputThresholds, tempOutputThresholds, prices)
-	// outputPaths, err := accounting.CalculateExchangePaths(inputPaths,
-	// 	accounting.DefaultInputThresholds, outputThresholds, prices)
+	outputPaths, err := accounting.CalculateExchangePaths(inputPaths, inputThresholds,
+		outputThresholds, prices)
 	if err != nil {
 		return err
 	} else if len(outputPaths) == 0 {
