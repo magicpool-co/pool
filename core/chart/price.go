@@ -223,16 +223,31 @@ func (c *Client) ProcessPrices(chain string) error {
 		idx, err = getBinanceNativeAllExceptETH("CTXC", startTime, endTime)
 	case "ERGO":
 		idx, err = getKucoinNativeAllExceptETH("ERG", startTime, endTime)
+		if err == kucoin.ErrTooManyRequests {
+			return nil
+		}
 	case "ETC":
 		idx, err = getKucoinNativeUSDTOnly("ETC", startTime, endTime)
+		if err == kucoin.ErrTooManyRequests {
+			return nil
+		}
 	case "ETHW":
 		idx, err = getKucoinNativeUSDTOnly("ETHW", startTime, endTime)
+		if err == kucoin.ErrTooManyRequests {
+			return nil
+		}
 	case "FIRO":
 		idx, err = getBinanceNativeAllExceptETH("FIRO", startTime, endTime)
 	case "FLUX":
 		idx, err = getKucoinNativeAllExceptETH("FLUX", startTime, endTime)
+		if err == kucoin.ErrTooManyRequests {
+			return nil
+		}
 	case "RVN":
 		idx, err = getKucoinNativeUSDTOnly("RVN", startTime, endTime)
+		if err == kucoin.ErrTooManyRequests {
+			return nil
+		}
 	}
 
 	if err != nil || idx == nil {
