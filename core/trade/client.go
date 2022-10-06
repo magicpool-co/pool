@@ -20,16 +20,16 @@ var (
 	inputThresholds = map[string]*big.Int{
 		"CFX":  common.MustParseBigInt("2000000000000000000000000"), // 2,000,000 CFX
 		"CTXC": common.MustParseBigInt("5000000000000000000000000"), // 5,000,000 CTXC
-		"ERGO": new(big.Int).SetUint64(10_000_000_000),              // 10 ERGO
-		"ETC":  common.MustParseBigInt("50000000000000000000"),      // 50 ETC
+		"ERGO": new(big.Int).SetUint64(100_000_000_000),             // 100 ERGO
+		"ETC":  common.MustParseBigInt("25000000000000000000"),      // 25 ETC
 		"FIRO": new(big.Int).SetUint64(10_000_000_000),              // 100 FIRO
 		"FLUX": new(big.Int).SetUint64(30_000_000_000),              // 300 FLUX
 		"RVN":  new(big.Int).SetUint64(500_000_000_000),             // 5,000 RVN
 	}
 
 	outputThresholds = map[string]*big.Int{
-		"BTC":  new(big.Int).SetUint64(10_000_000),                // 0.1 BTC
-		"ETH":  new(big.Int).SetUint64(2_000_000_000_000_000_000), // 2 ETH
+		"BTC":  new(big.Int).SetUint64(5_000_000),                 // 0.05 BTC
+		"ETH":  new(big.Int).SetUint64(1_000_000_000_000_000_000), // 1 ETH
 		"USDC": new(big.Int).SetUint64(20_000_000_000),            // 20,000 USDC
 	}
 )
