@@ -134,6 +134,27 @@ func (c *Client) CheckForNewBatch() error {
 		return err
 	}
 
+	// check all input and output paths, remove the inputs/outputs that
+	// do not have deposits or withdrawals currently enabled
+	for inChainID, outputIdx := range inputPaths {
+		walletActive, err := c.exchange.GetWalletStatus(inChainID)
+		if err != nil {
+			return err
+		} else if !walletActive {
+			delete(inputPaths, inChainID)
+			continue
+		}
+
+		for outChainID := range outputIdx {
+			walletActive, err := c.exchange.GetWalletStatus(outChainID)
+			if err != nil {
+				return err
+			} else if !walletActive {
+				delete(inputPaths[inChainID], outChainID)
+			}
+		}
+	}
+
 	// outputThresholds := c.exchange.GetOutputThresholds()
 	prices, err := c.exchange.GetPrices(inputPaths)
 	if err != nil {
