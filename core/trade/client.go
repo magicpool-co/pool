@@ -173,6 +173,15 @@ func (c *Client) CheckForNewBatch() error {
 	}
 
 	for _, balanceInput := range balanceInputs {
+		// verify that the path is actually in the batch, to avoid
+		// balance inputs that are not included as inputs having
+		// a batch ID set
+		if _, ok := outputPaths[balanceInput.ChainID]; !ok {
+			continue
+		} else if _, ok := outputPaths[balanceInput.ChainID][balanceInput.OutChainID]; !ok {
+			continue
+		}
+
 		balanceInput.BatchID = types.Uint64Ptr(batchID)
 		err = pooldb.UpdateBalanceInput(tx, balanceInput, []string{"batch_id"})
 		if err != nil {
