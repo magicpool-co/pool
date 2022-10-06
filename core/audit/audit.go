@@ -45,13 +45,18 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 		return err
 	}
 
-	unspentRoundSum, err := pooldb.GetSumUnspentRoundValueByChain(pooldbClient.Reader(), chain)
-	if err != nil {
-		return err
-	}
-
 	sumMinerBalance := new(big.Int).Add(inputBalance, outputBalance)
-	sumMinerBalance.Add(sumMinerBalance, unspentRoundSum)
+
+	// add unspent round sum to sum miner balance since they're only added at the point
+	// of maturation (ERGO is excluded the immature round sum is excluded for UTXOs)
+	if chain != "ERGO" {
+		unspentRoundSum, err := pooldb.GetSumUnspentRoundValueByChain(pooldbClient.Reader(), chain)
+		if err != nil {
+			return err
+		}
+
+		sumMinerBalance.Add(sumMinerBalance, unspentRoundSum)
+	}
 
 	if utxoBalance.Cmp(sumMinerBalance) != 0 {
 		return fmt.Errorf("mismatch for miner sum and utxo: have %s, want %s", sumMinerBalance, utxoBalance)
