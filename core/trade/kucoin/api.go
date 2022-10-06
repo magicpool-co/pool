@@ -137,25 +137,20 @@ func (c *Client) GetPrices(inputPaths map[string]map[string]*big.Int) (map[strin
 
 /* wallet */
 
-func (c *Client) GetWalletStatus(chain string) (bool, error) {
+func (c *Client) GetWalletStatus(chain string) (bool, bool, error) {
 	var obj *Currency
 	err := c.do("GET", "/api/v2/currencies/"+formatChain(chain), nil, &obj, false)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
 	for _, chainObj := range obj.Chains {
 		if unformatChain(chainObj.ChainName) == chain {
-			if !chainObj.IsDepositEnabled {
-				return false, fmt.Errorf("deposits are disabled for %s", chain)
-			} else if !chainObj.IsWithdrawEnabled {
-				return false, fmt.Errorf("withdrawals are disabled for %s", chain)
-			}
-			return true, nil
+			return chainObj.IsDepositEnabled, chainObj.IsWithdrawEnabled, nil
 		}
 	}
 
-	return false, fmt.Errorf("unable to find mainnet chain for %s", chain)
+	return false, false, fmt.Errorf("unable to find mainnet chain for %s", chain)
 }
 
 func (c *Client) GetWalletBalance(chain string) (float64, float64, error) {

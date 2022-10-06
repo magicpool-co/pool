@@ -95,14 +95,16 @@ func (c *Client) GetPrices(inputPaths map[string]map[string]*big.Int) (map[strin
 
 /* wallet */
 
-func (c *Client) GetWalletStatus(chain string) (bool, error) {
+func (c *Client) GetWalletStatus(chain string) (bool, bool, error) {
 	var obj *Currency
 	err := c.do("GET", "/currencies/"+chain, nil, &obj, false)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
-	return obj.Status == "ONLINE", nil
+	active := obj.Status == "ONLINE"
+
+	return active, active, nil
 }
 
 func (c *Client) GetWalletBalance(chain string) (float64, float64, error) {

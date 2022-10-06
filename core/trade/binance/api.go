@@ -140,7 +140,7 @@ func (c *Client) GetPrices(inputPaths map[string]map[string]*big.Int) (map[strin
 
 /* wallet */
 
-func (c *Client) GetWalletStatus(chain string) (bool, error) {
+func (c *Client) GetWalletStatus(chain string) (bool, bool, error) {
 	payload := map[string]string{
 		"asset": strings.ToUpper(chain),
 	}
@@ -148,17 +148,11 @@ func (c *Client) GetWalletStatus(chain string) (bool, error) {
 	var obj *Asset
 	err := c.do("GET", "/sapi/v1/asset/assetDetail", payload, &obj, securityTypeSigned)
 	if err != nil {
-		return false, err
-	} else if !obj.DepositStatus {
-		if obj.DepositTip != "" {
-			return false, fmt.Errorf("deposits are disabled for %s: %s", chain, obj.DepositTip)
-		}
-		return false, fmt.Errorf("deposits are disabled for %s", chain)
-	} else if !obj.WithdrawStatus {
-		return false, fmt.Errorf("withdrawals are disabled for %s", chain)
+		return false, false, err
 	}
 
-	return true, nil
+	return obj.DepositStatus, obj.WithdrawStatus, nil
+
 }
 
 func (c *Client) GetWalletBalance(chain string) (float64, float64, error) {

@@ -142,7 +142,7 @@ type Exchange interface {
 	GetPrices(map[string]map[string]*big.Int) (map[string]map[string]float64, error)
 
 	// wallet
-	GetWalletStatus(string) (bool, error)
+	GetWalletStatus(string) (bool, bool, error)
 	GetWalletBalance(string) (float64, float64, error)
 
 	// deposit

@@ -40,10 +40,10 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 		}
 
 		// verify the exchange supports the chain for deposits and withdrawals
-		walletActive, err := c.exchange.GetWalletStatus(chain)
+		depositsEnabled, _, err := c.exchange.GetWalletStatus(chain)
 		if err != nil {
 			return err
-		} else if !walletActive {
+		} else if !depositsEnabled {
 			return fmt.Errorf("deposits not enabled for chain %s", chain)
 		}
 

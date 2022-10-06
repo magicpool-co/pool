@@ -51,14 +51,11 @@ func main() {
 		log.Printf("account status: ok")
 
 	case "GetWalletStatus":
-		ok, err := ex.GetWalletStatus(chain)
+		depositsEnabled, withdrawalsEnabled, err := ex.GetWalletStatus(chain)
 		if err != nil {
 			log.Fatalf("wallet status: %v", err)
-		} else if !ok {
-			log.Printf("wallet status: not ok")
-		} else {
-			log.Printf("wallet status: ok")
 		}
+		log.Printf("wallet status: deposits enabled - %t, withdrawals enabled - %t", depositsEnabled, withdrawalsEnabled)
 
 	case "GetWalletBalance":
 		mainBalance, tradeBalance, err := ex.GetWalletBalance(chain)

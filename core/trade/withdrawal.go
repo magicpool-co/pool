@@ -57,10 +57,10 @@ func (c *Client) InitiateWithdrawals(batchID uint64) error {
 			return fmt.Errorf("no node for %s", chain)
 		}
 
-		walletActive, err := c.exchange.GetWalletStatus(chain)
+		_, withdrawalsEnabled, err := c.exchange.GetWalletStatus(chain)
 		if err != nil {
 			return err
-		} else if !walletActive {
+		} else if !withdrawalsEnabled {
 			return fmt.Errorf("withdrawals not enabled for chain %s", chain)
 		}
 	}
