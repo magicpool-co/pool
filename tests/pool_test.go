@@ -237,7 +237,7 @@ func (suite *PoolSuite) TestPool() {
 			},
 			handshake: []*rpc.Request{
 				rpc.MustNewRequest("eth_submitLogin",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"x",
 				),
 			},

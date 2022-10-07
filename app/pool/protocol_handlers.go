@@ -34,7 +34,7 @@ func generateExtraNonce(size int, mocked bool) string {
 	return hex.EncodeToString(extraNonce1)
 }
 
-func (p *Pool) validateAddress(address, chain string) (bool, bool) {
+func (p *Pool) validateAddress(chain, address string) (bool, bool) {
 	var ethRegex = regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 
 	switch strings.ToUpper(chain) {
@@ -70,24 +70,30 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		workerName = req.Worker
 	}
 
-	// address formatting is {address:chain}
+	// address formatting is {address:chain} or {chain:address}
 	addressChain := args[0]
 	partial := strings.Split(addressChain, ":")
 	if len(partial) != 2 {
 		return errInvalidAddressFormatting(req.ID)
 	}
 
-	// check for chain and address validity
-	validChain, validAddress := p.validateAddress(partial[0], strings.ToUpper(partial[1]))
+	address := partial[0]
+	chain := strings.ToUpper(partial[1])
+	validChain, validAddress := p.validateAddress(chain, address)
 	if !validChain {
-		return errInvalidChain(req.ID)
-	} else if !validAddress {
+		chain = strings.ToUpper(partial[0])
+		address = partial[1]
+		validChain, validAddress = p.validateAddress(chain, address)
+		if !validChain {
+			return errInvalidChain(req.ID)
+		}
+	}
+
+	if !validAddress {
 		return errInvalidAddress(req.ID)
 	} else if len(workerName) > 32 {
 		return errWorkerNameTooLong(req.ID)
 	}
-	address := partial[0]
-	chain := partial[1]
 
 	// fetch minerID from redis
 	minerID, err := p.redis.GetMinerID(addressChain)
