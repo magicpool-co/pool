@@ -500,6 +500,60 @@ func (ctx *Context) getRounds(args roundArgs) http.Handler {
 	})
 }
 
+type thresholdArgs struct {
+	miner string
+}
+
+func (ctx *Context) getThreshold(args thresholdArgs) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		minerID, err := ctx.getMinerID(args.miner)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		// @TODO: maybe we could cache this
+		var ipHint *string
+		lastIP, err := pooldb.GetOldestActiveIPAddress(ctx.pooldb.Reader(), minerID)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		} else if lastIP != nil {
+			obscuredIP, err := common.ObscureIP(lastIP.IPAddress)
+			if err != nil {
+				ctx.writeErrorResponse(w, err)
+				return
+			}
+			ipHint = types.StringPtr(obscuredIP)
+		}
+
+		miner, err := pooldb.GetMiner(ctx.pooldb.Reader(), minerID)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		units, err := common.GetDefaultUnits(miner.ChainID)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		var threshold *float64
+		if miner.Threshold.Valid {
+			threshold = types.Float64Ptr(common.BigIntToFloat64(miner.Threshold.BigInt, units))
+		}
+
+		data := map[string]interface{}{
+			"chain":     miner.ChainID,
+			"threshold": threshold,
+			"ipHint":    ipHint,
+		}
+
+		ctx.writeOkResponse(w, data)
+	})
+}
+
 type updateThresholdArgs struct {
 	Miner     string `json:"miner"`
 	IP        string `json:"ip"`
