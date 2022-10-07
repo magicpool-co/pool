@@ -7,7 +7,13 @@ import (
 
 var (
 	errInvalidParameters   = newHttpError(400, "InvalidParameters", "Invalid parameters")
+	errInvalidJSONBody     = newHttpError(400, "InvalidJSONBody", "Invalid JSON body")
+	errBodyTooLarge        = newHttpError(400, "BodyTooLarge", "Body too large")
 	errTooManyMiners       = newHttpError(400, "TooManyMiners", "Too many miners requested")
+	errInvalidThreshold    = newHttpError(400, "InvalidThreshold", "Invalid payout threshold")
+	errThresholdTooSmall   = newHttpError(400, "ThresholdTooSmall", "Threshold too small")
+	errThresholdTooBig     = newHttpError(400, "ThresholdTooBig", "Threshold too big")
+	errIncorrectIPAddress  = newHttpError(403, "IncorrectIPAddress", "Incorrect IP address")
 	errRouteNotFound       = newHttpError(404, "RouteNotFound", "Route not found")
 	errChainNotFound       = newHttpError(404, "ChainNotFound", "Chain not found")
 	errPeriodNotFound      = newHttpError(404, "PeriodNotFound", "Period not found")

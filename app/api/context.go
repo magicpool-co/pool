@@ -12,6 +12,7 @@ import (
 	"github.com/magicpool-co/pool/internal/metrics"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/redis"
+	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
@@ -496,5 +497,60 @@ func (ctx *Context) getRounds(args roundArgs) http.Handler {
 		}
 
 		ctx.writeOkResponse(w, paginatedResponse{Page: page, Size: size, Results: count, Items: items})
+	})
+}
+
+type updateThresholdArgs struct {
+	Miner     string `json:"miner"`
+	IP        string `json:"ip"`
+	Threshold string `json:"threshold"`
+}
+
+func (ctx *Context) updateThreshold(args updateThresholdArgs) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		minerID, err := ctx.getMinerID(args.Miner)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		// @TODO: maybe we could cache this
+		lastIP, err := pooldb.GetOldestActiveIPAddress(ctx.pooldb.Reader(), minerID)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		} else if lastIP.IPAddress != args.IP {
+			ctx.writeErrorResponse(w, errIncorrectIPAddress)
+			return
+		}
+
+		miner, err := pooldb.GetMiner(ctx.pooldb.Reader(), minerID)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		units, err := common.GetDefaultUnits(miner.ChainID)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		threshold, err := common.StringDecimalToBigint(args.Threshold, units)
+		if err != nil {
+			ctx.writeErrorResponse(w, errInvalidThreshold)
+			return
+		}
+
+		// @TODO: check that the threshold is within the proper bounds
+
+		miner.Threshold = dbcl.NullBigInt{Valid: true, BigInt: threshold}
+		err = pooldb.UpdateMiner(ctx.pooldb.Writer(), miner, []string{"threshold"})
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		ctx.writeOkResponse(w, nil)
 	})
 }
