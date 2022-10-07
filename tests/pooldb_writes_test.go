@@ -61,7 +61,7 @@ func (suite *PooldbWritesSuite) TestWriteMiner() {
 			suite.T().Errorf("failed on %d: insert: %v", i, err)
 		}
 
-		cols := []string{"active"}
+		cols := []string{"threshold", "active"}
 		err = pooldb.UpdateMiner(pooldbClient.Writer(), tt.miner, cols)
 		if err != nil {
 			suite.T().Errorf("failed on %d: update %v", i, err)

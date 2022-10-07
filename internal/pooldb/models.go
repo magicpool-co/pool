@@ -47,10 +47,11 @@ type Node struct {
 /* pool */
 
 type Miner struct {
-	ID      uint64 `db:"id"`
-	ChainID string `db:"chain_id"`
-	Address string `db:"address"`
-	Active  bool   `db:"active"`
+	ID        uint64          `db:"id"`
+	ChainID   string          `db:"chain_id"`
+	Address   string          `db:"address"`
+	Threshold dbcl.NullBigInt `db:"threshold"`
+	Active    bool            `db:"active"`
 
 	RecipientFeePercent *uint64 `db:"recipient_fee_percent"`
 

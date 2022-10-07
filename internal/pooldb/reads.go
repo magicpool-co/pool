@@ -880,9 +880,10 @@ func GetUnpaidBalanceOutputsAboveThreshold(q dbcl.Querier, chain, threshold stri
 			out_payout_id IS NULL
 		GROUP BY miner_id
 	)
-	SELECT DISTINCT *
+	SELECT DISTINCT cte.*
 	FROM cte
-	WHERE value >= ?;`
+	LEFT OUTER JOIN miners ON cte.miner_id = miners.id
+	WHERE value >= IFNULL(miners.threshold, ?);`
 
 	output := []*BalanceOutput{}
 	err := q.Select(&output, query, chain, threshold)

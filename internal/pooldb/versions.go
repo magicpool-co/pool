@@ -23,14 +23,22 @@ var sql002ExchangeBatchUp string
 //go:embed migrations/002_exchange_batch.down.sql
 var sql002ExchangeBatchDown string
 
+//go:embed migrations/003_miner_thresholds.sql
+var sql003MinerThresholdsUp string
+
+//go:embed migrations/003_miner_thresholds.down.sql
+var sql003MinerThresholdsDown string
+
 func getMigrationVersions() (map[string]string, error) {
 	migrations := map[string]string{
-		"000_init.sql":                sql000initUp,
-		"000_init.down.sql":           sql000initDown,
-		"001_unique_miners.sql":       sql001uniqueMinersUp,
-		"001_unique_miners.down.sql":  sql001uniqueMinersDown,
-		"002_exchange_batch.sql":      sql002ExchangeBatchUp,
-		"002_exchange_batch.down.sql": sql002ExchangeBatchDown,
+		"000_init.sql":                  sql000initUp,
+		"000_init.down.sql":             sql000initDown,
+		"001_unique_miners.sql":         sql001uniqueMinersUp,
+		"001_unique_miners.down.sql":    sql001uniqueMinersDown,
+		"002_exchange_batch.sql":        sql002ExchangeBatchUp,
+		"002_exchange_batch.down.sql":   sql002ExchangeBatchDown,
+		"003_miner_thresholds.sql":      sql003MinerThresholdsUp,
+		"003_miner_thresholds.down.sql": sql003MinerThresholdsDown,
 	}
 
 	for k, v := range migrations {
