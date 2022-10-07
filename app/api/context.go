@@ -555,14 +555,14 @@ func (ctx *Context) getThreshold(args thresholdArgs) http.Handler {
 }
 
 type updateThresholdArgs struct {
-	Miner     string `json:"miner"`
+	miner     string
 	IP        string `json:"ip"`
 	Threshold string `json:"threshold"`
 }
 
 func (ctx *Context) updateThreshold(args updateThresholdArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		minerID, err := ctx.getMinerID(args.Miner)
+		minerID, err := ctx.getMinerID(args.miner)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return

@@ -151,7 +151,7 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "POST":
 			method = "POST"
 
-			var args updateThresholdArgs
+			args := updateThresholdArgs{miner: miner}
 			err := decodeJSONBody(w, r, &args)
 			if err != nil {
 				rtr.ctx.writeErrorResponse(w, errInvalidJSONBody)
