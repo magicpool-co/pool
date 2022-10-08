@@ -204,7 +204,8 @@ func GetWorkersByMiner(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
 	FROM workers
 	JOIN ip_addresses ON workers.id = ip_addresses.worker_id
 	WHERE
-		workers.miner_id = ?;`
+		workers.miner_id = ?
+	ORDER BY workers.name;`
 
 	output := []*Worker{}
 	err := q.Select(&output, query, minerID)
@@ -214,29 +215,30 @@ func GetWorkersByMiner(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
 
 /* ip addresses */
 
-func GetActiveMiners(q dbcl.Querier, page, size uint64) ([]*Miner, error) {
-	const query = `WITH cte AS (
-		SELECT
-			miner_id,
-			MAX(last_share) last_share
-		FROM ip_addresses
-		WHERE
-			ip_addresses.active = TRUE
-		GROUP BY miner_id
-	) SELECT
+func GetActiveMiners(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error) {
+	const rawQuery = `SELECT
 		miners.id,
 		miners.chain_id,
 		miners.address,
-		TRUE active,
 		miners.created_at,
-		cte.last_share
+		ip_addresses.last_share
 	FROM miners
-	JOIN cte ON miners.id = cte.miner_id
-	ORDER BY id DESC
-	LIMIT ? OFFSET ?;`
+	JOIN ip_addresses ON miners.id = ip_addresses.miner_id
+	WHERE
+		miners.id IN (?)`
+
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs)
+	if err != nil {
+		return nil, err
+	}
 
 	output := []*Miner{}
-	err := q.Select(&output, query, size, page*size)
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
 
 	return output, err
 }

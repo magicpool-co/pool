@@ -37,7 +37,7 @@ func (c *Client) GetMiners(chain string, page, size uint64) ([]*Miner, uint64, e
 		return nil, 0, err
 	}
 
-	dbMiners, err := pooldb.GetMiners(c.pooldb.Reader(), minerIDs)
+	dbMiners, err := pooldb.GetActiveMiners(c.pooldb.Reader(), minerIDs)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -47,15 +47,15 @@ func (c *Client) GetMiners(chain string, page, size uint64) ([]*Miner, uint64, e
 		dbMinerIdx[dbMiner.ID] = dbMiner
 	}
 
-	miners := make([]*Miner, len(dbShares))
-	for i, dbShare := range dbShares {
+	miners := make([]*Miner, 0)
+	for _, dbShare := range dbShares {
 		minerID := types.Uint64Value(dbShare.MinerID)
 		dbMiner, ok := dbMinerIdx[minerID]
 		if !ok {
-			return nil, 0, fmt.Errorf("miner %d not found in shares", minerID)
+			continue
 		}
 
-		miners[i] = &Miner{
+		miner := &Miner{
 			ID:           dbMiner.ID,
 			Chain:        dbMiner.ChainID,
 			Address:      dbMiner.Address,
@@ -64,6 +64,7 @@ func (c *Client) GetMiners(chain string, page, size uint64) ([]*Miner, uint64, e
 			FirstSeen:    dbMiner.CreatedAt.Unix(),
 			LastSeen:     dbMiner.LastShare.Unix(),
 		}
+		miners = append(miners, miner)
 	}
 
 	return miners, count, nil
@@ -75,14 +76,42 @@ func (c *Client) GetWorkers(minerID, page, size uint64) (*WorkerList, error) {
 		return nil, err
 	}
 
+	workerIDs := make([]uint64, len(dbWorkers))
+	for i, dbWorker := range dbWorkers {
+		workerIDs[i] = dbWorker.ID
+	}
+
+	timestamp, err := c.redis.GetChartSharesLastTime("ETC")
+	if err != nil {
+		return nil, err
+	} else if timestamp.IsZero() {
+		return nil, fmt.Errorf("no share timestamp found")
+	}
+
+	dbShares, err := tsdb.GetWorkerSharesAllChainsByEndTime(c.tsdb.Reader(),
+		timestamp, workerIDs, int(types.Period15m))
+	if err != nil {
+		return nil, err
+	}
+
+	dbSharesIdx := make(map[uint64][]*tsdb.Share)
+	for _, dbShare := range dbShares {
+		workerID := types.Uint64Value(dbShare.WorkerID)
+		if _, ok := dbSharesIdx[workerID]; !ok {
+			dbSharesIdx[workerID] = make([]*tsdb.Share, 0)
+		}
+		dbSharesIdx[workerID] = append(dbSharesIdx[workerID], dbShare)
+	}
+
 	activeWorkers := make([]*Worker, 0)
 	inactiveWorkers := make([]*Worker, 0)
 	for _, dbWorker := range dbWorkers {
 		worker := &Worker{
-			Name:      dbWorker.Name,
-			Active:    dbWorker.Active,
-			FirstSeen: dbWorker.CreatedAt.Unix(),
-			LastSeen:  dbWorker.LastShare.Unix(),
+			Name:         dbWorker.Name,
+			Active:       dbWorker.Active,
+			HashrateInfo: processHashrateInfo(dbSharesIdx[dbWorker.ID]),
+			FirstSeen:    dbWorker.CreatedAt.Unix(),
+			LastSeen:     dbWorker.LastShare.Unix(),
 		}
 
 		if worker.Active {
