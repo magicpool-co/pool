@@ -204,8 +204,7 @@ func GetWorkersByMiner(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
 	FROM workers
 	JOIN ip_addresses ON workers.id = ip_addresses.worker_id
 	WHERE
-		workers.miner_id = ?
-	ORDER BY workers.name;`
+		workers.miner_id = ?;`
 
 	output := []*Worker{}
 	err := q.Select(&output, query, minerID)

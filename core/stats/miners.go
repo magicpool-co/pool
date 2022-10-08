@@ -2,6 +2,7 @@ package stats
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/tsdb"
@@ -36,6 +37,10 @@ func (c *Client) GetMiners(chain string, page, size uint64) ([]*Miner, uint64, e
 	if err != nil {
 		return nil, 0, err
 	}
+
+	sort.Slice(dbShares, func(i, j int) bool {
+		return dbShares[i].Hashrate > dbShares[j].Hashrate
+	})
 
 	dbMiners, err := pooldb.GetActiveMiners(c.pooldb.Reader(), minerIDs)
 	if err != nil {
@@ -120,6 +125,14 @@ func (c *Client) GetWorkers(minerID, page, size uint64) (*WorkerList, error) {
 			inactiveWorkers = append(inactiveWorkers, worker)
 		}
 	}
+
+	sort.Slice(activeWorkers, func(i, j int) bool {
+		return activeWorkers[i].Name < activeWorkers[j].Name
+	})
+
+	sort.Slice(inactiveWorkers, func(i, j int) bool {
+		return inactiveWorkers[i].Name < inactiveWorkers[j].Name
+	})
 
 	workerList := &WorkerList{
 		Active:   activeWorkers,
