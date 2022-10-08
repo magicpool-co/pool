@@ -86,7 +86,7 @@ func (c *Client) GetGlobalDashboard() (*Dashboard, error) {
 		Miners:        newNumberFromUint64Ptr(activeMiners),
 		ActiveWorkers: newNumberFromUint64Ptr(activeWorkers),
 		HashrateInfo:  processHashrateInfo(lastShares),
-		SharesInfo:    processShareInfo(sumShares),
+		ShareInfo:     processShareInfo(sumShares),
 	}
 
 	return dashboard, nil
@@ -175,7 +175,7 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
 		ActiveWorkers:   newNumberFromUint64Ptr(activeWorkers),
 		InactiveWorkers: newNumberFromUint64Ptr(inactiveWorkers),
 		HashrateInfo:    processHashrateInfo(lastShares),
-		SharesInfo:      processShareInfo(sumShares),
+		ShareInfo:       processShareInfo(sumShares),
 		PendingBalance:  pendingBalance,
 		UnpaidBalance:   unpaidBalance,
 	}
@@ -184,7 +184,7 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
 }
 
 func (c *Client) GetWorkerDashboard(workerID uint64) (*Dashboard, error) {
-	sumShares, err := tsdb.GetWorkerSharesSum(c.tsdb.Reader(), workerID, dashboardAggPeriod, dashboardAggDuration)
+	sumShares, err := tsdb.GetWorkerSharesSum(c.tsdb.Reader(), []uint64{workerID}, dashboardAggPeriod, dashboardAggDuration)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +196,7 @@ func (c *Client) GetWorkerDashboard(workerID uint64) (*Dashboard, error) {
 
 	dashboard := &Dashboard{
 		HashrateInfo: processHashrateInfo(lastShares),
-		SharesInfo:   processShareInfo(sumShares),
+		ShareInfo:    processShareInfo(sumShares),
 	}
 
 	return dashboard, nil

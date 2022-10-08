@@ -97,7 +97,7 @@ type Miner struct {
 	Address      string                   `json:"address"`
 	Active       bool                     `json:"active"`
 	HashrateInfo map[string]*HashrateInfo `json:"hashrateInfo"`
-	SharesInfo   map[string]*ShareInfo    `json:"shareInfo"`
+	ShareInfo    map[string]*ShareInfo    `json:"shareInfo"`
 	FirstSeen    int64                    `json:"firstSeen"`
 	LastSeen     int64                    `json:"lastSeen"`
 }
@@ -106,7 +106,7 @@ type Worker struct {
 	Name         string                   `json:"name"`
 	Active       bool                     `json:"active"`
 	HashrateInfo map[string]*HashrateInfo `json:"hashrateInfo"`
-	SharesInfo   map[string]*ShareInfo    `json:"shareInfo"`
+	ShareInfo    map[string]*ShareInfo    `json:"shareInfo"`
 	FirstSeen    int64                    `json:"firstSeen"`
 	LastSeen     int64                    `json:"lastSeen"`
 }
@@ -121,7 +121,7 @@ type Dashboard struct {
 	ActiveWorkers   *Number                  `json:"activeWorkers,omitempty"`
 	InactiveWorkers *Number                  `json:"inactiveWorkers,omitempty"`
 	HashrateInfo    map[string]*HashrateInfo `json:"hashrateInfo"`
-	SharesInfo      map[string]*ShareInfo    `json:"shareInfo"`
+	ShareInfo       map[string]*ShareInfo    `json:"shareInfo"`
 	PendingBalance  map[string]Number        `json:"pendingBalance"`
 	UnpaidBalance   map[string]Number        `json:"unpaidBalance"`
 }

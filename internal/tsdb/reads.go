@@ -762,8 +762,8 @@ func GetMinersSharesLast(q dbcl.Querier, minerIDs []uint64, period int) ([]*Shar
 	return output, err
 }
 
-func GetWorkerSharesSum(q dbcl.Querier, workerID uint64, period int, duration time.Duration) ([]*Share, error) {
-	var query = fmt.Sprintf(`SELECT
+func GetWorkerSharesSum(q dbcl.Querier, workerIDs []uint64, period int, duration time.Duration) ([]*Share, error) {
+	var rawQuery = fmt.Sprintf(`SELECT
 		chain_id,
 		IFNULL(SUM(accepted_shares), 0) accepted_shares,
 		IFNULL(SUM(rejected_shares), 0) rejected_shares,
@@ -772,13 +772,23 @@ func GetWorkerSharesSum(q dbcl.Querier, workerID uint64, period int, duration ti
     WHERE
 		end_time BETWEEN DATE_SUB(CURRENT_TIMESTAMP, %s) AND CURRENT_TIMESTAMP
 	AND
-		worker_id = ?
+		worker_id IN (?)
 	AND
 		period = ?
-	GROUP BY chain_id`, dbcl.ConvertDurationToInterval(duration))
+	GROUP BY worker_id, chain_id`, dbcl.ConvertDurationToInterval(duration))
+
+	if len(workerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, workerIDs, period)
+	if err != nil {
+		return nil, err
+	}
 
 	output := []*Share{}
-	err := q.Select(&output, query, workerID, period)
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
 
 	return output, err
 }

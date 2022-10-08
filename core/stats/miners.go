@@ -108,6 +108,21 @@ func (c *Client) GetWorkers(minerID, page, size uint64) (*WorkerList, error) {
 		dbSharesIdx[workerID] = append(dbSharesIdx[workerID], dbShare)
 	}
 
+	sumShares, err := tsdb.GetWorkerSharesSum(c.tsdb.Reader(), workerIDs,
+		dashboardAggPeriod, dashboardAggDuration)
+	if err != nil {
+		return nil, err
+	}
+
+	sumSharesIdx := make(map[uint64][]*tsdb.Share)
+	for _, sumShare := range sumShares {
+		workerID := types.Uint64Value(sumShare.WorkerID)
+		if _, ok := sumSharesIdx[workerID]; !ok {
+			sumSharesIdx[workerID] = make([]*tsdb.Share, 0)
+		}
+		sumSharesIdx[workerID] = append(sumSharesIdx[workerID], sumShare)
+	}
+
 	activeWorkers := make([]*Worker, 0)
 	inactiveWorkers := make([]*Worker, 0)
 	for _, dbWorker := range dbWorkers {
@@ -115,6 +130,7 @@ func (c *Client) GetWorkers(minerID, page, size uint64) (*WorkerList, error) {
 			Name:         dbWorker.Name,
 			Active:       dbWorker.Active,
 			HashrateInfo: processHashrateInfo(dbSharesIdx[dbWorker.ID]),
+			ShareInfo:    processShareInfo(sumSharesIdx[dbWorker.ID]),
 			FirstSeen:    dbWorker.CreatedAt.Unix(),
 			LastSeen:     dbWorker.LastShare.Unix(),
 		}
