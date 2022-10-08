@@ -31,6 +31,15 @@ func (c *Client) SetWorkerID(minerID uint64, worker string, workerID uint64) err
 	return c.baseSet(c.getWorkersKey(minerID, worker), strconv.FormatUint(workerID, 10))
 }
 
+func (c *Client) SetTopMinerIDs(chain string, minerIDs []uint64) error {
+	values := make([]interface{}, len(minerIDs))
+	for i, minerID := range minerIDs {
+		values[i] = strconv.FormatUint(minerID, 10)
+	}
+
+	return c.baseResetList(c.getTopMinersKey(chain), values)
+}
+
 /* rounds */
 
 func (c *Client) AddAcceptedShare(chain, interval, compoundID string, window int64) error {

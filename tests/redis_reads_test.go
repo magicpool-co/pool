@@ -27,6 +27,11 @@ func (suite *RedisReadsSuite) TestGetMiners() {
 	if err != nil {
 		suite.T().Errorf("failed: GetWorkerID: %v", err)
 	}
+
+	_, err = redisClient.GetTopMinerIDs("")
+	if err != nil {
+		suite.T().Errorf("failed: GetTopMinerIDs: %v", err)
+	}
 }
 
 func (suite *RedisReadsSuite) TestGetRounds() {

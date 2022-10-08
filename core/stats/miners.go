@@ -1,46 +1,70 @@
 package stats
 
 import (
-	"sort"
+	"fmt"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
+	"github.com/magicpool-co/pool/internal/tsdb"
+	"github.com/magicpool-co/pool/types"
 )
 
-func (c *Client) GetMiners(page, size uint64) ([]*Miner, uint64, error) {
-	count, err := pooldb.GetActiveMinersCount(c.pooldb.Reader())
+func (c *Client) GetMiners(chain string, page, size uint64) ([]*Miner, uint64, error) {
+	topMinerIDs, err := c.redis.GetTopMinerIDs(chain)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	dbMiners, err := pooldb.GetActiveMiners(c.pooldb.Reader(), page, size)
+	timestamp, err := c.redis.GetChartSharesLastTime(chain)
+	if err != nil {
+		return nil, 0, err
+	} else if timestamp.IsZero() {
+		return nil, 0, fmt.Errorf("no share timestamp found")
+	}
+
+	offset := int(page * size)
+	limit := int(offset + int(size))
+	count := uint64(len(topMinerIDs))
+	if offset > len(topMinerIDs)-1 {
+		return nil, count, nil
+	} else if limit > len(topMinerIDs) {
+		limit = len(topMinerIDs)
+	}
+
+	minerIDs := topMinerIDs[offset:limit]
+	dbShares, err := tsdb.GetMinerSharesByEndTime(c.tsdb.Reader(),
+		timestamp, minerIDs, chain, int(types.Period15m))
 	if err != nil {
 		return nil, 0, err
 	}
 
-	minerIDs := make([]uint64, len(dbMiners))
-	minerIdx := make(map[uint64]*Miner)
+	dbMiners, err := pooldb.GetMiners(c.pooldb.Reader(), minerIDs)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	dbMinerIdx := make(map[uint64]*pooldb.Miner)
 	for _, dbMiner := range dbMiners {
-		minerIDs = append(minerIDs, dbMiner.ID)
-		minerIdx[dbMiner.ID] = &Miner{
-			ID:        dbMiner.ID,
-			Chain:     dbMiner.ChainID,
-			Address:   dbMiner.Address,
-			Active:    dbMiner.Active,
-			FirstSeen: dbMiner.CreatedAt.Unix(),
-			LastSeen:  dbMiner.LastShare.Unix(),
+		dbMinerIdx[dbMiner.ID] = dbMiner
+	}
+
+	miners := make([]*Miner, len(dbShares))
+	for i, dbShare := range dbShares {
+		minerID := types.Uint64Value(dbShare.MinerID)
+		dbMiner, ok := dbMinerIdx[minerID]
+		if !ok {
+			return nil, 0, fmt.Errorf("miner %d not found in shares", minerID)
+		}
+
+		miners[i] = &Miner{
+			ID:           dbMiner.ID,
+			Chain:        dbMiner.ChainID,
+			Address:      dbMiner.Address,
+			Active:       true,
+			HashrateInfo: processHashrateInfo([]*tsdb.Share{dbShare}),
+			FirstSeen:    dbMiner.CreatedAt.Unix(),
+			LastSeen:     dbMiner.LastShare.Unix(),
 		}
 	}
-
-	var i int
-	miners := make([]*Miner, len(minerIdx))
-	for _, miner := range minerIdx {
-		miners[i] = miner
-		i++
-	}
-
-	sort.Slice(miners, func(i, j int) bool {
-		return miners[i].ID < miners[j].ID
-	})
 
 	return miners, count, nil
 }

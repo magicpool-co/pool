@@ -143,6 +143,39 @@ func GetPendingMinerSharesByEndTime(q dbcl.Querier, timestamp time.Time, chain s
 	return output, err
 }
 
+func GetMinerSharesByEndTime(q dbcl.Querier, timestamp time.Time, minerIDs []uint64, chain string, period int) ([]*Share, error) {
+	const rawQuery = `SELECT
+		miner_id,
+		chain_id,
+		hashrate,
+		avg_hashrate,
+		reported_hashrate
+	FROM miner_shares
+    WHERE
+		end_time = ?
+	AND
+		miner_id IN (?)
+	AND
+		chain_id = ?
+	AND
+		period = ?;`
+
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, timestamp, minerIDs, chain, period)
+	if err != nil {
+		return nil, err
+	}
+
+	output := []*Share{}
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
+
+	return output, err
+}
+
 func GetWorkerShares(q dbcl.Querier, workerID uint64, chain string, period int) ([]*Share, error) {
 	const query = `SELECT *
 	FROM worker_shares 
@@ -176,6 +209,37 @@ func GetPendingWorkerSharesByEndTime(q dbcl.Querier, timestamp time.Time, chain 
 
 	output := []*Share{}
 	err := q.Select(&output, query, timestamp, chain, period)
+
+	return output, err
+}
+
+func GetWorkerSharesAllChainsByEndTime(q dbcl.Querier, timestamp time.Time, workerIDs []uint64, period int) ([]*Share, error) {
+	const rawQuery = `SELECT
+		worker_id,
+		chain_id,
+		hashrate,
+		avg_hashrate,
+		reported_hashrate
+	FROM worker_shares
+    WHERE
+		end_time = ?
+	AND
+		worker_id IN (?)
+	AND
+		period = ?;`
+
+	if len(workerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, timestamp, workerIDs, period)
+	if err != nil {
+		return nil, err
+	}
+
+	output := []*Share{}
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
 
 	return output, err
 }

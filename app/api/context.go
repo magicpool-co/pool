@@ -180,8 +180,9 @@ func (ctx *Context) getExists(args existsArgs) http.HandlerFunc {
 }
 
 type minersArgs struct {
-	page string
-	size string
+	chain string
+	page  string
+	size  string
 }
 
 func (ctx *Context) getMiners(args minersArgs) http.HandlerFunc {
@@ -192,7 +193,8 @@ func (ctx *Context) getMiners(args minersArgs) http.HandlerFunc {
 			return
 		}
 
-		miners, count, err := ctx.stats.GetMiners(page, size)
+		chain := strings.ToUpper(args.chain)
+		miners, count, err := ctx.stats.GetMiners(chain, page, size)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
@@ -291,16 +293,17 @@ type blockChartArgs struct {
 
 func (ctx *Context) getBlockChart(args blockChartArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		chain := strings.ToUpper(args.chain)
 		period, err := types.ParsePeriodType(args.period)
 		if err != nil {
 			ctx.writeErrorResponse(w, errPeriodNotFound)
 			return
-		} else if !validateChain(args.chain) {
+		} else if !validateChain(chain) {
 			ctx.writeErrorResponse(w, errChainNotFound)
 			return
 		}
 
-		data, err := ctx.stats.GetBlockChart(args.chain, period)
+		data, err := ctx.stats.GetBlockChart(chain, period)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
@@ -340,16 +343,17 @@ type roundChartArgs struct {
 
 func (ctx *Context) getRoundChart(args roundChartArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		chain := strings.ToUpper(args.chain)
 		period, err := types.ParsePeriodType(args.period)
 		if err != nil {
 			ctx.writeErrorResponse(w, errPeriodNotFound)
 			return
-		} else if !validateChain(args.chain) {
+		} else if !validateChain(chain) {
 			ctx.writeErrorResponse(w, errChainNotFound)
 			return
 		}
 
-		data, err := ctx.stats.GetRoundChart(args.chain, period)
+		data, err := ctx.stats.GetRoundChart(chain, period)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
@@ -368,11 +372,12 @@ type shareChartArgs struct {
 
 func (ctx *Context) getShareChart(args shareChartArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		chain := strings.ToUpper(args.chain)
 		period, err := types.ParsePeriodType(args.period)
 		if err != nil {
 			ctx.writeErrorResponse(w, errPeriodNotFound)
 			return
-		} else if !validateChain(args.chain) {
+		} else if !validateChain(chain) {
 			ctx.writeErrorResponse(w, errChainNotFound)
 			return
 		}
@@ -394,7 +399,7 @@ func (ctx *Context) getShareChart(args shareChartArgs) http.Handler {
 				return
 			}
 
-			data, err = ctx.stats.GetWorkerShareChart(workerID, args.chain, period)
+			data, err = ctx.stats.GetWorkerShareChart(workerID, chain, period)
 		} else if args.miner != "" {
 			minerIDs, err := ctx.getMinerIDs(args.miner)
 			if err != nil {
@@ -402,9 +407,9 @@ func (ctx *Context) getShareChart(args shareChartArgs) http.Handler {
 				return
 			}
 
-			data, err = ctx.stats.GetMinerShareChart(minerIDs, args.chain, period)
+			data, err = ctx.stats.GetMinerShareChart(minerIDs, chain, period)
 		} else {
-			data, err = ctx.stats.GetGlobalShareChart(args.chain, period)
+			data, err = ctx.stats.GetGlobalShareChart(chain, period)
 		}
 
 		if err != nil {

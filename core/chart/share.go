@@ -2,6 +2,7 @@ package chart
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -231,6 +232,25 @@ func (c *Client) rollupShares(node types.MiningNode, interval string) error {
 		}
 
 		if err := tx.SafeCommit(); err != nil {
+			return err
+		}
+
+		// set top 100 minerIDs by hashrate to avoid heavy DB queries
+		sort.Slice(minerShares, func(i, j int) bool {
+			return minerShares[i].Hashrate < minerShares[j].Hashrate
+		})
+
+		topMinerCount := len(minerShares)
+		if topMinerCount > 100 {
+			topMinerCount = 100
+		}
+
+		topMinerIDs := make([]uint64, topMinerCount)
+		for i := len(minerShares) - 1; i > len(minerShares)-topMinerCount-1; i-- {
+			topMinerIDs[i] = types.Uint64Value(minerShares[i].MinerID)
+		}
+
+		if err := c.redis.SetTopMinerIDs(node.Chain(), topMinerIDs); err != nil {
 			return err
 		}
 	}

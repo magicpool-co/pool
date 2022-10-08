@@ -34,6 +34,11 @@ func (suite *RedisReadsSuite) TestWriteMiners() {
 	if err != nil {
 		suite.T().Errorf("failed: SetWorkerID: %v", err)
 	}
+
+	err = redisClient.SetTopMinerIDs("", []uint64{0})
+	if err != nil {
+		suite.T().Errorf("failed: SetTopMinerIDs: %v", err)
+	}
 }
 
 func (suite *RedisReadsSuite) TestWriteRounds() {

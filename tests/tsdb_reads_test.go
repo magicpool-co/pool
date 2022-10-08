@@ -124,6 +124,11 @@ func (suite *TsdbReadsSuite) TestReadShares() {
 		suite.T().Errorf("failed: GetPendingMinerSharesByEndTime: %v", err)
 	}
 
+	_, err = tsdb.GetMinerSharesByEndTime(tsdbClient.Reader(), time.Now(), []uint64{0, 1, 2}, "ETH", 0)
+	if err != nil {
+		suite.T().Errorf("failed: GetMinerSharesByEndTime: %v", err)
+	}
+
 	_, err = tsdb.GetWorkerShares(tsdbClient.Reader(), 1, "ETH", 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetWorkerShares: %v", err)
@@ -132,6 +137,11 @@ func (suite *TsdbReadsSuite) TestReadShares() {
 	_, err = tsdb.GetPendingWorkerSharesByEndTime(tsdbClient.Reader(), time.Now(), "ETH", 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetPendingWorkerSharesByEndTime: %v", err)
+	}
+
+	_, err = tsdb.GetWorkerSharesAllChainsByEndTime(tsdbClient.Reader(), time.Now(), []uint64{0, 1, 2}, 0)
+	if err != nil {
+		suite.T().Errorf("failed: GetWorkerSharesAllChainsByEndTime: %v", err)
 	}
 }
 

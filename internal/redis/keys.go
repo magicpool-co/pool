@@ -29,6 +29,10 @@ func (c *Client) getMinerIPAddressesKey(chain string) string {
 	return c.getKey("pool", "mnrs", strings.ToLower(chain), "ips")
 }
 
+func (c *Client) getTopMinersKey(chain string) string {
+	return c.getKey("pool", "mnrs", strings.ToLower(chain), "top")
+}
+
 /* rounds */
 
 func (c *Client) getRoundSharesKey(chain string) string {

@@ -24,6 +24,26 @@ func (c *Client) GetWorkerID(minerID uint64, worker string) (uint64, error) {
 	return c.baseGetUint64(c.getWorkersKey(minerID, worker))
 }
 
+func (c *Client) GetTopMinerIDs(chain string) ([]uint64, error) {
+	ctx := context.Background()
+	results, err := c.readClient.LRange(ctx, c.getTopMinersKey(chain), 0, -1).Result()
+	if err == redis.Nil {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	values := make([]uint64, len(results))
+	for i, result := range results {
+		values[i], err = strconv.ParseUint(result, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return values, nil
+}
+
 /* rounds */
 
 func (c *Client) GetRoundShares(chain string) (map[uint64]uint64, error) {

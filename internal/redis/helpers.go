@@ -99,6 +99,18 @@ func (c *Client) baseDel(key string) error {
 	return c.writeClient.Del(context.Background(), key).Err()
 }
 
+func (c *Client) baseResetList(key string, values []interface{}) error {
+	ctx := context.Background()
+	pipe := c.writeClient.Pipeline()
+
+	pipe.Del(ctx, key)
+	pipe.LPush(ctx, key, values...)
+
+	_, err := pipe.Exec(ctx)
+
+	return err
+}
+
 func (c *Client) baseZAddBatch(key string, members []*redis.Z) error {
 	if len(members) == 0 {
 		return nil
