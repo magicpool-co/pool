@@ -764,6 +764,7 @@ func GetMinersSharesLast(q dbcl.Querier, minerIDs []uint64, period int) ([]*Shar
 
 func GetWorkerSharesSum(q dbcl.Querier, workerIDs []uint64, period int, duration time.Duration) ([]*Share, error) {
 	var rawQuery = fmt.Sprintf(`SELECT
+		worker_id,
 		chain_id,
 		IFNULL(SUM(accepted_shares), 0) accepted_shares,
 		IFNULL(SUM(rejected_shares), 0) rejected_shares,
