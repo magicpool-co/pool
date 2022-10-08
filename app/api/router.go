@@ -111,8 +111,9 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	case rtr.match(path, "/global/miners"):
 		method = "GET"
+		chain := r.URL.Query().Get("chain")
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
-		handler = rtr.ctx.getMiners(minersArgs{page: page, size: size})
+		handler = rtr.ctx.getMiners(minersArgs{chain: chain, page: page, size: size})
 
 	case rtr.match(path, "/miner/+", &miner):
 		method = "GET"

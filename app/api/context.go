@@ -187,13 +187,16 @@ type minersArgs struct {
 
 func (ctx *Context) getMiners(args minersArgs) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		chain := strings.ToUpper(args.chain)
 		page, size, err := ctx.parsePageSize(args.page, args.size)
 		if err != nil {
 			ctx.writeErrorResponse(w, errInvalidParameters)
 			return
+		} else if !validateChain(chain) {
+			ctx.writeErrorResponse(w, errChainNotFound)
+			return
 		}
 
-		chain := strings.ToUpper(args.chain)
 		miners, count, err := ctx.stats.GetMiners(chain, page, size)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
