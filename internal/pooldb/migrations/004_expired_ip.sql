@@ -1,0 +1,1 @@
+ALTER TABLE ip_addresses ADD COLUMN expired boolean DEFAULT FALSE AFTER active;

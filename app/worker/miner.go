@@ -79,10 +79,12 @@ func (j *MinerJob) Run() {
 			addresses = append(addresses, address)
 		}
 
-		// insert the ip addresses, set old addresses to inactive, clear the redis sorted set
+		// insert the ip addresses, set old addresses to inactive or expired, clear the redis sorted set
 		if err := pooldb.InsertIPAddresses(j.pooldb.Writer(), addresses...); err != nil {
 			j.logger.Error(fmt.Errorf("ip: insert: %s: %v", node.Chain(), err))
 		} else if err := pooldb.UpdateIPAddressesSetInactive(j.pooldb.Writer(), time.Hour); err != nil {
+			j.logger.Error(fmt.Errorf("ip: update: %s: %v", node.Chain(), err))
+		} else if err := pooldb.UpdateIPAddressesSetExpired(j.pooldb.Writer(), time.Hour*24); err != nil {
 			j.logger.Error(fmt.Errorf("ip: update: %s: %v", node.Chain(), err))
 		} else if err := j.redis.DeleteMinerIPAddresses(node.Chain()); err != nil {
 			j.logger.Error(fmt.Errorf("ip: delete: %s: %v", node.Chain(), err))

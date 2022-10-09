@@ -128,6 +128,11 @@ func (suite *PooldbWritesSuite) TestWriteIPAddress() {
 		if err != nil {
 			suite.T().Errorf("failed on %d: update set inactive: %v", i, err)
 		}
+
+		err = pooldb.UpdateIPAddressesSetExpired(pooldbClient.Writer(), time.Hour)
+		if err != nil {
+			suite.T().Errorf("failed on %d: update set expired: %v", i, err)
+		}
 	}
 }
 

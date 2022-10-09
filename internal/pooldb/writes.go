@@ -55,7 +55,7 @@ func UpdateWorker(q dbcl.Querier, obj *Worker, updateCols []string) error {
 
 func InsertIPAddresses(q dbcl.Querier, objects ...*IPAddress) error {
 	const table = "ip_addresses"
-	insertCols := []string{"miner_id", "worker_id", "chain_id", "ip_address", "active", "last_share"}
+	insertCols := []string{"miner_id", "worker_id", "chain_id", "ip_address", "active", "expired", "last_share"}
 	updateCols := []string{"active", "last_share"}
 
 	rawObjects := make([]interface{}, len(objects))
@@ -69,6 +69,17 @@ func InsertIPAddresses(q dbcl.Querier, objects ...*IPAddress) error {
 func UpdateIPAddressesSetInactive(q dbcl.Querier, duration time.Duration) error {
 	var query = fmt.Sprintf(`UPDATE ip_addresses
 	SET active = FALSE
+	WHERE
+		last_share < DATE_SUB(CURRENT_TIMESTAMP, %s);`, dbcl.ConvertDurationToInterval(duration))
+
+	_, err := q.Exec(query)
+
+	return err
+}
+
+func UpdateIPAddressesSetExpired(q dbcl.Querier, duration time.Duration) error {
+	var query = fmt.Sprintf(`UPDATE ip_addresses
+	SET expired = TRUE
 	WHERE
 		last_share < DATE_SUB(CURRENT_TIMESTAMP, %s);`, dbcl.ConvertDurationToInterval(duration))
 

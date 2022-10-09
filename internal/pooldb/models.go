@@ -84,6 +84,7 @@ type IPAddress struct {
 	IPAddress string `db:"ip_address"`
 
 	Active    bool      `db:"active"`
+	Expired   bool      `db:"expired"`
 	LastShare time.Time `db:"last_share"`
 
 	CreatedAt time.Time `db:"created_at"`
