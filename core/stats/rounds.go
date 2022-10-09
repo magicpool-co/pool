@@ -84,6 +84,7 @@ func newRound(dbRound *pooldb.Round) (*Round, error) {
 		Hash:            dbRound.Hash,
 		Height:          dbRound.Height,
 		ExplorerURL:     explorerURL,
+		Miner:           dbRound.Miner,
 		Difficulty:      newNumberFromFloat64(float64(dbRound.Difficulty), "", true),
 		Hashrate:        Number{},
 		Luck:            newNumberFromFloat64(dbRound.Luck, "%", false),

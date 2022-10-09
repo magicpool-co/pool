@@ -136,6 +136,7 @@ type Round struct {
 	Hash            string  `json:"hash"`
 	Height          uint64  `json:"height"`
 	ExplorerURL     string  `json:"explorerUrl"`
+	Miner           *string `json:"miner"`
 	Difficulty      Number  `json:"difficulty"`
 	Hashrate        Number  `json:"hashrate"`
 	Luck            Number  `json:"luck"`

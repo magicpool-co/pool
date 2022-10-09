@@ -382,8 +382,9 @@ func GetRoundMinTimestamp(q dbcl.Querier, chain string) (time.Time, error) {
 }
 
 func GetRounds(q dbcl.Querier, page, size uint64) ([]*Round, error) {
-	const query = `SELECT *
+	const query = `SELECT rounds.*, CONCAT(miners.chain_id, ":", miners.address) miner
 	FROM rounds
+	JOIN miners ON rounds.miner_id = miners.id
 	ORDER BY id DESC
 	LIMIT ? OFFSET ?`
 
