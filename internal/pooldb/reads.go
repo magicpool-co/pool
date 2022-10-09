@@ -204,7 +204,9 @@ func GetWorkersByMiner(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
 	FROM workers
 	JOIN ip_addresses ON workers.id = ip_addresses.worker_id
 	WHERE
-		workers.miner_id = ?;`
+		workers.miner_id = ?
+	AND
+		ip_addresses.expired = FALSE;`
 
 	output := []*Worker{}
 	err := q.Select(&output, query, minerID)
@@ -215,14 +217,25 @@ func GetWorkersByMiner(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
 /* ip addresses */
 
 func GetActiveMiners(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error) {
-	const rawQuery = `SELECT
+	const rawQuery = `WITH cte AS (
+		SELECT
+			miner_id,
+			MAX(last_share) last_share
+		FROM
+			ip_addresses
+		WHERE
+			active = TRUE
+		AND
+			expired = FALSE
+		GROUP BY miner_id
+	) SELECT
 		miners.id,
 		miners.chain_id,
 		miners.address,
 		miners.created_at,
-		ip_addresses.last_share
+		cte.last_share
 	FROM miners
-	JOIN ip_addresses ON miners.id = ip_addresses.miner_id
+	JOIN cte ON miners.id = cte.miner_id
 	WHERE
 		miners.id IN (?)`
 
@@ -258,7 +271,9 @@ func GetActiveWorkersCount(q dbcl.Querier) (uint64, error) {
 	WHERE
 		worker_id != 0
 	AND
-		active IS TRUE;`
+		active IS TRUE
+	AND
+		expired IS FALSE;`
 
 	return dbcl.GetUint64(q, query)
 }
@@ -271,7 +286,9 @@ func GetActiveWorkersByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64, e
 	AND
 		worker_id != 0
 	AND
-		active IS TRUE;`
+		active IS TRUE
+	AND
+		expired IS FALSE;`
 
 	if len(minerIDs) == 0 {
 		return 0, nil
@@ -294,7 +311,9 @@ func GetInactiveWorkersByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64,
 	AND
 		worker_id != 0
 	AND
-		active IS FALSE;`
+		active IS FALSE
+	AND
+		expired IS FALSE;`
 
 	if len(minerIDs) == 0 {
 		return 0, nil
@@ -316,6 +335,8 @@ func GetOldestActiveIPAddress(q dbcl.Querier, minerID uint64) (*IPAddress, error
 		miner_id = ?
 	AND
 		active IS TRUE
+	AND
+		expired IS FALSE
 	ORDER BY created_at
 	LIMIT 1;`
 
