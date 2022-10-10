@@ -7,9 +7,22 @@ import (
 	"time"
 )
 
-func validateChain(chain string) bool {
+func validateMiningChain(chain string) bool {
 	switch strings.ToUpper(chain) {
 	case "CFX", "CTXC", "ERGO", "ETC", "FIRO", "FLUX", "RVN":
+		return true
+	default:
+		return false
+	}
+}
+
+func validatePayoutChain(chain string) bool {
+	if validateMiningChain(chain) {
+		return true
+	}
+
+	switch strings.ToUpper(chain) {
+	case "BTC", "ETH", "USDC":
 		return true
 	default:
 		return false

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -101,6 +102,13 @@ func (ctx *Context) getMinerIDs(rawMiner string) ([]uint64, error) {
 
 	minerIDs := make([]uint64, len(miners))
 	for i, miner := range miners {
+		fmt.Println(miner)
+		if parts := strings.Split(miner, ":"); len(parts) == 2 {
+			if validatePayoutChain(parts[0]) {
+				miner = parts[1] + ":" + parts[0]
+			}
+		}
+
 		var err error
 		minerIDs[i], err = ctx.redis.GetMinerID(miner)
 		if err != nil || minerIDs[i] == 0 {
@@ -111,8 +119,6 @@ func (ctx *Context) getMinerIDs(rawMiner string) ([]uint64, error) {
 			parts := strings.Split(miner, ":")
 			if len(parts) != 2 {
 				return nil, errMinerNotFound
-			} else if validateChain(parts[0]) {
-				parts[0], parts[1] = parts[1], parts[0]
 			}
 
 			minerIDs[i], err = pooldb.GetMinerID(ctx.pooldb.Reader(), parts[0], parts[1])
@@ -194,7 +200,7 @@ func (ctx *Context) getMiners(args minersArgs) http.HandlerFunc {
 		if err != nil {
 			ctx.writeErrorResponse(w, errInvalidParameters)
 			return
-		} else if !validateChain(chain) {
+		} else if !validateMiningChain(chain) {
 			ctx.writeErrorResponse(w, errChainNotFound)
 			return
 		}
@@ -303,7 +309,7 @@ func (ctx *Context) getBlockChart(args blockChartArgs) http.Handler {
 		if err != nil {
 			ctx.writeErrorResponse(w, errPeriodNotFound)
 			return
-		} else if !validateChain(chain) {
+		} else if !validateMiningChain(chain) {
 			ctx.writeErrorResponse(w, errChainNotFound)
 			return
 		}
@@ -353,7 +359,7 @@ func (ctx *Context) getRoundChart(args roundChartArgs) http.Handler {
 		if err != nil {
 			ctx.writeErrorResponse(w, errPeriodNotFound)
 			return
-		} else if !validateChain(chain) {
+		} else if !validateMiningChain(chain) {
 			ctx.writeErrorResponse(w, errChainNotFound)
 			return
 		}
@@ -382,7 +388,7 @@ func (ctx *Context) getShareChart(args shareChartArgs) http.Handler {
 		if err != nil {
 			ctx.writeErrorResponse(w, errPeriodNotFound)
 			return
-		} else if !validateChain(chain) {
+		} else if !validateMiningChain(chain) {
 			ctx.writeErrorResponse(w, errChainNotFound)
 			return
 		}
