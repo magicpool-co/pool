@@ -83,10 +83,6 @@ func (ctx *Context) parsePageSize(rawPage, rawSize string) (uint64, uint64, erro
 }
 
 func (ctx *Context) getMinerID(miner string) (uint64, error) {
-	if parts := strings.Split(miner, ":"); len(parts) == 2 && validateChain(parts[1]) {
-		miner = parts[1] + ":" + parts[0]
-	}
-
 	minerIDs, err := ctx.getMinerIDs(miner)
 	if err != nil {
 		return 0, err
@@ -105,10 +101,6 @@ func (ctx *Context) getMinerIDs(rawMiner string) ([]uint64, error) {
 
 	minerIDs := make([]uint64, len(miners))
 	for i, miner := range miners {
-		if parts := strings.Split(miner, ":"); len(parts) == 2 && validateChain(parts[1]) {
-			miner = parts[1] + ":" + parts[0]
-		}
-		
 		var err error
 		minerIDs[i], err = ctx.redis.GetMinerID(miner)
 		if err != nil || minerIDs[i] == 0 {
@@ -119,6 +111,8 @@ func (ctx *Context) getMinerIDs(rawMiner string) ([]uint64, error) {
 			parts := strings.Split(miner, ":")
 			if len(parts) != 2 {
 				return nil, errMinerNotFound
+			} else if validateChain(parts[0]) {
+				parts[0], parts[1] = parts[1], parts[0]
 			}
 
 			minerIDs[i], err = pooldb.GetMinerID(ctx.pooldb.Reader(), parts[0], parts[1])
