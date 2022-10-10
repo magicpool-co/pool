@@ -7,7 +7,7 @@ require (
 	github.com/aeternity/rlp-go v0.0.0-20190813143754-207301e28aeb
 	github.com/aws/aws-sdk-go v1.44.103
 	github.com/brianium/mnemonic v0.0.0-20180124190051-72af92c51f88
-	github.com/bsm/redislock v0.7.2
+	github.com/bsm/redislock v0.8.1
 	github.com/btcsuite/btcd/btcutil v1.1.0
 	github.com/dchest/blake2b v1.0.0
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1
@@ -35,6 +35,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
+	github.com/go-redis/redis/v9 v9.0.0-beta.3 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
