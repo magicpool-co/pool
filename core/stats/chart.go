@@ -194,15 +194,23 @@ func (c *Client) GetRoundChart(chain string, period types.PeriodType) (*RoundCha
 		AvgProfitability: make([]float64, 0),
 	}
 
+	var firstTime, lastTime time.Time
 	for _, item := range items {
 		if exists := index[item.EndTime]; !exists {
 			chart.AddPoint(item)
 			index[item.EndTime] = true
+
+			if firstTime.IsZero() || item.EndTime.Before(firstTime) {
+				firstTime = item.EndTime
+			}
+			if lastTime.IsZero() || item.EndTime.Before(lastTime) {
+				lastTime = item.EndTime
+			}
 		}
 	}
 
 	for timestamp, exists := range index {
-		if !exists {
+		if !exists && !timestamp.Before(firstTime) && !timestamp.After(lastTime) {
 			chart.AddPoint(&tsdb.Round{EndTime: timestamp})
 		}
 	}
@@ -279,15 +287,23 @@ func getShareChart(items []*tsdb.Share, period types.PeriodType) *ShareChart {
 		ReportedHashrate: make([]float64, 0),
 	}
 
+	var firstTime, lastTime time.Time
 	for _, item := range items {
 		if exists := index[item.EndTime]; !exists {
 			chart.AddPoint(item)
 			index[item.EndTime] = true
+
+			if firstTime.IsZero() || item.EndTime.Before(firstTime) {
+				firstTime = item.EndTime
+			}
+			if lastTime.IsZero() || item.EndTime.Before(lastTime) {
+				lastTime = item.EndTime
+			}
 		}
 	}
 
 	for timestamp, exists := range index {
-		if !exists {
+		if !exists && !timestamp.Before(firstTime) && !timestamp.After(lastTime) {
 			chart.AddPoint(&tsdb.Share{EndTime: timestamp})
 		}
 	}

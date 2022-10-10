@@ -103,7 +103,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		}
 
 		// check the writer db directly
-		minerID, err = pooldb.GetMinerID(p.db.Writer(), address, chain)
+		minerID, err = pooldb.GetMinerID(p.db.Writer(), chain, address)
 		if err != nil || minerID == 0 {
 			if err != nil {
 				p.logger.Error(err)

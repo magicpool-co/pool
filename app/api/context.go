@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -102,13 +101,6 @@ func (ctx *Context) getMinerIDs(rawMiner string) ([]uint64, error) {
 
 	minerIDs := make([]uint64, len(miners))
 	for i, miner := range miners {
-		fmt.Println(miner)
-		if parts := strings.Split(miner, ":"); len(parts) == 2 {
-			if validatePayoutChain(parts[0]) {
-				miner = parts[1] + ":" + parts[0]
-			}
-		}
-
 		var err error
 		minerIDs[i], err = ctx.redis.GetMinerID(miner)
 		if err != nil || minerIDs[i] == 0 {

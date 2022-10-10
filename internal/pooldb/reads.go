@@ -125,15 +125,15 @@ func GetMiner(q dbcl.Querier, id uint64) (*Miner, error) {
 	return output, nil
 }
 
-func GetMinerID(q dbcl.Querier, address, chain string) (uint64, error) {
+func GetMinerID(q dbcl.Querier, chain, address string) (uint64, error) {
 	const query = `SELECT id
 	FROM miners
 	WHERE
-		address = ?
+		chain_id = ?
 	AND
-		chain_id = ?;`
+		address = ?;`
 
-	return dbcl.GetUint64(q, query, address, chain)
+	return dbcl.GetUint64(q, query, chain, address)
 }
 
 func GetMinerAddress(q dbcl.Querier, minerID uint64) (string, error) {
