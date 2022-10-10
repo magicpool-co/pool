@@ -83,6 +83,10 @@ func (ctx *Context) parsePageSize(rawPage, rawSize string) (uint64, uint64, erro
 }
 
 func (ctx *Context) getMinerID(miner string) (uint64, error) {
+	if parts := strings.Split(miner, ":"); len(parts) == 2 && validateChain(parts[1]) {
+		miner = parts[1] + ":" + parts[0]
+	}
+
 	minerIDs, err := ctx.getMinerIDs(miner)
 	if err != nil {
 		return 0, err
