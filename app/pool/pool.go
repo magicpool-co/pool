@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -78,7 +79,7 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 		cancelFunc: cancelFunc,
 		server:     server,
 
-		chain:                opt.Chain,
+		chain:                strings.ToUpper(opt.Chain),
 		windowSize:           int64(opt.WindowSize),
 		extraNonce1Size:      opt.ExtraNonceSize,
 		forceErrorOnResponse: opt.ForceErrorOnResponse,

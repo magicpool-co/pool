@@ -103,7 +103,7 @@ func (suite *PoolSuite) TestPool() {
 			},
 			handshake: []*rpc.Request{
 				rpc.MustNewRequest("mining.subscribe",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"cfx:aajpuruxmg5z90x07z2ynt2u5wrknz717ymnu6mhdp.worker",
 					"x",
 				),
 			},
