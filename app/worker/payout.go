@@ -9,13 +9,12 @@ import (
 
 	"github.com/magicpool-co/pool/core/payout"
 	"github.com/magicpool-co/pool/internal/log"
-	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/telegram"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
 
-type TradeJob struct {
+type PayoutJob struct {
 	locker   *redislock.Client
 	logger   *log.Logger
 	pooldb   *dbcl.Client
@@ -23,7 +22,7 @@ type TradeJob struct {
 	telegram *telegram.Client
 }
 
-func (j *TradeJob) Run() {
+func (j *PayoutJob) Run() {
 	defer j.logger.RecoverPanic()
 
 	ctx := context.Background()
@@ -36,7 +35,7 @@ func (j *TradeJob) Run() {
 	}
 	defer lock.Release(ctx)
 
-	client := payout.New(j.pooldb, j.nodes)
+	client := payout.New(j.pooldb, j.telegram)
 
 	for _, node := range j.nodes {
 		if err := client.InitiatePayouts(node); err != nil {

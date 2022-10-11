@@ -200,7 +200,7 @@ func (t *Client) NotifyFinalizeExchangeBatch(id uint64) error {
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyPayoutSent(chain, explorerURL, txid string) error {
+func (t *Client) NotifyPayoutSent(chain, txid, explorerURL string) error {
 	msg := fmt.Sprintf("send %s payout [%s](%s)",
 		chain, txid, explorerURL)
 

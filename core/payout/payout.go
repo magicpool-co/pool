@@ -8,20 +8,23 @@ import (
 	"github.com/magicpool-co/pool/core/bank"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	// "github.com/magicpool-co/pool/pkg/common"
+	"github.com/magicpool-co/pool/internal/telegram"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
 
 type Client struct {
-	pooldb *dbcl.Client
+	pooldb   *dbcl.Client
+	telegram *telegram.Client
 }
 
-func New(pooldbClient *dbcl.Client) (*Client, error) {
+func New(pooldbClient *dbcl.Client, telegramClient *telegram.Client) *Client {
 	client := &Client{
-		pooldb: pooldbClient,
+		pooldb:   pooldbClient,
+		telegram: telegramClient,
 	}
 
-	return client, nil
+	return client
 }
 
 func (c *Client) InitiatePayouts(node types.PayoutNode) error {
@@ -93,6 +96,8 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			if err != nil {
 				return err
 			}
+
+			c.telegram.NotifyPayoutSent(node.Chain(), payout.TxID, node.GetTxExplorerURL(payout.TxID))
 		}
 	case types.UTXOStructure:
 		outputs := make([]*types.TxOutput, len(payouts))
@@ -125,6 +130,8 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			if err != nil {
 				return err
 			}
+
+			c.telegram.NotifyPayoutSent(node.Chain(), txid, node.GetTxExplorerURL(txid))
 		}
 	default:
 		return nil
