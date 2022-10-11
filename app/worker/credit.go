@@ -53,7 +53,7 @@ func (j *BlockCreditJob) Run() {
 	defer j.logger.RecoverPanic()
 
 	ctx := context.Background()
-	lock, err := j.locker.Obtain(ctx, "cron:blkunlock", time.Minute*5, nil)
+	lock, err := j.locker.Obtain(ctx, "cron:blkcredit", time.Minute*5, nil)
 	if err != nil {
 		if err != redislock.ErrNotObtained {
 			j.logger.Error(err)
