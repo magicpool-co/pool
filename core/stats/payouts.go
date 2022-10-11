@@ -13,6 +13,8 @@ func getTxExplorerURL(chain, hash string) (string, error) {
 	switch chain {
 	case "AE":
 		explorerURL = "https://explorer.aeternity.io/transactions/" + hash
+	case "BTC":
+		explorerURL = "https://blockchair.com/bitcoin/transaction/" + txid
 	case "CFX":
 		explorerURL = "https://www.confluxscan.io/tx/" + hash
 	case "CTXC":
@@ -21,12 +23,16 @@ func getTxExplorerURL(chain, hash string) (string, error) {
 		explorerURL = "https://explorer.ergoplatform.com/en/transactions/" + hash
 	case "ETC":
 		explorerURL = "https://blockscout.com/etc/mainnet/tx/" + hash
+	case "ETH":
+		explorerURL = "https://etherscan.io/tx/" + txid
 	case "FIRO":
 		explorerURL = "https://explorer.firo.org/tx/" + hash
 	case "FLUX":
 		explorerURL = "https://explorer.runonflux.io/tx/" + hash
 	case "RVN":
 		explorerURL = "https://ravencoin.network/tx/" + hash
+	case "USDC":
+		explorerURL = "https://etherscan.io/tx/" + txid
 	default:
 		err = fmt.Errorf("no tx explorer found for chain")
 	}

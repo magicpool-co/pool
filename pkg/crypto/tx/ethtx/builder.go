@@ -30,6 +30,7 @@ func GenerateContractData(function string, args ...[]byte) []byte {
 func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, baseFee *big.Int, gasLimit, nonce, chainID uint64) (string, *big.Int, error) {
 	toAddress := ethCommon.HexToAddress(address)
 
+	// maxFee = (baseFee * 2) + priorityTip
 	priorityTip := new(big.Int).SetUint64(3 * uint64(1e9))
 	maxFee := new(big.Int).Mul(baseFee, big.NewInt(2))
 	maxFee.Add(maxFee, priorityTip)
