@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
+	"github.com/magicpool-co/pool/pkg/dbcl"
 )
 
 func getTxExplorerURL(chain, hash string) (string, error) {
@@ -48,7 +49,7 @@ func newPayout(dbPayout *pooldb.Payout) (*Payout, error) {
 	} else if !dbPayout.ExchangeFees.Valid {
 		return nil, fmt.Errorf("no exchange fees for payout %d", dbPayout.ID)
 	} else if !dbPayout.TxFees.Valid {
-		return nil, fmt.Errorf("no tx fees for payout %d", dbPayout.ID)
+		dbPayout.TxFees = dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)}
 	}
 
 	totalFees := new(big.Int)
