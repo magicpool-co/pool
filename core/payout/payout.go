@@ -7,8 +7,8 @@ import (
 
 	"github.com/magicpool-co/pool/core/bank"
 	"github.com/magicpool-co/pool/internal/pooldb"
-	// "github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/internal/telegram"
+	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
@@ -163,10 +163,34 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 		}
 
 		var feeBalance dbcl.NullBigInt
-		if tx.FeeBalance != nil {
+		if tx.FeeBalance != nil && tx.FeeBalance.Cmp(common.Big0) > 0 {
 			feeBalance = dbcl.NullBigInt{Valid: true, BigInt: tx.FeeBalance}
-			// @TODO: insert UTXO for remaining fee balance, add a new balance
-			// output for the fee balance back to the miner
+
+			utxo := &pooldb.UTXO{
+				ChainID: node.Chain(),
+				TxID:    payout.TxID,
+				Index:   0,
+				Value:   feeBalance,
+				Spent:   false,
+			}
+
+			err = pooldb.InsertUTXOs(c.pooldb.Writer(), utxo)
+			if err != nil {
+				return err
+			}
+
+			balanceOutput := &pooldb.BalanceOutput{
+				ChainID:    payout.ChainID,
+				MinerID:    payout.MinerID,
+				InPayoutID: types.Uint64Ptr(payout.ID),
+
+				Value: feeBalance,
+			}
+
+			err = pooldb.InsertBalanceOutputs(c.pooldb.Writer(), balanceOutput)
+			if err != nil {
+				return err
+			}
 		}
 
 		payout.Height = types.Uint64Ptr(tx.BlockNumber)
