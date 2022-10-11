@@ -78,6 +78,8 @@ func SendOutgoingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txOutputs 
 	tx, err := node.CreateTx(inputs, txOutputs)
 	if err != nil {
 		return "", err
+	} else {
+		return "", fmt.Errorf("wanna send tx: %s", tx)
 	}
 
 	txid, err := node.BroadcastTx(tx)
