@@ -53,7 +53,6 @@ func newPayout(dbPayout *pooldb.Payout) (*Payout, error) {
 	}
 
 	totalFees := new(big.Int)
-	totalFees.Add(totalFees, dbPayout.Value.BigInt)
 	totalFees.Add(totalFees, dbPayout.PoolFees.BigInt)
 	totalFees.Add(totalFees, dbPayout.ExchangeFees.BigInt)
 	totalFees.Add(totalFees, dbPayout.TxFees.BigInt)
