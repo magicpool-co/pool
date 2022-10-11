@@ -26,7 +26,7 @@ func (j *PayoutJob) Run() {
 	defer j.logger.RecoverPanic()
 
 	ctx := context.Background()
-	lock, err := j.locker.Obtain(ctx, "cron:trade", time.Minute*5, nil)
+	lock, err := j.locker.Obtain(ctx, "cron:payout", time.Minute*5, nil)
 	if err != nil {
 		if err != redislock.ErrNotObtained {
 			j.logger.Error(err)
