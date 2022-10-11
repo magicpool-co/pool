@@ -547,9 +547,16 @@ func (ctx *Context) getThreshold(args thresholdArgs) http.Handler {
 			return
 		}
 
-		var threshold *float64
+		var threshold float64
 		if miner.Threshold.Valid {
-			threshold = types.Float64Ptr(common.BigIntToFloat64(miner.Threshold.BigInt, units))
+			threshold = common.BigIntToFloat64(miner.Threshold.BigInt, units)
+		} else {
+			rawThreshold, err := common.GetDefaultPayoutThreshold(miner.ChainID)
+			if err != nil {
+				ctx.writeErrorResponse(w, err)
+				return
+			}
+			threshold = common.BigIntToFloat64(rawThreshold, units)
 		}
 
 		data := map[string]interface{}{
