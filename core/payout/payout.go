@@ -36,6 +36,8 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 	balanceOutputs, err := pooldb.GetUnpaidBalanceOutputsAboveThreshold(c.pooldb.Reader(), node.Chain(), "100000000000000000000000000000")
 	if err != nil {
 		return err
+	} else if len(balanceOutputs) == 0 {
+		return nil
 	}
 
 	payouts := make([]*pooldb.Payout, len(balanceOutputs))
