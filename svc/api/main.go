@@ -7,11 +7,13 @@ import (
 
 	"github.com/magicpool-co/pool/app/api"
 	"github.com/magicpool-co/pool/internal/log"
+	"github.com/magicpool-co/pool/internal/node"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/redis"
 	"github.com/magicpool-co/pool/internal/telegram"
 	"github.com/magicpool-co/pool/internal/tsdb"
 	"github.com/magicpool-co/pool/svc"
+	"github.com/magicpool-co/pool/types"
 )
 
 func newAPI(secrets map[string]string, port int) (*http.Server, *log.Logger, error) {
@@ -44,7 +46,16 @@ func newAPI(secrets map[string]string, port int) (*http.Server, *log.Logger, err
 		return nil, nil, err
 	}
 
-	ctx := api.NewContext(logger, nil, pooldbClient, tsdbClient, redisClient)
+	chains := []string{"CFX", "ERGO", "ETC", "FLUX", "RVN"}
+	nodes := make([]types.MiningNode, len(chains))
+	for i, chain := range chains {
+		nodes[i], err = node.GetMiningNode(true, chain, secrets[chain+"_PRIVATE_KEY"], nil, logger, nil)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	ctx := api.NewContext(logger, nil, pooldbClient, tsdbClient, redisClient, nodes)
 	server := api.New(ctx, port)
 
 	return server, logger, nil

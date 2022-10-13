@@ -81,7 +81,7 @@ func (suite *PooldbReadsSuite) TestReadMiner() {
 		suite.T().Errorf("failed: GetActiveMiners: %v", err)
 	}
 
-	_, err = pooldb.GetActiveMinersCount(pooldbClient.Reader())
+	_, err = pooldb.GetActiveMinersCount(pooldbClient.Reader(), "ETC")
 	if err != nil {
 		suite.T().Errorf("failed: GetActiveMinersCount: %v", err)
 	}
@@ -100,7 +100,7 @@ func (suite *PooldbReadsSuite) TestReadWorker() {
 		suite.T().Errorf("failed: GetWorkersByMiner: %v", err)
 	}
 
-	_, err = pooldb.GetActiveWorkersCount(pooldbClient.Reader())
+	_, err = pooldb.GetActiveWorkersCount(pooldbClient.Reader(), "ETC")
 	if err != nil {
 		suite.T().Errorf("failed: GetActiveWorkersCount: %v", err)
 	}
@@ -196,6 +196,11 @@ func (suite *PooldbReadsSuite) TestReadRound() {
 	_, err = pooldb.GetSumUnspentRoundValueByChain(pooldbClient.Reader(), "ETH")
 	if err != nil {
 		suite.T().Errorf("failed: GetSumUnspentRoundValueByChain: %v", err)
+	}
+
+	_, err = pooldb.GetRoundLuckByChain(pooldbClient.Reader(), "ETC", time.Hour*24*30)
+	if err != nil {
+		suite.T().Errorf("failed: GetRoundLuckByChain: %v", err)
 	}
 }
 

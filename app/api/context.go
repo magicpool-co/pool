@@ -24,9 +24,10 @@ type Context struct {
 	tsdb    *dbcl.Client
 	redis   *redis.Client
 	stats   *stats.Client
+	nodes   []types.MiningNode
 }
 
-func NewContext(logger *log.Logger, metricsClient *metrics.Client, pooldbClient, tsdbClient *dbcl.Client, redisClient *redis.Client) *Context {
+func NewContext(logger *log.Logger, metricsClient *metrics.Client, pooldbClient, tsdbClient *dbcl.Client, redisClient *redis.Client, nodes []types.MiningNode) *Context {
 	ctx := &Context{
 		logger:  logger,
 		metrics: metricsClient,
@@ -34,6 +35,7 @@ func NewContext(logger *log.Logger, metricsClient *metrics.Client, pooldbClient,
 		tsdb:    tsdbClient,
 		redis:   redisClient,
 		stats:   stats.New(pooldbClient, tsdbClient, redisClient),
+		nodes:   nodes,
 	}
 
 	return ctx
@@ -239,6 +241,18 @@ func (ctx *Context) getWorkers(args workersArgs) http.HandlerFunc {
 		}
 
 		ctx.writeOkResponse(w, workers)
+	})
+}
+
+func (ctx *Context) getPools() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		pools, err := ctx.stats.GetPoolStats(ctx.nodes)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		ctx.writeOkResponse(w, pools)
 	})
 }
 

@@ -2,6 +2,7 @@ package pooldb
 
 import (
 	"database/sql"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -255,27 +256,33 @@ func GetActiveMiners(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error) {
 	return output, err
 }
 
-func GetActiveMinersCount(q dbcl.Querier) (uint64, error) {
+func GetActiveMinersCount(q dbcl.Querier, chain string) (uint64, error) {
 	const query = `SELECT
 		COUNT(DISTINCT miner_id)
 	FROM ip_addresses
 	WHERE
-		active = TRUE;`
+		chain_id = ?
+	AND
+		active = TRUE
+	AND
+		expired = FALSE;`
 
-	return dbcl.GetUint64(q, query)
+	return dbcl.GetUint64(q, query, chain)
 }
 
-func GetActiveWorkersCount(q dbcl.Querier) (uint64, error) {
+func GetActiveWorkersCount(q dbcl.Querier, chain string) (uint64, error) {
 	const query = `SELECT COUNT(DISTINCT worker_id)
 	FROM ip_addresses
 	WHERE
+		chain_id = ?
+	AND
 		worker_id != 0
 	AND
 		active IS TRUE
 	AND
 		expired IS FALSE;`
 
-	return dbcl.GetUint64(q, query)
+	return dbcl.GetUint64(q, query, chain)
 }
 
 func GetActiveWorkersByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64, error) {
@@ -582,6 +589,17 @@ func GetSumUnspentRoundValueByChain(q dbcl.Querier, chain string) (*big.Int, err
 		orphan IS FALSE;`
 
 	return dbcl.GetBigInt(q, query, chain)
+}
+
+func GetRoundLuckByChain(q dbcl.Querier, chain string, duration time.Duration) (float64, error) {
+	var query = fmt.Sprintf(`SELECT SUM(difficulty) / IFNULL(SUM(accepted_shares), 1)
+	FROM rounds
+	WHERE
+		chain_id = ?
+	AND
+		created_at > DATE_SUB(CURRENT_TIMESTAMP, %s);`, dbcl.ConvertDurationToInterval(duration))
+
+	return dbcl.GetFloat64(q, query, chain)
 }
 
 /* Share Queries */

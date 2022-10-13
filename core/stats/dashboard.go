@@ -72,12 +72,12 @@ func (c *Client) GetGlobalDashboard() (*Dashboard, error) {
 		return nil, err
 	}
 
-	activeMiners, err := pooldb.GetActiveMinersCount(c.pooldb.Reader())
+	activeMiners, err := pooldb.GetActiveMinersCount(c.pooldb.Reader(), "")
 	if err != nil {
 		return nil, err
 	}
 
-	activeWorkers, err := pooldb.GetActiveWorkersCount(c.pooldb.Reader())
+	activeWorkers, err := pooldb.GetActiveWorkersCount(c.pooldb.Reader(), "")
 	if err != nil {
 		return nil, err
 	}

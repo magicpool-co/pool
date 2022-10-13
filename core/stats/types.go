@@ -74,6 +74,18 @@ func newNumberFromBigIntPtr(value *big.Int, chain string) (*Number, error) {
 	return &n, nil
 }
 
+/* pool */
+
+type PoolStats struct {
+	Name     string `json:"name"`
+	Symbol   string `json:"symbol"`
+	Miners   uint64 `json:"miners"`
+	Workers  uint64 `json:"workers"`
+	Hashrate Number `json:"hashrate"`
+	Luck     Number `json:"luck"`
+	Uptime   Number `json:"uptime"`
+}
+
 /* dashboard */
 
 type HashrateInfo struct {

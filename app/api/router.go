@@ -71,6 +71,10 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		method = "GET"
 		handler = rtr.ctx.getBase()
 
+	case rtr.match(path, "/global/pools"):
+		method = "GET"
+		handler = rtr.ctx.getPools()
+
 	case rtr.match(path, "/global/dashboard"):
 		method = "GET"
 		handler = rtr.ctx.getDashboard(dashboardArgs{})
