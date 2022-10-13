@@ -68,5 +68,5 @@ func (c *Client) GetPoolStats(nodes []types.MiningNode) ([]*PoolStats, error) {
 		}
 	}
 
-	return nil, nil
+	return stats, nil
 }
