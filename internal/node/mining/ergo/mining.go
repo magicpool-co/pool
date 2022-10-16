@@ -324,6 +324,10 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 	round.Spent = false
 
 	for _, hash := range hashes {
+		if hash != round.Hash {
+			continue
+		}
+
 		block, err := node.getBlock(hash)
 		if err != nil {
 			return err
