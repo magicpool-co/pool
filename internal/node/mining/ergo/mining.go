@@ -315,6 +315,8 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 	hashes, err := node.getBlocksAtHeight(round.Height)
 	if err != nil {
 		return err
+	} else if len(hashes) > 1 {
+		hashes = hashes[:1]
 	}
 
 	round.Uncle = false
