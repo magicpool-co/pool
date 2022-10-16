@@ -98,31 +98,6 @@ func SendOutgoingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txOutputs 
 				Spent:   false,
 			},
 		}
-
-		// since ERGO requires an extra 1 to send token transactions (even
-		// though it is never spent), we add it back as a UTXO and balance output
-		switch node.Chain() {
-		case "ERGO":
-			const ergoTxRemainder = 1
-			remainderUTXO := &pooldb.UTXO{
-				ChainID: node.Chain(),
-				TxID:    txid,
-				Index:   0,
-				Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(ergoTxRemainder)},
-			}
-			outputUTXOs = append(outputUTXOs, remainderUTXO)
-
-			outputBalances = []*pooldb.BalanceOutput{
-				&pooldb.BalanceOutput{
-					ChainID: "ERGO",
-					MinerID: 1,
-
-					Value:        dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(ergoTxRemainder)},
-					PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
-					ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
-				},
-			}
-		}
 	}
 
 	// spend input utxos

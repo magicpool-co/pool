@@ -1,9 +1,11 @@
 package ergo
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
+	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/types"
 )
 
@@ -33,49 +35,74 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		return "", fmt.Errorf("need at least one output")
 	}
 
-	const fee = 1000000 + 1
-	var feeCounter uint64
+	const fee = 1000000
+	sumValue := new(big.Int)
 	for _, output := range outputs {
-		if output.SplitFee {
-			feeCounter++
+		if output.Value.Cmp(common.Big0) <= 0 {
+			return "", fmt.Errorf("output value is not greater than zero")
+		} else if !output.SplitFee {
+			continue
+		}
+		sumValue.Add(sumValue, output.Value)
+	}
+
+	usedFees := new(big.Int)
+	for _, output := range outputs {
+		if !output.SplitFee {
+			continue
+		}
+
+		proportionalFee := new(big.Int).Mul(new(big.Int).SetUint64(fee), output.Value)
+		proportionalFee.Div(proportionalFee, sumValue)
+		output.Value.Sub(output.Value, proportionalFee)
+		usedFees.Add(usedFees, proportionalFee)
+	}
+
+	remainder := new(big.Int).Sub(new(big.Int).SetUint64(fee), usedFees)
+	if remainder.Cmp(common.Big0) < 0 {
+		return "", fmt.Errorf("fee remainder is negative")
+	} else if remainder.Cmp(common.Big0) > 0 {
+		for _, output := range outputs {
+			if !output.SplitFee {
+				continue
+			} else if output.Value.Cmp(remainder) > 0 {
+				output.Value.Sub(output.Value, remainder)
+				remainder = new(big.Int)
+				break
+			}
 		}
 	}
 
-	var feeDistribution uint64
-	var remainderDistributed, forceRemainder bool
-	if feeCounter != 0 {
-		feeDistribution = fee / feeCounter
-	} else {
-		feeCounter = 1
-		forceRemainder = true
+	if remainder.Cmp(common.Big0) > 0 {
+		return "", fmt.Errorf("not enough value to cover the fee remainder")
 	}
-	remainder := fee - (feeDistribution * feeCounter)
 
 	addresses := make([]string, len(outputs))
 	amounts := make([]uint64, len(outputs))
 	for i, output := range outputs {
-		value := output.Value.Uint64()
-		if output.SplitFee {
-			value -= feeDistribution
-		}
-
-		// distribute remainder, force remainder if no one is set to split fees
-		if !remainderDistributed && (output.SplitFee || forceRemainder) {
-			value -= remainder
-			remainderDistributed = true
-		}
-
-		if value <= 0 {
-			return "", fmt.Errorf("not enough balance to pay fees")
-		}
-
 		addresses[i] = output.Address
-		amounts[i] = value
+		amounts[i] = output.Value.Uint64()
 	}
 
-	return node.postWalletPaymentSend(addresses, amounts)
+	tx, err := node.postWalletTransactionGenerate(addresses, amounts, fee)
+	if err != nil {
+		return "", err
+	}
+	txHex := hex.EncodeToString(tx)
+
+	/*txid, err := node.postWalletTransactionCheck(tx)
+	if err != nil {
+		return "", err
+	}*/
+
+	return txHex, nil
 }
 
-func (node Node) BroadcastTx(txid string) (string, error) {
-	return txid, nil
+func (node Node) BroadcastTx(tx string) (string, error) {
+	txBytes, err := hex.DecodeString(tx)
+	if err != nil {
+		return "", err
+	}
+
+	return node.postWalletTransactionSend(txBytes)
 }

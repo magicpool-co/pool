@@ -200,25 +200,57 @@ func (node Node) postWalletUnlock(hostID string) error {
 	return nil
 }
 
-func (node Node) postWalletPaymentSend(addresses []string, amounts []uint64) (string, error) {
+func (node Node) postWalletTransactionGenerate(addresses []string, amounts []uint64, fee uint64) ([]byte, error) {
 	if node.mocked {
-		return "", nil
+		return nil, nil
 	} else if len(addresses) != len(amounts) {
-		return "", fmt.Errorf("address and amount length mismatch")
+		return nil, fmt.Errorf("address and amount length mismatch")
 	} else if len(addresses) == 0 {
-		return "", fmt.Errorf("need at least one output")
+		return nil, fmt.Errorf("need at least one output")
 	}
 
-	body := make([]map[string]interface{}, len(addresses))
+	requests := make([]map[string]interface{}, len(addresses))
 	for i, address := range addresses {
-		body[i] = map[string]interface{}{
+		requests[i] = map[string]interface{}{
 			"address": address,
 			"value":   amounts[i],
 		}
 	}
 
+	body := map[string]interface{}{
+		"requests": requests,
+		"fee":      fee,
+	}
+
+	var res json.RawMessage
+	err := node.httpHost.ExecHTTPOnce("POST", "/wallet/transaction/generate", body, &res)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (node Node) postWalletTransactionCheck(tx []byte) (string, error) {
+	var body map[string]interface{}
+	if err := json.Unmarshal(tx, &body); err != nil {
+		return "", err
+	}
+
 	var txid string
-	err := node.httpHost.ExecHTTPOnce("POST", "/wallet/payment/send", body, &txid)
+	err := node.httpHost.ExecHTTPOnce("POST", "/wallet/transactions/check", body, &txid)
+
+	return txid, err
+}
+
+func (node Node) postWalletTransactionSend(tx []byte) (string, error) {
+	var body map[string]interface{}
+	if err := json.Unmarshal(tx, &body); err != nil {
+		return "", err
+	}
+
+	var txid string
+	err := node.httpHost.ExecHTTPOnce("POST", "/wallet/transactions", body, &txid)
 
 	return txid, err
 }
