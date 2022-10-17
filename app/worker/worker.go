@@ -135,6 +135,7 @@ func (w *Worker) Start() {
 		locker:   locker,
 		logger:   w.logger,
 		pooldb:   w.pooldb,
+		redis:    w.redis,
 		nodes:    w.payoutNodes,
 		exchange: w.exchange,
 		telegram: w.telegram,
@@ -144,6 +145,7 @@ func (w *Worker) Start() {
 	// 	locker:   locker,
 	// 	logger:   w.logger,
 	// 	pooldb:   w.pooldb,
+	//  redis: w.redis,
 	// 	nodes:    w.payoutNodes,
 	// 	telegram: w.telegram,
 	// })

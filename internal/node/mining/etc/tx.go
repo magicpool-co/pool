@@ -92,6 +92,8 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	if err != nil {
 		return "", "", err
 	}
+	// handle for future nonces
+	nonce += uint64(input.Index)
 
 	gasLimit, err := node.sendEstimateGas(node.address, output.Address)
 	if err != nil {

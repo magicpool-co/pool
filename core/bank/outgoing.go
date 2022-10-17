@@ -1,8 +1,13 @@
 package bank
 
 import (
+	"context"
 	"fmt"
 	"math/big"
+	"strings"
+	"time"
+
+	"github.com/bsm/redislock"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
@@ -10,8 +15,20 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
-func PrepareOutgoingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txOutputs []*types.TxOutput) (*pooldb.Transaction, error) {
-	inputUTXOs, err := pooldb.GetUnspentUTXOsByChain(pooldbClient.Reader(), node.Chain())
+func (c *Client) PrepareOutgoingTx(node types.PayoutNode, txOutputs []*types.TxOutput) (*pooldb.Transaction, error) {
+	// distributed lock to avoid race conditions
+	ctx := context.Background()
+	key := "payout:" + strings.ToLower(node.Chain()) + ":prep"
+	lock, err := c.locker.Obtain(ctx, key, time.Minute*5, nil)
+	if err != nil {
+		if err != redislock.ErrNotObtained {
+			return nil, err
+		}
+		return nil, nil
+	}
+	defer lock.Release(ctx)
+
+	inputUTXOs, err := pooldb.GetUnspentUTXOsByChain(c.pooldb.Reader(), node.Chain())
 	if err != nil {
 		return nil, err
 	}
@@ -43,12 +60,19 @@ func PrepareOutgoingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txOutpu
 	var inputs []*types.TxInput
 	switch node.GetAccountingType() {
 	case types.AccountStructure:
+		var count uint32
+		/*count, err := pooldb.GetPendingTransactionCount(c.pooldb.Writer(), node.Chain())
+		if err != nil {
+			return nil, err
+		}*/
+
 		// txOutputs count has to be non-zero since output
 		// sum has already been verified as non-zero
 		inputs = []*types.TxInput{
 			&types.TxInput{
 				Value:      txOutputs[0].Value,
 				FeeBalance: txOutputs[0].FeeBalance,
+				Index:      count,
 			},
 		}
 	case types.UTXOStructure:
@@ -98,7 +122,7 @@ func PrepareOutgoingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txOutpu
 	// spend input utxos
 	for _, utxo := range inputUTXOs {
 		utxo.TransactionID = types.Uint64Ptr(tx.ID)
-		err = pooldb.UpdateUTXO(pooldbClient.Writer(), utxo, []string{"transaction_id"})
+		err = pooldb.UpdateUTXO(c.pooldb.Writer(), utxo, []string{"transaction_id"})
 		if err != nil {
 			return nil, err
 		}
@@ -107,7 +131,7 @@ func PrepareOutgoingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txOutpu
 	return tx, nil
 }
 
-func SendOutgoingTx(tx *pooldb.Transaction, node types.PayoutNode, pooldbClient *dbcl.Client) (string, error) {
+func (c *Client) SendOutgoingTx(node types.PayoutNode, tx *pooldb.Transaction) (string, error) {
 	// @TODO: check redis to see if the txid has been spent
 	txid, err := node.BroadcastTx(tx.TxHex)
 	if err != nil {
@@ -132,7 +156,7 @@ func SendOutgoingTx(tx *pooldb.Transaction, node types.PayoutNode, pooldbClient 
 	}
 
 	// @TODO: grab the utxos bound to the tx
-	inputUTXOs, err := pooldb.GetUnspentUTXOsByChain(pooldbClient.Reader(), node.Chain())
+	inputUTXOs, err := pooldb.GetUnspentUTXOsByChain(c.pooldb.Reader(), node.Chain())
 	if err != nil {
 		return "", err
 	}
@@ -140,65 +164,22 @@ func SendOutgoingTx(tx *pooldb.Transaction, node types.PayoutNode, pooldbClient 
 	// spend input utxos
 	for _, utxo := range inputUTXOs {
 		utxo.Spent = true
-		err = pooldb.UpdateUTXO(pooldbClient.Writer(), utxo, []string{"spent"})
+		err = pooldb.UpdateUTXO(c.pooldb.Writer(), utxo, []string{"spent"})
 		if err != nil {
 			return txid, err
 		}
 	}
 
 	// insert output utxos
-	err = pooldb.InsertUTXOs(pooldbClient.Writer(), outputUTXOs...)
+	err = pooldb.InsertUTXOs(c.pooldb.Writer(), outputUTXOs...)
 	if err != nil {
 		return txid, err
 	}
 
-	err = pooldb.InsertBalanceOutputs(pooldbClient.Writer(), outputBalances...)
+	err = pooldb.InsertBalanceOutputs(c.pooldb.Writer(), outputBalances...)
 	if err != nil {
 		return txid, err
 	}
 
 	return txid, nil
-}
-
-func RegisterIncomingTx(node types.PayoutNode, pooldbClient *dbcl.Client, txid string) (bool, error) {
-	tx, err := node.GetTx(txid)
-	if err != nil {
-		return false, err
-	} else if tx == nil || !tx.Confirmed {
-		return false, nil
-	}
-
-	var utxos []*pooldb.UTXO
-	switch node.GetAccountingType() {
-	case types.AccountStructure:
-		utxos = []*pooldb.UTXO{
-			&pooldb.UTXO{
-				ChainID: node.Chain(),
-				TxID:    txid,
-				Value:   dbcl.NullBigInt{Valid: true, BigInt: tx.Value},
-			},
-		}
-	case types.UTXOStructure:
-		utxos = make([]*pooldb.UTXO, 0)
-		for _, output := range tx.Outputs {
-			if output.Address != node.Address() {
-				continue
-			}
-
-			utxo := &pooldb.UTXO{
-				ChainID: node.Chain(),
-				TxID:    txid,
-				Index:   output.Index,
-				Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(output.Value)},
-			}
-			utxos = append(utxos, utxo)
-		}
-	}
-
-	err = pooldb.InsertUTXOs(pooldbClient.Writer(), utxos...)
-	if err != nil {
-		return true, err
-	}
-
-	return true, nil
 }

@@ -80,12 +80,15 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	} else if inputs[0].Value.Cmp(outputs[0].Value) != 0 {
 		return "", "", fmt.Errorf("inputs and outputs must have same value")
 	}
+	input := inputs[0]
 	output := outputs[0]
 
 	nonce, err := node.getPendingNonce(node.address)
 	if err != nil {
 		return "", "", err
 	}
+	// handle for future nonces
+	nonce += uint64(input.Index)
 
 	chainID, err := node.getChainID()
 	if err != nil {

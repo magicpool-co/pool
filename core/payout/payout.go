@@ -7,6 +7,7 @@ import (
 
 	"github.com/magicpool-co/pool/core/bank"
 	"github.com/magicpool-co/pool/internal/pooldb"
+	"github.com/magicpool-co/pool/internal/redis"
 	"github.com/magicpool-co/pool/internal/telegram"
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/dbcl"
@@ -15,13 +16,17 @@ import (
 
 type Client struct {
 	pooldb   *dbcl.Client
+	redis    *redis.Client
 	telegram *telegram.Client
+	bank     *bank.Client
 }
 
-func New(pooldbClient *dbcl.Client, telegramClient *telegram.Client) *Client {
+func New(pooldbClient *dbcl.Client, redisClient *redis.Client, telegramClient *telegram.Client) *Client {
 	client := &Client{
 		pooldb:   pooldbClient,
+		redis:    redisClient,
 		telegram: telegramClient,
+		bank:     bank.New(pooldbClient, redisClient),
 	}
 
 	return client
@@ -84,7 +89,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 				},
 			}
 
-			tx, err := bank.PrepareOutgoingTx(node, c.pooldb, outputs)
+			tx, err := c.bank.PrepareOutgoingTx(node, outputs)
 			if err != nil {
 				return err
 			} else if tx != nil {
@@ -117,7 +122,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			}
 		}
 
-		tx, err := bank.PrepareOutgoingTx(node, c.pooldb, outputs)
+		tx, err := c.bank.PrepareOutgoingTx(node, outputs)
 		if err != nil {
 			return err
 		} else if tx != nil {

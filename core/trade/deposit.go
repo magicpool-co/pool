@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/magicpool-co/pool/core/bank"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/dbcl"
@@ -62,10 +61,22 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 		}
 	}
 
+	deposits, err := pooldb.GetExchangeDeposits(c.pooldb.Reader(), batchID)
+	if err != nil {
+		return err
+	}
+
+	for _, deposit := range deposits {
+		delete(values, deposit.ChainID)
+	}
+
+	initiatedAll := true
 	for chain, value := range values {
-		tx, err := bank.PrepareOutgoingTx(c.nodes[chain], c.pooldb, txOutputIdx[chain])
+		tx, err := c.bank.PrepareOutgoingTx(c.nodes[chain], txOutputIdx[chain])
 		if err != nil {
 			return err
+		} else if tx == nil {
+			continue
 		}
 
 		deposit := &pooldb.ExchangeDeposit{
@@ -87,7 +98,11 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 		c.telegram.NotifyInitiateDeposit(depositID, chain, tx.TxID, c.nodes[chain].GetTxExplorerURL(tx.TxID), floatValue)
 	}
 
-	return c.updateBatchStatus(batchID, DepositsActive)
+	if initiatedAll {
+		return c.updateBatchStatus(batchID, DepositsActive)
+	}
+
+	return nil
 }
 
 func (c *Client) RegisterDeposits(batchID uint64) error {
