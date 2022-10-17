@@ -24,20 +24,29 @@ func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 	return nil, nil
 }
 
-func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, error) {
+func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, string, error) {
 	if len(inputs) != 1 || len(outputs) != 1 {
-		return "", fmt.Errorf("must have exactly one input and output")
+		return "", "", fmt.Errorf("must have exactly one input and output")
 	} else if inputs[0].Value.Cmp(outputs[0].Value) != 0 {
-		return "", fmt.Errorf("inputs and outputs must have same value")
+		return "", "", fmt.Errorf("inputs and outputs must have same value")
 	}
 	output := outputs[0]
 
 	nextNonce, err := node.getNextNonce(node.address)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return aetx.NewTx(node.privKey, node.networkID, node.address, output.Address, output.Value, nextNonce)
+	tx, fee, err := aetx.NewTx(node.privKey, node.networkID, node.address, output.Address, output.Value, nextNonce)
+	if err != nil {
+		return "", "", err
+	}
+	txid := aetx.CalculateTxID(tx)
+
+	output.Value.Sub(output.Value, fee)
+	output.Fee = fee
+
+	return txid, tx, nil
 }
 
 func (node Node) BroadcastTx(tx string) (string, error) {

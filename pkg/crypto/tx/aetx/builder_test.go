@@ -84,11 +84,13 @@ func TestNewTx(t *testing.T) {
 			continue
 		}
 
-		tx, err := NewTx(priv, tt.networkID, tt.fromAddress, tt.toAddress, tt.amount, tt.nonce)
+		tx, _, err := NewTx(priv, tt.networkID, tt.fromAddress, tt.toAddress, tt.amount, tt.nonce)
 		if err != nil {
 			t.Errorf("failed on %d: %v", i, err)
 		} else if tx != tt.tx {
 			t.Errorf("failed on %d: tx mismatch: have %s, want %s", i, tx, tt.tx)
+		} else if txid := CalculateTxID(tx); txid != tt.hash {
+			t.Errorf("failed on %d: txid mismatch: have %s, want %s", i, txid, tt.hash)
 		}
 	}
 }

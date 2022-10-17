@@ -30,16 +30,16 @@ func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 	return nil, nil
 }
 
-func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, error) {
+func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, string, error) {
 	if len(outputs) == 0 {
-		return "", fmt.Errorf("need at least one output")
+		return "", "", fmt.Errorf("need at least one output")
 	}
 
 	const fee = 1000000
 	sumValue := new(big.Int)
 	for _, output := range outputs {
 		if output.Value.Cmp(common.Big0) <= 0 {
-			return "", fmt.Errorf("output value is not greater than zero")
+			return "", "", fmt.Errorf("output value is not greater than zero")
 		} else if !output.SplitFee {
 			continue
 		}
@@ -49,18 +49,19 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	usedFees := new(big.Int)
 	for _, output := range outputs {
 		if !output.SplitFee {
+			output.Fee = new(big.Int)
 			continue
 		}
 
-		proportionalFee := new(big.Int).Mul(new(big.Int).SetUint64(fee), output.Value)
-		proportionalFee.Div(proportionalFee, sumValue)
-		output.Value.Sub(output.Value, proportionalFee)
-		usedFees.Add(usedFees, proportionalFee)
+		output.Fee = new(big.Int).Mul(new(big.Int).SetUint64(fee), output.Value)
+		output.Fee.Div(output.Fee, sumValue)
+		output.Value.Sub(output.Value, output.Fee)
+		usedFees.Add(usedFees, output.Fee)
 	}
 
 	remainder := new(big.Int).Sub(new(big.Int).SetUint64(fee), usedFees)
 	if remainder.Cmp(common.Big0) < 0 {
-		return "", fmt.Errorf("fee remainder is negative")
+		return "", "", fmt.Errorf("fee remainder is negative")
 	} else if remainder.Cmp(common.Big0) > 0 {
 		for _, output := range outputs {
 			if !output.SplitFee {
@@ -74,7 +75,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	}
 
 	if remainder.Cmp(common.Big0) > 0 {
-		return "", fmt.Errorf("not enough value to cover the fee remainder")
+		return "", "", fmt.Errorf("not enough value to cover the fee remainder")
 	}
 
 	addresses := make([]string, len(outputs))
@@ -84,18 +85,18 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		amounts[i] = output.Value.Uint64()
 	}
 
-	tx, err := node.postWalletTransactionGenerate(addresses, amounts, fee)
+	txBytes, err := node.postWalletTransactionGenerate(addresses, amounts, fee)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	txHex := hex.EncodeToString(tx)
+	tx := hex.EncodeToString(txBytes)
 
-	/*txid, err := node.postWalletTransactionCheck(tx)
+	txid, err := node.postWalletTransactionCheck(txBytes)
 	if err != nil {
-		return "", err
-	}*/
+		return "", "", err
+	}
 
-	return txHex, nil
+	return txid, tx, nil
 }
 
 func (node Node) BroadcastTx(tx string) (string, error) {

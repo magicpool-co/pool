@@ -52,18 +52,19 @@ func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 	return nil, nil
 }
 
-func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, error) {
+func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, string, error) {
 	// @TODO: figure out proper fee rate
 	const feeRate = 2000
 
 	baseTx := btctx.NewTransaction(txVersion, 0, node.prefixP2PKH, node.prefixP2SH, false)
 	rawTx, err := btctx.GenerateTx(node.privKey, baseTx, inputs, outputs, feeRate)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	tx := hex.EncodeToString(rawTx)
+	txid := btctx.CalculateTxID(tx)
 
-	return tx, nil
+	return txid, tx, nil
 }
 
 func (node Node) BroadcastTx(tx string) (string, error) {

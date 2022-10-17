@@ -123,7 +123,7 @@ func (c *ShuttleflowClient) InitiateSwapFromBSC(bscNode types.PayoutNode, cfxAdd
 	data := ethtx.GenerateContractData("transfer(address,uint256)", depositAddressBytes, amount.Bytes())
 	inputs := []*types.TxInput{&types.TxInput{Value: new(big.Int), Data: data}}
 	outputs := []*types.TxOutput{&types.TxOutput{Address: token.Reference, Value: new(big.Int)}}
-	tx, err := bscNode.CreateTx(inputs, outputs)
+	_, tx, err := bscNode.CreateTx(inputs, outputs)
 	if err != nil {
 		return "", err
 	}
@@ -154,7 +154,7 @@ func (c *ShuttleflowClient) FinalizeSwapFromBSC(cfxNode types.PayoutNode, inTxID
 
 	inputs := []*types.TxInput{&types.TxInput{Value: new(big.Int), Data: data}}
 	outputs := []*types.TxOutput{&types.TxOutput{Address: toAddress, Value: new(big.Int)}}
-	tx, err := cfxNode.CreateTx(inputs, outputs)
+	_, tx, err := cfxNode.CreateTx(inputs, outputs)
 	if err != nil {
 		return "", err
 	}
@@ -186,7 +186,7 @@ func (c *ShuttleflowClient) InitiateSwapFromCFX(cfxNode types.PayoutNode, bscAdd
 	data := ethtx.GenerateContractData("deposit(address,address)", bscAddressBytes, zeroAddressBytes)
 	inputs := []*types.TxInput{&types.TxInput{Value: amount, Data: data}}
 	outputs := []*types.TxOutput{&types.TxOutput{Address: contractAddress, Value: amount}}
-	tx, err := cfxNode.CreateTx(inputs, outputs)
+	_, tx, err := cfxNode.CreateTx(inputs, outputs)
 	if err != nil {
 		return "", err
 	}
@@ -217,7 +217,7 @@ func (c *ShuttleflowClient) FinalizeSwapFromCFX(bscNode types.PayoutNode, inTxID
 
 	inputs := []*types.TxInput{&types.TxInput{Value: new(big.Int), Data: data}}
 	outputs := []*types.TxOutput{&types.TxOutput{Address: toAddress, Value: new(big.Int)}}
-	tx, err := bscNode.CreateTx(inputs, outputs)
+	_, tx, err := bscNode.CreateTx(inputs, outputs)
 	if err != nil {
 		return "", err
 	}

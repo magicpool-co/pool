@@ -84,28 +84,30 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 				},
 			}
 
-			payout.TxID, err = bank.SendOutgoingTx(node, c.pooldb, outputs)
+			tx, err := bank.PrepareOutgoingTx(node, c.pooldb, outputs)
 			if err != nil {
 				return err
-			}
+			} else if tx != nil {
+				payout.TransactionID = tx.ID
+				payout.TxID = tx.TxID
+				payoutID, err := pooldb.InsertPayout(c.pooldb.Writer(), payout)
+				if err != nil {
+					return err
+				}
 
-			payoutID, err := pooldb.InsertPayout(c.pooldb.Writer(), payout)
-			if err != nil {
-				return err
+				err = pooldb.UpdateBalanceOutputsSetOutPayoutID(c.pooldb.Writer(), payoutID, payout.MinerID, payout.ChainID)
+				if err != nil {
+					return err
+				}
 			}
-
-			err = pooldb.UpdateBalanceOutputsSetOutPayoutID(c.pooldb.Writer(), payoutID, payout.MinerID, payout.ChainID)
-			if err != nil {
-				return err
-			}
-
-			c.telegram.NotifyPayoutSent(node.Chain(), payout.TxID, node.GetTxExplorerURL(payout.TxID))
 		}
 	case types.UTXOStructure:
 		outputs := make([]*types.TxOutput, len(payouts))
 		for i, payout := range payouts {
 			if !payout.Value.Valid {
 				return fmt.Errorf("no value for payout %d", payout.ID)
+			} else if i > 15 {
+				continue
 			}
 
 			outputs[i] = &types.TxOutput{
@@ -115,29 +117,34 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			}
 		}
 
-		txid, err := bank.SendOutgoingTx(node, c.pooldb, outputs)
+		tx, err := bank.PrepareOutgoingTx(node, c.pooldb, outputs)
 		if err != nil {
 			return err
-		}
-
-		for i, payout := range payouts {
-			payouts[i].TxID = txid
-
-			payoutID, err := pooldb.InsertPayout(c.pooldb.Writer(), payout)
-			if err != nil {
-				return err
+		} else if tx != nil {
+			feeIdx := make(map[string]*big.Int)
+			for _, output := range outputs {
+				feeIdx[output.Address] = output.Fee
 			}
 
-			err = pooldb.UpdateBalanceOutputsSetOutPayoutID(c.pooldb.Writer(), payoutID, payout.MinerID, payout.ChainID)
-			if err != nil {
-				return err
-			}
+			for i, payout := range payouts {
+				payouts[i].TransactionID = tx.ID
+				payouts[i].TxID = tx.TxID
+				payouts[i].TxFees = dbcl.NullBigInt{Valid: true, BigInt: feeIdx[payouts[i].Address]}
+				payoutID, err := pooldb.InsertPayout(c.pooldb.Writer(), payout)
+				if err != nil {
+					return err
+				}
 
-			c.telegram.NotifyPayoutSent(node.Chain(), txid, node.GetTxExplorerURL(txid))
+				err = pooldb.UpdateBalanceOutputsSetOutPayoutID(c.pooldb.Writer(), payoutID, payout.MinerID, payout.ChainID)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	default:
 		return nil
 	}
+
 	return nil
 }
 
@@ -165,6 +172,7 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 		var feeBalance dbcl.NullBigInt
 		if tx.FeeBalance != nil && tx.FeeBalance.Cmp(common.Big0) > 0 {
 			feeBalance = dbcl.NullBigInt{Valid: true, BigInt: tx.FeeBalance}
+			payout.TxFees.BigInt.Sub(payout.TxFees.BigInt, tx.FeeBalance)
 
 			utxo := &pooldb.UTXO{
 				ChainID: node.Chain(),
@@ -194,12 +202,10 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 		}
 
 		payout.Height = types.Uint64Ptr(tx.BlockNumber)
-		payout.Value = dbcl.NullBigInt{Valid: true, BigInt: tx.Value}
-		payout.TxFees = dbcl.NullBigInt{Valid: true, BigInt: tx.Fee}
 		payout.FeeBalance = feeBalance
 		payout.Confirmed = true
 
-		cols := []string{"height", "value", "tx_fees", "fee_balance", "confirmed"}
+		cols := []string{"height", "tx_fees", "fee_balance", "confirmed"}
 		err = pooldb.UpdatePayout(c.pooldb.Writer(), payout, cols)
 		if err != nil {
 			return err

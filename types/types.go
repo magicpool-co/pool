@@ -56,9 +56,9 @@ type TxInput struct {
 type TxOutput struct {
 	Address    string
 	Value      *big.Int
+	Fee        *big.Int
 	FeeBalance *big.Int
 	SplitFee   bool
-	Fees       uint64
 }
 
 type UTXOResponse struct {
@@ -95,7 +95,7 @@ type PayoutNode interface {
 	GetAddressExplorerURL(string) string
 	GetBalance() (*big.Int, error)
 	GetTx(string) (*TxResponse, error)
-	CreateTx([]*TxInput, []*TxOutput) (string, error)
+	CreateTx([]*TxInput, []*TxOutput) (string, string, error)
 	BroadcastTx(string) (string, error)
 }
 

@@ -56,26 +56,14 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 		txOutputIdx[chain] = []*types.TxOutput{
 			&types.TxOutput{
 				Address:  address,
-				Value:    values[chain],
+				Value:    value,
 				SplitFee: true,
 			},
 		}
 	}
 
-	// make sure any deposits don't end up going through twice
-	deposits, err := pooldb.GetExchangeDeposits(c.pooldb.Reader(), batchID)
-	if err != nil {
-		return err
-	}
-
-	for _, deposit := range deposits {
-		delete(values, deposit.ChainID)
-	}
-
-	// execute the deposit for each chain
 	for chain, value := range values {
-		// @TODO: check if deposit has already been executed
-		txid, err := bank.SendOutgoingTx(c.nodes[chain], c.pooldb, txOutputIdx[chain])
+		tx, err := bank.PrepareOutgoingTx(c.nodes[chain], c.pooldb, txOutputIdx[chain])
 		if err != nil {
 			return err
 		}
@@ -85,7 +73,7 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 			ChainID:   chain,
 			NetworkID: chain,
 
-			DepositTxID: txid,
+			DepositTxID: tx.TxID,
 
 			Value: dbcl.NullBigInt{Valid: true, BigInt: value},
 		}
@@ -96,7 +84,7 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 		}
 
 		floatValue := common.BigIntToFloat64(value, c.nodes[chain].GetUnits().Big())
-		c.telegram.NotifyInitiateDeposit(depositID, chain, txid, c.nodes[chain].GetTxExplorerURL(txid), floatValue)
+		c.telegram.NotifyInitiateDeposit(depositID, chain, tx.TxID, c.nodes[chain].GetTxExplorerURL(tx.TxID), floatValue)
 	}
 
 	return c.updateBatchStatus(batchID, DepositsActive)
