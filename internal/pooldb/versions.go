@@ -35,6 +35,12 @@ var sql004ExpiredIpUp string
 //go:embed migrations/004_expired_ip.down.sql
 var sql004ExpiredIpDown string
 
+//go:embed migrations/005_transaction.sql
+var sql005TransactionUp string
+
+//go:embed migrations/005_transaction.down.sql
+var sql005TransactionDown string
+
 func getMigrationVersions() (map[string]string, error) {
 	migrations := map[string]string{
 		"000_init.sql":                  sql000initUp,
@@ -47,6 +53,8 @@ func getMigrationVersions() (map[string]string, error) {
 		"003_miner_thresholds.down.sql": sql003MinerThresholdsDown,
 		"004_expired_ip.sql":            sql004ExpiredIpUp,
 		"004_expired_ip.down.sql":       sql004ExpiredIpDown,
+		"005_transaction.sql":           sql005TransactionUp,
+		"005_transaction.down.sql":      sql005TransactionDown,
 	}
 
 	for k, v := range migrations {

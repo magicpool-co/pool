@@ -624,10 +624,22 @@ func GetUnspentUTXOsByChain(q dbcl.Querier, chainID string) ([]*UTXO, error) {
 	WHERE
 		chain_id = ?
 	AND
-		spent = FALSE;`
+		transaction_id IS NULL;`
 
 	output := []*UTXO{}
 	err := q.Select(&output, query, chainID)
+
+	return output, err
+}
+
+func GetUTXOsByTransactionID(q dbcl.Querier, transactionID uint64) ([]*UTXO, error) {
+	const query = `SELECT *
+	FROM utxos
+	WHERE
+		transaction_id = ?;`
+
+	output := []*UTXO{}
+	err := q.Select(&output, query, transactionID)
 
 	return output, err
 }
@@ -641,6 +653,19 @@ func GetSumUnspentUTXOValueByChain(q dbcl.Querier, chainID string) (*big.Int, er
 		spent = FALSE;`
 
 	return dbcl.GetBigInt(q, query, chainID)
+}
+
+/* transactions */
+
+func GetPendingTransactionCount(q dbcl.Querier, chainID string) (uint64, error) {
+	const query = `SELECT COUNT(id)
+	FROM transactions
+	WHERE
+		chain_id = ?
+	AND
+		spent = FALSE;`
+
+	return dbcl.GetUint64(q, query, chainID)
 }
 
 /* batch queries */

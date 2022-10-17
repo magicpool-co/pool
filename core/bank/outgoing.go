@@ -60,11 +60,10 @@ func (c *Client) PrepareOutgoingTx(node types.PayoutNode, txOutputs []*types.TxO
 	var inputs []*types.TxInput
 	switch node.GetAccountingType() {
 	case types.AccountStructure:
-		var count uint32
-		/*count, err := pooldb.GetPendingTransactionCount(c.pooldb.Writer(), node.Chain())
+		count, err := pooldb.GetPendingTransactionCount(c.pooldb.Writer(), node.Chain())
 		if err != nil {
 			return nil, err
-		}*/
+		}
 
 		// txOutputs count has to be non-zero since output
 		// sum has already been verified as non-zero
@@ -72,7 +71,7 @@ func (c *Client) PrepareOutgoingTx(node types.PayoutNode, txOutputs []*types.TxO
 			&types.TxInput{
 				Value:      txOutputs[0].Value,
 				FeeBalance: txOutputs[0].FeeBalance,
-				Index:      count,
+				Index:      uint32(count),
 			},
 		}
 	case types.UTXOStructure:
@@ -119,6 +118,11 @@ func (c *Client) PrepareOutgoingTx(node types.PayoutNode, txOutputs []*types.TxO
 		RemainderIdx: uint32(len(txOutputs) - 1),
 	}
 
+	tx.ID, err = pooldb.InsertTransaction(c.pooldb.Writer(), tx)
+	if err != nil {
+		return nil, err
+	}
+
 	// spend input utxos
 	for _, utxo := range inputUTXOs {
 		utxo.TransactionID = types.Uint64Ptr(tx.ID)
@@ -132,13 +136,9 @@ func (c *Client) PrepareOutgoingTx(node types.PayoutNode, txOutputs []*types.TxO
 }
 
 func (c *Client) SendOutgoingTx(node types.PayoutNode, tx *pooldb.Transaction) (string, error) {
-	// @TODO: check redis to see if the txid has been spent
 	txid, err := node.BroadcastTx(tx.TxHex)
 	if err != nil {
 		return "", err
-	} else if txid != tx.TxID {
-		// @TODO: do this after we mark the tx as spent
-		return "", fmt.Errorf("txid mismatch: have %s, want %s", txid, tx.TxID)
 	}
 
 	// if the remainder is non-zero, add the final UTXO
@@ -155,8 +155,7 @@ func (c *Client) SendOutgoingTx(node types.PayoutNode, tx *pooldb.Transaction) (
 		}
 	}
 
-	// @TODO: grab the utxos bound to the tx
-	inputUTXOs, err := pooldb.GetUnspentUTXOsByChain(c.pooldb.Reader(), node.Chain())
+	inputUTXOs, err := pooldb.GetUTXOsByTransactionID(c.pooldb.Reader(), tx.ID)
 	if err != nil {
 		return "", err
 	}
@@ -179,6 +178,14 @@ func (c *Client) SendOutgoingTx(node types.PayoutNode, tx *pooldb.Transaction) (
 	err = pooldb.InsertBalanceOutputs(c.pooldb.Writer(), outputBalances...)
 	if err != nil {
 		return txid, err
+	}
+
+	if txid != tx.TxID {
+		tx.TxID = txid
+		err = pooldb.UpdateTransaction(c.pooldb.Writer(), tx, []string{"txid"})
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return txid, nil

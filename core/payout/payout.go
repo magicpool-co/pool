@@ -14,6 +14,10 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
+const (
+	maxBatchSize = 15
+)
+
 type Client struct {
 	pooldb   *dbcl.Client
 	redis    *redis.Client
@@ -33,12 +37,12 @@ func New(pooldbClient *dbcl.Client, redisClient *redis.Client, telegramClient *t
 }
 
 func (c *Client) InitiatePayouts(node types.PayoutNode) error {
-	/*defaultThreshold, err := common.GetDefaultPayoutThreshold(node.Chain())
+	defaultThreshold, err := common.GetDefaultPayoutThreshold(node.Chain())
 	if err != nil {
 		return err
-	}*/
+	}
 
-	balanceOutputs, err := pooldb.GetUnpaidBalanceOutputsAboveThreshold(c.pooldb.Reader(), node.Chain(), "100000000000000000000000000000")
+	balanceOutputs, err := pooldb.GetUnpaidBalanceOutputsAboveThreshold(c.pooldb.Reader(), node.Chain(), defaultThreshold.String())
 	if err != nil {
 		return err
 	} else if len(balanceOutputs) == 0 {
@@ -107,12 +111,14 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			}
 		}
 	case types.UTXOStructure:
+		if len(payouts) > maxBatchSize {
+			payouts = payouts[:maxBatchSize]
+		}
+
 		outputs := make([]*types.TxOutput, len(payouts))
 		for i, payout := range payouts {
 			if !payout.Value.Valid {
 				return fmt.Errorf("no value for payout %d", payout.ID)
-			} else if i > 15 {
-				continue
 			}
 
 			outputs[i] = &types.TxOutput{

@@ -165,6 +165,7 @@ type Transaction struct {
 	TxHex        string          `db:"tx_hex"`
 	Value        dbcl.NullBigInt `db:"value"`
 	Fee          dbcl.NullBigInt `db:"fee"`
+	FeeBalance   dbcl.NullBigInt `db:"fee_balance"`
 	Remainder    dbcl.NullBigInt `db:"remainder"`
 	RemainderIdx uint32          `db:"remainder_idx"`
 	Spent        bool            `db:"spent"`

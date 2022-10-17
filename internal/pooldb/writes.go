@@ -140,6 +140,25 @@ func UpdateUTXO(q dbcl.Querier, obj *UTXO, updateCols []string) error {
 	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
 }
 
+/* transaction */
+
+func InsertTransaction(q dbcl.Querier, obj *Transaction) (uint64, error) {
+	const table = "transactions"
+	cols := []string{
+		"chain_id", "txid", "tx_hex", "value", "fee", "fee_balance",
+		"remainder", "remainder_idx", "spent", "confirmed", "failed",
+	}
+
+	return dbcl.ExecInsert(q, table, cols, obj)
+}
+
+func UpdateTransaction(q dbcl.Querier, obj *Transaction, updateCols []string) error {
+	const table = "transactions"
+	whereCols := []string{"id"}
+
+	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
+}
+
 /* exchange batches */
 
 func InsertExchangeBatch(q dbcl.Querier, obj *ExchangeBatch) (uint64, error) {
@@ -172,7 +191,7 @@ func InsertExchangeDeposit(q dbcl.Querier, obj *ExchangeDeposit) (uint64, error)
 	const table = "exchange_deposits"
 	cols := []string{
 		"batch_id", "chain_id", "network_id", "deposit_txid", "exchange_txid",
-		"exchange_deposit_id", "value", "fees", "registered", "confirmed", "spent",
+		"exchange_deposit_id", "value", "fees", "registered", "confirmed",
 	}
 
 	return dbcl.ExecInsert(q, table, cols, obj)

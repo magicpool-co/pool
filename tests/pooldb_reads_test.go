@@ -221,9 +221,23 @@ func (suite *PooldbReadsSuite) TestReadUTXO() {
 		suite.T().Errorf("failed: GetUnspentUTXOsByChain: %v", err)
 	}
 
+	_, err = pooldb.GetUTXOsByTransactionID(pooldbClient.Reader(), 0)
+	if err != nil {
+		suite.T().Errorf("failed: GetUTXOsByTransactionID: %v", err)
+	}
+
 	_, err = pooldb.GetSumUnspentUTXOValueByChain(pooldbClient.Reader(), "ETH")
 	if err != nil {
 		suite.T().Errorf("failed: GetSumUnspentUTXOValueByChain: %v", err)
+	}
+}
+
+func (suite *PooldbReadsSuite) TestReadTransaction() {
+	var err error
+
+	_, err = pooldb.GetPendingTransactionCount(pooldbClient.Reader(), "ETC")
+	if err != nil {
+		suite.T().Errorf("failed: GetPendingTransactionCount: %v", err)
 	}
 }
 

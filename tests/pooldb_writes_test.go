@@ -213,6 +213,35 @@ func (suite *PooldbWritesSuite) TestWriteUTXO() {
 	}
 }
 
+func (suite *PooldbWritesSuite) TestWriteTransaction() {
+	tests := []struct {
+		tx *pooldb.Transaction
+	}{
+		{
+			&pooldb.Transaction{
+				ChainID:   "ETC",
+				Value:     dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				Fee:       dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				Remainder: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+			},
+		},
+	}
+
+	var err error
+	for i, tt := range tests {
+		_, err = pooldb.InsertTransaction(pooldbClient.Writer(), tt.tx)
+		if err != nil {
+			suite.T().Errorf("failed on %d: insert: %v", i, err)
+		}
+
+		cols := []string{"fee_balance", "spent", "confirmed", "failed"}
+		err = pooldb.UpdateTransaction(pooldbClient.Writer(), tt.tx, cols)
+		if err != nil {
+			suite.T().Errorf("failed on %d: update: %v", i, err)
+		}
+	}
+}
+
 func (suite *PooldbWritesSuite) TestWriteExchangeBatch() {
 	tests := []struct {
 		batch *pooldb.ExchangeBatch
