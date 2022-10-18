@@ -234,7 +234,7 @@ func (suite *PooldbWritesSuite) TestWriteTransaction() {
 			suite.T().Errorf("failed on %d: insert: %v", i, err)
 		}
 
-		cols := []string{"fee_balance", "spent", "confirmed", "failed"}
+		cols := []string{"height", "fee", "fee_balance", "spent", "confirmed", "failed"}
 		err = pooldb.UpdateTransaction(pooldbClient.Writer(), tt.tx, cols)
 		if err != nil {
 			suite.T().Errorf("failed on %d: update: %v", i, err)

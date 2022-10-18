@@ -4,10 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
-
-	"github.com/bsm/redislock"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
@@ -17,20 +14,19 @@ import (
 
 func (c *Client) PrepareOutgoingTx(node types.PayoutNode, txOutputs []*types.TxOutput) (*pooldb.Transaction, error) {
 	// distributed lock to avoid race conditions
-	ctx := context.Background()
-	key := "payout:" + strings.ToLower(node.Chain()) + ":prep"
-	lock, err := c.locker.Obtain(ctx, key, time.Minute*5, nil)
+	lock, err := c.fetchLock(node.Chain())
 	if err != nil {
-		if err != redislock.ErrNotObtained {
-			return nil, err
-		}
+		return nil, err
+	} else if lock == nil {
 		return nil, nil
 	}
-	defer lock.Release(ctx)
+	defer lock.Release(context.Background())
 
 	inputUTXOs, err := pooldb.GetUnspentUTXOsByChain(c.pooldb.Reader(), node.Chain())
 	if err != nil {
 		return nil, err
+	} else if len(inputUTXOs) == 0 {
+		return nil, nil
 	}
 
 	// calculate total spendable value
@@ -60,7 +56,7 @@ func (c *Client) PrepareOutgoingTx(node types.PayoutNode, txOutputs []*types.TxO
 	var inputs []*types.TxInput
 	switch node.GetAccountingType() {
 	case types.AccountStructure:
-		count, err := pooldb.GetPendingTransactionCount(c.pooldb.Writer(), node.Chain())
+		count, err := pooldb.GetUnspentTransactionCount(c.pooldb.Writer(), node.Chain())
 		if err != nil {
 			return nil, err
 		}
@@ -135,10 +131,98 @@ func (c *Client) PrepareOutgoingTx(node types.PayoutNode, txOutputs []*types.TxO
 	return tx, nil
 }
 
-func (c *Client) SendOutgoingTx(node types.PayoutNode, tx *pooldb.Transaction) (string, error) {
+func (c *Client) BroadcastOutgoingTxs(node types.PayoutNode) error {
+	// distributed lock to avoid race conditions
+	lock, err := c.fetchLock(node.Chain())
+	if err != nil {
+		return err
+	} else if lock == nil {
+		return nil
+	}
+	defer lock.Release(context.Background())
+
+	const maxTxLimit = 5
+	txs, err := pooldb.GetUnspentTransactions(c.pooldb, node.Chain())
+	if err != nil {
+		return err
+	} else if len(txs) > maxTxLimit {
+		txs = txs[:maxTxLimit]
+	}
+
+	for _, tx := range txs {
+		err := c.sendOutgoingTx(tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Client) ConfirmOutgoingTxs(node types.PayoutNode) error {
+	// distributed lock to avoid race conditions
+	lock, err := c.fetchLock(node.Chain())
+	if err != nil {
+		return err
+	} else if lock == nil {
+		return nil
+	}
+	defer lock.Release(context.Background())
+
+	txs, err := pooldb.GetUnconfirmedTransactions(c.pooldb, node.Chain())
+	if err != nil {
+		return err
+	}
+
+	for _, tx := range txs {
+		nodeTx, err := node.GetTx(tx.TxID)
+		if err != nil {
+			return err
+		} else if !nodeTx.Confirmed {
+			if time.Since(tx.CreatedAt) > time.Hour*24 {
+				// @TODO: manage failed transactions
+			}
+			continue
+		} else if nodeTx.Value == nil {
+			return fmt.Errorf("no value for tx %s", nodeTx.Hash)
+		} else if nodeTx.Fee == nil {
+			return fmt.Errorf("no fee for tx %s", nodeTx.Hash)
+		}
+
+		tx.Height = types.Uint64Ptr(nodeTx.BlockNumber)
+		tx.Confirmed = true
+		if nodeTx.FeeBalance != nil && nodeTx.FeeBalance.Cmp(common.Big0) > 0 {
+			tx.Fee = dbcl.NullBigInt{Valid: true, BigInt: nodeTx.Fee}
+			tx.FeeBalance = dbcl.NullBigInt{Valid: true, BigInt: nodeTx.FeeBalance}
+
+			utxo := &pooldb.UTXO{
+				ChainID: node.Chain(),
+				TxID:    tx.TxID,
+				Index:   0,
+				Value:   tx.FeeBalance,
+				Spent:   false,
+			}
+
+			err = pooldb.InsertUTXOs(c.pooldb.Writer(), utxo)
+			if err != nil {
+				return err
+			}
+		}
+
+		cols := []string{"height", "fee", "fee_balance", "confirmed"}
+		err = pooldb.UpdateTransaction(c.pooldb.Writer(), tx, cols)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Client) sendOutgoingTx(node types.PayoutNode, tx *pooldb.Transaction) error {
 	txid, err := node.BroadcastTx(tx.TxHex)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	// if the remainder is non-zero, add the final UTXO
@@ -147,17 +231,18 @@ func (c *Client) SendOutgoingTx(node types.PayoutNode, tx *pooldb.Transaction) (
 	if tx.Remainder.Valid && tx.Remainder.BigInt.Cmp(common.Big0) > 0 {
 		outputUTXOs = []*pooldb.UTXO{
 			&pooldb.UTXO{
-				ChainID: node.Chain(),
-				TxID:    txid,
-				Index:   tx.RemainderIdx,
-				Value:   tx.Remainder,
+				ChainID:       node.Chain(),
+				TransactionID: tx.NextTransactionID,
+				TxID:          txid,
+				Index:         tx.RemainderIdx,
+				Value:         tx.Remainder,
 			},
 		}
 	}
 
 	inputUTXOs, err := pooldb.GetUTXOsByTransactionID(c.pooldb.Reader(), tx.ID)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	// spend input utxos
@@ -165,28 +250,30 @@ func (c *Client) SendOutgoingTx(node types.PayoutNode, tx *pooldb.Transaction) (
 		utxo.Spent = true
 		err = pooldb.UpdateUTXO(c.pooldb.Writer(), utxo, []string{"spent"})
 		if err != nil {
-			return txid, err
+			return err
 		}
 	}
 
 	// insert output utxos
 	err = pooldb.InsertUTXOs(c.pooldb.Writer(), outputUTXOs...)
 	if err != nil {
-		return txid, err
+		return err
 	}
 
 	err = pooldb.InsertBalanceOutputs(c.pooldb.Writer(), outputBalances...)
 	if err != nil {
-		return txid, err
+		return err
 	}
 
+	tx.Spent = true
 	if txid != tx.TxID {
 		tx.TxID = txid
-		err = pooldb.UpdateTransaction(c.pooldb.Writer(), tx, []string{"txid"})
-		if err != nil {
-			return "", err
-		}
 	}
 
-	return txid, nil
+	err = pooldb.UpdateTransaction(c.pooldb.Writer(), tx, []string{"txid", "spent"})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

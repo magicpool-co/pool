@@ -161,8 +161,11 @@ type Transaction struct {
 	ID      uint64 `db:"id"`
 	ChainID string `db:"chain_id"`
 
-	TxID         string          `db:"txid"`
-	TxHex        string          `db:"tx_hex"`
+	TxID              string  `db:"txid"`
+	TxHex             string  `db:"tx_hex"`
+	Height            *uint64 `db:"height"`
+	NextTransactionID *uint64 `db:"next_transaction_id"`
+
 	Value        dbcl.NullBigInt `db:"value"`
 	Fee          dbcl.NullBigInt `db:"fee"`
 	FeeBalance   dbcl.NullBigInt `db:"fee_balance"`

@@ -4,6 +4,7 @@ CREATE TABLE transactions (
 
 	txid			varchar(100)	NOT NULL,
 	tx_hex			text			NOT NULL,
+	height			bigint,
 	value			decimal(25,0)	NOT NULL,
 	fee				decimal(25,0)	NOT NULL,
 	fee_balance		decimal(25,0),
