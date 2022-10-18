@@ -31,6 +31,10 @@ func TestGetBlockReward(t *testing.T) {
 			reward: new(big.Int).SetUint64(48_000_000_000),
 		},
 		{
+			height: 849484,
+			reward: new(big.Int).SetUint64(48_000_000_000),
+		},
+		{
 			height: 849600,
 			reward: new(big.Int).SetUint64(45_000_000_000),
 		},
