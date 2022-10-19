@@ -146,28 +146,6 @@ func GetMinerAddress(q dbcl.Querier, minerID uint64) (string, error) {
 	return dbcl.GetString(q, query, minerID)
 }
 
-func GetMiners(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error) {
-	const rawQuery = `SELECT *
-	FROM miners
-	WHERE
-		id IN (?);`
-
-	if len(minerIDs) == 0 {
-		return nil, nil
-	}
-
-	query, args, err := sqlx.In(rawQuery, minerIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	output := []*Miner{}
-	query = q.Rebind(query)
-	err = q.Select(&output, query, args...)
-
-	return output, err
-}
-
 /* recipients */
 
 func GetRecipients(q dbcl.Querier) ([]*Miner, error) {
@@ -216,6 +194,41 @@ func GetWorkersByMiner(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
 }
 
 /* ip addresses */
+
+func GetMiners(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error) {
+	const rawQuery = `WITH cte AS (
+		SELECT
+			miner_id,
+			MAX(last_share) last_share
+		FROM
+			ip_addresses
+		GROUP BY miner_id
+	) SELECT
+		miners.id,
+		miners.chain_id,
+		miners.address,
+		miners.created_at,
+		cte.last_share
+	FROM miners
+	JOIN cte ON miners.id = cte.miner_id
+	WHERE
+		miners.id IN (?)`
+
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	output := []*Miner{}
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
+
+	return output, err
+}
 
 func GetActiveMiners(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error) {
 	const rawQuery = `WITH cte AS (
