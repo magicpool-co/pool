@@ -126,6 +126,28 @@ func GetMiner(q dbcl.Querier, id uint64) (*Miner, error) {
 	return output, nil
 }
 
+func GetMiners(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error) {
+	const rawQuery = `SELECT *
+	FROM miners
+	WHERE
+		id IN (?);`
+
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	output := []*Miner{}
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
+
+	return output, err
+}
+
 func GetMinerID(q dbcl.Querier, chain, address string) (uint64, error) {
 	const query = `SELECT id
 	FROM miners
@@ -195,7 +217,7 @@ func GetWorkersByMiner(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
 
 /* ip addresses */
 
-func GetMiners(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error) {
+func GetMinersWithLastShares(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error) {
 	const rawQuery = `WITH cte AS (
 		SELECT
 			miner_id,

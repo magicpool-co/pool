@@ -42,7 +42,7 @@ func (c *Client) GetMiners(chain string, page, size uint64) ([]*Miner, uint64, e
 		return dbShares[i].Hashrate > dbShares[j].Hashrate
 	})
 
-	dbMiners, err := pooldb.GetMiners(c.pooldb.Reader(), minerIDs)
+	dbMiners, err := pooldb.GetMinersWithLastShares(c.pooldb.Reader(), minerIDs)
 	if err != nil {
 		return nil, 0, err
 	}
