@@ -63,6 +63,11 @@ func parseIncrement(increment string) (int, error) {
 }
 
 func calcFeeAsBig(value, feeRate string, units *big.Int) (*big.Int, error) {
+	switch feeRate {
+	case "0", "0.", "0.0":
+		return new(big.Int), nil
+	}
+
 	feeParts := strings.Split(feeRate, ".")
 	if len(feeParts) != 2 {
 		return nil, fmt.Errorf("invalid fee rate %s", feeRate)

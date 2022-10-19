@@ -88,6 +88,13 @@ func TestSafeSubtractFee(t *testing.T) {
 		{
 			chain:          "BTC",
 			quantity:       "0.30479900",
+			feeRate:        "0.0",
+			parsedQuantity: 0.304799,
+			parsedFee:      0,
+		},
+		{
+			chain:          "BTC",
+			quantity:       "0.30479900",
 			feeRate:        "0.001",
 			parsedQuantity: 0.304494,
 			parsedFee:      0.000305,
