@@ -78,36 +78,45 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 
 	switch node.GetAccountingType() {
 	case types.AccountStructure:
-		for _, payout := range payouts {
+		outputList := make([][]*types.TxOutput, len(payouts))
+		for i, payout := range payouts {
 			if !payout.Value.Valid {
 				return fmt.Errorf("no value for payout %d", payout.ID)
 			} else if !payout.FeeBalance.Valid {
 				return fmt.Errorf("no fee balance for payout %d", payout.ID)
 			}
 
-			outputs := []*types.TxOutput{
+			outputList[i] = []*types.TxOutput{
 				&types.TxOutput{
 					Address:    payout.Address,
 					Value:      payout.Value.BigInt,
 					FeeBalance: payout.FeeBalance.BigInt,
 				},
 			}
+		}
 
-			tx, err := c.bank.PrepareOutgoingTx(node, outputs)
+		txs, err := c.bank.PrepareOutgoingTxs(node, outputList...)
+		if err != nil {
+			return err
+		} else if len(txs) != len(payouts) {
+			return fmt.Errorf("tx and payout count mismatch: %d and %d", len(txs), len(payouts))
+		}
+
+		for i, payout := range payouts {
+			if txs[i] == nil {
+				continue
+			}
+
+			payouts[i].TransactionID = txs[i].ID
+			payouts[i].TxID = txs[i].TxID
+			payoutID, err := pooldb.InsertPayout(c.pooldb.Writer(), payouts[i])
 			if err != nil {
 				return err
-			} else if tx != nil {
-				payout.TransactionID = tx.ID
-				payout.TxID = tx.TxID
-				payoutID, err := pooldb.InsertPayout(c.pooldb.Writer(), payout)
-				if err != nil {
-					return err
-				}
+			}
 
-				err = pooldb.UpdateBalanceOutputsSetOutPayoutID(c.pooldb.Writer(), payoutID, payout.MinerID, payout.ChainID)
-				if err != nil {
-					return err
-				}
+			err = pooldb.UpdateBalanceOutputsSetOutPayoutID(c.pooldb.Writer(), payoutID, payouts[i].MinerID, payouts[i].ChainID)
+			if err != nil {
+				return err
 			}
 		}
 	case types.UTXOStructure:
@@ -128,28 +137,33 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			}
 		}
 
-		tx, err := c.bank.PrepareOutgoingTx(node, outputs)
+		txs, err := c.bank.PrepareOutgoingTxs(node, outputs)
 		if err != nil {
 			return err
-		} else if tx != nil {
-			feeIdx := make(map[string]*big.Int)
-			for _, output := range outputs {
-				feeIdx[output.Address] = output.Fee
+		} else if len(txs) != 1 {
+			return fmt.Errorf("tx count not one: %d", len(txs))
+		} else if txs[0] == nil {
+			return nil
+		}
+		tx := txs[0]
+
+		feeIdx := make(map[string]*big.Int)
+		for _, output := range outputs {
+			feeIdx[output.Address] = output.Fee
+		}
+
+		for i, payout := range payouts {
+			payouts[i].TransactionID = tx.ID
+			payouts[i].TxID = tx.TxID
+			payouts[i].TxFees = dbcl.NullBigInt{Valid: true, BigInt: feeIdx[payouts[i].Address]}
+			payoutID, err := pooldb.InsertPayout(c.pooldb.Writer(), payout)
+			if err != nil {
+				return err
 			}
 
-			for i, payout := range payouts {
-				payouts[i].TransactionID = tx.ID
-				payouts[i].TxID = tx.TxID
-				payouts[i].TxFees = dbcl.NullBigInt{Valid: true, BigInt: feeIdx[payouts[i].Address]}
-				payoutID, err := pooldb.InsertPayout(c.pooldb.Writer(), payout)
-				if err != nil {
-					return err
-				}
-
-				err = pooldb.UpdateBalanceOutputsSetOutPayoutID(c.pooldb.Writer(), payoutID, payout.MinerID, payout.ChainID)
-				if err != nil {
-					return err
-				}
+			err = pooldb.UpdateBalanceOutputsSetOutPayoutID(c.pooldb.Writer(), payoutID, payout.MinerID, payout.ChainID)
+			if err != nil {
+				return err
 			}
 		}
 	default:
