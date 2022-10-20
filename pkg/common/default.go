@@ -50,13 +50,13 @@ func GetDefaultPayoutThreshold(chain string) (*big.Int, error) {
 	case "BTC":
 		threshold = MustParseBigInt("10000000")
 	case "CFX":
-		threshold = MustParseBigInt("2000000000000000000000")
+		threshold = MustParseBigInt("1000000000000000000")
 	case "CTXC":
 		threshold = MustParseBigInt("1000000000000000000000")
 	case "ERGO":
-		threshold = MustParseBigInt("100000000000")
+		threshold = MustParseBigInt("5000000000")
 	case "ETC":
-		threshold = MustParseBigInt("5000000000000000000")
+		threshold = MustParseBigInt("500000000000000000")
 	case "ETH":
 		threshold = MustParseBigInt("100000000000000000")
 	case "ETHW":
@@ -64,7 +64,7 @@ func GetDefaultPayoutThreshold(chain string) (*big.Int, error) {
 	case "FIRO":
 		threshold = MustParseBigInt("3000000000")
 	case "FLUX":
-		threshold = MustParseBigInt("10000000000")
+		threshold = MustParseBigInt("1000000000")
 	case "RVN":
 		threshold = MustParseBigInt("250000000000")
 	case "USDC":
