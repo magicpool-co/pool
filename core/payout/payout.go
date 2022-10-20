@@ -218,9 +218,8 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			}
 
 			for _, balanceOutput := range balanceOutputIdx[payout.MinerID] {
-				balanceOutput.Spent = true
 				balanceOutput.OutPayoutID = types.Uint64Ptr(payoutID)
-				err = pooldb.UpdateBalanceOutput(dbTx, balanceOutput, []string{"spent", "out_payout_id"})
+				err = pooldb.UpdateBalanceOutput(dbTx, balanceOutput, []string{"out_payout_id"})
 				if err != nil {
 					return err
 				}
@@ -257,6 +256,19 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 			return fmt.Errorf("no value for tx %s", tx.TxID)
 		} else if !tx.Fee.Valid {
 			return fmt.Errorf("no fee for tx %s", tx.TxID)
+		}
+
+		balanceOutputs, err := pooldb.GetBalanceOutputsByPayoutTransaction(c.pooldb.Reader(), tx.ID)
+		if err != nil {
+			return err
+		}
+
+		for _, balanceOutput := range balanceOutputs {
+			balanceOutput.Spent = true
+			err := pooldb.UpdateBalanceOutput(c.pooldb.Writer(), balanceOutput, []string{"spent"})
+			if err != nil {
+				return err
+			}
 		}
 
 		if tx.FeeBalance.Valid && tx.FeeBalance.BigInt.Cmp(common.Big0) > 0 {
