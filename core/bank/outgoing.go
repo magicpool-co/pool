@@ -269,6 +269,9 @@ func (c *Client) spendTx(node types.PayoutNode, tx, nextTx *pooldb.Transaction) 
 		return err
 	}
 
+	floatValue := common.BigIntToFloat64(tx.Value.BigInt, node.GetUnits().Big())
+	c.telegram.NotifyTransactionSent(tx.ID, node.Chain(), tx.TxID, node.GetTxExplorerURL(tx.TxID), floatValue)
+
 	return dbTx.SafeCommit()
 }
 

@@ -93,7 +93,7 @@ func New(pooldbClient *dbcl.Client, redisClient *redis.Client, nodes []types.Pay
 		redis:      redisClient,
 		nodes:      nodeIdx,
 		telegram:   telegramClient,
-		bank:       bank.New(pooldbClient, redisClient),
+		bank:       bank.New(pooldbClient, redisClient, telegramClient),
 	}
 
 	return client

@@ -30,7 +30,7 @@ func New(pooldbClient *dbcl.Client, redisClient *redis.Client, telegramClient *t
 		pooldb:   pooldbClient,
 		redis:    redisClient,
 		telegram: telegramClient,
-		bank:     bank.New(pooldbClient, redisClient),
+		bank:     bank.New(pooldbClient, redisClient, telegramClient),
 	}
 
 	return client

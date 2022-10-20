@@ -8,20 +8,23 @@ import (
 	"github.com/bsm/redislock"
 
 	"github.com/magicpool-co/pool/internal/redis"
+	"github.com/magicpool-co/pool/internal/telegram"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 )
 
 type Client struct {
-	pooldb *dbcl.Client
-	redis  *redis.Client
-	locker *redislock.Client
+	pooldb   *dbcl.Client
+	redis    *redis.Client
+	locker   *redislock.Client
+	telegram *telegram.Client
 }
 
-func New(pooldbClient *dbcl.Client, redisClient *redis.Client) *Client {
+func New(pooldbClient *dbcl.Client, redisClient *redis.Client, telegramClient *telegram.Client) *Client {
 	client := &Client{
-		pooldb: pooldbClient,
-		redis:  redisClient,
-		locker: redisClient.NewLocker(),
+		pooldb:   pooldbClient,
+		redis:    redisClient,
+		locker:   redisClient.NewLocker(),
+		telegram: telegramClient,
 	}
 
 	return client
