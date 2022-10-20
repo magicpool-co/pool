@@ -46,11 +46,6 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 
 	usedFees := new(big.Int)
 	for _, output := range outputs {
-		if !output.SplitFee {
-			output.Fee = new(big.Int)
-			continue
-		}
-
 		output.Fee = new(big.Int).Mul(new(big.Int).SetUint64(fee), output.Value)
 		output.Fee.Div(output.Fee, sumValue)
 		output.Value.Sub(output.Value, output.Fee)
