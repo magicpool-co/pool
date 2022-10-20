@@ -624,7 +624,9 @@ func GetUnspentUTXOsByChain(q dbcl.Querier, chainID string) ([]*UTXO, error) {
 	WHERE
 		chain_id = ?
 	AND
-		transaction_id IS NULL;`
+		transaction_id IS NULL
+	AND
+		spent = FALSE;`
 
 	output := []*UTXO{}
 	err := q.Select(&output, query, chainID)
