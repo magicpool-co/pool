@@ -58,9 +58,15 @@ func newNumberFromBigInt(value *big.Int, chain string) (Number, error) {
 	}
 	valueFloat := common.BigIntToFloat64(value, units)
 
+	decimals := 4
+	switch chain {
+	case "BTC":
+		decimals = 6
+	}
+
 	n := Number{
 		Value:     valueFloat,
-		Formatted: strconv.FormatFloat(valueFloat, 'f', 4, 64) + " " + chain,
+		Formatted: strconv.FormatFloat(valueFloat, 'f', decimals, 64) + " " + chain,
 	}
 
 	return n, nil
