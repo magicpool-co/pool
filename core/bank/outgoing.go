@@ -141,7 +141,7 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txOut
 			ChainID:      node.Chain(),
 			TxID:         txid,
 			TxHex:        txHex,
-			Value:        dbcl.NullBigInt{Valid: true, BigInt: txOutputSum},
+			Value:        dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).Sub(txOutputSum, feeSum)},
 			Fee:          dbcl.NullBigInt{Valid: true, BigInt: feeSum},
 			Remainder:    dbcl.NullBigInt{Valid: true, BigInt: remainder},
 			RemainderIdx: uint32(len(txOutputs) - 1),
