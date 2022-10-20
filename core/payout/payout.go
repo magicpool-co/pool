@@ -3,7 +3,7 @@ package payout
 import (
 	"fmt"
 	"math/big"
-	"time"
+	"sort"
 
 	"github.com/magicpool-co/pool/core/bank"
 	"github.com/magicpool-co/pool/internal/pooldb"
@@ -37,28 +37,67 @@ func New(pooldbClient *dbcl.Client, redisClient *redis.Client, telegramClient *t
 }
 
 func (c *Client) InitiatePayouts(node types.PayoutNode) error {
+	dbTx, err := c.pooldb.Begin()
+	if err != nil {
+		return err
+	}
+	defer dbTx.SafeRollback()
+
 	defaultThreshold, err := common.GetDefaultPayoutThreshold(node.Chain())
 	if err != nil {
 		return err
 	}
 
-	balanceOutputs, err := pooldb.GetUnpaidBalanceOutputsAboveThreshold(c.pooldb.Reader(), node.Chain(), defaultThreshold.String())
+	balanceOutputs, err := pooldb.GetUnpaidBalanceOutputsAboveThreshold(dbTx, node.Chain(), defaultThreshold.String())
 	if err != nil {
 		return err
 	} else if len(balanceOutputs) == 0 {
 		return nil
 	}
 
-	payouts := make([]*pooldb.Payout, len(balanceOutputs))
-	for i, balanceOutput := range balanceOutputs {
-		address, err := pooldb.GetMinerAddress(c.pooldb.Reader(), balanceOutput.MinerID)
+	balanceOutputIdx := make(map[uint64][]*pooldb.BalanceOutput)
+	for _, balanceOutput := range balanceOutputs {
+		if _, ok := balanceOutputIdx[balanceOutput.MinerID]; !ok {
+			balanceOutputIdx[balanceOutput.MinerID] = make([]*pooldb.BalanceOutput, 0)
+		}
+		balanceOutputIdx[balanceOutput.MinerID] = append(balanceOutputIdx[balanceOutput.MinerID], balanceOutput)
+	}
+
+	balanceOutputSums := make([]*pooldb.BalanceOutput, 0)
+	for minerID, minerBalanceOutputs := range balanceOutputIdx {
+		if len(minerBalanceOutputs) == 0 {
+			return fmt.Errorf("no balance outputs for miner %d", minerID)
+		} else if len(minerBalanceOutputs) > 1 {
+			for _, minerBalanceOutput := range minerBalanceOutputs[1:] {
+				if !minerBalanceOutput.Value.Valid {
+					return fmt.Errorf("no value for balance output %d", minerBalanceOutput.ID)
+				} else if !minerBalanceOutput.PoolFees.Valid {
+					return fmt.Errorf("no pool fees for balance output %d", minerBalanceOutput.ID)
+				} else if !minerBalanceOutput.ExchangeFees.Valid {
+					return fmt.Errorf("no exchange fees for balance output %d", minerBalanceOutput.ID)
+				}
+				minerBalanceOutputs[0].Value.BigInt.Add(minerBalanceOutputs[0].Value.BigInt, minerBalanceOutput.Value.BigInt)
+				minerBalanceOutputs[0].PoolFees.BigInt.Add(minerBalanceOutputs[0].PoolFees.BigInt, minerBalanceOutput.PoolFees.BigInt)
+				minerBalanceOutputs[0].ExchangeFees.BigInt.Add(minerBalanceOutputs[0].ExchangeFees.BigInt, minerBalanceOutput.ExchangeFees.BigInt)
+			}
+		}
+		balanceOutputSums = append(balanceOutputSums, minerBalanceOutputs[0])
+	}
+
+	sort.Slice(balanceOutputSums, func(i, j int) bool {
+		return balanceOutputSums[i].ID < balanceOutputSums[j].ID
+	})
+
+	payouts := make([]*pooldb.Payout, len(balanceOutputSums))
+	for i, balanceOutput := range balanceOutputSums {
+		address, err := pooldb.GetMinerAddress(dbTx, balanceOutput.MinerID)
 		if err != nil {
 			return err
 		}
 
 		feeBalance := new(big.Int)
 		if balanceOutput.ChainID == "USDC" {
-			feeBalance, err = pooldb.GetUnpaidBalanceOutputSumByMiner(c.pooldb.Reader(), balanceOutput.MinerID, "ETH")
+			feeBalance, err = pooldb.GetUnpaidBalanceOutputSumByMiner(dbTx, balanceOutput.MinerID, "ETH")
 			if err != nil {
 				return err
 			}
@@ -95,7 +134,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			}
 		}
 
-		txs, err := c.bank.PrepareOutgoingTxs(node, outputList...)
+		txs, err := c.bank.PrepareOutgoingTxs(dbTx, node, outputList...)
 		if err != nil {
 			return err
 		} else if len(txs) != len(payouts) {
@@ -107,16 +146,19 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 				continue
 			}
 
-			payouts[i].TransactionID = txs[i].ID
-			payouts[i].TxID = txs[i].TxID
-			payoutID, err := pooldb.InsertPayout(c.pooldb.Writer(), payouts[i])
+			payout.TransactionID = txs[i].ID
+			payout.TxID = txs[i].TxID
+			payoutID, err := pooldb.InsertPayout(dbTx, payout)
 			if err != nil {
 				return err
 			}
 
-			err = pooldb.UpdateBalanceOutputsSetOutPayoutID(c.pooldb.Writer(), payoutID, payouts[i].MinerID, payouts[i].ChainID)
-			if err != nil {
-				return err
+			for _, balanceOutput := range balanceOutputIdx[payout.MinerID] {
+				balanceOutput.OutPayoutID = types.Uint64Ptr(payoutID)
+				err = pooldb.UpdateBalanceOutput(dbTx, balanceOutput, []string{"out_payout_id"})
+				if err != nil {
+					return err
+				}
 			}
 		}
 	case types.UTXOStructure:
@@ -137,7 +179,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			}
 		}
 
-		txs, err := c.bank.PrepareOutgoingTxs(node, outputs)
+		txs, err := c.bank.PrepareOutgoingTxs(dbTx, node, outputs)
 		if err != nil {
 			return err
 		} else if len(txs) != 1 {
@@ -156,21 +198,24 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			payouts[i].TransactionID = tx.ID
 			payouts[i].TxID = tx.TxID
 			payouts[i].TxFees = dbcl.NullBigInt{Valid: true, BigInt: feeIdx[payouts[i].Address]}
-			payoutID, err := pooldb.InsertPayout(c.pooldb.Writer(), payout)
+			payoutID, err := pooldb.InsertPayout(dbTx, payout)
 			if err != nil {
 				return err
 			}
 
-			err = pooldb.UpdateBalanceOutputsSetOutPayoutID(c.pooldb.Writer(), payoutID, payout.MinerID, payout.ChainID)
-			if err != nil {
-				return err
+			for _, balanceOutput := range balanceOutputIdx[payouts[i].MinerID] {
+				balanceOutput.OutPayoutID = types.Uint64Ptr(payoutID)
+				err = pooldb.UpdateBalanceOutput(dbTx, balanceOutput, []string{"out_payout_id"})
+				if err != nil {
+					return err
+				}
 			}
 		}
 	default:
 		return nil
 	}
 
-	return nil
+	return dbTx.SafeCommit()
 }
 
 func (c *Client) FinalizePayouts(node types.PayoutNode) error {
@@ -180,30 +225,26 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 	}
 
 	for _, payout := range payouts {
-		tx, err := node.GetTx(payout.TxID)
+		tx, err := pooldb.GetTransaction(c.pooldb.Reader(), payout.TransactionID)
 		if err != nil {
 			return err
-		} else if !tx.Confirmed {
-			if time.Since(payout.CreatedAt) > time.Hour*24 {
-				// @TODO: manage failed transactions
-			}
+		} else if !tx.Spent || !tx.Confirmed {
 			continue
-		} else if tx.Value == nil {
-			return fmt.Errorf("no value for tx %s", tx.Hash)
-		} else if tx.Fee == nil {
-			return fmt.Errorf("no fee for tx %s", tx.Hash)
+		} else if !tx.Value.Valid {
+			return fmt.Errorf("no value for tx %s", tx.TxID)
+		} else if !tx.Fee.Valid {
+			return fmt.Errorf("no fee for tx %s", tx.TxID)
 		}
 
-		var feeBalance dbcl.NullBigInt
-		if tx.FeeBalance != nil && tx.FeeBalance.Cmp(common.Big0) > 0 {
-			feeBalance = dbcl.NullBigInt{Valid: true, BigInt: tx.FeeBalance}
-			payout.TxFees.BigInt.Sub(payout.TxFees.BigInt, tx.FeeBalance)
+		if tx.FeeBalance.Valid && tx.FeeBalance.BigInt.Cmp(common.Big0) > 0 {
+			payout.FeeBalance = tx.FeeBalance
+			payout.TxFees.BigInt.Sub(payout.TxFees.BigInt, tx.FeeBalance.BigInt)
 
 			utxo := &pooldb.UTXO{
 				ChainID: node.Chain(),
 				TxID:    payout.TxID,
 				Index:   0,
-				Value:   feeBalance,
+				Value:   payout.FeeBalance,
 				Spent:   false,
 			}
 
@@ -217,7 +258,7 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 				MinerID:    payout.MinerID,
 				InPayoutID: types.Uint64Ptr(payout.ID),
 
-				Value: feeBalance,
+				Value: payout.FeeBalance,
 			}
 
 			err = pooldb.InsertBalanceOutputs(c.pooldb.Writer(), balanceOutput)
@@ -226,8 +267,7 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 			}
 		}
 
-		payout.Height = types.Uint64Ptr(tx.BlockNumber)
-		payout.FeeBalance = feeBalance
+		payout.Height = tx.Height
 		payout.Confirmed = true
 
 		cols := []string{"height", "tx_fees", "fee_balance", "confirmed"}

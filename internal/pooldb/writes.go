@@ -145,8 +145,8 @@ func UpdateUTXO(q dbcl.Querier, obj *UTXO, updateCols []string) error {
 func InsertTransaction(q dbcl.Querier, obj *Transaction) (uint64, error) {
 	const table = "transactions"
 	cols := []string{
-		"chain_id", "txid", "tx_hex", "height", "next_transaction_id",
-		"value", "fee", "fee_balance", "remainder", "remainder_idx",
+		"chain_id", "txid", "tx_hex", "height", "value", "fee",
+		"fee_balance", "remainder", "remainder_idx",
 		"spent", "confirmed", "failed",
 	}
 
@@ -301,21 +301,6 @@ func UpdateBalanceOutput(q dbcl.Querier, obj *BalanceOutput, updateCols []string
 	whereCols := []string{"id"}
 
 	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
-}
-
-func UpdateBalanceOutputsSetOutPayoutID(q dbcl.Querier, payoutID, minerID uint64, chainID string) error {
-	const query = `UPDATE balance_outputs
-	SET out_payout_id = ?
-	WHERE
-		miner_id = ?
-	AND
-		chain_id = ?
-	AND
-		out_payout_id IS NULL;`
-
-	_, err := q.Exec(query, payoutID, minerID, chainID)
-
-	return err
 }
 
 /* payouts */

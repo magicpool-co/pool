@@ -470,11 +470,6 @@ func (suite *PooldbWritesSuite) TestWriteBalanceOutput() {
 		if err != nil {
 			suite.T().Errorf("failed on %d: update: %v", i, err)
 		}
-
-		err = pooldb.UpdateBalanceOutputsSetOutPayoutID(pooldbClient.Writer(), 1, 1, "ETH")
-		if err != nil {
-			suite.T().Errorf("failed on %d: update set payout id: %v", i, err)
-		}
 	}
 }
 

@@ -12,7 +12,7 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
-func (c *Client) PrepareOutgoingTxs(node types.PayoutNode, txOutputList [][]*types.TxOutput) ([]*pooldb.Transaction, error) {
+func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txOutputList ...[]*types.TxOutput) ([]*pooldb.Transaction, error) {
 	txs := make([]*pooldb.Transaction, len(txOutputList))
 
 	// distributed lock to avoid race conditions
@@ -24,7 +24,7 @@ func (c *Client) PrepareOutgoingTxs(node types.PayoutNode, txOutputList [][]*typ
 	}
 	defer lock.Release(context.Background())
 
-	inputUTXOs, err := pooldb.GetUnspentUTXOsByChain(c.pooldb.Reader(), node.Chain())
+	inputUTXOs, err := pooldb.GetUnspentUTXOsByChain(q, node.Chain())
 	if err != nil {
 		return txs, err
 	} else if len(inputUTXOs) == 0 {
@@ -81,7 +81,7 @@ func (c *Client) PrepareOutgoingTxs(node types.PayoutNode, txOutputList [][]*typ
 		var inputs []*types.TxInput
 		switch node.GetAccountingType() {
 		case types.AccountStructure:
-			count, err := pooldb.GetUnspentTransactionCount(c.pooldb.Writer(), node.Chain())
+			count, err := pooldb.GetUnspentTransactionCount(q, node.Chain())
 			if err != nil {
 				return txs, err
 			}
@@ -139,7 +139,7 @@ func (c *Client) PrepareOutgoingTxs(node types.PayoutNode, txOutputList [][]*typ
 			RemainderIdx: uint32(len(txOutputs) - 1),
 		}
 
-		txs[i].ID, err = pooldb.InsertTransaction(c.pooldb.Writer(), txs[i])
+		txs[i].ID, err = pooldb.InsertTransaction(q, txs[i])
 		if err != nil {
 			return txs, err
 		}
@@ -147,7 +147,7 @@ func (c *Client) PrepareOutgoingTxs(node types.PayoutNode, txOutputList [][]*typ
 		// spend input utxos
 		for _, utxo := range inputUTXOs {
 			utxo.TransactionID = types.Uint64Ptr(txs[i].ID)
-			err = pooldb.UpdateUTXO(c.pooldb.Writer(), utxo, []string{"transaction_id"})
+			err = pooldb.UpdateUTXO(q, utxo, []string{"transaction_id"})
 			if err != nil {
 				return txs, err
 			}
@@ -164,7 +164,7 @@ func (c *Client) PrepareOutgoingTxs(node types.PayoutNode, txOutputList [][]*typ
 				},
 			}
 
-			err = pooldb.InsertUTXOs(c.pooldb.Writer(), inputUTXOs...)
+			err = pooldb.InsertUTXOs(q, inputUTXOs...)
 			if err != nil {
 				return txs, err
 			}
@@ -185,7 +185,7 @@ func (c *Client) BroadcastOutgoingTxs(node types.PayoutNode) error {
 	defer lock.Release(context.Background())
 
 	const maxTxLimit = 5
-	txs, err := pooldb.GetUnspentTransactions(c.pooldb, node.Chain())
+	txs, err := pooldb.GetUnspentTransactions(c.pooldb.Reader(), node.Chain())
 	if err != nil {
 		return err
 	} else if len(txs) > maxTxLimit {
@@ -236,7 +236,7 @@ func (c *Client) ConfirmOutgoingTxs(node types.PayoutNode) error {
 	}
 	defer lock.Release(context.Background())
 
-	txs, err := pooldb.GetUnconfirmedTransactions(c.pooldb, node.Chain())
+	txs, err := pooldb.GetUnconfirmedTransactions(c.pooldb.Reader(), node.Chain())
 	if err != nil {
 		return err
 	}

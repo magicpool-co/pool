@@ -235,9 +235,24 @@ func (suite *PooldbReadsSuite) TestReadUTXO() {
 func (suite *PooldbReadsSuite) TestReadTransaction() {
 	var err error
 
-	_, err = pooldb.GetPendingTransactionCount(pooldbClient.Reader(), "ETC")
+	_, err = pooldb.GetTransaction(pooldbClient.Reader(), 0)
 	if err != nil {
-		suite.T().Errorf("failed: GetPendingTransactionCount: %v", err)
+		suite.T().Errorf("failed: GetTransaction: %v", err)
+	}
+
+	_, err = pooldb.GetUnspentTransactions(pooldbClient.Reader(), "ETC")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnspentTransactions: %v", err)
+	}
+
+	_, err = pooldb.GetUnspentTransactionCount(pooldbClient.Reader(), "ETC")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnspentTransactionCount: %v", err)
+	}
+
+	_, err = pooldb.GetUnconfirmedTransactions(pooldbClient.Reader(), "ETC")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnconfirmedTransactions: %v", err)
 	}
 }
 

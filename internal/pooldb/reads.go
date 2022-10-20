@@ -657,7 +657,38 @@ func GetSumUnspentUTXOValueByChain(q dbcl.Querier, chainID string) (*big.Int, er
 
 /* transactions */
 
-func GetPendingTransactionCount(q dbcl.Querier, chainID string) (uint64, error) {
+func GetTransaction(q dbcl.Querier, id uint64) (*Transaction, error) {
+	const query = `SELECT *
+	FROM transactions
+	WHERE
+		id = ?;`
+
+	output := new(Transaction)
+	err := q.Get(output, query, id)
+	if err != nil && err != sql.ErrNoRows {
+		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return output, nil
+}
+
+func GetUnspentTransactions(q dbcl.Querier, chainID string) ([]*Transaction, error) {
+	const query = `SELECT *
+	FROM transactions
+	WHERE
+		chain_id = ?
+	AND
+		spent = FALSE;`
+
+	output := []*Transaction{}
+	err := q.Select(&output, query, chainID)
+
+	return output, err
+}
+
+func GetUnspentTransactionCount(q dbcl.Querier, chainID string) (uint64, error) {
 	const query = `SELECT COUNT(id)
 	FROM transactions
 	WHERE
@@ -666,6 +697,22 @@ func GetPendingTransactionCount(q dbcl.Querier, chainID string) (uint64, error) 
 		spent = FALSE;`
 
 	return dbcl.GetUint64(q, query, chainID)
+}
+
+func GetUnconfirmedTransactions(q dbcl.Querier, chainID string) ([]*Transaction, error) {
+	const query = `SELECT *
+	FROM transactions
+	WHERE
+		chain_id = ?
+	AND
+		spent = TRUE
+	AND
+		confirmed = FALSE;`
+
+	output := []*Transaction{}
+	err := q.Select(&output, query, chainID)
+
+	return output, err
 }
 
 /* batch queries */

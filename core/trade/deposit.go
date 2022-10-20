@@ -72,12 +72,32 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 
 	initiatedAll := true
 	for chain, value := range values {
-		tx, err := c.bank.PrepareOutgoingTx(c.nodes[chain], txOutputIdx[chain])
+		dbTx, err := c.pooldb.Begin()
 		if err != nil {
 			return err
-		} else if tx == nil {
+		}
+
+		txs, err := c.bank.PrepareOutgoingTxs(dbTx, c.nodes[chain], txOutputIdx[chain])
+		if err != nil {
+			if err := dbTx.SafeRollback(); err != nil {
+				return err
+			}
+
+			return err
+		} else if len(txs) != 1 {
+			if err := dbTx.SafeRollback(); err != nil {
+				return err
+			}
+
+			return fmt.Errorf("no txs for deposit preparation")
+		} else if txs[0] == nil {
+			if err := dbTx.SafeRollback(); err != nil {
+				return err
+			}
+
 			continue
 		}
+		tx := txs[0]
 
 		deposit := &pooldb.ExchangeDeposit{
 			BatchID:   batchID,
@@ -91,6 +111,14 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 
 		depositID, err := pooldb.InsertExchangeDeposit(c.pooldb.Writer(), deposit)
 		if err != nil {
+			if err := dbTx.SafeRollback(); err != nil {
+				return err
+			}
+
+			return err
+		}
+
+		if err := dbTx.SafeCommit(); err != nil {
 			return err
 		}
 
