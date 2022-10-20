@@ -96,7 +96,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 		}
 
 		feeBalance := new(big.Int)
-		if balanceOutput.ChainID == "USDC" {
+		if node.Chain() == "USDC" {
 			feeBalanceOutputs, err := pooldb.GetUnpaidBalanceOutputsByMiner(dbTx, balanceOutput.MinerID, "ETH")
 			if err != nil {
 				return err
@@ -112,7 +112,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 		}
 
 		payouts[i] = &pooldb.Payout{
-			ChainID: balanceOutput.ChainID,
+			ChainID: node.Chain(),
 			MinerID: balanceOutput.MinerID,
 			Address: address,
 
