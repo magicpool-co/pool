@@ -86,8 +86,8 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			ChainID: node.Chain(),
 
 			Value:        dbcl.NullBigInt{Valid: true, BigInt: valueSum},
-			PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: valueSum},
-			ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: valueSum},
+			PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: poolFeesSum},
+			ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: exchangeFeesSum},
 		}
 	}
 
