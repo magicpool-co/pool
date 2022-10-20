@@ -215,6 +215,11 @@ func (suite *PooldbWritesSuite) TestWriteUTXO() {
 		if err != nil {
 			suite.T().Errorf("failed on %d: update: %v", i, err)
 		}
+
+		err = pooldb.UpdateUTXOByTxID(pooldbClient.Writer(), tt.utxo, []string{"active", "spent"})
+		if err != nil {
+			suite.T().Errorf("failed on %d: update by txid: %v", i, err)
+		}
 	}
 }
 

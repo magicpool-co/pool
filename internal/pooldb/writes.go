@@ -147,6 +147,13 @@ func UpdateUTXO(q dbcl.Querier, obj *UTXO, updateCols []string) error {
 	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
 }
 
+func UpdateUTXOByTxID(q dbcl.Querier, obj *UTXO, updateCols []string) error {
+	const table = "utxos"
+	whereCols := []string{"txid"}
+
+	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
+}
+
 /* transaction */
 
 func InsertTransaction(q dbcl.Querier, obj *Transaction) (uint64, error) {

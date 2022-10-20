@@ -182,7 +182,7 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txOut
 	return txs, nil
 }
 
-func (c *Client) spendTx(node types.PayoutNode, tx, nextTx *pooldb.Transaction) error {
+func (c *Client) spendTx(node types.PayoutNode, tx *pooldb.Transaction) error {
 	dbTx, err := c.pooldb.Begin()
 	if err != nil {
 		return err
@@ -246,19 +246,9 @@ func (c *Client) spendTx(node types.PayoutNode, tx, nextTx *pooldb.Transaction) 
 		}
 	}
 
-	if nextTx != nil {
-		utxos, err := pooldb.GetUTXOsByTransactionID(dbTx, nextTx.ID)
-		if err != nil {
-			return err
-		}
-
-		for _, utxo := range utxos {
-			utxo.Active = true
-			err = pooldb.UpdateUTXO(dbTx, utxo, []string{"active"})
-			if err != nil {
-				return err
-			}
-		}
+	err = pooldb.UpdateUTXOByTxID(dbTx, &pooldb.UTXO{TxID: tx.TxID, Active: true}, []string{"active"})
+	if err != nil {
+		return err
 	}
 
 	tx.Spent = true
@@ -295,13 +285,8 @@ func (c *Client) BroadcastOutgoingTxs(node types.PayoutNode) error {
 		txs = txs[:maxTxLimit]
 	}
 
-	for i, tx := range txs {
-		var nextTx *pooldb.Transaction
-		if i < len(txs)-1 {
-			nextTx = txs[i+1]
-		}
-
-		err := c.spendTx(node, tx, nextTx)
+	for _, tx := range txs {
+		err := c.spendTx(node, tx)
 		if err != nil {
 			return err
 		}
