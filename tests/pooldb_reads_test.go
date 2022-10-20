@@ -259,6 +259,11 @@ func (suite *PooldbReadsSuite) TestReadTransaction() {
 	if err != nil {
 		suite.T().Errorf("failed: GetUnconfirmedTransactions: %v", err)
 	}
+
+	_, err = pooldb.GetUnconfirmedTransactionSum(pooldbClient.Reader(), "ETC")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnconfirmedTransactionSum: %v", err)
+	}
 }
 
 func (suite *PooldbReadsSuite) TestReadExchangeBatch() {

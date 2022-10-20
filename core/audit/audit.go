@@ -29,6 +29,12 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 			return err
 		}
 		utxoBalance.Add(utxoBalance, immatureRoundSum)
+
+		unconfirmedTxValue, err := pooldb.GetUnconfirmedTransactionSum(pooldbClient.Reader(), chain)
+		if err != nil {
+			return err
+		}
+		utxoBalance.Add(utxoBalance, unconfirmedTxValue)
 	}
 
 	if walletBalance.Cmp(utxoBalance) != 0 {

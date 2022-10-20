@@ -756,6 +756,19 @@ func GetUnconfirmedTransactions(q dbcl.Querier, chainID string) ([]*Transaction,
 	return output, err
 }
 
+func GetUnconfirmedTransactionSum(q dbcl.Querier, chainID string) (*big.Int, error) {
+	const query = `SELECT SUM(value) + SUM(fee) value
+	FROM transactions
+	WHERE
+		chain_id = ?
+	AND
+		spent = TRUE
+	AND
+		confirmed = FALSE;`
+
+	return dbcl.GetBigInt(q, query, chainID)
+}
+
 /* batch queries */
 
 func GetExchangeBatch(q dbcl.Querier, batchID uint64) (*ExchangeBatch, error) {
