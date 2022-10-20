@@ -2,7 +2,6 @@ package pool
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/rand"
 	"regexp"
 	"strings"
@@ -218,12 +217,12 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		return false, err
 	}
 
-	if len(extraNonce) > 0 {
-		nonce := work.Nonce.Hex()
-		if len(nonce) < len(extraNonce) || nonce[:len(extraNonce)] != extraNonce {
-			return false, fmt.Errorf("nonce %s does not match extranonce %s", nonce, extraNonce)
-		}
-	}
+	// if len(extraNonce) > 0 {
+	// 	nonce := work.Nonce.Hex()
+	// 	if len(nonce) < len(extraNonce) || nonce[:len(extraNonce)] != extraNonce {
+	// 		return false, fmt.Errorf("nonce %s does not match extranonce %s", nonce, extraNonce)
+	// 	}
+	// }
 
 	var shareStatus types.ShareStatus
 	var round *pooldb.Round

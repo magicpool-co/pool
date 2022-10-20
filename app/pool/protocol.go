@@ -26,7 +26,7 @@ func (p *Pool) routeRequest(req *rpc.Request) ProtocolHandler {
 		case "mining.submit":
 			return p.submit
 		case "mining.extranonce.subscribe":
-			return p.extraNonce
+			return p.subscribeExtraNonce
 		case "eth_submitHashrate":
 			return p.submitHashrate
 		}
@@ -36,6 +36,8 @@ func (p *Pool) routeRequest(req *rpc.Request) ProtocolHandler {
 			return p.login
 		case "mining.submit":
 			return p.submit
+		case "mining.extranonce.subscribe":
+			return p.subscribeExtraNonce
 		}
 	case "ETH", "ETC":
 		switch req.Method {
@@ -86,7 +88,7 @@ func (p *Pool) subscribe(c *stratum.Conn, req *rpc.Request) error {
 	return nil
 }
 
-func (p *Pool) extraNonce(c *stratum.Conn, req *rpc.Request) error {
+func (p *Pool) subscribeExtraNonce(c *stratum.Conn, req *rpc.Request) error {
 	var res interface{}
 	if p.forceErrorOnResponse {
 		res = rpc.NewResponseForcedFromJSON(req.ID, common.JsonTrue)
