@@ -308,7 +308,7 @@ func UpdateBalanceOutput(q dbcl.Querier, obj *BalanceOutput, updateCols []string
 func InsertPayout(q dbcl.Querier, obj *Payout) (uint64, error) {
 	const table = "payouts"
 	cols := []string{
-		"chain_id", "miner_id", "address", "txid", "height", "value",
+		"chain_id", "miner_id", "address", "transaction_id", "txid", "height", "value",
 		"fee_balance", "pool_fees", "exchange_fees", "tx_fees", "confirmed", "failed",
 	}
 
