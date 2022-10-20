@@ -626,6 +626,8 @@ func GetUnspentUTXOsByChain(q dbcl.Querier, chainID string) ([]*UTXO, error) {
 	AND
 		transaction_id IS NULL
 	AND
+		active = TRUE
+	AND
 		spent = FALSE;`
 
 	output := []*UTXO{}
@@ -651,6 +653,8 @@ func GetSumUnspentUTXOValueByChain(q dbcl.Querier, chainID string) (*big.Int, er
 	FROM utxos
 	WHERE
 		chain_id = ?
+	AND
+		active = TRUE
 	AND
 		spent = FALSE;`
 
