@@ -1004,7 +1004,7 @@ func GetUnpaidBalanceOutputSumByChain(q dbcl.Querier, chain string) (*big.Int, e
 	WHERE
 		chain_id = ?
 	AND
-		out_payout_id IS NULL;`
+		spent = FALSE`
 
 	return dbcl.GetBigInt(q, query, chain)
 }
