@@ -58,7 +58,7 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txOut
 	// check for empty, negative, and over spends
 	remainder := new(big.Int).Sub(totalInputUTXOSum, totalTxOutputSum)
 	if remainder.Cmp(common.Big0) <= 0 {
-		return txs, fmt.Errorf("%s empty or negative spend: %s", node.Chain(), totalTxOutputSum)
+		return txs, fmt.Errorf("%s overspend: %s < %s", node.Chain(), totalInputUTXOSum, totalTxOutputSum)
 	}
 
 	for i, txOutputs := range txOutputList {
@@ -81,7 +81,7 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txOut
 		remainder := new(big.Int).Sub(inputUTXOSum, txOutputSum)
 		if txOutputSum.Cmp(common.Big0) <= 0 {
 			return txs, fmt.Errorf("%s empty or negative spend: %s", node.Chain(), txOutputSum)
-		} else if inputUTXOSum.Cmp(txOutputSum) < 0 {
+		} else if remainder.Cmp(common.Big0) <= 0 {
 			return txs, fmt.Errorf("%s overspend: %s < %s", node.Chain(), inputUTXOSum, txOutputSum)
 		}
 
