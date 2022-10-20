@@ -13,6 +13,20 @@ import (
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 )
 
+func (node Node) getTransactionByHash(txid string) (*Transaction, error) {
+	res, err := node.rpcHost.ExecRPCFromArgs("cfx_getTransactionByHash", txid)
+	if err != nil {
+		return nil, err
+	}
+
+	tx := new(Transaction)
+	if err := json.Unmarshal(res.Result, tx); err != nil {
+		return nil, err
+	}
+
+	return tx, nil
+}
+
 func (node Node) getBalance(address string) (*big.Int, error) {
 	var res *rpc.Response
 	var err error

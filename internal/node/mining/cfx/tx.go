@@ -6,6 +6,7 @@ import (
 
 	ethCommon "github.com/ethereum/go-ethereum/common"
 
+	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/crypto/tx/cfxtx"
 	"github.com/magicpool-co/pool/types"
 )
@@ -23,7 +24,28 @@ func (node Node) GetBalance() (*big.Int, error) {
 }
 
 func (node Node) GetTx(txid string) (*types.TxResponse, error) {
-	return nil, nil
+	tx, err := node.getTransactionByHash(txid)
+	if err != nil {
+		return nil, err
+	}
+
+	var height uint64
+	var confirmed bool
+	if len(tx.EpochHeight) > 0 {
+		confirmed = true
+		height, err = common.HexToUint64(tx.EpochHeight)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	res := &types.TxResponse{
+		Hash:        tx.Hash,
+		BlockNumber: height,
+		Confirmed:   confirmed,
+	}
+
+	return res, nil
 }
 
 func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, string, error) {
