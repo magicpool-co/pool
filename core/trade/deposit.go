@@ -79,22 +79,13 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 
 		txs, err := c.bank.PrepareOutgoingTxs(dbTx, c.nodes[chain], txOutputIdx[chain])
 		if err != nil {
-			if err := dbTx.SafeRollback(); err != nil {
-				return err
-			}
-
+			dbTx.SafeRollback()
 			return err
 		} else if len(txs) != 1 {
-			if err := dbTx.SafeRollback(); err != nil {
-				return err
-			}
-
+			dbTx.SafeRollback()
 			return fmt.Errorf("no txs for deposit preparation")
 		} else if txs[0] == nil {
-			if err := dbTx.SafeRollback(); err != nil {
-				return err
-			}
-
+			dbTx.SafeRollback()
 			continue
 		}
 		tx := txs[0]
@@ -111,10 +102,7 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 
 		depositID, err := pooldb.InsertExchangeDeposit(c.pooldb.Writer(), deposit)
 		if err != nil {
-			if err := dbTx.SafeRollback(); err != nil {
-				return err
-			}
-
+			dbTx.SafeRollback()
 			return err
 		}
 

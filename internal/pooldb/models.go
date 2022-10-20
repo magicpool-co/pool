@@ -209,7 +209,7 @@ type ExchangeDeposit struct {
 	ChainID   string `db:"chain_id"`
 	NetworkID string `db:"network_id"`
 
-	TransactionID     uint64  `db:"transaction_id"`
+	TransactionID     *uint64 `db:"transaction_id"`
 	DepositTxID       string  `db:"deposit_txid"`
 	ExchangeTxID      *string `db:"exchange_txid"`
 	ExchangeDepositID *string `db:"exchange_deposit_id"`
@@ -320,7 +320,7 @@ type Payout struct {
 	MinerID uint64 `db:"miner_id"`
 	Address string `db:"address"`
 
-	TransactionID uint64  `db:"transaction_id"`
+	TransactionID *uint64 `db:"transaction_id"`
 	TxID          string  `db:"txid"`
 	Height        *uint64 `db:"height"`
 

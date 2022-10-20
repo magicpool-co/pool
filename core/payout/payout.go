@@ -154,7 +154,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 				continue
 			}
 
-			payout.TransactionID = txs[i].ID
+			payout.TransactionID = types.Uint64Ptr(txs[i].ID)
 			payout.TxID = txs[i].TxID
 			payoutID, err := pooldb.InsertPayout(dbTx, payout)
 			if err != nil {
@@ -202,16 +202,16 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			feeIdx[output.Address] = output.Fee
 		}
 
-		for i, payout := range payouts {
-			payouts[i].TransactionID = tx.ID
-			payouts[i].TxID = tx.TxID
-			payouts[i].TxFees = dbcl.NullBigInt{Valid: true, BigInt: feeIdx[payouts[i].Address]}
+		for _, payout := range payouts {
+			payout.TransactionID = types.Uint64Ptr(tx.ID)
+			payout.TxID = tx.TxID
+			payout.TxFees = dbcl.NullBigInt{Valid: true, BigInt: feeIdx[payout.Address]}
 			payoutID, err := pooldb.InsertPayout(dbTx, payout)
 			if err != nil {
 				return err
 			}
 
-			for _, balanceOutput := range balanceOutputIdx[payouts[i].MinerID] {
+			for _, balanceOutput := range balanceOutputIdx[payout.MinerID] {
 				balanceOutput.OutPayoutID = types.Uint64Ptr(payoutID)
 				err = pooldb.UpdateBalanceOutput(dbTx, balanceOutput, []string{"out_payout_id"})
 				if err != nil {
@@ -233,7 +233,11 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 	}
 
 	for _, payout := range payouts {
-		tx, err := pooldb.GetTransaction(c.pooldb.Reader(), payout.TransactionID)
+		if payout.TransactionID == nil {
+			return fmt.Errorf("no transaction id for payout %d", payout.ID)
+		}
+
+		tx, err := pooldb.GetTransaction(c.pooldb.Reader(), types.Uint64Value(payout.TransactionID))
 		if err != nil {
 			return err
 		} else if !tx.Spent || !tx.Confirmed {

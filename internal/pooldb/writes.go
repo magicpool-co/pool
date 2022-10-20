@@ -191,8 +191,8 @@ func InsertExchangeInputs(q dbcl.Querier, objects ...*ExchangeInput) error {
 func InsertExchangeDeposit(q dbcl.Querier, obj *ExchangeDeposit) (uint64, error) {
 	const table = "exchange_deposits"
 	cols := []string{
-		"batch_id", "chain_id", "network_id", "deposit_txid", "exchange_txid",
-		"exchange_deposit_id", "value", "fees", "registered", "confirmed",
+		"batch_id", "chain_id", "network_id", "transaction_id", "deposit_txid",
+		"exchange_txid", "exchange_deposit_id", "value", "fees", "registered", "confirmed",
 	}
 
 	return dbcl.ExecInsert(q, table, cols, obj)
