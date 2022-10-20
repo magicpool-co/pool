@@ -206,7 +206,7 @@ func (suite *PooldbWritesSuite) TestWriteUTXO() {
 			suite.T().Errorf("failed on %d: bulk insert: %v", i, err)
 		}
 
-		err = pooldb.UpdateUTXO(pooldbClient.Writer(), tt.utxo, []string{"spent"})
+		err = pooldb.UpdateUTXO(pooldbClient.Writer(), tt.utxo, []string{"active", "spent"})
 		if err != nil {
 			suite.T().Errorf("failed on %d: update: %v", i, err)
 		}

@@ -148,10 +148,11 @@ type UTXO struct {
 	ChainID       string  `db:"chain_id"`
 	TransactionID *uint64 `db:"transaction_id"`
 
-	Value dbcl.NullBigInt `db:"value"`
-	TxID  string          `db:"txid"`
-	Index uint32          `db:"idx"`
-	Spent bool            `db:"spent"`
+	Value  dbcl.NullBigInt `db:"value"`
+	TxID   string          `db:"txid"`
+	Index  uint32          `db:"idx"`
+	Active bool            `db:"active"`
+	Spent  bool            `db:"spent"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
@@ -307,6 +308,7 @@ type BalanceOutput struct {
 	Value        dbcl.NullBigInt `db:"value"`
 	PoolFees     dbcl.NullBigInt `db:"pool_fees"`
 	ExchangeFees dbcl.NullBigInt `db:"exchange_fees"`
+	Spent        bool            `db:"spent"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`

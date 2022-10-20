@@ -867,6 +867,19 @@ func GetBalanceInputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceInput, e
 	return output, err
 }
 
+func GetBalanceOutputsByPayoutTransaction(q dbcl.Querier, transactionID uint64) ([]*BalanceOutput, error) {
+	const query = `SELECT balance_outputs.*
+	FROM balance_outputs
+	JOIN payouts ON payouts.id = balance_outputs.out_payout_id
+	WHERE
+		payouts.transaction_id = ?;`
+
+	output := []*BalanceOutput{}
+	err := q.Select(&output, query, transactionID)
+
+	return output, err
+}
+
 func GetPendingBalanceInputSumByChain(q dbcl.Querier, chain string) (*big.Int, error) {
 	const query = `SELECT sum(value)
 	FROM balance_inputs

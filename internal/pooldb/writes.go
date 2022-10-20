@@ -123,7 +123,7 @@ func InsertShares(q dbcl.Querier, objects ...*Share) error {
 
 func InsertUTXOs(q dbcl.Querier, objects ...*UTXO) error {
 	const table = "utxos"
-	cols := []string{"chain_id", "value", "txid", "idx", "spent"}
+	cols := []string{"chain_id", "value", "txid", "idx", "active", "spent"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
@@ -275,7 +275,7 @@ func InsertBalanceOutput(q dbcl.Querier, obj *BalanceOutput) (uint64, error) {
 	const table = "balance_outputs"
 	cols := []string{
 		"chain_id", "miner_id", "in_batch_id", "in_deposit_id", "in_payout_id",
-		"out_payout_id", "value", "pool_fees", "exchange_fees",
+		"out_payout_id", "value", "pool_fees", "exchange_fees", "spent",
 	}
 
 	return dbcl.ExecInsert(q, table, cols, obj)

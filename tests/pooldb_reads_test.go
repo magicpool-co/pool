@@ -353,6 +353,11 @@ func (suite *PooldbReadsSuite) TestReadBalanceOutput() {
 		suite.T().Errorf("failed: GetBalanceOutputsByBatch: %v", err)
 	}
 
+	_, err = pooldb.GetBalanceOutputsByPayoutTransaction(pooldbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetBalanceOutputsByPayoutTransaction: %v", err)
+	}
+
 	_, err = pooldb.GetUnpaidBalanceOutputByChain(pooldbClient.Reader(), "ETH")
 	if err != nil {
 		suite.T().Errorf("failed: GetUnpaidBalanceOutputByChain: %v", err)

@@ -24,6 +24,7 @@ func (c *Client) RegisterIncomingTx(node types.PayoutNode, txid string) (bool, e
 				ChainID: node.Chain(),
 				TxID:    txid,
 				Value:   dbcl.NullBigInt{Valid: true, BigInt: tx.Value},
+				Active:  true,
 			},
 		}
 	case types.UTXOStructure:
@@ -38,6 +39,7 @@ func (c *Client) RegisterIncomingTx(node types.PayoutNode, txid string) (bool, e
 				TxID:    txid,
 				Index:   output.Index,
 				Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(output.Value)},
+				Active:  true,
 			}
 			utxos = append(utxos, utxo)
 		}

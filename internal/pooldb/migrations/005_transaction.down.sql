@@ -1,3 +1,6 @@
+ALTER TABLE balance_outputs DROP COLUMN spent;
+
+ALTER TABLE utxos DROP COLUMN active;
 ALTER TABLE utxos DROP CONSTRAINT fk_utxos_transaction_id;
 ALTER TABLE utxos DROP INDEX idx_utxos_transaction_id;
 ALTER TABLE utxos DROP COLUMN transaction_id;

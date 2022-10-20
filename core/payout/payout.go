@@ -240,19 +240,6 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 			payout.FeeBalance = tx.FeeBalance
 			payout.TxFees.BigInt.Sub(payout.TxFees.BigInt, tx.FeeBalance.BigInt)
 
-			utxo := &pooldb.UTXO{
-				ChainID: node.Chain(),
-				TxID:    payout.TxID,
-				Index:   0,
-				Value:   payout.FeeBalance,
-				Spent:   false,
-			}
-
-			err = pooldb.InsertUTXOs(c.pooldb.Writer(), utxo)
-			if err != nil {
-				return err
-			}
-
 			balanceOutput := &pooldb.BalanceOutput{
 				ChainID:    payout.ChainID,
 				MinerID:    payout.MinerID,

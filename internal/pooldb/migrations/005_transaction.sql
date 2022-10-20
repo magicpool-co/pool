@@ -26,6 +26,8 @@ CREATE TABLE transactions (
 ALTER TABLE utxos ADD COLUMN transaction_id bigint UNSIGNED AFTER chain_id;
 ALTER TABLE utxos ADD INDEX idx_utxos_transaction_id (transaction_id);
 ALTER TABLE utxos ADD CONSTRAINT fk_utxos_transaction_id FOREIGN KEY (transaction_id) REFERENCES transactions(id);
+ALTER TABLE utxos ADD COLUMN active boolean NOT NULL DEFAULT FALSE AFTER idx;
+UPDATE utxos SET active = TRUE;
 
 ALTER TABLE exchange_deposits DROP COLUMN spent;
 ALTER TABLE exchange_deposits ADD COLUMN transaction_id bigint UNSIGNED AFTER network_id;
@@ -35,3 +37,6 @@ ALTER TABLE exchange_deposits ADD CONSTRAINT fk_exchange_deposits_transaction_id
 ALTER TABLE payouts ADD COLUMN transaction_id bigint UNSIGNED AFTER address;
 ALTER TABLE payouts ADD INDEX idx_payouts_transaction_id (transaction_id);
 ALTER TABLE payouts ADD CONSTRAINT fk_payouts_transaction_id FOREIGN KEY (transaction_id) REFERENCES transactions(id);
+
+ALTER TABLE balance_outputs ADD COLUMN spent boolean NOT NULL DEFAULT FALSE AFTER exchange_fees;
+UPDATE balance_outputs SET spent = TRUE where out_payout_id IS NOT NULL;

@@ -169,6 +169,7 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txOut
 					TxID:    txid,
 					Index:   txs[i].RemainderIdx,
 					Value:   txs[i].Remainder,
+					Active:  false,
 				},
 			}
 
@@ -189,7 +190,8 @@ func (c *Client) spendTx(node types.PayoutNode, tx, nextTx *pooldb.Transaction) 
 	}
 	defer dbTx.SafeRollback()
 
-	inputUTXOs, err := pooldb.GetUTXOsByTransactionID(c.pooldb.Writer(), tx.ID)
+	// verify input utxo sum to make sure there are enough funds in the wallet
+	inputUTXOs, err := pooldb.GetUTXOsByTransactionID(dbTx, tx.ID)
 	if err != nil {
 		return err
 	}
@@ -208,6 +210,26 @@ func (c *Client) spendTx(node types.PayoutNode, tx, nextTx *pooldb.Transaction) 
 		return fmt.Errorf("overspend on tx %d: have %s, want %s", tx.ID, inputUTXOSum, tx.Value.BigInt)
 	}
 
+	// verify balance output sum to make sure the correct amount the miner is owed is being spent
+	balanceOutputs, err := pooldb.GetBalanceOutputsByPayoutTransaction(dbTx, tx.ID)
+	if err != nil {
+		return err
+	}
+
+	balanceOutputSum := new(big.Int)
+	for _, balanceOutput := range balanceOutputs {
+		if !balanceOutput.Value.Valid {
+			return fmt.Errorf("no value for balance output %d", balanceOutput.ID)
+		} else if balanceOutput.Spent {
+			continue
+		}
+		balanceOutputSum.Add(balanceOutputSum, balanceOutput.Value.BigInt)
+	}
+
+	if balanceOutputSum.Cmp(tx.Value.BigInt) != 0 {
+		return fmt.Errorf("balance output sum and tx value mismatch: have %s, want %s", balanceOutputSum, tx.Value.BigInt)
+	}
+
 	txid, err := node.BroadcastTx(tx.TxHex)
 	if err != nil {
 		return err
@@ -216,29 +238,24 @@ func (c *Client) spendTx(node types.PayoutNode, tx, nextTx *pooldb.Transaction) 
 	// spend input utxos
 	for _, utxo := range inputUTXOs {
 		utxo.Spent = true
-		err = pooldb.UpdateUTXO(c.pooldb.Writer(), utxo, []string{"spent"})
+		err = pooldb.UpdateUTXO(dbTx, utxo, []string{"spent"})
 		if err != nil {
 			return err
 		}
 	}
 
-	if tx.Remainder.Valid && tx.Remainder.BigInt.Cmp(common.Big0) > 0 {
-		var nextTransactionID *uint64
-		if nextTx != nil {
-			nextTransactionID = types.Uint64Ptr(nextTx.ID)
-		}
-
-		remainderUTXO := &pooldb.UTXO{
-			ChainID:       node.Chain(),
-			TransactionID: nextTransactionID,
-			TxID:          txid,
-			Index:         tx.RemainderIdx,
-			Value:         tx.Remainder,
-		}
-
-		err = pooldb.InsertUTXOs(c.pooldb.Writer(), remainderUTXO)
+	if nextTx != nil {
+		utxos, err := pooldb.GetUTXOsByTransactionID(dbTx, nextTx.ID)
 		if err != nil {
 			return err
+		}
+
+		for _, utxo := range utxos {
+			utxo.Active = true
+			err = pooldb.UpdateUTXO(dbTx, utxo, []string{"active"})
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -247,7 +264,7 @@ func (c *Client) spendTx(node types.PayoutNode, tx, nextTx *pooldb.Transaction) 
 		tx.TxID = txid
 	}
 
-	err = pooldb.UpdateTransaction(c.pooldb.Writer(), tx, []string{"txid", "spent"})
+	err = pooldb.UpdateTransaction(dbTx, tx, []string{"txid", "spent"})
 	if err != nil {
 		return err
 	}
@@ -329,6 +346,7 @@ func (c *Client) ConfirmOutgoingTxs(node types.PayoutNode) error {
 				TxID:    tx.TxID,
 				Index:   0,
 				Value:   tx.FeeBalance,
+				Active:  true,
 				Spent:   false,
 			}
 
