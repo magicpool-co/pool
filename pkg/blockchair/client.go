@@ -61,6 +61,7 @@ func (c *Client) do(method, path string, body, target interface{}) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Add("Content-Type", "application/json")
 
 	client := http.Client{
 		Timeout: time.Duration(3 * time.Second),

@@ -327,6 +327,8 @@ func (c *Client) ConfirmOutgoingTxs(node types.PayoutNode) error {
 		nodeTx, err := node.GetTx(tx.TxID)
 		if err != nil {
 			return err
+		} else if nodeTx == nil {
+			continue
 		} else if !nodeTx.Confirmed {
 			if time.Since(tx.CreatedAt) > time.Hour*24 {
 				// @TODO: manage failed transactions
