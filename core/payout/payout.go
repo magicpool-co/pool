@@ -263,7 +263,9 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 				MinerID:    payout.MinerID,
 				InPayoutID: types.Uint64Ptr(payout.ID),
 
-				Value: payout.FeeBalance,
+				Value:        payout.FeeBalance,
+				PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
 			}
 
 			err = pooldb.InsertBalanceOutputs(c.pooldb.Writer(), balanceOutput)
