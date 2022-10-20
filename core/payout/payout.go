@@ -161,6 +161,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 
 			payout.TransactionID = types.Uint64Ptr(txs[i].ID)
 			payout.TxID = txs[i].TxID
+			payout.TxFees = dbcl.NullBigInt{Valid: true, BigInt: outputList[i][0].Fee}
 			payoutID, err := pooldb.InsertPayout(dbTx, payout)
 			if err != nil {
 				return err
