@@ -24,6 +24,14 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txOut
 	}
 	defer lock.Release(context.Background())
 
+	// verify that there are no other unspent transactions active
+	count, err := pooldb.GetUnspentTransactionCount(q, node.Chain())
+	if err != nil {
+		return txs, err
+	} else if count > 0 {
+		return txs, nil
+	}
+
 	inputUTXOs, err := pooldb.GetUnspentUTXOsByChain(q, node.Chain())
 	if err != nil {
 		return txs, err
