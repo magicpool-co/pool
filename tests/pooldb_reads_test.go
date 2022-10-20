@@ -402,6 +402,11 @@ func (suite *PooldbReadsSuite) TestReadPayout() {
 		suite.T().Errorf("failed: GetUnconfirmedPayouts: %v", err)
 	}
 
+	_, err = pooldb.GetUnconfirmedPayoutSum(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnconfirmedPayoutSum: %v", err)
+	}
+
 	_, err = pooldb.GetPayouts(pooldbClient.Reader(), 10, 10)
 	if err != nil {
 		suite.T().Errorf("failed: GetPayouts: %v", err)

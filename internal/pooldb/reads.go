@@ -1103,6 +1103,20 @@ func GetUnconfirmedPayouts(q dbcl.Querier, chain string) ([]*Payout, error) {
 	return output, err
 }
 
+func GetUnconfirmedPayoutSum(q dbcl.Querier, chain string) (*big.Int, error) {
+	const query = `SELECT SUM(payouts.value) + SUM(payouts.tx_fees) value
+	FROM payouts
+	JOIN transactions ON payouts.transaction_id = transactions.id
+	WHERE
+		payouts.chain_id = ?
+	AND
+		payouts.confirmed = FALSE
+	AND
+		transactions.spent = TRUE;`
+
+	return dbcl.GetBigInt(q, query, chain)
+}
+
 func GetPayouts(q dbcl.Querier, page, size uint64) ([]*Payout, error) {
 	const query = `SELECT *
 	FROM payouts

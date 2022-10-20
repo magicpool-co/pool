@@ -60,8 +60,13 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 		if err != nil {
 			return err
 		}
-
 		sumMinerBalance.Add(sumMinerBalance, unspentRoundSum)
+
+		unconfirmedPayoutValue, err := pooldb.GetUnconfirmedPayoutSum(pooldbClient.Reader(), chain)
+		if err != nil {
+			return err
+		}
+		sumMinerBalance.Sub(sumMinerBalance, unconfirmedPayoutValue)
 	}
 
 	if utxoBalance.Cmp(sumMinerBalance) != 0 {
