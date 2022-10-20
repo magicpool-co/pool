@@ -183,7 +183,8 @@ type Transaction struct {
 	Inputs        []*TransactionInput  `json:"inputs"`
 	Outputs       []*TransactionOutput `json:"outputs"`
 	Size          uint64               `json:"size"`
-	Confirmations uint64               `json:"numConfirmations"`
+	Height        int64                `json:"inclusionHeight"`
+	Confirmations int64                `json:"numConfirmations"`
 }
 
 type BlockTransactions struct {

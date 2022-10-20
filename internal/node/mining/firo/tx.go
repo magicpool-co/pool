@@ -54,8 +54,8 @@ func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 		return nil, err
 	}
 
-	confirmed := false
 	var height uint64
+	var confirmed bool
 	if tx.Height > 0 && tx.Confirmations > 0 {
 		confirmed = true
 		height = uint64(tx.Height)

@@ -122,8 +122,8 @@ func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 		}
 	}
 
-	confirmed := false
 	var height uint64
+	var confirmed bool
 	if tx.Tx.BlockID != -1 {
 		confirmed = true
 		height = uint64(tx.Tx.BlockID)

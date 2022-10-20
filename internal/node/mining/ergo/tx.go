@@ -27,7 +27,25 @@ func (node Node) GetBalance() (*big.Int, error) {
 }
 
 func (node Node) GetTx(txid string) (*types.TxResponse, error) {
-	return nil, nil
+	tx, err := node.getWalletTransactionByID(txid)
+	if err != nil {
+		return nil, err
+	}
+
+	var height uint64
+	var confirmed bool
+	if tx.Height > 0 && tx.Confirmations > 0 {
+		confirmed = true
+		height = uint64(tx.Height)
+	}
+
+	res := &types.TxResponse{
+		Hash:        txid,
+		BlockNumber: height,
+		Confirmed:   confirmed,
+	}
+
+	return res, nil
 }
 
 func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, string, error) {

@@ -108,9 +108,9 @@ func (node Node) getWalletTransactionByID(txid string) (*Transaction, error) {
 	var tx *Transaction
 	var err error
 	if node.mocked {
-		err = json.Unmarshal(mock.GetWalletStatus(), &tx)
+		// @TODO
 	} else {
-		err = node.httpHost.ExecHTTP("POST", "/wallet/transactionById?id="+txid, nil, &tx)
+		err = node.httpHost.ExecHTTP("GET", "/wallet/transactionById?id="+txid, nil, &tx)
 	}
 
 	return tx, err
