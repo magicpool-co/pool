@@ -659,10 +659,26 @@ func GetUnspentUTXOsByChain(q dbcl.Querier, chainID string) ([]*UTXO, error) {
 	WHERE
 		chain_id = ?
 	AND
+		transaction_id IS NULL
+	AND
+		active = TRUE
+	AND
 		spent = FALSE;`
 
 	output := []*UTXO{}
 	err := q.Select(&output, query, chainID)
+
+	return output, err
+}
+
+func GetUTXOsByTransactionID(q dbcl.Querier, transactionID uint64) ([]*UTXO, error) {
+	const query = `SELECT *
+	FROM utxos
+	WHERE
+		transaction_id = ?;`
+
+	output := []*UTXO{}
+	err := q.Select(&output, query, transactionID)
 
 	return output, err
 }
@@ -673,9 +689,71 @@ func GetSumUnspentUTXOValueByChain(q dbcl.Querier, chainID string) (*big.Int, er
 	WHERE
 		chain_id = ?
 	AND
+		active = TRUE
+	AND
 		spent = FALSE;`
 
 	return dbcl.GetBigInt(q, query, chainID)
+}
+
+/* transactions */
+
+func GetTransaction(q dbcl.Querier, id uint64) (*Transaction, error) {
+	const query = `SELECT *
+	FROM transactions
+	WHERE
+		id = ?;`
+
+	output := new(Transaction)
+	err := q.Get(output, query, id)
+	if err != nil && err != sql.ErrNoRows {
+		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return output, nil
+}
+
+func GetUnspentTransactions(q dbcl.Querier, chainID string) ([]*Transaction, error) {
+	const query = `SELECT *
+	FROM transactions
+	WHERE
+		chain_id = ?
+	AND
+		spent = FALSE;`
+
+	output := []*Transaction{}
+	err := q.Select(&output, query, chainID)
+
+	return output, err
+}
+
+func GetUnspentTransactionCount(q dbcl.Querier, chainID string) (uint64, error) {
+	const query = `SELECT COUNT(id)
+	FROM transactions
+	WHERE
+		chain_id = ?
+	AND
+		spent = FALSE;`
+
+	return dbcl.GetUint64(q, query, chainID)
+}
+
+func GetUnconfirmedTransactions(q dbcl.Querier, chainID string) ([]*Transaction, error) {
+	const query = `SELECT *
+	FROM transactions
+	WHERE
+		chain_id = ?
+	AND
+		spent = TRUE
+	AND
+		confirmed = FALSE;`
+
+	output := []*Transaction{}
+	err := q.Select(&output, query, chainID)
+
+	return output, err
 }
 
 /* batch queries */
@@ -891,7 +969,36 @@ func GetBalanceOutputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceOutput,
 	return output, err
 }
 
-func GetUnpaidBalanceOutputByChain(q dbcl.Querier, chain string) (*big.Int, error) {
+func GetBalanceOutputsByPayoutTransaction(q dbcl.Querier, transactionID uint64) ([]*BalanceOutput, error) {
+	const query = `SELECT balance_outputs.*
+	FROM balance_outputs
+	JOIN payouts ON payouts.id = balance_outputs.out_payout_id
+	WHERE
+		payouts.transaction_id = ?;`
+
+	output := []*BalanceOutput{}
+	err := q.Select(&output, query, transactionID)
+
+	return output, err
+}
+
+func GetUnpaidBalanceOutputsByMiner(q dbcl.Querier, minerID uint64, chain string) ([]*BalanceOutput, error) {
+	const query = `SELECT *
+	FROM balance_outputs
+	WHERE
+		miner_id = ?
+	AND
+		chain_id = ?
+	AND
+		out_payout_id IS NULL;`
+
+	output := []*BalanceOutput{}
+	err := q.Select(&output, query, minerID, chain)
+
+	return output, err
+}
+
+func GetUnpaidBalanceOutputSumByChain(q dbcl.Querier, chain string) (*big.Int, error) {
 	const query = `SELECT sum(value)
 	FROM balance_outputs
 	WHERE

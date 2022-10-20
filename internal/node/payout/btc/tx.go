@@ -151,20 +151,21 @@ func (node Node) GetBalance() (*big.Int, error) {
 	return new(big.Int).SetUint64(address.Balance), nil
 }
 
-func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, error) {
+func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, string, error) {
 	feeRate, err := getFeeRate()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	baseTx := btctx.NewTransaction(txVersion, 0, node.prefixP2PKH, node.prefixP2SH, true)
 	rawTx, err := btctx.GenerateTx(node.privKey, baseTx, inputs, outputs, feeRate)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	tx := hex.EncodeToString(rawTx)
+	txid := btctx.CalculateTxID(tx)
 
-	return tx, nil
+	return txid, tx, nil
 }
 
 func (node Node) BroadcastTx(tx string) (string, error) {

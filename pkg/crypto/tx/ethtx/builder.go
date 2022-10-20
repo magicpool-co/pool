@@ -10,6 +10,8 @@ import (
 	ethCommon "github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/magicpool-co/pool/pkg/crypto"
 )
 
 func GenerateContractData(function string, args ...[]byte) []byte {
@@ -103,4 +105,10 @@ func NewLegacyTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, 
 	hex.Encode(encodedTx[2:], txBin)
 
 	return string(encodedTx), fees, nil
+}
+
+func CalculateTxID(tx string) string {
+	txid := crypto.Keccak256([]byte(tx))
+
+	return hex.EncodeToString(txid)
 }

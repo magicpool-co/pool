@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/magicpool-co/pool/core/bank"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/dbcl"
@@ -56,13 +55,12 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 		txOutputIdx[chain] = []*types.TxOutput{
 			&types.TxOutput{
 				Address:  address,
-				Value:    values[chain],
+				Value:    value,
 				SplitFee: true,
 			},
 		}
 	}
 
-	// make sure any deposits don't end up going through twice
 	deposits, err := pooldb.GetExchangeDeposits(c.pooldb.Reader(), batchID)
 	if err != nil {
 		return err
@@ -72,34 +70,55 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 		delete(values, deposit.ChainID)
 	}
 
-	// execute the deposit for each chain
+	initiatedAll := true
 	for chain, value := range values {
-		// @TODO: check if deposit has already been executed
-		txid, err := bank.SendOutgoingTx(c.nodes[chain], c.pooldb, txOutputIdx[chain])
+		dbTx, err := c.pooldb.Begin()
 		if err != nil {
 			return err
 		}
+
+		txs, err := c.bank.PrepareOutgoingTxs(dbTx, c.nodes[chain], txOutputIdx[chain])
+		if err != nil {
+			dbTx.SafeRollback()
+			return err
+		} else if len(txs) != 1 {
+			dbTx.SafeRollback()
+			return fmt.Errorf("no txs for deposit preparation")
+		} else if txs[0] == nil {
+			dbTx.SafeRollback()
+			continue
+		}
+		tx := txs[0]
 
 		deposit := &pooldb.ExchangeDeposit{
 			BatchID:   batchID,
 			ChainID:   chain,
 			NetworkID: chain,
 
-			DepositTxID: txid,
+			DepositTxID: tx.TxID,
 
 			Value: dbcl.NullBigInt{Valid: true, BigInt: value},
 		}
 
 		depositID, err := pooldb.InsertExchangeDeposit(c.pooldb.Writer(), deposit)
 		if err != nil {
+			dbTx.SafeRollback()
+			return err
+		}
+
+		if err := dbTx.SafeCommit(); err != nil {
 			return err
 		}
 
 		floatValue := common.BigIntToFloat64(value, c.nodes[chain].GetUnits().Big())
-		c.telegram.NotifyInitiateDeposit(depositID, chain, txid, c.nodes[chain].GetTxExplorerURL(txid), floatValue)
+		c.telegram.NotifyInitiateDeposit(depositID, chain, floatValue)
 	}
 
-	return c.updateBatchStatus(batchID, DepositsActive)
+	if initiatedAll {
+		return c.updateBatchStatus(batchID, DepositsActive)
+	}
+
+	return nil
 }
 
 func (c *Client) RegisterDeposits(batchID uint64) error {

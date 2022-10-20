@@ -40,7 +40,7 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 		return err
 	}
 
-	outputBalance, err := pooldb.GetUnpaidBalanceOutputByChain(pooldbClient.Reader(), chain)
+	outputBalance, err := pooldb.GetUnpaidBalanceOutputSumByChain(pooldbClient.Reader(), chain)
 	if err != nil {
 		return err
 	}

@@ -5,11 +5,13 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/magicpool-co/pool/core/bank"
 	"github.com/magicpool-co/pool/core/trade/binance"
 	"github.com/magicpool-co/pool/core/trade/bittrex"
 	"github.com/magicpool-co/pool/core/trade/kucoin"
 	"github.com/magicpool-co/pool/internal/accounting"
 	"github.com/magicpool-co/pool/internal/pooldb"
+	"github.com/magicpool-co/pool/internal/redis"
 	"github.com/magicpool-co/pool/internal/telegram"
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/dbcl"
@@ -72,11 +74,13 @@ type Client struct {
 	exchangeID types.ExchangeID
 	exchange   types.Exchange
 	pooldb     *dbcl.Client
+	redis      *redis.Client
 	nodes      map[string]types.PayoutNode
 	telegram   *telegram.Client
+	bank       *bank.Client
 }
 
-func New(pooldbClient *dbcl.Client, nodes []types.PayoutNode, exchange types.Exchange, telegramClient *telegram.Client) *Client {
+func New(pooldbClient *dbcl.Client, redisClient *redis.Client, nodes []types.PayoutNode, exchange types.Exchange, telegramClient *telegram.Client) *Client {
 	nodeIdx := make(map[string]types.PayoutNode)
 	for _, node := range nodes {
 		nodeIdx[node.Chain()] = node
@@ -86,8 +90,10 @@ func New(pooldbClient *dbcl.Client, nodes []types.PayoutNode, exchange types.Exc
 		exchangeID: exchange.ID(),
 		exchange:   exchange,
 		pooldb:     pooldbClient,
+		redis:      redisClient,
 		nodes:      nodeIdx,
 		telegram:   telegramClient,
+		bank:       bank.New(pooldbClient, redisClient, telegramClient),
 	}
 
 	return client

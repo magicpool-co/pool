@@ -1,11 +1,14 @@
 package btctx
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/big"
 
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
 	secp256k1signer "github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 
+	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/crypto/base58"
 	"github.com/magicpool-co/pool/types"
@@ -31,34 +34,42 @@ func GenerateRawTx(baseTx *transaction, inputs []*types.TxInput, outputs []*type
 		}
 	}
 
-	var sumOutputAmount, sumSplitAmount uint64
+	var sumOutputAmount uint64
+	sumSplitAmount := new(big.Int)
 	for _, out := range outputs {
 		sumOutputAmount += out.Value.Uint64()
 		if out.SplitFee {
-			sumSplitAmount += out.Value.Uint64()
+			sumSplitAmount.Add(sumSplitAmount, out.Value)
 		}
 	}
 
 	if sumOutputAmount != sumInputAmount {
 		return nil, fmt.Errorf("amount mismatch: input %d, output %d", sumInputAmount, sumOutputAmount)
-	} else if sumSplitAmount < fee {
-		return nil, fmt.Errorf("not enough fee space: have %d, want %d", sumSplitAmount, fee)
 	}
 
-	var usedFee uint64
+	usedFees := new(big.Int)
 	for _, out := range outputs {
-		if out.SplitFee {
-			out.Fees = (fee * out.Value.Uint64()) / sumSplitAmount
-			usedFee += out.Fees
+		if !out.SplitFee {
+			out.Fee = new(big.Int)
+			continue
 		}
+
+		out.Fee = new(big.Int).Mul(new(big.Int).SetUint64(fee), out.Value)
+		out.Fee.Div(out.Fee, sumSplitAmount)
+		out.Value.Sub(out.Value, out.Fee)
+		usedFees.Add(usedFees, out.Fee)
 	}
 
-	if usedFee > fee {
-		return nil, fmt.Errorf("used too much fees: have %d, want %d", usedFee, fee)
-	} else if usedFee < fee {
-		for _, out := range outputs {
-			if out.SplitFee {
-				out.Fees += (fee - usedFee)
+	remainder := new(big.Int).Sub(new(big.Int).SetUint64(fee), usedFees)
+	if remainder.Cmp(common.Big0) < 0 {
+		return nil, fmt.Errorf("fee remainder is negative")
+	} else if remainder.Cmp(common.Big0) > 0 {
+		for _, output := range outputs {
+			if !output.SplitFee {
+				continue
+			} else if output.Value.Cmp(remainder) > 0 {
+				output.Value.Sub(output.Value, remainder)
+				remainder = new(big.Int)
 				break
 			}
 		}
@@ -69,7 +80,7 @@ func GenerateRawTx(baseTx *transaction, inputs []*types.TxInput, outputs []*type
 		if err != nil {
 			return nil, err
 		}
-		tx.AddOutput(outputScript, out.Value.Uint64()-out.Fees)
+		tx.AddOutput(outputScript, out.Value.Uint64())
 	}
 
 	return tx, nil
@@ -109,7 +120,7 @@ func GenerateSignedTx(privKey *secp256k1.PrivateKey, baseTx *transaction, inputs
 		if err != nil {
 			return nil, err
 		}
-		signedTx.AddOutput(outputScript, out.Value.Uint64()-out.Fees)
+		signedTx.AddOutput(outputScript, out.Value.Uint64())
 	}
 
 	return signedTx, nil
@@ -142,4 +153,15 @@ func GenerateTx(privKey *secp256k1.PrivateKey, baseTx *transaction, inputs []*ty
 	}
 
 	return finalTxSerialized, nil
+}
+
+func CalculateTxID(tx string) string {
+	txBytes, err := hex.DecodeString(tx)
+	if err != nil {
+		return ""
+	}
+
+	txid := crypto.ReverseBytes(crypto.Sha256d(txBytes))
+
+	return hex.EncodeToString(txid)
 }

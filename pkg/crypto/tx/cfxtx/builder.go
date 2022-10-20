@@ -10,17 +10,19 @@ import (
 	cfxTypes "github.com/Conflux-Chain/go-conflux-sdk/types"
 	cfxAddress "github.com/Conflux-Chain/go-conflux-sdk/types/cfxaddress"
 	ethCrypto "github.com/ethereum/go-ethereum/crypto"
+
+	"github.com/magicpool-co/pool/pkg/crypto"
 )
 
-func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, gasPrice *big.Int, gasLimit, storageLimit, nonce, chainID, epochNumber uint64) (string, error) {
+func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, gasPrice *big.Int, gasLimit, storageLimit, nonce, chainID, epochNumber uint64) (string, *big.Int, error) {
 	fromAddress, err := cfxAddress.NewFromBytes(ethCrypto.PubkeyToAddress(privKey.PublicKey).Bytes())
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	toAddress, err := cfxAddress.NewFromBase32(address)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	// minimum gas price is one, in case it sets to zero
@@ -28,11 +30,11 @@ func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, gasPri
 		gasPrice = new(big.Int).SetUint64(1)
 	}
 
-	gasTotal := new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gasLimit))
-	if value.Cmp(gasTotal) <= 0 {
-		return "", fmt.Errorf("gas total greater than value")
+	fee := new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gasLimit))
+	if value.Cmp(fee) <= 0 {
+		return "", nil, fmt.Errorf("fee greater than value")
 	}
-	value = new(big.Int).Sub(value, gasTotal)
+	value = new(big.Int).Sub(value, fee)
 
 	tx := cfxTypes.UnsignedTransaction{
 		UnsignedTransactionBase: cfxTypes.UnsignedTransactionBase{
@@ -51,22 +53,32 @@ func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, gasPri
 
 	txHash, err := tx.Hash()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	sig, err := ethCrypto.Sign(txHash, privKey)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	txBin, err := tx.EncodeWithSignature(sig[64], sig[0:32], sig[32:64])
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	encodedTx := make([]byte, len(txBin)*2+2)
 	copy(encodedTx, "0x")
 	hex.Encode(encodedTx[2:], txBin)
 
-	return string(encodedTx), nil
+	return string(encodedTx), fee, nil
+}
+
+func CalculateTxID(tx string) string {
+	txBytes, err := hex.DecodeString(tx)
+	if err != nil {
+		return ""
+	}
+	txid := crypto.Keccak256(txBytes)
+
+	return hex.EncodeToString(txid)
 }

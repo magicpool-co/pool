@@ -206,7 +206,36 @@ func (suite *PooldbWritesSuite) TestWriteUTXO() {
 			suite.T().Errorf("failed on %d: bulk insert: %v", i, err)
 		}
 
-		err = pooldb.UpdateUTXO(pooldbClient.Writer(), tt.utxo, []string{"spent"})
+		err = pooldb.UpdateUTXO(pooldbClient.Writer(), tt.utxo, []string{"active", "spent"})
+		if err != nil {
+			suite.T().Errorf("failed on %d: update: %v", i, err)
+		}
+	}
+}
+
+func (suite *PooldbWritesSuite) TestWriteTransaction() {
+	tests := []struct {
+		tx *pooldb.Transaction
+	}{
+		{
+			&pooldb.Transaction{
+				ChainID:   "ETC",
+				Value:     dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				Fee:       dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				Remainder: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+			},
+		},
+	}
+
+	var err error
+	for i, tt := range tests {
+		_, err = pooldb.InsertTransaction(pooldbClient.Writer(), tt.tx)
+		if err != nil {
+			suite.T().Errorf("failed on %d: insert: %v", i, err)
+		}
+
+		cols := []string{"height", "fee", "fee_balance", "spent", "confirmed", "failed"}
+		err = pooldb.UpdateTransaction(pooldbClient.Writer(), tt.tx, cols)
 		if err != nil {
 			suite.T().Errorf("failed on %d: update: %v", i, err)
 		}
@@ -440,11 +469,6 @@ func (suite *PooldbWritesSuite) TestWriteBalanceOutput() {
 		err = pooldb.UpdateBalanceOutput(pooldbClient.Writer(), tt.output, cols)
 		if err != nil {
 			suite.T().Errorf("failed on %d: update: %v", i, err)
-		}
-
-		err = pooldb.UpdateBalanceOutputsSetOutPayoutID(pooldbClient.Writer(), 1, 1, "ETH")
-		if err != nil {
-			suite.T().Errorf("failed on %d: update set payout id: %v", i, err)
 		}
 	}
 }

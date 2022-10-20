@@ -226,9 +226,38 @@ func (suite *PooldbReadsSuite) TestReadUTXO() {
 		suite.T().Errorf("failed: GetUnspentUTXOsByChain: %v", err)
 	}
 
+	_, err = pooldb.GetUTXOsByTransactionID(pooldbClient.Reader(), 0)
+	if err != nil {
+		suite.T().Errorf("failed: GetUTXOsByTransactionID: %v", err)
+	}
+
 	_, err = pooldb.GetSumUnspentUTXOValueByChain(pooldbClient.Reader(), "ETH")
 	if err != nil {
 		suite.T().Errorf("failed: GetSumUnspentUTXOValueByChain: %v", err)
+	}
+}
+
+func (suite *PooldbReadsSuite) TestReadTransaction() {
+	var err error
+
+	_, err = pooldb.GetTransaction(pooldbClient.Reader(), 0)
+	if err != nil {
+		suite.T().Errorf("failed: GetTransaction: %v", err)
+	}
+
+	_, err = pooldb.GetUnspentTransactions(pooldbClient.Reader(), "ETC")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnspentTransactions: %v", err)
+	}
+
+	_, err = pooldb.GetUnspentTransactionCount(pooldbClient.Reader(), "ETC")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnspentTransactionCount: %v", err)
+	}
+
+	_, err = pooldb.GetUnconfirmedTransactions(pooldbClient.Reader(), "ETC")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnconfirmedTransactions: %v", err)
 	}
 }
 
@@ -329,9 +358,19 @@ func (suite *PooldbReadsSuite) TestReadBalanceOutput() {
 		suite.T().Errorf("failed: GetBalanceOutputsByBatch: %v", err)
 	}
 
-	_, err = pooldb.GetUnpaidBalanceOutputByChain(pooldbClient.Reader(), "ETH")
+	_, err = pooldb.GetBalanceOutputsByPayoutTransaction(pooldbClient.Reader(), 1)
 	if err != nil {
-		suite.T().Errorf("failed: GetUnpaidBalanceOutputByChain: %v", err)
+		suite.T().Errorf("failed: GetBalanceOutputsByPayoutTransaction: %v", err)
+	}
+
+	_, err = pooldb.GetUnpaidBalanceOutputsByMiner(pooldbClient.Reader(), 1, "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnpaidBalanceOutputsByMiner: %v", err)
+	}
+
+	_, err = pooldb.GetUnpaidBalanceOutputSumByChain(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnpaidBalanceOutputSumByChain: %v", err)
 	}
 
 	_, err = pooldb.GetUnpaidBalanceOutputSumByMiner(pooldbClient.Reader(), 1, "ETH")

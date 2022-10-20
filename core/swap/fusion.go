@@ -156,7 +156,7 @@ func (c *FusionClient) InitiateSwapFromFlux(fluxNode types.PayoutNode, bscAddres
 		},
 	}
 
-	tx, err := fluxNode.CreateTx(inputs, outputs)
+	_, tx, err := fluxNode.CreateTx(inputs, outputs)
 	if err != nil {
 		return "", err
 	}
@@ -212,7 +212,7 @@ func (c *FusionClient) InitiateSwapFromBSC(bscNode types.PayoutNode, fluxAddress
 	data := ethtx.GenerateContractData("transfer(address,uint256)", depositAddressBytes, amount.Bytes())
 	inputs := []*types.TxInput{&types.TxInput{Value: new(big.Int), Data: data}}
 	outputs := []*types.TxOutput{&types.TxOutput{Address: contractAddress, Value: new(big.Int)}}
-	tx, err := bscNode.CreateTx(inputs, outputs)
+	_, tx, err := bscNode.CreateTx(inputs, outputs)
 	if err != nil {
 		return "", err
 	}

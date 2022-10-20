@@ -26,11 +26,11 @@ func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 	return nil, nil
 }
 
-func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, error) {
+func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, string, error) {
 	if len(inputs) != 1 || len(outputs) != 1 {
-		return "", fmt.Errorf("must have exactly one input and output")
+		return "", "", fmt.Errorf("must have exactly one input and output")
 	} else if inputs[0].Value.Cmp(outputs[0].Value) != 0 {
-		return "", fmt.Errorf("inputs and outputs must have same value")
+		return "", "", fmt.Errorf("inputs and outputs must have same value")
 	}
 	input := inputs[0]
 	output := outputs[0]
@@ -40,35 +40,44 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		rawAddress := ethCommon.HexToAddress(output.Address).Bytes()
 		output.Address, err = ETHAddressToCFX(rawAddress, node.networkPrefix)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 
 	nonce, err := node.getPendingNonce(node.address)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
+	// handle for future nonces
+	nonce += uint64(input.Index)
 
 	epochNumber, err := node.getEpochNumber()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	gasPrice, err := node.getGasPrice()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	gasLimit, storageLimit, err := node.sendEstimateGas(node.address,
 		output.Address, input.Data, output.Value, gasPrice, nonce)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	tx, err := cfxtx.NewTx(node.privKey.ToECDSA(), output.Address, input.Data,
+	tx, fee, err := cfxtx.NewTx(node.privKey.ToECDSA(), output.Address, input.Data,
 		output.Value, gasPrice, gasLimit, storageLimit, nonce, node.networkID, epochNumber)
+	if err != nil {
+		return "", "", err
+	}
+	txid := cfxtx.CalculateTxID(tx)
 
-	return tx, err
+	output.Value.Sub(output.Value, fee)
+	output.Fee = fee
+
+	return txid, tx, nil
 }
 
 func (node Node) BroadcastTx(tx string) (string, error) {

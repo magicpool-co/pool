@@ -10,6 +10,7 @@ import (
 	"github.com/magicpool-co/pool/core/trade"
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/pooldb"
+	"github.com/magicpool-co/pool/internal/redis"
 	"github.com/magicpool-co/pool/internal/telegram"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
@@ -19,6 +20,7 @@ type TradeJob struct {
 	locker   *redislock.Client
 	logger   *log.Logger
 	pooldb   *dbcl.Client
+	redis    *redis.Client
 	nodes    []types.PayoutNode
 	exchange types.Exchange
 	telegram *telegram.Client
@@ -37,7 +39,7 @@ func (j *TradeJob) Run() {
 	}
 	defer lock.Release(ctx)
 
-	client := trade.New(j.pooldb, j.nodes, j.exchange, j.telegram)
+	client := trade.New(j.pooldb, j.redis, j.nodes, j.exchange, j.telegram)
 	if err := client.CheckForNewBatch(); err != nil {
 		j.logger.Error(fmt.Errorf("check: %v", err))
 	}

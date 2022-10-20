@@ -123,7 +123,7 @@ func InsertShares(q dbcl.Querier, objects ...*Share) error {
 
 func InsertUTXOs(q dbcl.Querier, objects ...*UTXO) error {
 	const table = "utxos"
-	cols := []string{"chain_id", "value", "txid", "idx", "spent"}
+	cols := []string{"chain_id", "value", "txid", "idx", "active", "spent"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
@@ -135,6 +135,26 @@ func InsertUTXOs(q dbcl.Querier, objects ...*UTXO) error {
 
 func UpdateUTXO(q dbcl.Querier, obj *UTXO, updateCols []string) error {
 	const table = "utxos"
+	whereCols := []string{"id"}
+
+	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
+}
+
+/* transaction */
+
+func InsertTransaction(q dbcl.Querier, obj *Transaction) (uint64, error) {
+	const table = "transactions"
+	cols := []string{
+		"chain_id", "txid", "tx_hex", "height", "value", "fee",
+		"fee_balance", "remainder", "remainder_idx",
+		"spent", "confirmed", "failed",
+	}
+
+	return dbcl.ExecInsert(q, table, cols, obj)
+}
+
+func UpdateTransaction(q dbcl.Querier, obj *Transaction, updateCols []string) error {
+	const table = "transactions"
 	whereCols := []string{"id"}
 
 	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
@@ -171,8 +191,8 @@ func InsertExchangeInputs(q dbcl.Querier, objects ...*ExchangeInput) error {
 func InsertExchangeDeposit(q dbcl.Querier, obj *ExchangeDeposit) (uint64, error) {
 	const table = "exchange_deposits"
 	cols := []string{
-		"batch_id", "chain_id", "network_id", "deposit_txid", "exchange_txid",
-		"exchange_deposit_id", "value", "fees", "registered", "confirmed", "spent",
+		"batch_id", "chain_id", "network_id", "transaction_id", "deposit_txid",
+		"exchange_txid", "exchange_deposit_id", "value", "fees", "registered", "confirmed",
 	}
 
 	return dbcl.ExecInsert(q, table, cols, obj)
@@ -255,7 +275,7 @@ func InsertBalanceOutput(q dbcl.Querier, obj *BalanceOutput) (uint64, error) {
 	const table = "balance_outputs"
 	cols := []string{
 		"chain_id", "miner_id", "in_batch_id", "in_deposit_id", "in_payout_id",
-		"out_payout_id", "value", "pool_fees", "exchange_fees",
+		"out_payout_id", "value", "pool_fees", "exchange_fees", "spent",
 	}
 
 	return dbcl.ExecInsert(q, table, cols, obj)
@@ -283,27 +303,12 @@ func UpdateBalanceOutput(q dbcl.Querier, obj *BalanceOutput, updateCols []string
 	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
 }
 
-func UpdateBalanceOutputsSetOutPayoutID(q dbcl.Querier, payoutID, minerID uint64, chainID string) error {
-	const query = `UPDATE balance_outputs
-	SET out_payout_id = ?
-	WHERE
-		miner_id = ?
-	AND
-		chain_id = ?
-	AND
-		out_payout_id IS NULL;`
-
-	_, err := q.Exec(query, payoutID, minerID, chainID)
-
-	return err
-}
-
 /* payouts */
 
 func InsertPayout(q dbcl.Querier, obj *Payout) (uint64, error) {
 	const table = "payouts"
 	cols := []string{
-		"chain_id", "miner_id", "address", "txid", "height", "value",
+		"chain_id", "miner_id", "address", "transaction_id", "txid", "height", "value",
 		"fee_balance", "pool_fees", "exchange_fees", "tx_fees", "confirmed", "failed",
 	}
 

@@ -144,13 +144,36 @@ type Share struct {
 /* utxo */
 
 type UTXO struct {
+	ID            uint64  `db:"id"`
+	ChainID       string  `db:"chain_id"`
+	TransactionID *uint64 `db:"transaction_id"`
+
+	Value  dbcl.NullBigInt `db:"value"`
+	TxID   string          `db:"txid"`
+	Index  uint32          `db:"idx"`
+	Active bool            `db:"active"`
+	Spent  bool            `db:"spent"`
+
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+type Transaction struct {
 	ID      uint64 `db:"id"`
 	ChainID string `db:"chain_id"`
 
-	Value dbcl.NullBigInt `db:"value"`
-	TxID  string          `db:"txid"`
-	Index uint32          `db:"idx"`
-	Spent bool            `db:"spent"`
+	TxID   string  `db:"txid"`
+	TxHex  string  `db:"tx_hex"`
+	Height *uint64 `db:"height"`
+
+	Value        dbcl.NullBigInt `db:"value"`
+	Fee          dbcl.NullBigInt `db:"fee"`
+	FeeBalance   dbcl.NullBigInt `db:"fee_balance"`
+	Remainder    dbcl.NullBigInt `db:"remainder"`
+	RemainderIdx uint32          `db:"remainder_idx"`
+	Spent        bool            `db:"spent"`
+	Confirmed    bool            `db:"confirmed"`
+	Failed       bool            `db:"failed"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
@@ -186,6 +209,7 @@ type ExchangeDeposit struct {
 	ChainID   string `db:"chain_id"`
 	NetworkID string `db:"network_id"`
 
+	TransactionID     *uint64 `db:"transaction_id"`
 	DepositTxID       string  `db:"deposit_txid"`
 	ExchangeTxID      *string `db:"exchange_txid"`
 	ExchangeDepositID *string `db:"exchange_deposit_id"`
@@ -194,7 +218,6 @@ type ExchangeDeposit struct {
 	Fees       dbcl.NullBigInt `db:"fees"`
 	Registered bool            `db:"registered"`
 	Confirmed  bool            `db:"confirmed"`
-	Spent      bool            `db:"spent"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
@@ -285,6 +308,7 @@ type BalanceOutput struct {
 	Value        dbcl.NullBigInt `db:"value"`
 	PoolFees     dbcl.NullBigInt `db:"pool_fees"`
 	ExchangeFees dbcl.NullBigInt `db:"exchange_fees"`
+	Spent        bool            `db:"spent"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
@@ -296,8 +320,9 @@ type Payout struct {
 	MinerID uint64 `db:"miner_id"`
 	Address string `db:"address"`
 
-	TxID   string  `db:"txid"`
-	Height *uint64 `db:"height"`
+	TransactionID *uint64 `db:"transaction_id"`
+	TxID          string  `db:"txid"`
+	Height        *uint64 `db:"height"`
 
 	Value        dbcl.NullBigInt `db:"value"`
 	FeeBalance   dbcl.NullBigInt `db:"fee_balance"`

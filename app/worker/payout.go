@@ -9,6 +9,7 @@ import (
 
 	"github.com/magicpool-co/pool/core/payout"
 	"github.com/magicpool-co/pool/internal/log"
+	"github.com/magicpool-co/pool/internal/redis"
 	"github.com/magicpool-co/pool/internal/telegram"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
@@ -18,6 +19,7 @@ type PayoutJob struct {
 	locker   *redislock.Client
 	logger   *log.Logger
 	pooldb   *dbcl.Client
+	redis    *redis.Client
 	nodes    []types.PayoutNode
 	telegram *telegram.Client
 }
@@ -35,7 +37,7 @@ func (j *PayoutJob) Run() {
 	}
 	defer lock.Release(ctx)
 
-	client := payout.New(j.pooldb, j.telegram)
+	client := payout.New(j.pooldb, j.redis, j.telegram)
 
 	for _, node := range j.nodes {
 		if err := client.InitiatePayouts(node); err != nil {

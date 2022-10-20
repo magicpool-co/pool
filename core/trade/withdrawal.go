@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/magicpool-co/pool/core/bank"
 	"github.com/magicpool-co/pool/internal/accounting"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
@@ -168,7 +167,7 @@ func (c *Client) ConfirmWithdrawals(batchID uint64) error {
 		withdrawal.CumulativeFees = dbcl.NullBigInt{Valid: true, BigInt: cumulativeFeesBig}
 
 		// register the tx with the bank
-		registered, err := bank.RegisterIncomingTx(c.nodes[withdrawal.ChainID], c.pooldb, parsedWithdrawal.TxID)
+		registered, err := c.bank.RegisterIncomingTx(c.nodes[withdrawal.ChainID], parsedWithdrawal.TxID)
 		if err != nil {
 			return err
 		} else if !registered {

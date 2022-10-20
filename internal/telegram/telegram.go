@@ -157,8 +157,8 @@ func (t *Client) NotifyInitiateExchangeBatch(id uint64) error {
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyInitiateDeposit(id uint64, chain, txid, explorerURL string, value float64) error {
-	msg := fmt.Sprintf("initated exchange deposit %d for %.4f %s at [%s](%s)", id, value, chain, txid, explorerURL)
+func (t *Client) NotifyInitiateDeposit(id uint64, chain string, value float64) error {
+	msg := fmt.Sprintf("initated exchange deposit %d for %.4f %s", id, value, chain)
 
 	return t.sendMessage(msg, t.InfoChatID)
 }
@@ -200,9 +200,14 @@ func (t *Client) NotifyFinalizeExchangeBatch(id uint64) error {
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyPayoutSent(chain, txid, explorerURL string) error {
-	msg := fmt.Sprintf("send %s payout [%s](%s)",
-		chain, txid, explorerURL)
+func (t *Client) NotifyInitiatePayout(id uint64, chain string, value float64) error {
+	msg := fmt.Sprintf("initated payout %d for %.4f %s", id, value, chain)
+
+	return t.sendMessage(msg, t.InfoChatID)
+}
+
+func (t *Client) NotifyTransactionSent(id uint64, chain, txid, explorerURL string, value float64) error {
+	msg := fmt.Sprintf("sent transaction %d for %.4f %s at [%s](%s)", id, value, chain, txid, explorerURL)
 
 	return t.sendMessage(msg, t.InfoChatID)
 }

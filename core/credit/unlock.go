@@ -62,10 +62,11 @@ func UnlockRounds(node types.MiningNode, pooldbClient *dbcl.Client) error {
 		utxos[i] = &pooldb.UTXO{
 			ChainID: round.ChainID,
 
-			Value: round.Value,
-			TxID:  utxoHash,
-			Index: 0,
-			Spent: false,
+			Value:  round.Value,
+			TxID:   utxoHash,
+			Index:  0,
+			Active: true,
+			Spent:  false,
 		}
 	}
 
