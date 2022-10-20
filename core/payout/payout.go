@@ -174,6 +174,10 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 					return err
 				}
 			}
+
+			explorerURL := node.GetAddressExplorerURL(payout.Address)
+			floatValue := common.BigIntToFloat64(payout.Value.BigInt, node.GetUnits().Big())
+			c.telegram.NotifyInitiatePayout(payout.ID, payout.ChainID, payout.Address, explorerURL, floatValue)
 		}
 	case types.UTXOStructure:
 		if len(payouts) > maxBatchSize {
