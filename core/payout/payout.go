@@ -224,6 +224,10 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 					return err
 				}
 			}
+
+			explorerURL := node.GetAddressExplorerURL(payout.Address)
+			floatValue := common.BigIntToFloat64(payout.Value.BigInt, node.GetUnits().Big())
+			c.telegram.NotifyInitiatePayout(payout.ID, payout.ChainID, payout.Address, explorerURL, floatValue)
 		}
 	default:
 		return nil
@@ -282,6 +286,8 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 		if err != nil {
 			return err
 		}
+
+		c.telegram.NotifyConfirmPayout(payout.ID)
 	}
 
 	return nil

@@ -200,8 +200,14 @@ func (t *Client) NotifyFinalizeExchangeBatch(id uint64) error {
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyInitiatePayout(id uint64, chain string, value float64) error {
-	msg := fmt.Sprintf("initated payout %d for %.4f %s", id, value, chain)
+func (t *Client) NotifyInitiatePayout(id uint64, chain, address, explorerURL string, value float64) error {
+	msg := fmt.Sprintf("initated payout %d for %.4f %s to [%s](%s)", id, value, chain, address, explorerURL)
+
+	return t.sendMessage(msg, t.InfoChatID)
+}
+
+func (t *Client) NotifyConfirmPayout(id uint64) error {
+	msg := fmt.Sprintf("confirmed payout %d", id)
 
 	return t.sendMessage(msg, t.InfoChatID)
 }
