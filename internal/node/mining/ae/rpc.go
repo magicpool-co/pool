@@ -124,7 +124,7 @@ func (node Node) postTransaction(tx string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		err = node.externalHost.ExecHTTPOnce("POST", "/v2/transactions", body, &result)
+		err = node.externalHost.ExecHTTP("POST", "/v2/transactions", body, &result)
 	}
 
 	if err != nil {

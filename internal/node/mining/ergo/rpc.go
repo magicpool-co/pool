@@ -223,7 +223,7 @@ func (node Node) postWalletTransactionGenerate(addresses []string, amounts []uin
 	}
 
 	var res json.RawMessage
-	err := node.httpHost.ExecHTTPOnce("POST", "/wallet/transaction/generate", body, &res)
+	err := node.httpHost.ExecHTTP("POST", "/wallet/transaction/generate", body, &res)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func (node Node) postWalletTransactionCheck(tx []byte) (string, error) {
 	}
 
 	var txid string
-	err := node.httpHost.ExecHTTPOnce("POST", "/wallet/transactions/check", body, &txid)
+	err := node.httpHost.ExecHTTP("POST", "/transactions/check", body, &txid)
 
 	return txid, err
 }
@@ -250,7 +250,7 @@ func (node Node) postWalletTransactionSend(tx []byte) (string, error) {
 	}
 
 	var txid string
-	err := node.httpHost.ExecHTTPOnce("POST", "/wallet/transactions", body, &txid)
+	err := node.httpHost.ExecHTTP("POST", "/wallet/transaction/send", body, &txid)
 
 	return txid, err
 }

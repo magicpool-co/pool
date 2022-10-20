@@ -247,13 +247,6 @@ func (p *HTTPPool) ExecHTTP(method, path string, body, target interface{}) error
 	return err
 }
 
-// Executes a HTTP call the same way as ExecHTTP, except it will only attempt
-// the request once instead of rotating through all hosts.
-func (p *HTTPPool) ExecHTTPOnce(method, path string, body, target interface{}) error {
-	_, err := p.ExecHTTPSticky(onceHostID, method, path, body, target)
-	return err
-}
-
 // Executes an RPC call to all healthy hosts, unless req.HostID is set, in which case it
 // will only try the defined host. It is just a convenient wrapper for
 // ExecHTTP that reduces the verbosity of RPC calls.
