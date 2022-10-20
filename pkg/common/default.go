@@ -59,6 +59,8 @@ func GetDefaultPayoutThreshold(chain string) (*big.Int, error) {
 		threshold = MustParseBigInt("5000000000000000000")
 	case "ETH":
 		threshold = MustParseBigInt("100000000000000000")
+	case "ETHW":
+		threshold = MustParseBigInt("5000000000000000000")
 	case "FIRO":
 		threshold = MustParseBigInt("3000000000")
 	case "FLUX":
