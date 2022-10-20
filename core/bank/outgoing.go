@@ -285,7 +285,7 @@ func (c *Client) BroadcastOutgoingTxs(node types.PayoutNode) error {
 	}
 	defer lock.Release(context.Background())
 
-	const maxTxLimit = 5
+	const maxTxLimit = 1
 	txs, err := pooldb.GetUnspentTransactions(c.pooldb.Reader(), node.Chain())
 	if err != nil {
 		return err

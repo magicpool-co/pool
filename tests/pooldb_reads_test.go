@@ -383,9 +383,9 @@ func (suite *PooldbReadsSuite) TestReadBalanceOutput() {
 		suite.T().Errorf("failed: GetUnpaidBalanceOutputSumsByMiners: %v", err)
 	}
 
-	_, err = pooldb.GetUnpaidBalanceOutputsAboveThreshold(pooldbClient.Reader(), "ETH", "10")
+	_, err = pooldb.GetUnpaidMinerIDsAbovePayoutThreshold(pooldbClient.Reader(), "ETH", "10")
 	if err != nil {
-		suite.T().Errorf("failed: GetUnpaidBalanceOutputsAboveThreshold: %v", err)
+		suite.T().Errorf("failed: GetUnpaidMinerIDsAbovePayoutThreshold: %v", err)
 	}
 }
 

@@ -3,7 +3,6 @@ package payout
 import (
 	"fmt"
 	"math/big"
-	"sort"
 
 	"github.com/magicpool-co/pool/core/bank"
 	"github.com/magicpool-co/pool/internal/pooldb"
@@ -48,45 +47,49 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 		return err
 	}
 
-	balanceOutputs, err := pooldb.GetUnpaidBalanceOutputsAboveThreshold(dbTx, node.Chain(), defaultThreshold.String())
+	minerIDs, err := pooldb.GetUnpaidMinerIDsAbovePayoutThreshold(dbTx, node.Chain(), defaultThreshold.String())
 	if err != nil {
 		return err
-	} else if len(balanceOutputs) == 0 {
+	} else if len(minerIDs) == 0 {
 		return nil
 	}
 
-	balanceOutputIdx := make(map[uint64][]*pooldb.BalanceOutput)
-	for _, balanceOutput := range balanceOutputs {
-		if _, ok := balanceOutputIdx[balanceOutput.MinerID]; !ok {
-			balanceOutputIdx[balanceOutput.MinerID] = make([]*pooldb.BalanceOutput, 0)
+	balanceOutputSums := make([]*pooldb.BalanceOutput, len(minerIDs))
+	balanceOutputIdx := make(map[uint64][]*pooldb.BalanceOutput, len(minerIDs))
+	for i, minerID := range minerIDs {
+		balanceOutputs, err := pooldb.GetUnpaidBalanceOutputsByMiner(dbTx, minerID, node.Chain())
+		if err != nil {
+			return err
+		} else if len(balanceOutputs) == 0 {
+			return fmt.Errorf("no balance outputs found for miner %d", minerID)
 		}
-		balanceOutputIdx[balanceOutput.MinerID] = append(balanceOutputIdx[balanceOutput.MinerID], balanceOutput)
-	}
 
-	balanceOutputSums := make([]*pooldb.BalanceOutput, 0)
-	for minerID, minerBalanceOutputs := range balanceOutputIdx {
-		if len(minerBalanceOutputs) == 0 {
-			return fmt.Errorf("no balance outputs for miner %d", minerID)
-		} else if len(minerBalanceOutputs) > 1 {
-			for _, minerBalanceOutput := range minerBalanceOutputs[1:] {
-				if !minerBalanceOutput.Value.Valid {
-					return fmt.Errorf("no value for balance output %d", minerBalanceOutput.ID)
-				} else if !minerBalanceOutput.PoolFees.Valid {
-					return fmt.Errorf("no pool fees for balance output %d", minerBalanceOutput.ID)
-				} else if !minerBalanceOutput.ExchangeFees.Valid {
-					return fmt.Errorf("no exchange fees for balance output %d", minerBalanceOutput.ID)
-				}
-				minerBalanceOutputs[0].Value.BigInt.Add(minerBalanceOutputs[0].Value.BigInt, minerBalanceOutput.Value.BigInt)
-				minerBalanceOutputs[0].PoolFees.BigInt.Add(minerBalanceOutputs[0].PoolFees.BigInt, minerBalanceOutput.PoolFees.BigInt)
-				minerBalanceOutputs[0].ExchangeFees.BigInt.Add(minerBalanceOutputs[0].ExchangeFees.BigInt, minerBalanceOutput.ExchangeFees.BigInt)
+		valueSum, poolFeesSum, exchangeFeesSum := new(big.Int), new(big.Int), new(big.Int)
+		balanceOutputIdx[minerID] = make([]*pooldb.BalanceOutput, 0)
+		for _, balanceOutput := range balanceOutputs {
+			if !balanceOutput.Value.Valid {
+				return fmt.Errorf("no value for balance output %d", balanceOutput.ID)
+			} else if !balanceOutput.PoolFees.Valid {
+				return fmt.Errorf("no pool fees for balance output %d", balanceOutput.ID)
+			} else if !balanceOutput.ExchangeFees.Valid {
+				return fmt.Errorf("no exchange fees for balance output %d", balanceOutput.ID)
 			}
-		}
-		balanceOutputSums = append(balanceOutputSums, minerBalanceOutputs[0])
-	}
+			valueSum.Add(valueSum, balanceOutput.Value.BigInt)
+			poolFeesSum.Add(poolFeesSum, balanceOutput.PoolFees.BigInt)
+			exchangeFeesSum.Add(exchangeFeesSum, balanceOutput.ExchangeFees.BigInt)
 
-	sort.Slice(balanceOutputSums, func(i, j int) bool {
-		return balanceOutputSums[i].ID < balanceOutputSums[j].ID
-	})
+			balanceOutputIdx[minerID] = append(balanceOutputIdx[minerID], balanceOutput)
+		}
+
+		balanceOutputSums[i] = &pooldb.BalanceOutput{
+			MinerID: minerID,
+			ChainID: node.Chain(),
+
+			Value:        dbcl.NullBigInt{Valid: true, BigInt: valueSum},
+			PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: valueSum},
+			ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: valueSum},
+		}
+	}
 
 	payouts := make([]*pooldb.Payout, len(balanceOutputSums))
 	for i, balanceOutput := range balanceOutputSums {
@@ -102,6 +105,8 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 				return err
 			}
 
+			// @TODO: we arent actually checking if the fee balance meets the given threshold,
+			// so if it doesn't the payout will just error out.
 			for _, feeBalanceOutput := range feeBalanceOutputs {
 				if !feeBalanceOutput.Value.Valid {
 					return fmt.Errorf("no value for fee balance output %d", feeBalanceOutput.ID)

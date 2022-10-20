@@ -1049,13 +1049,11 @@ func GetUnpaidBalanceOutputSumsByMiners(q dbcl.Querier, minerIDs []uint64) ([]*B
 	return output, err
 }
 
-func GetUnpaidBalanceOutputsAboveThreshold(q dbcl.Querier, chain, threshold string) ([]*BalanceOutput, error) {
+func GetUnpaidMinerIDsAbovePayoutThreshold(q dbcl.Querier, chain, threshold string) ([]uint64, error) {
 	const query = `WITH cte as (
 		SELECT
 			miner_id, 
-			sum(value) value, 
-			sum(pool_fees) pool_fees, 
-			sum(exchange_fees) exchange_fees
+			sum(value) value
 		FROM balance_outputs
 		WHERE
 			chain_id = ?
@@ -1063,12 +1061,12 @@ func GetUnpaidBalanceOutputsAboveThreshold(q dbcl.Querier, chain, threshold stri
 			out_payout_id IS NULL
 		GROUP BY miner_id
 	)
-	SELECT DISTINCT cte.*
+	SELECT DISTINCT miners.id
 	FROM cte
 	LEFT OUTER JOIN miners ON cte.miner_id = miners.id
 	WHERE value >= IFNULL(miners.threshold, ?);`
 
-	output := []*BalanceOutput{}
+	output := []uint64{}
 	err := q.Select(&output, query, chain, threshold)
 
 	return output, err
