@@ -127,10 +127,12 @@ type BlockchainInfo struct {
 }
 
 type Transaction struct {
-	Data   string `json:"data"`
-	TxID   string `json:"txid"`
-	Hash   string `json:"hash"`
-	Inputs []struct {
+	Data          string `json:"data"`
+	TxID          string `json:"txid"`
+	Hash          string `json:"hash"`
+	Height        int64  `json:"height"`
+	Confirmations int64  `json:"confirmations"`
+	Inputs        []struct {
 		Coinbase string `json:"coinbase"`
 	} `json:"vin"`
 	Outputs []struct {

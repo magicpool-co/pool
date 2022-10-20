@@ -318,15 +318,15 @@ func (c *Client) ConfirmOutgoingTxs(node types.PayoutNode) error {
 				// @TODO: manage failed transactions
 			}
 			continue
-		} else if nodeTx.Value == nil {
-			return fmt.Errorf("no value for tx %s", nodeTx.Hash)
-		} else if nodeTx.Fee == nil {
-			return fmt.Errorf("no fee for tx %s", nodeTx.Hash)
 		}
 
 		tx.Height = types.Uint64Ptr(nodeTx.BlockNumber)
 		tx.Confirmed = true
 		if nodeTx.FeeBalance != nil && nodeTx.FeeBalance.Cmp(common.Big0) > 0 {
+			if nodeTx.Fee == nil {
+				return fmt.Errorf("no fee for tx %s", nodeTx.Hash)
+			}
+
 			tx.Fee = dbcl.NullBigInt{Valid: true, BigInt: nodeTx.Fee}
 			tx.FeeBalance = dbcl.NullBigInt{Valid: true, BigInt: nodeTx.FeeBalance}
 

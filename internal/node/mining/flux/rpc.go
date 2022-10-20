@@ -33,6 +33,26 @@ func (node Node) getBlockchainInfo(hostID string) (*BlockchainInfo, error) {
 	return info, nil
 }
 
+func (node Node) getRawTransaction(txid string) (*Transaction, error) {
+	var res *rpc.Response
+	var err error
+	if node.mocked {
+		// @TODO
+	} else {
+		res, err = node.rpcHost.ExecRPCFromArgs("getrawtransaction", txid, 1)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	tx := new(Transaction)
+	if err := json.Unmarshal(res.Result, tx); err != nil {
+		return nil, err
+	}
+
+	return tx, nil
+}
+
 func (node Node) getBlockHash(height uint64) (string, error) {
 	var res *rpc.Response
 	var err error
