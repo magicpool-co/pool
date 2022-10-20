@@ -871,19 +871,6 @@ func GetBalanceInputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceInput, e
 	return output, err
 }
 
-func GetBalanceOutputsByPayoutTransaction(q dbcl.Querier, transactionID uint64) ([]*BalanceOutput, error) {
-	const query = `SELECT balance_outputs.*
-	FROM balance_outputs
-	JOIN payouts ON payouts.id = balance_outputs.out_payout_id
-	WHERE
-		payouts.transaction_id = ?;`
-
-	output := []*BalanceOutput{}
-	err := q.Select(&output, query, transactionID)
-
-	return output, err
-}
-
 func GetPendingBalanceInputSumByChain(q dbcl.Querier, chain string) (*big.Int, error) {
 	const query = `SELECT sum(value)
 	FROM balance_inputs
@@ -947,7 +934,36 @@ func GetBalanceOutputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceOutput,
 	return output, err
 }
 
-func GetUnpaidBalanceOutputByChain(q dbcl.Querier, chain string) (*big.Int, error) {
+func GetBalanceOutputsByPayoutTransaction(q dbcl.Querier, transactionID uint64) ([]*BalanceOutput, error) {
+	const query = `SELECT balance_outputs.*
+	FROM balance_outputs
+	JOIN payouts ON payouts.id = balance_outputs.out_payout_id
+	WHERE
+		payouts.transaction_id = ?;`
+
+	output := []*BalanceOutput{}
+	err := q.Select(&output, query, transactionID)
+
+	return output, err
+}
+
+func GetUnpaidBalanceOutputsByMiner(q dbcl.Querier, minerID uint64, chain string) ([]*BalanceOutput, error) {
+	const query = `SELECT *
+	FROM balance_outputs
+	WHERE
+		miner_id = ?
+	AND
+		chain_id = ?
+	AND
+		out_payout_id IS NULL;`
+
+	output := []*BalanceOutput{}
+	err := q.Select(&output, query, minerID, chain)
+
+	return output, err
+}
+
+func GetUnpaidBalanceOutputSumByChain(q dbcl.Querier, chain string) (*big.Int, error) {
 	const query = `SELECT sum(value)
 	FROM balance_outputs
 	WHERE

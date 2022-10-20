@@ -358,9 +358,14 @@ func (suite *PooldbReadsSuite) TestReadBalanceOutput() {
 		suite.T().Errorf("failed: GetBalanceOutputsByPayoutTransaction: %v", err)
 	}
 
-	_, err = pooldb.GetUnpaidBalanceOutputByChain(pooldbClient.Reader(), "ETH")
+	_, err = pooldb.GetUnpaidBalanceOutputsByMiner(pooldbClient.Reader(), 1, "ETH")
 	if err != nil {
-		suite.T().Errorf("failed: GetUnpaidBalanceOutputByChain: %v", err)
+		suite.T().Errorf("failed: GetUnpaidBalanceOutputsByMiner: %v", err)
+	}
+
+	_, err = pooldb.GetUnpaidBalanceOutputSumByChain(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnpaidBalanceOutputSumByChain: %v", err)
 	}
 
 	_, err = pooldb.GetUnpaidBalanceOutputSumByMiner(pooldbClient.Reader(), 1, "ETH")

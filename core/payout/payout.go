@@ -97,9 +97,17 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 
 		feeBalance := new(big.Int)
 		if balanceOutput.ChainID == "USDC" {
-			feeBalance, err = pooldb.GetUnpaidBalanceOutputSumByMiner(dbTx, balanceOutput.MinerID, "ETH")
+			feeBalanceOutputs, err := pooldb.GetUnpaidBalanceOutputsByMiner(dbTx, balanceOutput.MinerID, "ETH")
 			if err != nil {
 				return err
+			}
+
+			for _, feeBalanceOutput := range feeBalanceOutputs {
+				if !feeBalanceOutput.Value.Valid {
+					return fmt.Errorf("no value for fee balance output %d", feeBalanceOutput.ID)
+				}
+				feeBalance.Add(feeBalance, feeBalanceOutput.Value.BigInt)
+				balanceOutputIdx[balanceOutput.MinerID] = append(balanceOutputIdx[balanceOutput.MinerID], feeBalanceOutput)
 			}
 		}
 
