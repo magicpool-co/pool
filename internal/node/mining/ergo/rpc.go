@@ -250,7 +250,7 @@ func (node Node) postWalletTransactionSend(tx []byte) (string, error) {
 	}
 
 	var txid string
-	err := node.httpHost.ExecHTTP("POST", "/wallet/transaction/send", body, &txid)
+	err := node.httpHost.ExecHTTP("POST", "/transactions", body, &txid)
 
 	return txid, err
 }
