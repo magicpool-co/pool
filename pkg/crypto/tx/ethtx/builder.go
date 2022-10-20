@@ -110,5 +110,5 @@ func NewLegacyTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, 
 func CalculateTxID(tx string) string {
 	txid := crypto.Keccak256([]byte(tx))
 
-	return hex.EncodeToString(txid)
+	return "0x" + hex.EncodeToString(txid)
 }

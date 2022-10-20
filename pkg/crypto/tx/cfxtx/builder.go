@@ -80,5 +80,5 @@ func CalculateTxID(tx string) string {
 	}
 	txid := crypto.Keccak256(txBytes)
 
-	return hex.EncodeToString(txid)
+	return "0x" + hex.EncodeToString(txid)
 }
