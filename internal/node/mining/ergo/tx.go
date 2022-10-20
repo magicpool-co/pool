@@ -40,8 +40,6 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	for _, output := range outputs {
 		if output.Value.Cmp(common.Big0) <= 0 {
 			return "", "", fmt.Errorf("output value is not greater than zero")
-		} else if !output.SplitFee {
-			continue
 		}
 		sumValue.Add(sumValue, output.Value)
 	}
@@ -64,9 +62,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		return "", "", fmt.Errorf("fee remainder is negative")
 	} else if remainder.Cmp(common.Big0) > 0 {
 		for _, output := range outputs {
-			if !output.SplitFee {
-				continue
-			} else if output.Value.Cmp(remainder) > 0 {
+			if output.Value.Cmp(remainder) > 0 {
 				output.Value.Sub(output.Value, remainder)
 				remainder = new(big.Int)
 				break
@@ -75,7 +71,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	}
 
 	if remainder.Cmp(common.Big0) > 0 {
-		return "", "", fmt.Errorf("not enough value to cover the fee remainder (%s)", remainder)
+		return "", "", fmt.Errorf("not enough value to cover the fee remainder")
 	}
 
 	addresses := make([]string, len(outputs))
