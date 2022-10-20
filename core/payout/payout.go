@@ -218,8 +218,9 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			}
 
 			for _, balanceOutput := range balanceOutputIdx[payout.MinerID] {
+				balanceOutput.Spent = true
 				balanceOutput.OutPayoutID = types.Uint64Ptr(payoutID)
-				err = pooldb.UpdateBalanceOutput(dbTx, balanceOutput, []string{"out_payout_id"})
+				err = pooldb.UpdateBalanceOutput(dbTx, balanceOutput, []string{"spent", "out_payout_id"})
 				if err != nil {
 					return err
 				}
