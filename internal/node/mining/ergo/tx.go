@@ -75,7 +75,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	}
 
 	if remainder.Cmp(common.Big0) > 0 {
-		return "", "", fmt.Errorf("not enough value to cover the fee remainder")
+		return "", "", fmt.Errorf("not enough value to cover the fee remainder (%s)", remainder)
 	}
 
 	addresses := make([]string, len(outputs))
