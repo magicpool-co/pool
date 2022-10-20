@@ -87,6 +87,8 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	if err != nil {
 		return "", "", err
 	}
+	// handle for future nonces
+	nonce += uint64(input.Index)
 
 	chainID, err := node.getChainID()
 	if err != nil {
