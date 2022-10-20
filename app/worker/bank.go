@@ -40,9 +40,10 @@ func (j *BankJob) Run() {
 	client := bank.New(j.pooldb, j.redis, j.telegram)
 
 	for _, node := range j.nodes {
-		if err := client.BroadcastOutgoingTxs(node); err != nil {
+		/*if err := client.BroadcastOutgoingTxs(node); err != nil {
 			j.logger.Error(fmt.Errorf("bank: broadcast: %s: %v", node.Chain(), err))
-		} else if err := client.ConfirmOutgoingTxs(node); err != nil {
+		} else if err := client.ConfirmOutgoingTxs(node); err != nil {*/
+		if err := client.ConfirmOutgoingTxs(node); err != nil {
 			j.logger.Error(fmt.Errorf("bank: confirm: %s: %v", node.Chain(), err))
 		}
 	}
