@@ -201,6 +201,11 @@ func (suite *PooldbWritesSuite) TestWriteUTXO() {
 
 	var err error
 	for i, tt := range tests {
+		err = pooldb.InsertUTXO(pooldbClient.Writer(), tt.utxo)
+		if err != nil {
+			suite.T().Errorf("failed on %d: insert: %v", i, err)
+		}
+
 		err = pooldb.InsertUTXOs(pooldbClient.Writer(), tt.utxo, tt.utxo)
 		if err != nil {
 			suite.T().Errorf("failed on %d: bulk insert: %v", i, err)

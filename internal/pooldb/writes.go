@@ -121,6 +121,13 @@ func InsertShares(q dbcl.Querier, objects ...*Share) error {
 
 /* utxos */
 
+func InsertUTXO(q dbcl.Querier, obj *UTXO) (uint64, error) {
+	const table = "utxos"
+	cols := []string{"chain_id", "value", "txid", "idx", "active", "spent"}
+
+	return dbcl.ExecInsert(q, table, cols, obj)
+}
+
 func InsertUTXOs(q dbcl.Querier, objects ...*UTXO) error {
 	const table = "utxos"
 	cols := []string{"chain_id", "value", "txid", "idx", "active", "spent"}

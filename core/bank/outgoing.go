@@ -163,17 +163,16 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txOut
 
 		inputUTXOs = []*pooldb.UTXO{}
 		if remainder.Cmp(common.Big0) > 0 {
-			inputUTXOs = []*pooldb.UTXO{
-				&pooldb.UTXO{
-					ChainID: node.Chain(),
-					TxID:    txid,
-					Index:   txs[i].RemainderIdx,
-					Value:   txs[i].Remainder,
-					Active:  false,
-				},
+			remainderUTXO := &pooldb.UTXO{
+				ChainID: node.Chain(),
+				TxID:    txid,
+				Index:   txs[i].RemainderIdx,
+				Value:   txs[i].Remainder,
+				Active:  false,
 			}
+			inputUTXOs = []*pooldb.UTXO{remainderUTXO}
 
-			err = pooldb.InsertUTXOs(q, inputUTXOs...)
+			remainderUTXO.ID, err = pooldb.InsertUTXO(q, remainderUTXO)
 			if err != nil {
 				return txs, err
 			}
@@ -206,6 +205,8 @@ func (c *Client) spendTx(node types.PayoutNode, tx, nextTx *pooldb.Transaction) 
 
 	if !tx.Value.Valid {
 		return fmt.Errorf("no value for tx %d", tx.ID)
+	} else if !tx.Fee.Valid {
+		return fmt.Errorf("no fee for tx %d", tx.ID)
 	} else if inputUTXOSum.Cmp(tx.Value.BigInt) < 0 {
 		return fmt.Errorf("overspend on tx %d: have %s, want %s", tx.ID, inputUTXOSum, tx.Value.BigInt)
 	}
@@ -226,6 +227,7 @@ func (c *Client) spendTx(node types.PayoutNode, tx, nextTx *pooldb.Transaction) 
 		balanceOutputSum.Add(balanceOutputSum, balanceOutput.Value.BigInt)
 	}
 
+	balanceOutputSum.Sub(balanceOutputSum, tx.Fee.BigInt)
 	if balanceOutputSum.Cmp(tx.Value.BigInt) != 0 {
 		return fmt.Errorf("balance output sum and tx value mismatch: have %s, want %s", balanceOutputSum, tx.Value.BigInt)
 	}
