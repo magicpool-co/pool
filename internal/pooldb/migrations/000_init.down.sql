@@ -1,4 +1,13 @@
 DROP TABLE balance_inputs;
+DROP TABLE balance_outputs;
+DROP TABLE payouts;
+DROP TABLE exchange_withdrawals;
+DROP TABLE exchange_trades;
+DROP TABLE exchange_deposits;
+DROP TABLE exchange_inputs;
+DROP TABLE exchange_batches;
+DROP TABLE utxos;
+DROP TABLE transactions;
 DROP TABLE shares;
 DROP TABLE rounds;
 DROP TABLE ip_addresses;

@@ -116,6 +116,7 @@ CREATE TABLE miners (
 	chain_id		varchar(4)		NOT NULL,
 	address			varchar(100)	NOT NULL,
 	active			bool			NOT NULL,
+	threshold 		decimal(25,0),
 
 	recipient_fee_percent 	int UNSIGNED,
 
@@ -126,8 +127,14 @@ CREATE TABLE miners (
 	FOREIGN KEY (chain_id)			REFERENCES	chains(id),
 
 	INDEX idx_miners_chain_id (chain_id),
-	INDEX idx_miners_chain_id_address (chain_id, address)
+	UNIQUE INDEX idx_uq_miners_chain_id_address (chain_id, address)
 );
+
+INSERT INTO 
+	miners(chain_id, address, active, recipient_fee_percent) 
+VALUES 
+	("BTC", "bc1qf4aatnyyxldwhvnaa8fz5gsxq5ceu85lfgrpw6", true, 50),
+	("BTC", "16CRhKimYsAy9wXZRXfDdockHcNx3s2h2D", true, 50);
 
 CREATE TABLE workers (
 	id				int         	UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -142,7 +149,7 @@ CREATE TABLE workers (
 	FOREIGN KEY (miner_id)			REFERENCES	miners(id),
 
 	INDEX idx_workers_miner_id (miner_id),
-	INDEX idx_workers_miner_id_name (miner_id, name)
+	UNIQUE INDEX idx_uq_workers_miner_id_name (miner_id, name)
 );
 
 CREATE TABLE ip_addresses (
@@ -152,6 +159,7 @@ CREATE TABLE ip_addresses (
 	ip_address		varchar(40)		NOT NULL,
 
 	active			bool			NOT NULL,
+	expired			bool			NOT NULL,
 	last_share		datetime		NOT NULL,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -227,15 +235,278 @@ CREATE TABLE shares (
 	INDEX idx_shares_miner_id (miner_id)
 );
 
+CREATE TABLE transactions (
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	chain_id		varchar(4)		NOT NULL,
+	type 			tinyint(1) 		UNSIGNED NOT NULL,
+
+	txid			varchar(100)	NOT NULL,
+	tx_hex			text			NOT NULL,
+	height			bigint,
+	value			decimal(25,0)	NOT NULL,
+	fee				decimal(25,0)	NOT NULL,
+	fee_balance		decimal(25,0),
+	remainder		decimal(25,0)	NOT NULL,
+	remainder_idx	int				NOT NULL,
+	spent			bool			NOT NULL,
+	confirmed		bool			NOT NULL,
+	failed			bool			NOT NULL,
+
+	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	CONSTRAINT fk_transactions_chain_id
+	FOREIGN KEY (chain_id)			REFERENCES	chains(id),
+
+	INDEX idx_transactions_chain_id (chain_id)
+);
+
+CREATE TABLE utxos (
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	chain_id		varchar(4)		NOT NULL,
+	transaction_id 	bigint 			UNSIGNED,
+
+	value			decimal(25,0)	NOT NULL,
+	txid			varchar(100)	NOT NULL,
+	idx				int				UNSIGNED NOT NULL,
+	active 			boolean 		NOT NULL,
+	spent			bool			NOT NULL,
+
+	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	CONSTRAINT fk_utxos_chain_id
+	FOREIGN KEY (chain_id)			REFERENCES	chains(id),
+	CONSTRAINT fk_utxos_transaction_id
+	FOREIGN KEY (transaction_id)	REFERENCES	transactions(id),
+
+	INDEX idx_utxos_chain_id (chain_id),
+	INDEX idx_utxos_transaction_id (transaction_id)
+);
+
+CREATE TABLE exchange_batches (
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	exchange_id		tinyint(1)		UNSIGNED NOT NULL,
+	status			tinyint(1)		UNSIGNED NOT NULL,
+
+	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	completed_at	datetime
+);
+
+CREATE TABLE exchange_inputs (
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	batch_id		bigint			UNSIGNED NOT NULL,
+	in_chain_id		varchar(4)		NOT NULL,
+	out_chain_id	varchar(4)		NOT NULL,
+
+	value			decimal(25,0)	NOT NULL,
+
+	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	CONSTRAINT fk_exchange_inputs_batch_id
+	FOREIGN KEY (batch_id)				REFERENCES	exchange_batches(id),
+	CONSTRAINT fk_exchange_inputs_in_chain_id
+	FOREIGN KEY (in_chain_id)			REFERENCES	chains(id),
+	CONSTRAINT fk_exchange_inputs_out_chain_id
+	FOREIGN KEY (out_chain_id)			REFERENCES	chains(id),
+
+	INDEX idx_exchange_inputs_batch_id (batch_id),
+	INDEX idx_exchange_inputs_in_chain_id (in_chain_id),
+	INDEX idx_exchange_inputs_out_chain_id (out_chain_id)
+);
+
+CREATE TABLE exchange_deposits (
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	batch_id		bigint			UNSIGNED NOT NULL,
+	chain_id		varchar(4)		NOT NULL,
+	network_id		varchar(4)		NOT NULL,
+	transaction_id 	bigint			UNSIGNED,
+
+	deposit_txid		varchar(100)	NOT NULL,
+	exchange_txid		varchar(100),
+	exchange_deposit_id	varchar(100),
+
+	value			decimal(25,0)	NOT NULL,
+	fees			decimal(25,0),
+	registered		bool			NOT NULL,
+	confirmed		bool			NOT NULL,
+
+	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	CONSTRAINT fk_exchange_deposits_batch_id
+	FOREIGN KEY (batch_id)				REFERENCES	exchange_batches(id),
+	CONSTRAINT fk_exchange_deposits_chain_id
+	FOREIGN KEY (chain_id)				REFERENCES	chains(id),
+	CONSTRAINT fk_exchange_deposits_network_id
+	FOREIGN KEY (network_id)			REFERENCES	chains(id),
+	CONSTRAINT fk_exchange_deposits_transaction_id 
+	FOREIGN KEY (transaction_id)		REFERENCES transactions(id),
+
+	INDEX idx_exchange_deposits_batch_id (batch_id),
+	INDEX idx_exchange_deposits_chain_id (chain_id),
+	INDEX idx_exchange_deposits_network_id (network_id),
+	INDEX idx_exchange_deposits_transaction_id (transaction_id)
+);
+
+CREATE TABLE exchange_trades (
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	batch_id		bigint			UNSIGNED NOT NULL,
+	path_id			tinyint(1)		UNSIGNED NOT NULL,
+	stage_id		tinyint(1)		UNSIGNED NOT NULL,
+
+	exchange_trade_id	varchar(100),
+
+	initial_chain_id	varchar(4)		NOT NULL,
+	from_chain_id		varchar(4)		NOT NULL,
+	to_chain_id			varchar(4)		NOT NULL,
+	market				varchar(12)		NOT NULL,
+	direction			tinyint(1)		NOT NULL,
+
+	value					decimal(25,0),
+	proceeds				decimal(25,0),
+	trade_fees				decimal(25,0),
+	cumulative_deposit_fees	decimal(25,0),
+	cumulative_trade_fees	decimal(25,0),
+
+	order_price				double,
+	fill_price				double,
+	cumulative_fill_price	double,
+	slippage				double,
+	initiated				bool		NOT NULL,
+	confirmed				bool		NOT NULL,
+
+	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	CONSTRAINT fk_exchange_trades_batch_id
+	FOREIGN KEY (batch_id)				REFERENCES	exchange_batches(id),
+	CONSTRAINT fk_exchange_trades_from_chain_id
+	FOREIGN KEY (from_chain_id)			REFERENCES	chains(id),
+	CONSTRAINT fk_exchange_trades_to_chain_id
+	FOREIGN KEY (to_chain_id)			REFERENCES	chains(id),
+
+	INDEX idx_exchange_trades_batch_id (batch_id),
+	INDEX idx_exchange_trades_from_chain_id (from_chain_id),
+	INDEX idx_exchange_trades_to_chain_id (to_chain_id)
+);
+
+CREATE TABLE exchange_withdrawals (
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	batch_id		bigint			UNSIGNED NOT NULL,
+	chain_id		varchar(4)		NOT NULL,
+	network_id		varchar(4)		NOT NULL,
+
+	exchange_txid			varchar(100),
+	exchange_withdrawal_id	varchar(100)	NOT NULL,
+
+	value			decimal(25,0)	NOT NULL,
+	deposit_fees	decimal(25,0),
+	trade_fees		decimal(25,0),
+	withdrawal_fees	decimal(25,0),
+	cumulative_fees	decimal(25,0),
+	confirmed		bool			NOT NULL,
+	spent			bool			NOT NULL,
+
+	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	CONSTRAINT fk_exchange_withdrawals_batch_id
+	FOREIGN KEY (batch_id)				REFERENCES	exchange_batches(id),
+	CONSTRAINT fk_exchange_withdrawals_chain_id
+	FOREIGN KEY (chain_id)				REFERENCES	chains(id),
+	CONSTRAINT fk_exchange_withdrawals_network_id
+	FOREIGN KEY (network_id)			REFERENCES	chains(id),
+
+	INDEX idx_exchange_withdrawals_batch_id (batch_id),
+	INDEX idx_exchange_withdrawals_chain_id (chain_id),
+	INDEX idx_exchange_withdrawals_network_id (network_id)
+);
+
+CREATE TABLE payouts (
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	chain_id		varchar(4)		NOT NULL,
+	miner_id		int				UNSIGNED NOT NULL,
+	address			varchar(100)	NOT NULL,
+	transaction_id 	bigint 			UNSIGNED,
+
+	txid			varchar(100)	NOT NULL,
+	height			bigint			UNSIGNED,
+
+	value			decimal(25,0)	NOT NULL,
+	fee_balance		decimal(25,0) 	NOT NULL,
+	pool_fees		decimal(25,0)	NOT NULL,
+	exchange_fees	decimal(25,0)	NOT NULL,
+	tx_fees			decimal(25,0),
+	pending 		bool	 		NOT NULL,
+	confirmed		bool			NOT NULL,
+	failed			bool			NOT NULL,
+
+	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	CONSTRAINT fk_payouts_chain_id
+	FOREIGN KEY (chain_id)			REFERENCES	chains(id),
+	CONSTRAINT fk_payouts_miner_id
+	FOREIGN KEY (miner_id)			REFERENCES	miners(id),
+	CONSTRAINT fk_payouts_transaction_id
+	FOREIGN KEY (transaction_id) 	REFERENCES transactions(id),
+
+	INDEX idx_payouts_chain_id (chain_id),
+	INDEX idx_payouts_miner_id (miner_id),
+	INDEX idx_payouts_transaction_id (transaction_id)
+);
+
+CREATE TABLE balance_outputs (
+	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	chain_id		varchar(4)		NOT NULL,
+	miner_id		int				UNSIGNED NOT NULL,
+
+	in_batch_id		bigint			UNSIGNED,
+	in_deposit_id	bigint			UNSIGNED,
+	in_payout_id	bigint			UNSIGNED,
+	out_payout_id	bigint			UNSIGNED,
+
+	value			decimal(25,0)	NOT NULL,
+	pool_fees		decimal(25,0)	NOT NULL,
+	exchange_fees	decimal(25,0)	NOT NULL,
+	spent			boolean			NOT NULL,
+
+	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	CONSTRAINT fk_balance_outputs_chain_id
+	FOREIGN KEY (chain_id)			REFERENCES	chains(id),
+	CONSTRAINT fk_balance_outputs_miner_id
+	FOREIGN KEY (miner_id)			REFERENCES	miners(id),
+	CONSTRAINT fk_balance_inputs_in_deposit_id
+	FOREIGN KEY (in_deposit_id)		REFERENCES	exchange_deposits(id),
+	CONSTRAINT fk_balance_inputs_in_payout_id
+	FOREIGN KEY (in_payout_id)		REFERENCES	payouts(id),
+	CONSTRAINT fk_balance_inputs_out_payout_id
+	FOREIGN KEY (out_payout_id)		REFERENCES	payouts(id),
+
+	INDEX idx_balance_outputs_chain_id (chain_id),
+	INDEX idx_balance_outputs_miner_id (miner_id),
+	INDEX idx_balance_inputs_in_deposit_id (in_deposit_id),
+	INDEX idx_balance_inputs_in_payout_id (in_payout_id),
+	INDEX idx_balance_inputs_out_payout_id (out_payout_id)
+);
+
 CREATE TABLE balance_inputs (
 	id				bigint			UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	round_id		int         	UNSIGNED NOT NULL,
 	chain_id		varchar(4)		NOT NULL,
 	miner_id		int				UNSIGNED NOT NULL,
-	
-	output_balance_id	bigint UNSIGNED,
+
+	out_chain_id		varchar(4)	NOT NULL,
+	balance_output_id	bigint 		UNSIGNED,
+	batch_id			bigint 		UNSIGNED,
 
 	value			decimal(25,0)	NOT NULL,
+	pool_fees		decimal(25,0)	NOT NULL,
 	pending			bool			NOT NULL,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -247,9 +518,17 @@ CREATE TABLE balance_inputs (
 	FOREIGN KEY (chain_id)			REFERENCES	chains(id),
 	CONSTRAINT fk_balance_inputs_miner_id
 	FOREIGN KEY (miner_id)			REFERENCES	miners(id),
+	CONSTRAINT fk_balance_inputs_out_chain_id
+	FOREIGN KEY (out_chain_id)		REFERENCES	chains(id),
+	CONSTRAINT fk_balance_inputs_balance_output_id
+	FOREIGN KEY (balance_output_id)	REFERENCES	balance_outputs(id),
+	CONSTRAINT fk_balance_inputs_batch_id
+	FOREIGN KEY (batch_id) 			REFERENCES exchange_batches(id),
 
 	INDEX idx_balance_inputs_round_id (round_id),
 	INDEX idx_balance_inputs_chain_id (chain_id),
 	INDEX idx_balance_inputs_miner_id (miner_id),
-	INDEX idx_balance_inputs_output_balance_id (output_balance_id)
+	INDEX idx_balance_inputs_out_chain_id (out_chain_id),
+	INDEX idx_balance_inputs_balance_output_id (balance_output_id),
+	INDEX idx_balance_inputs_batch_id (batch_id)
 );

@@ -299,7 +299,7 @@ func InsertBalanceOutputs(q dbcl.Querier, objects ...*BalanceOutput) error {
 	const table = "balance_outputs"
 	cols := []string{
 		"chain_id", "miner_id", "in_batch_id", "in_deposit_id", "in_payout_id",
-		"out_payout_id", "value", "pool_fees", "exchange_fees",
+		"out_payout_id", "value", "pool_fees", "exchange_fees", "spent",
 	}
 
 	rawObjects := make([]interface{}, len(objects))

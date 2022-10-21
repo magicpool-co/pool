@@ -1,1 +1,0 @@
-ALTER TABLE miners DROP COLUMN threshold;
