@@ -296,6 +296,11 @@ func (suite *PooldbReadsSuite) TestReadExchangeDeposit() {
 	if err != nil {
 		suite.T().Errorf("failed: GetExchangeDeposits: %v", err)
 	}
+
+	_, err = pooldb.GetUnregisteredExchangeDepositsByChain(pooldbClient.Reader(), "ETC")
+	if err != nil {
+		suite.T().Errorf("failed: GetUnregisteredExchangeDepositsByChain: %v", err)
+	}
 }
 
 func (suite *PooldbReadsSuite) TestReadExchangeTrade() {

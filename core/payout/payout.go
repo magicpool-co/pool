@@ -125,6 +125,8 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			FeeBalance:   dbcl.NullBigInt{Valid: true, BigInt: feeBalance},
 			PoolFees:     balanceOutput.PoolFees,
 			ExchangeFees: balanceOutput.ExchangeFees,
+
+			Pending: true,
 		}
 	}
 
@@ -147,7 +149,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			}
 		}
 
-		txs, err := c.bank.PrepareOutgoingTxs(dbTx, node, outputList...)
+		txs, err := c.bank.PrepareOutgoingTxs(dbTx, node, types.PayoutTx, outputList...)
 		if err != nil {
 			return err
 		} else if len(txs) != len(payouts) {
@@ -197,7 +199,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			}
 		}
 
-		txs, err := c.bank.PrepareOutgoingTxs(dbTx, node, outputs)
+		txs, err := c.bank.PrepareOutgoingTxs(dbTx, node, types.PayoutTx, outputs)
 		if err != nil {
 			return err
 		} else if len(txs) != 1 {
@@ -255,6 +257,14 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 		if err != nil {
 			return err
 		} else if !tx.Spent || !tx.Confirmed {
+			if payout.Pending {
+				payout.Pending = false
+				err = pooldb.UpdatePayout(c.pooldb.Writer(), payout, []string{"pending"})
+				if err != nil {
+					return err
+				}
+			}
+
 			continue
 		} else if !tx.Value.Valid {
 			return fmt.Errorf("no value for tx %s", tx.TxID)

@@ -824,6 +824,20 @@ func GetExchangeDeposits(q dbcl.Querier, batchID uint64) ([]*ExchangeDeposit, er
 	return output, err
 }
 
+func GetUnregisteredExchangeDepositsByChain(q dbcl.Querier, chain string) ([]*ExchangeDeposit, error) {
+	const query = `SELECT *
+	FROM exchange_deposits
+	WHERE
+		chain_id = ?
+	AND
+		registered = FALSE;`
+
+	output := []*ExchangeDeposit{}
+	err := q.Select(&output, query, chain)
+
+	return output, err
+}
+
 func GetExchangeTradesByStage(q dbcl.Querier, batchID uint64, stage int) ([]*ExchangeTrade, error) {
 	const query = `SELECT *
 	FROM exchange_trades
@@ -1120,6 +1134,8 @@ func GetUnconfirmedPayoutSum(q dbcl.Querier, chain string) (*big.Int, error) {
 func GetPayouts(q dbcl.Querier, page, size uint64) ([]*Payout, error) {
 	const query = `SELECT *
 	FROM payouts
+	WHERE
+		pending = FALSE
 	ORDER BY id DESC
 	LIMIT ? OFFSET ?`
 
@@ -1131,7 +1147,9 @@ func GetPayouts(q dbcl.Querier, page, size uint64) ([]*Payout, error) {
 
 func GetPayoutsCount(q dbcl.Querier) (uint64, error) {
 	const query = `SELECT COUNT(id)
-	FROM payouts`
+	FROM payouts
+	WHERE
+		pending = FALSE`
 
 	return dbcl.GetUint64(q, query)
 }
@@ -1141,6 +1159,8 @@ func GetPayoutsByMiners(q dbcl.Querier, minerIDs []uint64, page, size uint64) ([
 	FROM payouts
 	WHERE
 		miner_id IN (?)
+	AND
+		pending = FALSE
 	ORDER BY id DESC
 	LIMIT ? OFFSET ?`
 
@@ -1164,7 +1184,9 @@ func GetPayoutsByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64, error) 
 	const rawQuery = `SELECT COUNT(id)
 	FROM payouts
 	WHERE
-		miner_id IN (?);`
+		miner_id IN (?)
+	AND
+		pending = FALSE;`
 
 	if len(minerIDs) == 0 {
 		return 0, nil

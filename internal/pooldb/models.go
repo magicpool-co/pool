@@ -162,6 +162,7 @@ type Transaction struct {
 	ID      uint64 `db:"id"`
 	ChainID string `db:"chain_id"`
 
+	Type   int     `db:"type"`
 	TxID   string  `db:"txid"`
 	TxHex  string  `db:"tx_hex"`
 	Height *uint64 `db:"height"`
@@ -329,6 +330,7 @@ type Payout struct {
 	PoolFees     dbcl.NullBigInt `db:"pool_fees"`
 	ExchangeFees dbcl.NullBigInt `db:"exchange_fees"`
 	TxFees       dbcl.NullBigInt `db:"tx_fees"`
+	Pending      bool            `db:"pending"`
 	Confirmed    bool            `db:"confirmed"`
 	Failed       bool            `db:"failed"`
 

@@ -159,8 +159,8 @@ func UpdateUTXOByTxID(q dbcl.Querier, obj *UTXO, updateCols []string) error {
 func InsertTransaction(q dbcl.Querier, obj *Transaction) (uint64, error) {
 	const table = "transactions"
 	cols := []string{
-		"chain_id", "txid", "tx_hex", "height", "value", "fee",
-		"fee_balance", "remainder", "remainder_idx",
+		"chain_id", "type", "txid", "tx_hex", "height", "value",
+		"fee", "fee_balance", "remainder", "remainder_idx",
 		"spent", "confirmed", "failed",
 	}
 
@@ -323,7 +323,7 @@ func InsertPayout(q dbcl.Querier, obj *Payout) (uint64, error) {
 	const table = "payouts"
 	cols := []string{
 		"chain_id", "miner_id", "address", "transaction_id", "txid", "height", "value",
-		"fee_balance", "pool_fees", "exchange_fees", "tx_fees", "confirmed", "failed",
+		"fee_balance", "pool_fees", "exchange_fees", "tx_fees", "pending", "confirmed", "failed",
 	}
 
 	return dbcl.ExecInsert(q, table, cols, obj)

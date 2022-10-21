@@ -12,7 +12,7 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
-func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txOutputList ...[]*types.TxOutput) ([]*pooldb.Transaction, error) {
+func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txType types.TransactionType, txOutputList ...[]*types.TxOutput) ([]*pooldb.Transaction, error) {
 	txs := make([]*pooldb.Transaction, len(txOutputList))
 
 	// distributed lock to avoid race conditions
@@ -139,6 +139,7 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txOut
 
 		txs[i] = &pooldb.Transaction{
 			ChainID:      node.Chain(),
+			Type:         int(txType),
 			TxID:         txid,
 			TxHex:        txHex,
 			Value:        dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).Sub(txOutputSum, feeSum)},
@@ -211,25 +212,44 @@ func (c *Client) spendTx(node types.PayoutNode, tx *pooldb.Transaction) error {
 		return fmt.Errorf("overspend on tx %d: have %s, want %s", tx.ID, inputUTXOSum, tx.Value.BigInt)
 	}
 
-	// verify balance output sum to make sure the correct amount the miner is owed is being spent
-	balanceOutputs, err := pooldb.GetBalanceOutputsByPayoutTransaction(dbTx, tx.ID)
-	if err != nil {
-		return err
-	}
-
-	balanceOutputSum := new(big.Int)
-	for _, balanceOutput := range balanceOutputs {
-		if !balanceOutput.Value.Valid {
-			return fmt.Errorf("no value for balance output %d", balanceOutput.ID)
-		} else if balanceOutput.Spent {
-			continue
+	switch tx.Type {
+	case int(types.DepositTx): // verify the tx is the same as the value of all unregistered deposits
+		deposits, err := pooldb.GetUnregisteredExchangeDepositsByChain(dbTx, node.Chain())
+		if err != nil {
+			return err
 		}
-		balanceOutputSum.Add(balanceOutputSum, balanceOutput.Value.BigInt)
-	}
 
-	balanceOutputSum.Sub(balanceOutputSum, tx.Fee.BigInt)
-	if balanceOutputSum.Cmp(tx.Value.BigInt) != 0 {
-		return fmt.Errorf("balance output sum and tx value mismatch: have %s, want %s", balanceOutputSum, tx.Value.BigInt)
+		depositSum := new(big.Int)
+		for _, deposit := range deposits {
+			if !deposit.Value.Valid {
+				return fmt.Errorf("no value for deposit %d", deposit.ID)
+			}
+			depositSum.Add(depositSum, deposit.Value.BigInt)
+		}
+
+		if depositSum.Cmp(tx.Value.BigInt) != 0 {
+			return fmt.Errorf("deposit sum and tx value mismatch: have %s, want %s", depositSum, tx.Value.BigInt)
+		}
+	case int(types.PayoutTx): // verify balance output sum to make sure the correct amount the miner is owed is being spent
+		balanceOutputs, err := pooldb.GetBalanceOutputsByPayoutTransaction(dbTx, tx.ID)
+		if err != nil {
+			return err
+		}
+
+		balanceOutputSum := new(big.Int)
+		for _, balanceOutput := range balanceOutputs {
+			if !balanceOutput.Value.Valid {
+				return fmt.Errorf("no value for balance output %d", balanceOutput.ID)
+			} else if balanceOutput.Spent {
+				continue
+			}
+			balanceOutputSum.Add(balanceOutputSum, balanceOutput.Value.BigInt)
+		}
+
+		balanceOutputSum.Sub(balanceOutputSum, tx.Fee.BigInt)
+		if balanceOutputSum.Cmp(tx.Value.BigInt) != 0 {
+			return fmt.Errorf("balance output sum and tx value mismatch: have %s, want %s", balanceOutputSum, tx.Value.BigInt)
+		}
 	}
 
 	txid, err := node.BroadcastTx(tx.TxHex)

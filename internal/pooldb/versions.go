@@ -41,6 +41,12 @@ var sql005TransactionUp string
 //go:embed migrations/005_transaction.down.sql
 var sql005TransactionDown string
 
+//go:embed migrations/006_transaction_type.sql
+var sql006TransactionTypeUp string
+
+//go:embed migrations/006_transaction_type.down.sql
+var sql006TransactionTypeDown string
+
 func getMigrationVersions() (map[string]string, error) {
 	migrations := map[string]string{
 		"000_init.sql":                  sql000initUp,
@@ -55,6 +61,8 @@ func getMigrationVersions() (map[string]string, error) {
 		"004_expired_ip.down.sql":       sql004ExpiredIpDown,
 		"005_transaction.sql":           sql005TransactionUp,
 		"005_transaction.down.sql":      sql005TransactionDown,
+		"006_transaction_type.sql":      sql006TransactionTypeUp,
+		"006_transaction_type.down.sql": sql006TransactionTypeDown,
 	}
 
 	for k, v := range migrations {

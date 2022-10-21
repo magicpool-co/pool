@@ -53,6 +53,15 @@ const (
 	TradeSell
 )
 
+/* transaction */
+
+type TransactionType int
+
+const (
+	DepositTx TransactionType = iota
+	PayoutTx
+)
+
 /* chart */
 
 type PeriodType int

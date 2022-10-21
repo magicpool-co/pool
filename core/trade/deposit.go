@@ -77,7 +77,7 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 			return err
 		}
 
-		txs, err := c.bank.PrepareOutgoingTxs(dbTx, c.nodes[chain], txOutputIdx[chain])
+		txs, err := c.bank.PrepareOutgoingTxs(dbTx, c.nodes[chain], types.DepositTx, txOutputIdx[chain])
 		if err != nil {
 			dbTx.SafeRollback()
 			return err
