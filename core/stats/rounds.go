@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
+	"github.com/magicpool-co/pool/pkg/common"
 )
 
 func getBlockExplorerURL(chain, hash string, height uint64) (string, error) {
@@ -65,9 +66,10 @@ func newRound(dbRound *pooldb.Round) (*Round, error) {
 		}
 
 		var minerPercentage float64
-		if dbRound.AcceptedShares != 0 {
-			minerPercentage = 100 * (float64(dbRound.MinerAcceptedShares) / float64(dbRound.AcceptedShares))
+		if value.Cmp(common.Big0) > 0 {
+			minerPercentage = 100 * (common.BigIntToFloat64(dbRound.MinerValue.BigInt, common.Big10) / common.BigIntToFloat64(value, common.Big10))
 		}
+
 		parsedMinerPercentage = newNumberFromFloat64Ptr(minerPercentage, "%", false)
 	}
 
