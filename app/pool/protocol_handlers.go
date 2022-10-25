@@ -69,34 +69,25 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		workerName = req.Worker
 	}
 
-	// address formatting is {address:chain} or {chain:address}
+	// address formatting is chain:address
 	addressChain := args[0]
 	partial := strings.Split(addressChain, ":")
 	if len(partial) != 2 {
 		return errInvalidAddressFormatting(req.ID)
 	}
 
-	address := partial[0]
-	chain := strings.ToUpper(partial[1])
+	chain := strings.ToUpper(partial[0])
+	address := partial[1]
 	if chain == "CFX" {
 		address = "cfx:" + address
 	}
 
 	validChain, validAddress := p.validateAddress(chain, address)
 	if !validChain {
-		chain = strings.ToUpper(partial[0])
-		address = partial[1]
-		if chain == "CFX" {
-			address = "cfx:" + address
-		}
-
-		validChain, validAddress = p.validateAddress(chain, address)
-		if !validChain {
-			return errInvalidChain(req.ID)
-		}
-	}
-
-	if !validAddress {
+		p.logger.Info("invalid chain: %s", username)
+		return errInvalidChain(req.ID)
+	} else if !validAddress {
+		p.logger.Info("invalid address: %s", username)
 		return errInvalidAddress(req.ID)
 	} else if len(workerName) > 32 {
 		return errWorkerNameTooLong(req.ID)
