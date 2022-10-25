@@ -2,6 +2,7 @@ package pool
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"regexp"
 	"strings"
@@ -84,10 +85,10 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 
 	validChain, validAddress := p.validateAddress(chain, address)
 	if !validChain {
-		p.logger.Info("invalid chain: %s", username)
+		p.logger.Info(fmt.Sprintf("invalid chain: %s", username))
 		return errInvalidChain(req.ID)
 	} else if !validAddress {
-		p.logger.Info("invalid address: %s", username)
+		p.logger.Info(fmt.Sprintf("invalid address: %s", username))
 		return errInvalidAddress(req.ID)
 	} else if len(workerName) > 32 {
 		return errWorkerNameTooLong(req.ID)
