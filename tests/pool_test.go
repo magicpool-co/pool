@@ -45,7 +45,7 @@ func (suite *PoolSuite) TestPool() {
 			handshake: []*rpc.Request{
 				rpc.MustNewRequest("mining.subscribe"),
 				rpc.MustNewRequest("mining.authorize",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"x",
 				),
 			},
@@ -60,7 +60,7 @@ func (suite *PoolSuite) TestPool() {
 				// 	- nonce
 				//	- solution
 				rpc.MustNewRequest("mining.submit",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"356d5470",
 					[]string{
@@ -73,7 +73,7 @@ func (suite *PoolSuite) TestPool() {
 					},
 				),
 				rpc.MustNewRequest("mining.submit",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"85f9d18d",
 					[]string{
@@ -114,13 +114,13 @@ func (suite *PoolSuite) TestPool() {
 				// 	- nonce
 				//	- hash
 				rpc.MustNewRequest("mining.submit",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"cfx:aajpuruxmg5z90x07z2ynt2u5wrknz717ymnu6mhdp.worker",
 					"000001",
 					"0x7d444f1ed8ade6f0",
 					"0xde5b0ae317379fa03f768eb102fb1e3671c9beaafecc52ae3c24eb77e80d6e03",
 				),
 				rpc.MustNewRequest("mining.submit",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"cfx:aajpuruxmg5z90x07z2ynt2u5wrknz717ymnu6mhdp.worker",
 					"000001",
 					"0x7d444f1f4381257d",
 					"0xde5b0ae317379fa03f768eb102fb1e3671c9beaafecc52ae3c24eb77e80d6e03",
@@ -142,7 +142,7 @@ func (suite *PoolSuite) TestPool() {
 			},
 			handshake: []*rpc.Request{
 				rpc.MustNewRequest("ctxc_submitLogin",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"x",
 				),
 			},
@@ -194,7 +194,7 @@ func (suite *PoolSuite) TestPool() {
 			handshake: []*rpc.Request{
 				rpc.MustNewRequest("mining.subscribe"),
 				rpc.MustNewRequest("mining.authorize",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"x",
 				),
 			},
@@ -206,14 +206,14 @@ func (suite *PoolSuite) TestPool() {
 				//	- unused
 				// 	- full nonce
 				rpc.MustNewRequest("mining.submit",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"39132c4ae81f",
 					"00000000",
 					"ffff39132c4ae81f",
 				),
 				rpc.MustNewRequest("mining.submit",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"39132f884e11",
 					"00000000",
@@ -281,7 +281,7 @@ func (suite *PoolSuite) TestPool() {
 			handshake: []*rpc.Request{
 				rpc.MustNewRequest("mining.subscribe"),
 				rpc.MustNewRequest("mining.authorize",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"x",
 				),
 			},
@@ -297,14 +297,14 @@ func (suite *PoolSuite) TestPool() {
 				//	- header hash
 				// 	- mix digest
 				rpc.MustNewRequest("mining.submit",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"0xff00000049466d8c",
 					"0x93f52026533c86a3797637f6b82c96b99c90ce68b4649cac0d5af649df20c410",
 					"0xbdca50daa1912a3b826196f3115b3ef5e6060efd6b38ccc09992bfecdcb85403",
 				),
 				rpc.MustNewRequest("mining.submit",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"0xff00000049466d8c",
 					"0x93f52026533c86a3797637f6b82c96b99c90ce68b4649cac0d5af649df20c410",
@@ -330,7 +330,7 @@ func (suite *PoolSuite) TestPool() {
 			handshake: []*rpc.Request{
 				rpc.MustNewRequest("mining.subscribe"),
 				rpc.MustNewRequest("mining.authorize",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"x",
 				),
 			},
@@ -346,14 +346,14 @@ func (suite *PoolSuite) TestPool() {
 				//	- nonce
 				// 	- solution
 				rpc.MustNewRequest("mining.submit",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"bde70e63",
 					"000000000000000000000000000000000000000000000000cd000000",
 					"3412083e673b31323c60778f6bad22dde2e8c45ce9179603a4e625273da579a61de2c052c5ef509527b2b99d36f1f460e509eae779",
 				),
 				rpc.MustNewRequest("mining.submit",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"bde70e63",
 					"0000000000000000000000000000000000000000000000002e200000",
@@ -379,7 +379,7 @@ func (suite *PoolSuite) TestPool() {
 			handshake: []*rpc.Request{
 				rpc.MustNewRequest("mining.subscribe"),
 				rpc.MustNewRequest("mining.authorize",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"x",
 				),
 			},
@@ -395,14 +395,14 @@ func (suite *PoolSuite) TestPool() {
 				//	- header hash
 				// 	- mix digest
 				rpc.MustNewRequest("mining.submit",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"0xff5af6135c7d5d01",
 					"0x6fc2495aa1c4e6a90d7f5639c67dc3334647b8c41ef42a1a1cd690e49fe9e7f1",
 					"0xf0587f05a6dfbac45f1d2d39fd2f3eb43639555e42224e9173757618baa2329f",
 				),
 				rpc.MustNewRequest("mining.submit",
-					"0x0000000000000000000000000000000000000000:ETH.worker",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"0xff5af611df410db8",
 					"0x6fc2495aa1c4e6a90d7f5639c67dc3334647b8c41ef42a1a1cd690e49fe9e7f1",

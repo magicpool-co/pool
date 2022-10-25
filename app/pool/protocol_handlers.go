@@ -36,7 +36,7 @@ func generateExtraNonce(size int, mocked bool) string {
 func (p *Pool) validateAddress(chain, address string) (bool, bool) {
 	var ethRegex = regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 
-	switch strings.ToUpper(chain) {
+	switch chain {
 	case "BTC":
 		_, err := btctx.AddressToScript(address, []byte{0x00}, []byte{0x05}, true)
 		return true, err == nil
