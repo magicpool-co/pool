@@ -87,9 +87,12 @@ func (c *Client) GetBlockProfitabilityChart(period types.PeriodType, average boo
 		}
 	}
 
-	var endTime time.Time
+	var startTime, endTime time.Time
 	for _, timestamp := range chainIdx {
-		if endTime.IsZero() || (!timestamp.IsZero() && timestamp.Before(endTime)) {
+		if startTime.IsZero() || timestamp.Before(startTime) {
+			startTime = timestamp
+		}
+		if timestamp.After(endTime) {
 			endTime = timestamp
 		}
 	}
@@ -100,7 +103,7 @@ func (c *Client) GetBlockProfitabilityChart(period types.PeriodType, average boo
 
 	index := period.GenerateRange(common.NormalizeDate(endTime, period.Rollup(), true))
 	for timestamp := range index {
-		if _, ok := itemsIdx[timestamp]; !ok {
+		if _, ok := itemsIdx[timestamp]; !ok && !timestamp.Before(startTime) {
 			itemsIdx[timestamp] = make(map[string]*tsdb.Block)
 		}
 	}
