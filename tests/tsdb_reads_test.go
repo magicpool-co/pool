@@ -55,6 +55,13 @@ func (suite *TsdbReadsSuite) TestReadBlocks() {
 		suite.T().Errorf("failed: GetBlocks: %v", err)
 	}
 
+	for _, metric := range []string{"value", "difficulty", "block_time", "hashrate"} {
+		_, err = tsdb.GetBlocksSingleMetric(tsdbClient.Reader(), metric, 1)
+		if err != nil {
+			suite.T().Errorf("failed: GetBlocksSingleMetric: %s: %v", metric, err)
+		}
+	}
+
 	_, err = tsdb.GetBlocksProfitability(tsdbClient.Reader(), 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetBlocksProfitability: %v", err)

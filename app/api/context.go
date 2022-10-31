@@ -330,6 +330,30 @@ func (ctx *Context) getBlockChart(args blockChartArgs) http.Handler {
 	})
 }
 
+type blockMetricChartArgs struct {
+	metric  types.NetworkMetric
+	period  string
+	average bool
+}
+
+func (ctx *Context) getBlockMetricChart(args blockMetricChartArgs) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		period, err := types.ParsePeriodType(args.period)
+		if err != nil {
+			ctx.writeErrorResponse(w, errPeriodNotFound)
+			return
+		}
+
+		data, err := ctx.stats.GetBlockSingleMetricChart(args.metric, period, args.average)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		ctx.writeOkResponse(w, data)
+	})
+}
+
 type blockProfitabilityChartArgs struct {
 	period  string
 	average bool

@@ -68,6 +68,110 @@ func (c *Client) GetBlockChart(chain string, period types.PeriodType) (*BlockCha
 	return chart, nil
 }
 
+func (c *Client) GetBlockSingleMetricChart(metric types.NetworkMetric, period types.PeriodType, average bool) (*BlockChartSingle, error) {
+	items, err := tsdb.GetBlocksSingleMetric(c.tsdb.Reader(), string(metric), int(period))
+	if err != nil {
+		return nil, err
+	}
+
+	itemsIdx := make(map[time.Time]map[string]*tsdb.Block)
+	chainIdx := make(map[string]time.Time)
+	for _, item := range items {
+		if _, ok := itemsIdx[item.EndTime]; !ok {
+			itemsIdx[item.EndTime] = make(map[string]*tsdb.Block)
+		}
+		itemsIdx[item.EndTime][item.ChainID] = item
+
+		if item.EndTime.After(chainIdx[item.ChainID]) {
+			chainIdx[item.ChainID] = item.EndTime
+		}
+	}
+
+	var startTime, endTime time.Time
+	for _, timestamp := range chainIdx {
+		if startTime.IsZero() || timestamp.Before(startTime) {
+			startTime = timestamp
+		}
+		if timestamp.After(endTime) {
+			endTime = timestamp
+		}
+	}
+
+	if endTime.IsZero() {
+		endTime = time.Now()
+	}
+
+	index := period.GenerateRange(common.NormalizeDate(endTime, period.Rollup(), true))
+	for timestamp := range index {
+		if _, ok := itemsIdx[timestamp]; !ok && !timestamp.Before(startTime) {
+			itemsIdx[timestamp] = make(map[string]*tsdb.Block)
+		}
+	}
+
+	for timestamp, chainIdx := range itemsIdx {
+		if _, ok := index[timestamp]; !ok {
+			delete(itemsIdx, timestamp)
+			continue
+		}
+
+		for chain := range chainIdx {
+			if _, ok := itemsIdx[timestamp][chain]; !ok {
+				itemsIdx[timestamp][chain] = &tsdb.Block{EndTime: timestamp}
+			}
+		}
+	}
+
+	var count int
+	timestamps := make([]time.Time, len(itemsIdx))
+	for timestamp := range itemsIdx {
+		timestamps[count] = timestamp
+		count++
+	}
+
+	sort.Slice(timestamps, func(i, j int) bool {
+		return timestamps[i].Before(timestamps[j])
+	})
+
+	values := make(map[string][]float64)
+	for chain := range chainIdx {
+		values[chain] = make([]float64, len(timestamps))
+	}
+
+	for i, timestamp := range timestamps {
+		for chain, item := range itemsIdx[timestamp] {
+			var value float64
+			switch metric {
+			case types.NetworkValue:
+				value = item.Value
+			case types.NetworkDifficulty:
+				value = item.Difficulty
+			case types.NetworkBlockTime:
+				value = item.BlockTime
+			case types.NetworkHashrate:
+				value = item.Hashrate
+			}
+
+			if value == 0 && i > 0 {
+				value = values[chain][i-1]
+			}
+
+			values[chain][i] = value
+		}
+	}
+
+	parsedTimestamps := make([]int64, len(timestamps))
+	for i, timestamp := range timestamps {
+		parsedTimestamps[i] = timestamp.Unix()
+	}
+
+	chart := &BlockChartSingle{
+		Timestamps: parsedTimestamps,
+		Values:     values,
+	}
+
+	return chart, nil
+}
+
 func (c *Client) GetBlockProfitabilityChart(period types.PeriodType, average bool) (*BlockChartSingle, error) {
 	items, err := tsdb.GetBlocksProfitability(c.tsdb.Reader(), int(period))
 	if err != nil {

@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/magicpool-co/pool/types"
 )
 
 type router struct {
@@ -85,11 +87,29 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		period := r.URL.Query().Get("period")
 		handler = rtr.ctx.getBlockChart(blockChartArgs{chain: chain, period: period})
 
-	case rtr.match(path, "/global/charts/blocks/profitability"):
+	case rtr.match(path, "/global/charts/blocks/value"):
 		method = "GET"
 		period := r.URL.Query().Get("period")
 		average := strings.ToLower(r.URL.Query().Get("average")) == "true"
-		handler = rtr.ctx.getBlockProfitabilityChart(blockProfitabilityChartArgs{period: period, average: average})
+		handler = rtr.ctx.getBlockMetricChart(blockMetricChartArgs{metric: types.NetworkValue, period: period, average: average})
+
+	case rtr.match(path, "/global/charts/blocks/difficulty"):
+		method = "GET"
+		period := r.URL.Query().Get("period")
+		average := strings.ToLower(r.URL.Query().Get("average")) == "true"
+		handler = rtr.ctx.getBlockMetricChart(blockMetricChartArgs{metric: types.NetworkDifficulty, period: period, average: average})
+
+	case rtr.match(path, "/global/charts/blocks/blockTime"):
+		method = "GET"
+		period := r.URL.Query().Get("period")
+		average := strings.ToLower(r.URL.Query().Get("average")) == "true"
+		handler = rtr.ctx.getBlockMetricChart(blockMetricChartArgs{metric: types.NetworkBlockTime, period: period, average: average})
+
+	case rtr.match(path, "/global/charts/blocks/hashrate"):
+		method = "GET"
+		period := r.URL.Query().Get("period")
+		average := strings.ToLower(r.URL.Query().Get("average")) == "true"
+		handler = rtr.ctx.getBlockMetricChart(blockMetricChartArgs{metric: types.NetworkHashrate, period: period, average: average})
 
 	case rtr.match(path, "/global/charts/rounds"):
 		method = "GET"

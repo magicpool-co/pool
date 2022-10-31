@@ -26,6 +26,20 @@ func GetBlocks(q dbcl.Querier, chain string, period int) ([]*Block, error) {
 	return output, err
 }
 
+func GetBlocksSingleMetric(q dbcl.Querier, metric string, period int) ([]*Block, error) {
+	var query = fmt.Sprintf(`SELECT chain_id, %s, end_time
+	FROM blocks
+	WHERE
+		period = ?
+	AND
+		pending = FALSE;`, metric)
+
+	output := []*Block{}
+	err := q.Select(&output, query, period)
+
+	return output, err
+}
+
 func GetBlocksProfitability(q dbcl.Querier, period int) ([]*Block, error) {
 	const query = `SELECT
 		blocks.chain_id,

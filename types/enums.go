@@ -150,3 +150,12 @@ func (t PeriodType) GenerateRange(endTime time.Time) map[time.Time]bool {
 
 	return index
 }
+
+type NetworkMetric string
+
+const (
+	NetworkValue      NetworkMetric = "value"
+	NetworkDifficulty NetworkMetric = "difficulty"
+	NetworkBlockTime  NetworkMetric = "block_time"
+	NetworkHashrate   NetworkMetric = "hashrate"
+)
