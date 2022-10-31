@@ -17,12 +17,20 @@ var sql001PricesUp string
 //go:embed migrations/001_prices.down.sql
 var sql001PricesDown string
 
+//go:embed migrations/002_index.sql
+var sql002IndexUp string
+
+//go:embed migrations/002_index.down.sql
+var sql002IndexDown string
+
 func getMigrationVersions() (map[string]string, error) {
 	migrations := map[string]string{
 		"000_init.sql":        sql000initUp,
 		"000_init.down.sql":   sql000initDown,
 		"001_prices.sql":      sql001PricesUp,
 		"001_prices.down.sql": sql001PricesDown,
+		"002_index.sql":       sql002IndexUp,
+		"002_index.down.sql":  sql002IndexDown,
 	}
 
 	for k, v := range migrations {
