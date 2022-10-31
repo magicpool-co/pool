@@ -167,7 +167,7 @@ func ParseNetworkMetric(raw string) (NetworkMetric, error) {
 		return NetworkValue, nil
 	case "difficulty":
 		return NetworkDifficulty, nil
-	case "block_time":
+	case "blockTime":
 		return NetworkBlockTime, nil
 	case "hashrate":
 		return NetworkHashrate, nil
@@ -190,9 +190,9 @@ func ParseShareMetric(raw string) (ShareMetric, error) {
 	switch strings.ToLower(raw) {
 	case "hashrate":
 		return ShareHashrate, nil
-	case "avg_hashrate":
+	case "avgHashrate":
 		return ShareAverageHashrate, nil
-	case "reported_hashrate":
+	case "reportedHashrate":
 		return ShareReportedHashrate, nil
 	default:
 		return "", fmt.Errorf("unknown metric type")
