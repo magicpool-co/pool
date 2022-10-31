@@ -110,10 +110,18 @@ func (suite *TsdbReadsSuite) TestReadRounds() {
 
 func (suite *TsdbReadsSuite) TestReadShares() {
 	var err error
+	metrics := []string{"hashrate", "avg_hashrate", "reported_hashrate"}
 
 	_, err = tsdb.GetGlobalShares(tsdbClient.Reader(), "ETH", 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetGlobalShares: %v", err)
+	}
+
+	for _, metric := range metrics {
+		_, err = tsdb.GetGlobalSharesSingleMetric(tsdbClient.Reader(), metric, 1)
+		if err != nil {
+			suite.T().Errorf("failed: GetGlobalSharesSingleMetric: %s: %v", metric, err)
+		}
 	}
 
 	_, err = tsdb.GetPendingGlobalSharesByEndTime(tsdbClient.Reader(), time.Now(), "ETH", 1)
@@ -124,6 +132,13 @@ func (suite *TsdbReadsSuite) TestReadShares() {
 	_, err = tsdb.GetMinerShares(tsdbClient.Reader(), []uint64{0, 1}, "ETH", 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetMinerShares: %v", err)
+	}
+
+	for _, metric := range metrics {
+		_, err = tsdb.GetMinerSharesSingleMetric(tsdbClient.Reader(), []uint64{0, 1}, metric, 1)
+		if err != nil {
+			suite.T().Errorf("failed: GetMinerSharesSingleMetric: %s: %v", metric, err)
+		}
 	}
 
 	_, err = tsdb.GetPendingMinerSharesByEndTime(tsdbClient.Reader(), time.Now(), "ETH", 1)
@@ -139,6 +154,13 @@ func (suite *TsdbReadsSuite) TestReadShares() {
 	_, err = tsdb.GetWorkerShares(tsdbClient.Reader(), 1, "ETH", 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetWorkerShares: %v", err)
+	}
+
+	for _, metric := range metrics {
+		_, err = tsdb.GetWorkerSharesSingleMetric(tsdbClient.Reader(), 1, metric, 1)
+		if err != nil {
+			suite.T().Errorf("failed: GetWorkerSharesSingleMetric: %s: %v", metric, err)
+		}
 	}
 
 	_, err = tsdb.GetPendingWorkerSharesByEndTime(tsdbClient.Reader(), time.Now(), "ETH", 1)

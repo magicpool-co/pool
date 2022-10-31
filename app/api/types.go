@@ -17,6 +17,7 @@ var (
 	errRouteNotFound       = newHttpError(404, "RouteNotFound", "Route not found")
 	errChainNotFound       = newHttpError(404, "ChainNotFound", "Chain not found")
 	errPeriodNotFound      = newHttpError(404, "PeriodNotFound", "Period not found")
+	errMetricNotFound      = newHttpError(404, "MetricNotFound", "Metric not found")
 	errMinerNotFound       = newHttpError(404, "MinerNotFound", "Miner not found")
 	errWorkerNotFound      = newHttpError(404, "WorkerNotFound", "Worker not found")
 	errMethodNotAllowed    = newHttpError(405, "MethodNotAllowed", "Method not allowed")

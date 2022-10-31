@@ -5,8 +5,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-
-	"github.com/magicpool-co/pool/types"
 )
 
 type router struct {
@@ -61,7 +59,7 @@ func (rtr router) match(path, pattern string, vars ...interface{}) bool {
 func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var handler http.Handler
 	var method string
-	var miner, worker string
+	var miner, worker, metric string
 
 	path := r.URL.Path
 	switch {
@@ -87,35 +85,11 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		period := r.URL.Query().Get("period")
 		handler = rtr.ctx.getBlockChart(blockChartArgs{chain: chain, period: period})
 
-	case rtr.match(path, "/global/charts/blocks/value"):
+	case rtr.match(path, "/global/charts/blocks/+", &metric):
 		method = "GET"
 		period := r.URL.Query().Get("period")
 		average := strings.ToLower(r.URL.Query().Get("average")) == "true"
-		handler = rtr.ctx.getBlockMetricChart(blockMetricChartArgs{metric: types.NetworkValue, period: period, average: average})
-
-	case rtr.match(path, "/global/charts/blocks/difficulty"):
-		method = "GET"
-		period := r.URL.Query().Get("period")
-		average := strings.ToLower(r.URL.Query().Get("average")) == "true"
-		handler = rtr.ctx.getBlockMetricChart(blockMetricChartArgs{metric: types.NetworkDifficulty, period: period, average: average})
-
-	case rtr.match(path, "/global/charts/blocks/blockTime"):
-		method = "GET"
-		period := r.URL.Query().Get("period")
-		average := strings.ToLower(r.URL.Query().Get("average")) == "true"
-		handler = rtr.ctx.getBlockMetricChart(blockMetricChartArgs{metric: types.NetworkBlockTime, period: period, average: average})
-
-	case rtr.match(path, "/global/charts/blocks/hashrate"):
-		method = "GET"
-		period := r.URL.Query().Get("period")
-		average := strings.ToLower(r.URL.Query().Get("average")) == "true"
-		handler = rtr.ctx.getBlockMetricChart(blockMetricChartArgs{metric: types.NetworkHashrate, period: period, average: average})
-
-	case rtr.match(path, "/global/charts/blocks/profitability"):
-		method = "GET"
-		period := r.URL.Query().Get("period")
-		average := strings.ToLower(r.URL.Query().Get("average")) == "true"
-		handler = rtr.ctx.getBlockMetricChart(blockMetricChartArgs{metric: types.NetworkProfitability, period: period, average: average})
+		handler = rtr.ctx.getBlockMetricChart(blockMetricChartArgs{metric: metric, period: period, average: average})
 
 	case rtr.match(path, "/global/charts/rounds"):
 		method = "GET"
@@ -128,6 +102,11 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		chain := r.URL.Query().Get("chain")
 		period := r.URL.Query().Get("period")
 		handler = rtr.ctx.getShareChart(shareChartArgs{chain: chain, period: period})
+
+	case rtr.match(path, "/global/charts/shares/+", &metric):
+		method = "GET"
+		period := r.URL.Query().Get("period")
+		handler = rtr.ctx.getShareMetricChart(shareMetricChartArgs{metric: metric, period: period})
 
 	case rtr.match(path, "/global/rounds"):
 		method = "GET"
@@ -158,6 +137,11 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		chain := r.URL.Query().Get("chain")
 		period := r.URL.Query().Get("period")
 		handler = rtr.ctx.getShareChart(shareChartArgs{chain: chain, period: period, miner: miner})
+
+	case rtr.match(path, "/miner/+/charts/shares/+", &miner, &metric):
+		method = "GET"
+		period := r.URL.Query().Get("period")
+		handler = rtr.ctx.getShareMetricChart(shareMetricChartArgs{metric: metric, period: period, miner: miner})
 
 	case rtr.match(path, "/miner/+/rounds", &miner):
 		method = "GET"
@@ -204,6 +188,11 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		chain := r.URL.Query().Get("chain")
 		period := r.URL.Query().Get("period")
 		handler = rtr.ctx.getShareChart(shareChartArgs{chain: chain, period: period, miner: miner, worker: worker})
+
+	case rtr.match(path, "/worker/+/+/charts/shares/+", &miner, &worker, &metric):
+		method = "GET"
+		period := r.URL.Query().Get("period")
+		handler = rtr.ctx.getShareMetricChart(shareMetricChartArgs{metric: metric, period: period, miner: miner, worker: worker})
 
 	default:
 		rtr.ctx.writeErrorResponse(w, errRouteNotFound)

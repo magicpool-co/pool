@@ -91,6 +91,20 @@ func GetGlobalShares(q dbcl.Querier, chain string, period int) ([]*Share, error)
 	return output, err
 }
 
+func GetGlobalSharesSingleMetric(q dbcl.Querier, metric string, period int) ([]*Share, error) {
+	var query = fmt.Sprintf(`SELECT chain_id, %s, end_time
+	FROM global_shares
+	WHERE
+		period = ?
+	AND
+		pending = FALSE;`, metric)
+
+	output := []*Share{}
+	err := q.Select(&output, query, period)
+
+	return output, err
+}
+
 func GetPendingGlobalSharesByEndTime(q dbcl.Querier, timestamp time.Time, chain string, period int) ([]*Share, error) {
 	const query = `SELECT
 		chain_id, hashrate, reported_hashrate, count, period, start_time, end_time
@@ -127,6 +141,32 @@ func GetMinerShares(q dbcl.Querier, minerIDs []uint64, chain string, period int)
 	}
 
 	query, args, err := sqlx.In(rawQuery, minerIDs, chain, period)
+	if err != nil {
+		return nil, err
+	}
+
+	output := []*Share{}
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
+
+	return output, err
+}
+
+func GetMinerSharesSingleMetric(q dbcl.Querier, minerIDs []uint64, metric string, period int) ([]*Share, error) {
+	var rawQuery = fmt.Sprintf(`SELECT chain_id, %s, end_time
+	FROM miner_shares
+	WHERE
+		miner_id IN (?)
+	AND
+		period = ?
+	AND
+		pending = FALSE;`, metric)
+
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs, period)
 	if err != nil {
 		return nil, err
 	}
@@ -204,6 +244,22 @@ func GetWorkerShares(q dbcl.Querier, workerID uint64, chain string, period int) 
 
 	output := []*Share{}
 	err := q.Select(&output, query, workerID, chain, period)
+
+	return output, err
+}
+
+func GetWorkerSharesSingleMetric(q dbcl.Querier, workerID uint64, metric string, period int) ([]*Share, error) {
+	var query = fmt.Sprintf(`SELECT chain_id, %s, end_time
+	FROM worker_shares
+	WHERE
+		worker_id = ?
+	AND
+		period = ?
+	AND
+		pending = FALSE;`, metric)
+
+	output := []*Share{}
+	err := q.Select(&output, query, workerID, period)
 
 	return output, err
 }

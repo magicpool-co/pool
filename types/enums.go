@@ -161,10 +161,40 @@ const (
 	NetworkProfitability NetworkMetric = "profitability"
 )
 
+func ParseNetworkMetric(raw string) (NetworkMetric, error) {
+	switch strings.ToLower(raw) {
+	case "value":
+		return NetworkValue, nil
+	case "difficulty":
+		return NetworkDifficulty, nil
+	case "block_time":
+		return NetworkBlockTime, nil
+	case "hashrate":
+		return NetworkHashrate, nil
+	case "profitability":
+		return NetworkProfitability, nil
+	default:
+		return "", fmt.Errorf("unknown metric type")
+	}
+}
+
 type ShareMetric string
 
 const (
 	ShareHashrate         ShareMetric = "hashrate"
-	ShareAvergageHashrate ShareMetric = "avg_hashrate"
+	ShareAverageHashrate  ShareMetric = "avg_hashrate"
 	ShareReportedHashrate ShareMetric = "reported_hashrate"
 )
+
+func ParseShareMetric(raw string) (ShareMetric, error) {
+	switch strings.ToLower(raw) {
+	case "hashrate":
+		return ShareHashrate, nil
+	case "avg_hashrate":
+		return ShareAverageHashrate, nil
+	case "reported_hashrate":
+		return ShareReportedHashrate, nil
+	default:
+		return "", fmt.Errorf("unknown metric type")
+	}
+}
