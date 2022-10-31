@@ -100,7 +100,7 @@ func (c *Client) GetBlockSingleMetricChart(metric types.NetworkMetric, period ty
 		if startTime.IsZero() || timestamp.Before(startTime) {
 			startTime = timestamp
 		}
-		if timestamp.After(endTime) {
+		if endTime.IsZero() || timestamp.Before(endTime) {
 			endTime = timestamp
 		}
 	}
@@ -407,7 +407,7 @@ func getShareChartSingle(metric types.ShareMetric, items []*tsdb.Share, period t
 		if startTime.IsZero() || timestamp.Before(startTime) {
 			startTime = timestamp
 		}
-		if timestamp.After(endTime) {
+		if endTime.IsZero() || timestamp.Before(endTime) {
 			endTime = timestamp
 		}
 	}
