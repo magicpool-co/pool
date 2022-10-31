@@ -180,12 +180,14 @@ type Payout struct {
 	Timestamp    int64  `json:"timestamp"`
 }
 
-/* block chart */
+/* global chart */
 
-type BlockChartSingle struct {
+type ChartSingle struct {
 	Timestamps []int64              `json:"timestamps"`
 	Values     map[string][]float64 `json:"values"`
 }
+
+/* block chart */
 
 type BlockChart struct {
 	Timestamp        []int64   `json:"timestamp"`

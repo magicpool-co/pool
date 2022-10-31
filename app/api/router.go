@@ -115,7 +115,7 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		method = "GET"
 		period := r.URL.Query().Get("period")
 		average := strings.ToLower(r.URL.Query().Get("average")) == "true"
-		handler = rtr.ctx.getBlockProfitabilityChart(blockProfitabilityChartArgs{period: period, average: average})
+		handler = rtr.ctx.getBlockMetricChart(blockMetricChartArgs{metric: types.NetworkProfitability, period: period, average: average})
 
 	case rtr.match(path, "/global/charts/rounds"):
 		method = "GET"

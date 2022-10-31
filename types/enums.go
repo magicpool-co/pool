@@ -154,8 +154,17 @@ func (t PeriodType) GenerateRange(endTime time.Time) map[time.Time]bool {
 type NetworkMetric string
 
 const (
-	NetworkValue      NetworkMetric = "value"
-	NetworkDifficulty NetworkMetric = "difficulty"
-	NetworkBlockTime  NetworkMetric = "block_time"
-	NetworkHashrate   NetworkMetric = "hashrate"
+	NetworkValue         NetworkMetric = "value"
+	NetworkDifficulty    NetworkMetric = "difficulty"
+	NetworkBlockTime     NetworkMetric = "block_time"
+	NetworkHashrate      NetworkMetric = "hashrate"
+	NetworkProfitability NetworkMetric = "profitability"
+)
+
+type ShareMetric string
+
+const (
+	ShareHashrate         ShareMetric = "hashrate"
+	ShareAvergageHashrate ShareMetric = "avg_hashrate"
+	ShareReportedHashrate ShareMetric = "reported_hashrate"
 )
