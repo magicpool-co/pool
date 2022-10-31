@@ -162,7 +162,7 @@ const (
 )
 
 func ParseNetworkMetric(raw string) (NetworkMetric, error) {
-	switch strings.ToLower(raw) {
+	switch raw {
 	case "value":
 		return NetworkValue, nil
 	case "difficulty":
@@ -187,7 +187,7 @@ const (
 )
 
 func ParseShareMetric(raw string) (ShareMetric, error) {
-	switch strings.ToLower(raw) {
+	switch raw {
 	case "hashrate":
 		return ShareHashrate, nil
 	case "avgHashrate":
