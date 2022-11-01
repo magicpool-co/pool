@@ -75,6 +75,8 @@ func (c *Client) GetBlockSingleMetricChart(metric types.NetworkMetric, period ty
 	switch metric {
 	case types.NetworkProfitability:
 		items, err = tsdb.GetBlocksProfitability(c.tsdb.Reader(), int(period))
+	case types.NetworkValue:
+		items, err = tsdb.GetBlocksAdjustedValue(c.tsdb.Reader(), int(period))
 	default:
 		items, err = tsdb.GetBlocksSingleMetric(c.tsdb.Reader(), string(metric), int(period))
 	}

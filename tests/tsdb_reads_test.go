@@ -62,6 +62,11 @@ func (suite *TsdbReadsSuite) TestReadBlocks() {
 		}
 	}
 
+	_, err = tsdb.GetBlocksAdjustedValue(tsdbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetBlocksAdjustedValue: %v", err)
+	}
+
 	_, err = tsdb.GetBlocksProfitability(tsdbClient.Reader(), 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetBlocksProfitability: %v", err)
