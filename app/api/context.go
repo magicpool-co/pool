@@ -216,25 +216,17 @@ func (ctx *Context) getMiners(args minersArgs) http.HandlerFunc {
 
 type workersArgs struct {
 	miner string
-	page  string
-	size  string
 }
 
 func (ctx *Context) getWorkers(args workersArgs) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		page, size, err := ctx.parsePageSize(args.page, args.size)
-		if err != nil {
-			ctx.writeErrorResponse(w, errInvalidParameters)
-			return
-		}
-
 		minerID, err := ctx.getMinerID(args.miner)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
 		}
 
-		workers, err := ctx.stats.GetWorkers(minerID, page, size)
+		workers, err := ctx.stats.GetWorkers(minerID)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return

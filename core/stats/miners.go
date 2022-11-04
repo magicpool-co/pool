@@ -75,7 +75,7 @@ func (c *Client) GetMiners(chain string, page, size uint64) ([]*Miner, uint64, e
 	return miners, count, nil
 }
 
-func (c *Client) GetWorkers(minerID, page, size uint64) (*WorkerList, error) {
+func (c *Client) GetWorkers(minerID uint64) (*WorkerList, error) {
 	dbWorkers, err := pooldb.GetWorkersByMiner(c.pooldb.Reader(), minerID)
 	if err != nil {
 		return nil, err

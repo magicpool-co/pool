@@ -199,15 +199,16 @@ func GetWorkersByMiner(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
 	const query = `SELECT
 		workers.id,
 		workers.name,
-		ip_addresses.active,
-		workers.created_at,
-		ip_addresses.last_share
+		MAX(ip_addresses.active) active,
+		MIN(workers.created_at) created_at,
+		MAX(ip_addresses.last_share) last_share
 	FROM workers
 	JOIN ip_addresses ON workers.id = ip_addresses.worker_id
 	WHERE
 		workers.miner_id = ?
 	AND
-		ip_addresses.expired = FALSE;`
+		ip_addresses.expired = FALSE
+	GROUP BY workers.id;`
 
 	output := []*Worker{}
 	err := q.Select(&output, query, minerID)

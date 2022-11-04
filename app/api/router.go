@@ -155,8 +155,7 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	case rtr.match(path, "/miner/+/workers", &miner):
 		method = "GET"
-		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
-		handler = rtr.ctx.getWorkers(workersArgs{page: page, size: size, miner: miner})
+		handler = rtr.ctx.getWorkers(workersArgs{miner: miner})
 
 	case rtr.match(path, "/miner/+/threshold", &miner):
 		switch r.Method {
