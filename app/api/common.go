@@ -52,7 +52,7 @@ func ValidateAddress(chain, address string) bool {
 	case "BTC":
 		return btc.ValidateAddress(address)
 	case "CFX":
-		return cfx.ValidateAddress(address)
+		return cfx.ValidateAddress("cfx:" + address)
 	case "CTXC":
 		return ctxc.ValidateAddress(address)
 	case "ERGO":
