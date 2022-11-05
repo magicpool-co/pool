@@ -66,6 +66,12 @@ func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 	return difficulty * (diffFactor / blockTime)
 }
 
+func ValidateAddress(address string) bool {
+	_, err := btctx.AddressToScript(address, mainnetPrefixP2PKH, mainnetPrefixP2SH, false)
+
+	return err == nil
+}
+
 func (node Node) ValidateAddress(address string) bool {
 	_, err := btctx.AddressToScript(address, node.prefixP2PKH, node.prefixP2SH, false)
 

@@ -128,6 +128,10 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		method = "GET"
 		handler = rtr.ctx.getExists(existsArgs{miner: miner})
 
+	case rtr.match(path, "/miner/+/validate", &miner):
+		method = "GET"
+		handler = rtr.ctx.getValidateAddress(validateAddressArgs{miner: miner})
+
 	case rtr.match(path, "/miner/+/dashboard", &miner):
 		method = "GET"
 		handler = rtr.ctx.getDashboard(dashboardArgs{miner: miner})

@@ -71,6 +71,10 @@ func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 	return difficulty / blockTime
 }
 
-func (node Node) ValidateAddress(address string) bool {
+func ValidateAddress(address string) bool {
 	return addressExpr.MatchString(address)
+}
+
+func (node Node) ValidateAddress(address string) bool {
+	return ValidateAddress(address)
 }

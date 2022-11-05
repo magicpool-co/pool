@@ -21,6 +21,12 @@ func (node Node) GetUnits() *types.Number {
 	return new(types.Number).SetFromValue(1e8)
 }
 
+func ValidateAddress(address string) bool {
+	_, err := btctx.AddressToScript(address, mainnetPrefixP2PKH, mainnetPrefixP2SH, true)
+
+	return err == nil
+}
+
 func (node Node) ValidateAddress(address string) bool {
 	_, err := btctx.AddressToScript(address, node.prefixP2PKH, node.prefixP2SH, true)
 

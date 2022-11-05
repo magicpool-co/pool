@@ -63,7 +63,7 @@ func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 	return difficulty / blockTime
 }
 
-func (node Node) ValidateAddress(address string) bool {
+func ValidateAddress(address string) bool {
 	parsedAddress, err := cfxAddress.NewFromBase32(address)
 	if err != nil {
 		return false
@@ -72,4 +72,8 @@ func (node Node) ValidateAddress(address string) bool {
 	}
 
 	return parsedAddress.IsValid()
+}
+
+func (node Node) ValidateAddress(address string) bool {
+	return ValidateAddress(address)
 }

@@ -110,12 +110,12 @@ func (ctx *Context) getMinerIDs(rawMiner string) ([]uint64, error) {
 				ctx.logger.Error(err)
 			}
 
-			parts := strings.Split(miner, ":")
-			if len(parts) != 2 {
-				return nil, errMinerNotFound
+			chain, address, err := parseMiner(miner)
+			if err != nil {
+				return nil, err
 			}
 
-			minerIDs[i], err = pooldb.GetMinerID(ctx.pooldb.Reader(), parts[0], parts[1])
+			minerIDs[i], err = pooldb.GetMinerID(ctx.pooldb.Reader(), chain, address)
 			if err != nil {
 				return nil, err
 			} else if minerIDs[i] == 0 {
@@ -178,6 +178,22 @@ func (ctx *Context) getExists(args existsArgs) http.HandlerFunc {
 		}
 
 		ctx.writeOkResponse(w, map[string]interface{}{"exists": exists})
+	})
+}
+
+type validateAddressArgs struct {
+	miner string
+}
+
+func (ctx *Context) getValidateAddress(args validateAddressArgs) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var valid bool
+		chain, address, err := parseMiner(args.miner)
+		if err == nil {
+			valid = ValidateAddress(chain, address)
+		}
+
+		ctx.writeOkResponse(w, map[string]interface{}{"valid": valid})
 	})
 }
 

@@ -40,6 +40,10 @@ func (node Node) GetUnits() *types.Number {
 	return units
 }
 
-func (node Node) ValidateAddress(address string) bool {
+func ValidateAddress(address string) bool {
 	return addressExpr.MatchString(address)
+}
+
+func (node Node) ValidateAddress(address string) bool {
+	return ValidateAddress(address)
 }

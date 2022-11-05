@@ -3,31 +3,8 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 )
-
-func validateMiningChain(chain string) bool {
-	switch strings.ToUpper(chain) {
-	case "CFX", "CTXC", "ERGO", "ETC", "ETHW", "FIRO", "FLUX", "RVN":
-		return true
-	default:
-		return false
-	}
-}
-
-func validatePayoutChain(chain string) bool {
-	if validateMiningChain(chain) {
-		return true
-	}
-
-	switch strings.ToUpper(chain) {
-	case "BTC", "ETH", "USDC":
-		return true
-	default:
-		return false
-	}
-}
 
 func New(ctx *Context, port int) *http.Server {
 	mw := []middleware{
