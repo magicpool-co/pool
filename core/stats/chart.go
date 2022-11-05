@@ -409,7 +409,8 @@ func getShareChartSingle(metric types.ShareMetric, items []*tsdb.Share, period t
 		if startTime.IsZero() || timestamp.Before(startTime) {
 			startTime = timestamp
 		}
-		if endTime.IsZero() || timestamp.Before(endTime) {
+		// if endTime.IsZero() || timestamp.Before(endTime) {
+		if endTime.IsZero() || timestamp.After(endTime) {
 			endTime = timestamp
 		}
 	}
