@@ -1,54 +1,10 @@
 package cfx
 
 import (
-	"bytes"
 	"encoding/hex"
 	"strings"
 	"testing"
 )
-
-func TestConvert(t *testing.T) {
-	tests := []struct {
-		input   []byte
-		inBits  uint
-		outBits uint
-		output  []byte
-	}{
-		{
-			input:   []byte{0xff, 0xff, 0xff},
-			inBits:  8,
-			outBits: 5,
-			output:  []byte{0x1f, 0x1f, 0x1f, 0x1f, 0x1e},
-		},
-		{
-			input:   []byte{0x1f, 0x1f, 0x1f, 0x1f, 0x1e},
-			inBits:  5,
-			outBits: 8,
-			output:  []byte{0xff, 0xff, 0xff},
-		},
-		{
-			input:   []byte{0xaa, 0xaa, 0xaa},
-			inBits:  8,
-			outBits: 5,
-			output:  []byte{0b10101, 0b01010, 0b10101, 0b01010, 0b10100},
-		},
-		{
-			input:   []byte{0b10101, 0b01010, 0b10101, 0b01010, 0b10100},
-			inBits:  5,
-			outBits: 8,
-			output:  []byte{0xaa, 0xaa, 0xaa},
-		},
-	}
-
-	for i, tt := range tests {
-		output, err := convert(tt.input, tt.inBits, tt.outBits)
-		if err != nil {
-			t.Errorf("failed on %d: %v", i, err)
-		} else if bytes.Compare(output, tt.output) != 0 {
-			t.Errorf("failed on %d: output mismatch: have %x, want %x", i, output, tt.output)
-		}
-	}
-}
 
 func TestETHAddressToCFX(t *testing.T) {
 	tests := []struct {
