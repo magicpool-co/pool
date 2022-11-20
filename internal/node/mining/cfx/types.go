@@ -12,6 +12,7 @@ import (
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/crypto"
+	"github.com/magicpool-co/pool/pkg/crypto/bech32"
 	"github.com/magicpool-co/pool/pkg/hostpool"
 	"github.com/magicpool-co/pool/pkg/sshtunnel"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
@@ -97,7 +98,7 @@ func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel
 		return nil, fmt.Errorf("invalid eth address %0x: no 0x10 prefix", ethAddress)
 	}
 
-	cfxAddress, err := ETHAddressToCFX(ethAddress, networkPrefix)
+	cfxAddress, err := bech32.EncodeBCH(addressCharset, networkPrefix, addressVersion, ethAddress)
 	if err != nil {
 		return nil, err
 	}

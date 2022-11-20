@@ -9,6 +9,11 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
+const (
+	addressCharset = "abcdefghjkmnprstuvwxyz0123456789"
+	addressVersion = 0
+)
+
 var (
 	maxDiffBig   = common.MustParseBigHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 	shareDiffBig = common.MustParseBigHex("000000044b82fa09b5a52cb98b405447c4a98187eebb22f008d5d64f9c394ae8")

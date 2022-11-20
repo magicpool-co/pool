@@ -7,6 +7,7 @@ import (
 	ethCommon "github.com/ethereum/go-ethereum/common"
 
 	"github.com/magicpool-co/pool/pkg/common"
+	"github.com/magicpool-co/pool/pkg/crypto/bech32"
 	"github.com/magicpool-co/pool/pkg/crypto/tx/cfxtx"
 	"github.com/magicpool-co/pool/types"
 )
@@ -60,7 +61,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	if len(output.Address) > 2 && output.Address[:2] == "0x" {
 		var err error
 		rawAddress := ethCommon.HexToAddress(output.Address).Bytes()
-		output.Address, err = ETHAddressToCFX(rawAddress, node.networkPrefix)
+		output.Address, err = bech32.EncodeBCH(addressCharset, node.networkPrefix, addressVersion, rawAddress)
 		if err != nil {
 			return "", "", err
 		}
