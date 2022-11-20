@@ -7,7 +7,7 @@ import (
 	"github.com/magicpool-co/pool/pkg/crypto/util"
 )
 
-func serializeHeader(nonce, bits, nTime, merkleRoot, prevHash, version []byte) []byte {
+func serializeBitcoinHeader(nonce, bits, nTime, merkleRoot, prevHash, version []byte) []byte {
 	header := make([]byte, 80)
 
 	copy(header[0:4], nonce)        // 4
@@ -20,7 +20,7 @@ func serializeHeader(nonce, bits, nTime, merkleRoot, prevHash, version []byte) [
 	return util.ReverseBytes(header)
 }
 
-func SerializeBlockHeader(nonce, nTime, version uint32, bits, prevHash string, txHashes [][]byte) ([]byte, []byte, error) {
+func SerializeBitcoinBlockHeader(nonce, nTime, version uint32, bits, prevHash string, txHashes [][]byte) ([]byte, []byte, error) {
 	nonceBytes := util.WriteUint32Be(nonce)
 	nTimeBytes := util.WriteUint32Be(nTime)
 	versionBytes := util.WriteUint32Be(version)
@@ -36,13 +36,13 @@ func SerializeBlockHeader(nonce, nTime, version uint32, bits, prevHash string, t
 	}
 
 	merkleRoot := util.CalculateMerkleRoot(txHashes)
-	header := serializeHeader(nonceBytes, bitsBytes, nTimeBytes, merkleRoot, prevHashBytes, versionBytes)
+	header := serializeBitcoinHeader(nonceBytes, bitsBytes, nTimeBytes, merkleRoot, prevHashBytes, versionBytes)
 	headerHash := util.ReverseBytes(util.Sha256d(header))
 
 	return header, headerHash, nil
 }
 
-func SerializeBlock(header []byte, txHexes [][]byte) ([]byte, error) {
+func SerializeBitcoinBlock(header []byte, txHexes [][]byte) ([]byte, error) {
 	hex := bytes.Join([][]byte{
 		header,
 		util.VarIntToBytes(uint64(len(txHexes))),

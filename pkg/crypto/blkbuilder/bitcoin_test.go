@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestSerializeBlockHeader(t *testing.T) {
+func TestSerializeBitcoinBlockHeader(t *testing.T) {
 	tests := []struct {
 		height     uint32
 		nonce      uint32
@@ -134,7 +134,7 @@ func TestSerializeBlockHeader(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		header, headerHash, err := SerializeBlockHeader(tt.nonce, tt.nTime, tt.version, tt.bits, tt.prevHash, tt.txHashes)
+		header, headerHash, err := SerializeBitcoinBlockHeader(tt.nonce, tt.nTime, tt.version, tt.bits, tt.prevHash, tt.txHashes)
 		if err != nil {
 			t.Errorf("failed on %d: SerializeBlockHeader: %v", i, err)
 		} else if bytes.Compare(header, tt.header) != 0 {
@@ -145,7 +145,7 @@ func TestSerializeBlockHeader(t *testing.T) {
 	}
 }
 
-func TestSerializeBlock(t *testing.T) {
+func TestSerializeBitcoinBlock(t *testing.T) {
 	tests := []struct {
 		header   []byte
 		txHexes  [][]byte
@@ -1140,7 +1140,7 @@ func TestSerializeBlock(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		blockHex, err := SerializeBlock(tt.header, tt.txHexes)
+		blockHex, err := SerializeBitcoinBlock(tt.header, tt.txHexes)
 		if err != nil {
 			t.Errorf("failed on %d: SerializeBlock: %v", i, err)
 		} else if bytes.Compare(blockHex, tt.blockHex) != 0 {

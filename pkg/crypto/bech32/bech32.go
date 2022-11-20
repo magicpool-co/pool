@@ -86,7 +86,7 @@ func calcChecksum(prefix string, body []byte) ([]byte, error) {
 	return checksumIn5Bits, nil
 }
 
-func EncodeModified(charset, prefix string, version byte, body []byte) (string, error) {
+func EncodeBCH(charset, prefix string, version byte, body []byte) (string, error) {
 	data := make([]byte, len(body)+1)
 	data[0] = version
 	copy(data[1:], body)
@@ -106,7 +106,7 @@ func EncodeModified(charset, prefix string, version byte, body []byte) (string, 
 	return prefix + ":" + address, nil
 }
 
-func DecodeModified(charset, encoded string) (string, byte, []byte, error) {
+func DecodeBCH(charset, encoded string) (string, byte, []byte, error) {
 	if len(encoded) < checksumLength+2 {
 		return "", 0, nil, fmt.Errorf("invalid bech32 string length")
 	}
