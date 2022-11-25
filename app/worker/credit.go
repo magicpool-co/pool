@@ -35,10 +35,6 @@ func (j *BlockUnlockJob) Run() {
 	defer lock.Release(ctx)
 
 	for _, node := range j.nodes {
-		if node.Chain() == "ERGO" {
-			continue
-		}
-
 		if err := credit.UnlockRounds(node, j.pooldb); err != nil {
 			j.logger.Error(fmt.Errorf("unlock: %s: %v", node.Chain(), err))
 			continue
