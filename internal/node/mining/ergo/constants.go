@@ -26,7 +26,7 @@ func (node Node) Address() string {
 }
 
 func (node Node) GetAccountingType() types.AccountingType {
-	return types.AccountStructure
+	return types.UTXOStructure
 }
 
 func (node Node) Mocked() bool {
