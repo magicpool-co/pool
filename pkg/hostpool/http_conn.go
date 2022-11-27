@@ -53,9 +53,9 @@ func (hc *httpConn) healthCheck(healthCheck *HTTPHealthCheck, logger *log.Logger
 
 	var err error
 	if len(healthCheck.HTTPMethod) > 0 {
-		_, _, err = hc.execHTTP(ctx, healthCheck.HTTPMethod, healthCheck.HTTPPath, healthCheck.HTTPBody)
+		_, _, err = hc.exec(ctx, healthCheck.HTTPMethod, healthCheck.HTTPPath, healthCheck.HTTPBody)
 	} else if healthCheck.RPCRequest != nil {
-		_, _, err = hc.execHTTP(ctx, "POST", "", healthCheck.RPCRequest)
+		_, _, err = hc.exec(ctx, "POST", "", healthCheck.RPCRequest)
 	} else {
 		return maxLatency
 	}
@@ -85,7 +85,7 @@ func (hc *httpConn) markHealthy(healthy bool) {
 
 // Base call to execute an HTTP call. If the request succeeeds, but the status code
 // is non-2xx and not 300, a HTTPError is returned.
-func (hc *httpConn) execHTTP(ctx context.Context, method, path string, msg interface{}) ([]byte, string, error) {
+func (hc *httpConn) exec(ctx context.Context, method, path string, msg interface{}) ([]byte, string, error) {
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return nil, "", err

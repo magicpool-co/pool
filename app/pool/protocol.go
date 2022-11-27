@@ -2,6 +2,7 @@ package pool
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 
 	"github.com/goccy/go-json"
@@ -10,6 +11,8 @@ import (
 	"github.com/magicpool-co/pool/pkg/stratum"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 )
+
+var isBzminer = regexp.MustCompile(".*BzMiner.*")
 
 type ProtocolHandler func(*stratum.Conn, *rpc.Request) error
 
@@ -69,6 +72,16 @@ func (p *Pool) routeRequest(req *rpc.Request) ProtocolHandler {
 /* protocol functions */
 
 func (p *Pool) subscribe(c *stratum.Conn, req *rpc.Request) error {
+	if len(req.Params) > 0 {
+		var minerClient string
+		err := json.Unmarshal(req.Params[0], &minerClient)
+		if err == nil {
+			if isBzminer.MatchString(minerClient) {
+				// set specific variation of stratum
+			}
+		}
+	}
+
 	if !c.GetSubscribed() {
 		c.SetExtraNonce(generateExtraNonce(p.extraNonce1Size, p.node.Mocked()))
 		c.SetSubscribed(true)

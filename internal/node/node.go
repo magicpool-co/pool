@@ -12,6 +12,7 @@ import (
 	"github.com/magicpool-co/pool/internal/node/mining/etc"
 	"github.com/magicpool-co/pool/internal/node/mining/firo"
 	"github.com/magicpool-co/pool/internal/node/mining/flux"
+	"github.com/magicpool-co/pool/internal/node/mining/kas"
 	"github.com/magicpool-co/pool/internal/node/mining/rvn"
 	"github.com/magicpool-co/pool/internal/node/payout/bsc"
 	"github.com/magicpool-co/pool/internal/node/payout/btc"
@@ -42,6 +43,8 @@ func GetMiningNode(mainnet bool, chain, privKey string, urls []string, logger *l
 		return firo.New(mainnet, urls, privKey, logger, tunnel)
 	case "FLUX":
 		return flux.New(mainnet, urls, privKey, logger, tunnel)
+	case "KAS":
+		return kas.New(mainnet, urls, privKey, logger, tunnel)
 	case "RVN":
 		return rvn.New(mainnet, urls, privKey, logger, tunnel)
 	default:

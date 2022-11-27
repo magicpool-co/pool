@@ -10,6 +10,9 @@ reset-test-containers:
 fmt:
 	go fmt ./... ./tests
 
+generate:
+	go generate ./...
+
 unit:
 	go test ./...
 

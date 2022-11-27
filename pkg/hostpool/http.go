@@ -214,7 +214,7 @@ func (p *HTTPPool) ExecHTTPSticky(hostID, method, path string, body, target inte
 		ctx, cancelFunc := context.WithTimeout(context.Background(), httpTimeout)
 		defer cancelFunc()
 
-		res, hostID, err = hc.execHTTP(ctx, method, path, body)
+		res, hostID, err = hc.exec(ctx, method, path, body)
 		if err != nil {
 			p.logger.Error(fmt.Errorf("httppool: http: %v", err))
 			continue
