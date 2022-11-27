@@ -2,6 +2,7 @@ package kas
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/tsdb"
+	"github.com/magicpool-co/pool/pkg/crypto/blkbuilder"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 	"github.com/magicpool-co/pool/types"
 )
@@ -61,12 +63,105 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 	return nil, nil
 }
 
-func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh chan *types.StratumJob, errCh chan error) {
+func (node Node) parseBlockTemplate(template *Block) (*types.StratumJob, error) {
+	header, err := blkbuilder.SerializeKaspaBlockHeader(uint16(template.Version), template.Parents,
+		template.HashMerkleRoot, template.AcceptedIdMerkleRoot, template.UtxoCommitment, 0,
+		template.Bits, 0, template.DaaScore, template.BlueScore, template.BlueWork, template.PruningPoint)
+	if err != nil {
+		return nil, err
+	}
 
+	job := &types.StratumJob{
+		Header:     new(types.Hash).SetFromBytes(header),
+		HeaderHash: new(types.Hash).SetFromBytes(header),
+		Height:     new(types.Number).SetFromValue(template.BlueScore),
+		Difficulty: new(types.Difficulty).SetFromBits(template.Bits, node.GetMaxDifficulty()),
+		Data:       template,
+	}
+
+	return job, nil
+}
+
+func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh chan *types.StratumJob, errCh chan error) {
+	refreshTimer := time.NewTimer(interval)
+	staticInterval := time.Second * 15
+
+	go func() {
+		defer node.logger.RecoverPanic()
+
+		var lastHash string
+		var lastJob time.Time
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-refreshTimer.C:
+				now := time.Now()
+				template, hostID, err := node.getBlockTemplate("")
+				if err != nil {
+					errCh <- err
+				} else if lastHash != template.HashMerkleRoot || now.After(lastJob.Add(staticInterval)) {
+					job, err := node.parseBlockTemplate(template)
+					if err != nil {
+						errCh <- err
+					} else {
+						job.HostID = hostID
+						// @TODO: is using hashMerkleRoot actually an acceptable way to check?
+						// the reality is that it should probably be done through always parsing the template
+						lastHash = template.HashMerkleRoot
+						lastJob = now
+						jobCh <- job
+					}
+				}
+			}
+		}
+	}()
 }
 
 func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (types.ShareStatus, *pooldb.Round, error) {
-	return types.RejectedShare, nil, nil
+	template, ok := job.Data.(*Block)
+	if !ok {
+		return types.RejectedShare, nil, fmt.Errorf("unable to cast job data as block")
+	}
+
+	digest, err := node.pow.Compute(job.Header.Bytes(), template.Timestamp, work.Nonce.Value())
+	if err != nil {
+		return types.RejectedShare, nil, err
+	}
+
+	hash := new(types.Hash).SetFromBytes(digest)
+	if !hash.MeetsDifficulty(node.GetShareDifficulty()) {
+		return types.RejectedShare, nil, nil
+	} else if !hash.MeetsDifficulty(job.Difficulty) {
+		return types.AcceptedShare, nil, nil
+	}
+
+	template.Nonce = work.Nonce.Value()
+	blockHash, err := blkbuilder.SerializeKaspaBlockHeader(uint16(template.Version), template.Parents,
+		template.HashMerkleRoot, template.AcceptedIdMerkleRoot, template.UtxoCommitment, template.Timestamp,
+		template.Bits, template.Nonce, template.DaaScore, template.BlueScore, template.BlueWork, template.PruningPoint)
+	if err != nil {
+		return types.RejectedShare, nil, err
+	}
+
+	err = node.submitBlock(job.HostID, template)
+	if err != nil {
+		return types.AcceptedShare, nil, err
+	}
+
+	round := &pooldb.Round{
+		ChainID:    node.Chain(),
+		Height:     job.Height.Value(),
+		Hash:       hex.EncodeToString(blockHash),
+		Nonce:      types.Uint64Ptr(work.Nonce.Value()),
+		Difficulty: job.Difficulty.Value(),
+		Pending:    true,
+		Mature:     false,
+		Uncle:      false,
+		Orphan:     false,
+	}
+
+	return types.AcceptedShare, round, nil
 }
 
 func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.StratumWork, error) {

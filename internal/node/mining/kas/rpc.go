@@ -6,14 +6,8 @@ import (
 	"github.com/magicpool-co/pool/internal/node/mining/kas/protowire"
 )
 
-func (node Node) execAsGRPC(hostID, method string, req interface{}) (*protowire.KaspadMessage, error) {
-	var res interface{}
-	var err error
-	if hostID == "" {
-		res, err = node.grpcHost.Exec(req)
-	} else {
-		res, _, err = node.grpcHost.ExecSticky(hostID, req)
-	}
+func (node Node) execAsGRPC(method string, req interface{}) (*protowire.KaspadMessage, error) {
+	res, err := node.grpcHost.Exec(req)
 	if err != nil {
 		return nil, err
 	}
@@ -24,6 +18,20 @@ func (node Node) execAsGRPC(hostID, method string, req interface{}) (*protowire.
 	}
 
 	return msg, nil
+}
+
+func (node Node) execAsGRPCSticky(hostID, method string, req interface{}) (*protowire.KaspadMessage, string, error) {
+	res, hostID, err := node.grpcHost.ExecSticky(hostID, req)
+	if err != nil {
+		return nil, "", err
+	}
+
+	msg, ok := res.(*protowire.KaspadMessage)
+	if !ok {
+		return nil, "", fmt.Errorf("%s: unable to cast as KaspadMessage", method)
+	}
+
+	return msg, hostID, nil
 }
 
 func handleRPCError(method string, err *protowire.RPCError) error {
@@ -43,7 +51,7 @@ func (node Node) getInfo(hostID string) (bool, error) {
 		},
 	}
 
-	res, err := node.execAsGRPC(hostID, method, req)
+	res, _, err := node.execAsGRPCSticky(hostID, method, req)
 	if err != nil {
 		return false, err
 	}
@@ -69,7 +77,7 @@ func (node Node) getSelectedTipHash(hostID string) (string, error) {
 		},
 	}
 
-	res, err := node.execAsGRPC(hostID, method, req)
+	res, _, err := node.execAsGRPCSticky(hostID, method, req)
 	if err != nil {
 		return "", err
 	}
@@ -100,7 +108,7 @@ func (node Node) getBlock(hostID, hash string) (*Block, error) {
 		},
 	}
 
-	res, err := node.execAsGRPC(hostID, method, req)
+	res, _, err := node.execAsGRPCSticky(hostID, method, req)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +127,7 @@ func (node Node) GetBlock(hash string) (*Block, error) {
 	return node.getBlock("", hash)
 }
 
-func (node Node) getBlockTemplate(extraData string) (*Block, error) {
+func (node Node) getBlockTemplate(extraData string) (*Block, string, error) {
 	const method = "getBlockTemplate"
 
 	req := &protowire.KaspadMessage{
@@ -131,30 +139,30 @@ func (node Node) getBlockTemplate(extraData string) (*Block, error) {
 		},
 	}
 
-	res, err := node.execAsGRPC("", method, req)
+	res, hostID, err := node.execAsGRPCSticky("", method, req)
 	if err != nil {
-		return nil, err
+		return nil, hostID, err
 	}
 
 	obj := res.GetGetBlockTemplateResponse()
 	if err = handleRPCError(method, obj.Error); err != nil {
-		return nil, err
+		return nil, hostID, err
 	} else if !obj.IsSynced {
-		return nil, fmt.Errorf("node is not synced")
+		return nil, hostID, fmt.Errorf("node is not synced")
 	} else if obj.Block == nil {
-		return nil, fmt.Errorf("unable to find block template")
+		return nil, hostID, fmt.Errorf("unable to find block template")
 	}
 
 	fmt.Println(obj.Block.Header)
 
-	return nil, nil
+	return nil, hostID, nil
 }
 
-func (node Node) GetBlockTemplate() (*Block, error) {
+func (node Node) GetBlockTemplate() (*Block, string, error) {
 	return node.getBlockTemplate("")
 }
 
-func (node Node) submitBlock(block *Block) error {
+func (node Node) submitBlock(hostID string, block *Block) error {
 	const method = "submitBlock"
 
 	parents := make([]*protowire.RpcBlockLevelParents, len(block.Parents))
@@ -228,7 +236,7 @@ func (node Node) submitBlock(block *Block) error {
 		},
 	}
 
-	res, err := node.execAsGRPC("", method, req)
+	res, _, err := node.execAsGRPCSticky(hostID, method, req)
 	if err != nil {
 		return err
 	}
