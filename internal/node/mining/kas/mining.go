@@ -84,7 +84,7 @@ func (node Node) parseBlockTemplate(template *Block) (*types.StratumJob, error) 
 
 func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh chan *types.StratumJob, errCh chan error) {
 	refreshTimer := time.NewTimer(interval)
-	staticInterval := time.Second * 15
+	staticInterval := time.Millisecond * 100
 
 	go func() {
 		defer node.logger.RecoverPanic()
@@ -100,18 +100,16 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh ch
 				template, hostID, err := node.getBlockTemplate("")
 				if err != nil {
 					errCh <- err
-				} else if lastHash != template.HashMerkleRoot || now.After(lastJob.Add(staticInterval)) {
-					job, err := node.parseBlockTemplate(template)
-					if err != nil {
-						errCh <- err
-					} else {
-						job.HostID = hostID
-						// @TODO: is using hashMerkleRoot actually an acceptable way to check?
-						// the reality is that it should probably be done through always parsing the template
-						lastHash = template.HashMerkleRoot
-						lastJob = now
-						jobCh <- job
-					}
+				}
+
+				job, err := node.parseBlockTemplate(template)
+				if err != nil {
+					errCh <- err
+				} else if job.Header.Hex() != lastHash || now.After(lastJob.Add(staticInterval)) {
+					job.HostID = hostID
+					lastHash = job.Header.Hex()
+					lastJob = now
+					jobCh <- job
 				}
 			}
 		}
