@@ -84,7 +84,7 @@ func (node Node) parseBlockTemplate(template *Block) (*types.StratumJob, error) 
 
 func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh chan *types.StratumJob, errCh chan error) {
 	refreshTimer := time.NewTimer(interval)
-	staticInterval := time.Millisecond * 100
+	staticInterval := time.Second * 3
 
 	go func() {
 		defer node.logger.RecoverPanic()
