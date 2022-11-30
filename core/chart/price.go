@@ -231,6 +231,8 @@ func (c *Client) ProcessPrices(chain string) error {
 		switch chain {
 		case "ETHW":
 			startTime = time.Unix(1664182800, 0)
+		case "KAS":
+			startTime = time.Unix(1664290800, 0)
 		default:
 			startTime = time.Unix(1661990400, 0)
 		}
