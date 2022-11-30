@@ -33,6 +33,7 @@ const (
 	BinanceID ExchangeID = iota
 	KucoinID
 	BittrexID
+	MEXCGlobalID
 )
 
 type TradeDirection int
