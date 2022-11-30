@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"sort"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/tsdb"
 	"github.com/magicpool-co/pool/pkg/crypto/blkbuilder"
+	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 	"github.com/magicpool-co/pool/types"
 )
@@ -309,7 +311,7 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 		Height:     job.Height.Value(),
 		Hash:       hex.EncodeToString(blockHash),
 		Nonce:      types.Uint64Ptr(work.Nonce.Value()),
-		Difficulty: job.Difficulty.Value(),
+		Difficulty: job.Difficulty.Value() / 2,
 		Pending:    true,
 		Mature:     false,
 		Uncle:      false,
@@ -386,5 +388,25 @@ func (node Node) GetDifficultyRequest() (interface{}, error) {
 }
 
 func (node Node) UnlockRound(round *pooldb.Round) error {
+	block, err := node.getBlock("", round.Hash, true)
+	if err != nil {
+		return err
+	} else if round.Nonce == nil || block.Nonce != types.Uint64Value(round.Nonce) {
+		return fmt.Errorf("round %s has a nonce mismatch", round.Hash)
+	}
+
+	blockReward, err := node.getRewardsFromBlock(block, nil)
+	if err != nil {
+		return err
+	}
+
+	round.Value = dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(blockReward)}
+	round.Uncle = false
+	round.Orphan = false
+	round.Pending = false
+	round.Mature = false
+	round.Spent = false
+	round.CreatedAt = time.Unix(block.Timestamp/1000, 0)
+
 	return nil
 }
