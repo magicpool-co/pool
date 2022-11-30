@@ -9,7 +9,7 @@ import (
 
 func InsertRawBlocks(q dbcl.Querier, objects ...*RawBlock) error {
 	const table = "raw_blocks"
-	cols := []string{"chain_id", "height", "value", "difficulty", "uncle_count", "tx_count", "timestamp"}
+	cols := []string{"chain_id", "hash", "height", "value", "difficulty", "uncle_count", "tx_count", "timestamp"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {

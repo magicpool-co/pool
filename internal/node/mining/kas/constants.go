@@ -20,6 +20,8 @@ const (
 )
 
 var (
+	// note: pools use btc diff (2^256 - 1), but native kaspa diff is actually half of btc diff (2^255 - 1).
+	// this means, if using btc diff, hashrate = (2 * diff) / blocktime and kaspa diff = diff / 2.
 	maxDiffBig   = common.MustParseBigHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 	shareDiffBig = common.MustParseBigHex("0000000019998000000000b876f1ba8c727da45575f4fafc1a8cee77caf0878d")
 	shareDiff    = new(types.Difficulty).SetFromBig(shareDiffBig, maxDiffBig)
@@ -70,7 +72,7 @@ func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 	if blockTime == 0 || difficulty == 0 {
 		return 0
 	}
-	return difficulty / blockTime
+	return (4 * difficulty) / blockTime
 }
 
 func ValidateAddress(address string) bool {

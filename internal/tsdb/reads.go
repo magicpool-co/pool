@@ -361,6 +361,22 @@ func GetRawBlockMaxHeight(q dbcl.Querier, chain string) (uint64, error) {
 	return dbcl.GetUint64(q, query, chain)
 }
 
+func GetRawBlockMaxHashByHeight(q dbcl.Querier, chain string) (string, error) {
+	const query = `WITH cte as (
+			SELECT MAX(height) height
+		FROM
+			raw_blocks
+		WHERE
+			chain_id = ?
+	) SELECT IFNULL(hash, "")
+	FROM raw_blocks
+	JOIN cte ON raw_blocks.height = cte.height
+	ORDER BY id DESC
+	LIMIT 1;`
+
+	return dbcl.GetString(q, query, chain)
+}
+
 func GetRawBlockRollup(q dbcl.Querier, chain string, start, end time.Time) (*Block, error) {
 	const query = `WITH cte as (
 		SELECT

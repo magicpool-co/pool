@@ -151,64 +151,90 @@ func (c *Client) truncateBlocks(node types.MiningNode, endTime time.Time) error 
 }
 
 func (c *Client) CollectBlocks(node types.MiningNode) error {
-	lastHeight, err := tsdb.GetRawBlockMaxHeight(c.tsdb.Reader(), node.Chain())
-	if err != nil {
-		return err
-	}
+	var blocks []*tsdb.RawBlock
+	switch node.Chain() {
+	case "KAS":
+		const limit = 2500
+		lastHash, err := tsdb.GetRawBlockMaxHashByHeight(c.tsdb.Reader(), node.Chain())
+		if err != nil {
+			return err
+		}
 
-	currentHeight, syncing, err := node.GetStatus()
-	if err != nil {
-		return err
-	} else if syncing {
-		return fmt.Errorf("node is syncing")
-	} else if lastHeight == 0 {
+		_, syncing, err := node.GetStatus()
+		if err != nil {
+			return err
+		} else if syncing {
+			return fmt.Errorf("node is syncing")
+		} else if lastHash == "" {
+			lastHash = "122b3e8d963f8f4a32a7834f4502dbbea2f0d6a2113657942d6233293a9afc6b"
+		}
+
+		blocks, err = node.GetBlocksByHash(lastHash, limit)
+		if err != nil {
+			return err
+		} else if len(blocks) == 0 {
+			return nil
+		}
+	default:
+		lastHeight, err := tsdb.GetRawBlockMaxHeight(c.tsdb.Reader(), node.Chain())
+		if err != nil {
+			return err
+		}
+
+		currentHeight, syncing, err := node.GetStatus()
+		if err != nil {
+			return err
+		} else if syncing {
+			return fmt.Errorf("node is syncing")
+		} else if lastHeight == 0 {
+			switch node.Chain() {
+			case "CFX":
+				lastHeight = 53100000
+			case "CTXC":
+				lastHeight = 6840000
+			case "ERGO":
+				lastHeight = 828630
+			case "ETC":
+				lastHeight = 15850000
+			case "ETHW":
+				lastHeight = 15537394
+			case "FLUX":
+				lastHeight = 1198000
+			case "FIRO":
+				lastHeight = 530000
+			case "RVN":
+				lastHeight = 2432500
+			default:
+				lastHeight = currentHeight - 1
+			}
+		} else if lastHeight >= currentHeight {
+			return nil
+		}
+
 		switch node.Chain() {
 		case "CFX":
-			lastHeight = 53100000
-		case "CTXC":
-			lastHeight = 6840000
-		case "ERGO":
-			lastHeight = 828630
-		case "ETC":
-			lastHeight = 15850000
-		case "ETHW":
-			lastHeight = 15537394
-		case "FLUX":
-			lastHeight = 1198000
-		case "FIRO":
-			lastHeight = 530000
-		case "RVN":
-			lastHeight = 2432500
-		default:
-			lastHeight = currentHeight - 1
+			if currentHeight-lastHeight > 5000 {
+				currentHeight = lastHeight + 5000
+			}
+		case "CTXC", "ETC", "ETHW":
+			if currentHeight-lastHeight > 250 {
+				currentHeight = lastHeight + 250
+			}
+		case "ERGO", "FLUX", "FIRO", "RVN":
+			if currentHeight-lastHeight > 500 {
+				currentHeight = lastHeight + 500
+			}
 		}
-	} else if lastHeight >= currentHeight {
-		return nil
-	}
 
-	switch node.Chain() {
-	case "CFX":
-		if currentHeight-lastHeight > 5000 {
-			currentHeight = lastHeight + 5000
-		}
-	case "CTXC", "ETC", "ETHW":
-		if currentHeight-lastHeight > 250 {
-			currentHeight = lastHeight + 250
-		}
-	case "ERGO", "FLUX", "FIRO", "RVN":
-		if currentHeight-lastHeight > 500 {
-			currentHeight = lastHeight + 500
+		blocks, err = node.GetBlocks(lastHeight+1, currentHeight)
+		if err != nil {
+			return err
+		} else if len(blocks) == 0 {
+			return nil
 		}
 	}
 
-	blocks, err := node.GetBlocks(lastHeight+1, currentHeight)
-	if err != nil {
-		return err
-	} else if len(blocks) == 0 {
-		return nil
-	}
-
-	err = tsdb.InsertRawBlocks(c.tsdb.Writer(), blocks...)
+	err := tsdb.InsertRawBlocks(c.tsdb.Writer(), blocks...)
 	if err != nil {
 		return err
 	}

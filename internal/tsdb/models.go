@@ -8,6 +8,7 @@ type RawBlock struct {
 	ID      uint64 `db:"id"`
 	ChainID string `db:"chain_id"`
 
+	Hash       string  `db:"hash"`
 	Height     uint64  `db:"height"`
 	Value      float64 `db:"value"`
 	Difficulty float64 `db:"difficulty"`

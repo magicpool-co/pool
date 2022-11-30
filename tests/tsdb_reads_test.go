@@ -36,6 +36,11 @@ func (suite *TsdbReadsSuite) TestReadRawBlocks() {
 		suite.T().Errorf("failed: GetRawBlockMaxHeight: %v", err)
 	}
 
+	_, err = tsdb.GetRawBlockMaxHashByHeight(tsdbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetRawBlockMaxHashByHeight: %v", err)
+	}
+
 	_, err = tsdb.GetRawBlockMaxTimestampBeforeTime(tsdbClient.Reader(), "ETH", time.Now())
 	if err != nil {
 		suite.T().Errorf("failed: GetRawBlockMaxTimestampBeforeTime: %v", err)

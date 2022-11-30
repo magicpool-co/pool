@@ -101,6 +101,7 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 
 			blocks[i+j] = &tsdb.RawBlock{
 				ChainID:    node.Chain(),
+				Hash:       block.Hash,
 				Height:     start + uint64(i+j),
 				Value:      common.BigIntToFloat64(valueBig, node.GetUnits().Big()),
 				Difficulty: block.Difficulty,
@@ -111,6 +112,10 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 	}
 
 	return blocks, nil
+}
+
+func (node Node) GetBlocksByHash(startHash string, limit uint64) ([]*tsdb.RawBlock, error) {
+	return nil, fmt.Errorf("GetBlocks: not implemented")
 }
 
 func (node Node) getCurrentDevRewards() ([]uint64, error) {

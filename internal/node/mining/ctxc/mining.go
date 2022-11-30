@@ -115,6 +115,7 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 
 			blocks[i+j] = &tsdb.RawBlock{
 				ChainID:    node.Chain(),
+				Hash:       block.Hash,
 				Height:     height,
 				Value:      common.BigIntToFloat64(blockReward, node.GetUnits().Big()),
 				Difficulty: float64(difficulty),
@@ -126,6 +127,10 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 	}
 
 	return blocks, nil
+}
+
+func (node Node) GetBlocksByHash(startHash string, limit uint64) ([]*tsdb.RawBlock, error) {
+	return nil, fmt.Errorf("GetBlocks: not implemented")
 }
 
 func (node Node) getBlockTemplate() (*types.StratumJob, error) {
