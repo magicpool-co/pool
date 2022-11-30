@@ -20,8 +20,8 @@ type Client struct {
 
 var opts = []grpc.CallOption{
 	grpc.UseCompressor(gzip.Name),
-	grpc.MaxCallRecvMsgSize(1000000),
-	grpc.MaxCallSendMsgSize(1000000),
+	grpc.MaxCallRecvMsgSize(1024 * 1024 * 1024),
+	grpc.MaxCallSendMsgSize(1024 * 1024 * 1024),
 }
 
 func newGRPCClientConn(url string, timeout time.Duration) (*grpc.ClientConn, error) {

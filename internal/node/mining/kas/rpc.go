@@ -106,7 +106,9 @@ func (node Node) getBlock(hostID, hash string, includeTxs bool) (*Block, error) 
 	}
 
 	obj := res.GetGetBlockResponse()
-	if err = handleRPCError(method, obj.Error); err != nil {
+	if obj == nil {
+		return nil, fmt.Errorf("empty response for block: %s", hash)
+	} else if err = handleRPCError(method, obj.Error); err != nil {
 		return nil, err
 	} else if obj.Block == nil {
 		return nil, fmt.Errorf("unable to find block: %s", hash)

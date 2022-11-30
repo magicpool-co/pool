@@ -68,6 +68,14 @@ var defaultOptions = map[string]*pool.Options{
 		JobListSize:    5,
 		PollingPeriod:  time.Second,
 	},
+	"KAS": &pool.Options{
+		Chain:           "KAS",
+		WindowSize:      100000,
+		ExtraNonceSize:  6,
+		JobListSize:     100,
+		JobListAgeLimit: 12, // could be 18
+		PollingPeriod:   time.Millisecond * 100,
+	},
 	"RVN": &pool.Options{
 		Chain:          "RVN",
 		WindowSize:     300000,
