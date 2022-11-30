@@ -7,6 +7,7 @@ import (
 
 	"github.com/magicpool-co/pool/core/trade/binance"
 	"github.com/magicpool-co/pool/core/trade/kucoin"
+	"github.com/magicpool-co/pool/core/trade/mexc"
 	"github.com/magicpool-co/pool/internal/tsdb"
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/types"
@@ -195,6 +196,33 @@ func getBinanceNativeAllExceptETH(chain string, startTime, endTime time.Time) (*
 	return &priceIndex{usd: usdt, btc: btc, eth: eth}, nil
 }
 
+func getMEXCNativeUSDTOnly(chain string, startTime, endTime time.Time) (*priceIndex, error) {
+	mexcClient := mexc.New("", "")
+	usdt, err := mexcClient.GetHistoricalRates(chain+"_USDT", startTime, endTime, false)
+	if err != nil {
+		return nil, err
+	}
+
+	btc, err := mexcClient.GetHistoricalRates("BTC_USDT", startTime, endTime, true)
+	if err != nil {
+		return nil, err
+	}
+
+	eth, err := mexcClient.GetHistoricalRates("ETH_USDT", startTime, endTime, true)
+	if err != nil {
+		return nil, err
+	}
+
+	unifyRanges(usdt, btc, eth)
+
+	for timestamp, usdtPrice := range usdt {
+		btc[timestamp] *= usdtPrice
+		eth[timestamp] *= usdtPrice
+	}
+
+	return &priceIndex{usd: usdt, btc: btc, eth: eth}, nil
+}
+
 func (c *Client) ProcessPrices(chain string) error {
 	startTime, err := tsdb.GetPriceMaxTimestamp(c.tsdb.Reader(), chain)
 	if err != nil {
@@ -241,6 +269,11 @@ func (c *Client) ProcessPrices(chain string) error {
 	case "FLUX":
 		idx, err = getKucoinNativeAllExceptETH("FLUX", startTime, endTime)
 		if err == kucoin.ErrTooManyRequests {
+			return nil
+		}
+	case "KAS":
+		idx, err = getMEXCNativeUSDTOnly("KAS", startTime, endTime)
+		if err == mexc.ErrTooManyRequests {
 			return nil
 		}
 	case "RVN":
