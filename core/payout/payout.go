@@ -36,6 +36,10 @@ func New(pooldbClient *dbcl.Client, redisClient *redis.Client, telegramClient *t
 }
 
 func (c *Client) InitiatePayouts(node types.PayoutNode) error {
+	if node.Chain() == "KAS" {
+		return nil
+	}
+
 	dbTx, err := c.pooldb.Begin()
 	if err != nil {
 		return err

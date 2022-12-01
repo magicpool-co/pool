@@ -48,7 +48,7 @@ func (node Node) getStatusByHost(hostID string) (uint64, bool, error) {
 		return 0, false, err
 	}
 
-	return tip.BlueScore, syncing, nil
+	return tip.BlueScore, !syncing, nil
 }
 
 func (node Node) GetStatus() (uint64, bool, error) {

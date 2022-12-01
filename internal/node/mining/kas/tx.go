@@ -15,7 +15,7 @@ func (node Node) GetAddressExplorerURL(address string) string {
 }
 
 func (node Node) GetBalance() (*big.Int, error) {
-	return nil, nil
+	return new(big.Int), nil
 }
 
 func (node Node) GetTx(txid string) (*types.TxResponse, error) {
