@@ -2,6 +2,7 @@ package kas
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
@@ -37,7 +38,7 @@ func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel
 	}
 
 	factory := func(url string, timeout time.Duration) (hostpool.GRPCClient, error) {
-		return protowire.NewClient(url, timeout)
+		return protowire.NewClient(strings.ReplaceAll(url, "http://", ""), timeout)
 	}
 
 	host := hostpool.NewGRPCPool(context.Background(), factory, logger, hostHealthCheck, tunnel)
@@ -262,12 +263,15 @@ func protowireToBlock(rpcBlock *protowire.RpcBlock) *Block {
 		PruningPoint:         rpcBlock.Header.PruningPoint,
 		BlueScore:            rpcBlock.Header.BlueScore,
 		Transactions:         txs,
-		Hash:                 rpcBlock.VerboseData.Hash,
-		Difficulty:           rpcBlock.VerboseData.Difficulty,
-		MergeSetBluesHashes:  rpcBlock.VerboseData.MergeSetBluesHashes,
-		MergeSetRedsHashes:   rpcBlock.VerboseData.MergeSetRedsHashes,
-		ChildrenHashes:       rpcBlock.VerboseData.ChildrenHashes,
-		IsChainBlock:         rpcBlock.VerboseData.IsChainBlock,
+	}
+
+	if rpcBlock.VerboseData != nil {
+		block.Hash = rpcBlock.VerboseData.Hash
+		block.Difficulty = rpcBlock.VerboseData.Difficulty
+		block.MergeSetBluesHashes = rpcBlock.VerboseData.MergeSetBluesHashes
+		block.MergeSetRedsHashes = rpcBlock.VerboseData.MergeSetRedsHashes
+		block.ChildrenHashes = rpcBlock.VerboseData.ChildrenHashes
+		block.IsChainBlock = rpcBlock.VerboseData.IsChainBlock
 	}
 
 	return block

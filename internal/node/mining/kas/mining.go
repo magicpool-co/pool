@@ -2,6 +2,7 @@ package kas
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -235,6 +236,7 @@ func (node Node) parseBlockTemplate(template *Block) (*types.StratumJob, error) 
 		HeaderHash: new(types.Hash).SetFromBytes(header),
 		Height:     new(types.Number).SetFromValue(template.BlueScore),
 		Difficulty: new(types.Difficulty).SetFromBits(template.Bits, node.GetMaxDifficulty()),
+		Timestamp:  time.Unix(template.Timestamp, 0),
 		Data:       template,
 	}
 
@@ -259,17 +261,19 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh ch
 				template, hostID, err := node.getBlockTemplate("")
 				if err != nil {
 					errCh <- err
+				} else {
+					job, err := node.parseBlockTemplate(template)
+					if err != nil {
+						errCh <- err
+					} else if job.Header.Hex() != lastHash || now.After(lastJob.Add(staticInterval)) {
+						job.HostID = hostID
+						lastHash = job.Header.Hex()
+						lastJob = now
+						jobCh <- job
+					}
 				}
 
-				job, err := node.parseBlockTemplate(template)
-				if err != nil {
-					errCh <- err
-				} else if job.Header.Hex() != lastHash || now.After(lastJob.Add(staticInterval)) {
-					job.HostID = hostID
-					lastHash = job.Header.Hex()
-					lastJob = now
-					jobCh <- job
-				}
+				refreshTimer.Reset(interval)
 			}
 		}
 	}()
