@@ -135,7 +135,9 @@ func (node Node) getBlockTemplate(extraData string) (*Block, string, error) {
 	}
 
 	obj := res.GetGetBlockTemplateResponse()
-	if err = handleRPCError(method, obj.Error); err != nil {
+	if obj == nil {
+		return nil, hostID, fmt.Errorf("empty response")
+	} else if err = handleRPCError(method, obj.Error); err != nil {
 		return nil, hostID, err
 	} else if !obj.IsSynced {
 		return nil, hostID, fmt.Errorf("node is not synced")
