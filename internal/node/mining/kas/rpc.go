@@ -57,7 +57,9 @@ func (node Node) getInfo(hostID string) (bool, error) {
 	}
 
 	obj := res.GetGetInfoResponse()
-	if err = handleRPCError(method, obj.Error); err != nil {
+	if obj == nil {
+		return false, fmt.Errorf("empty info response")
+	} else if err = handleRPCError(method, obj.Error); err != nil {
 		return false, err
 	}
 
@@ -79,7 +81,9 @@ func (node Node) getSelectedTipHash(hostID string) (string, error) {
 	}
 
 	obj := res.GetGetSelectedTipHashResponse()
-	if err = handleRPCError(method, obj.Error); err != nil {
+	if obj == nil {
+		return "", fmt.Errorf("empty tip response")
+	} else if err = handleRPCError(method, obj.Error); err != nil {
 		return "", err
 	} else if obj.SelectedTipHash == "" {
 		return "", fmt.Errorf("unable to find selected tip hash")
@@ -136,7 +140,7 @@ func (node Node) getBlockTemplate(extraData string) (*Block, string, error) {
 
 	obj := res.GetGetBlockTemplateResponse()
 	if obj == nil {
-		return nil, hostID, fmt.Errorf("empty response")
+		return nil, hostID, fmt.Errorf("empty template response")
 	} else if err = handleRPCError(method, obj.Error); err != nil {
 		return nil, hostID, err
 	} else if !obj.IsSynced {
@@ -166,7 +170,9 @@ func (node Node) submitBlock(hostID string, block *Block) error {
 	}
 
 	obj := res.GetSubmitBlockResponse()
-	if err = handleRPCError(method, obj.Error); err != nil {
+	if obj == nil {
+		return fmt.Errorf("empty submit response")
+	} else if err = handleRPCError(method, obj.Error); err != nil {
 		return fmt.Errorf("%v: %s", err, obj.RejectReason.String())
 	} else if obj.RejectReason != 0 {
 		return fmt.Errorf("rejected block: %s", obj.RejectReason.String())
