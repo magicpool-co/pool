@@ -59,6 +59,8 @@ func (c *Client) Send(raw interface{}) (interface{}, error) {
 	request, ok := raw.(*KaspadMessage)
 	if !ok {
 		return nil, fmt.Errorf("unable to cast raw object as *KaspadMessage")
+	} else if c.stream == nil {
+		return nil, fmt.Errorf("no active stream running")
 	}
 
 	err := c.stream.Send(request)
@@ -71,9 +73,12 @@ func (c *Client) Send(raw interface{}) (interface{}, error) {
 
 // Disconnects and from the RPC server
 func (c *Client) Reconnect() error {
-	err := c.stream.CloseSend()
-	if err != nil {
-		return err
+	if c.stream != nil {
+		err := c.stream.CloseSend()
+		c.stream = nil
+		if err != nil {
+			return err
+		}
 	}
 
 	newClient, err := NewClient(c.url, c.timeout)
