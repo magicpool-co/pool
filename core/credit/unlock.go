@@ -33,10 +33,6 @@ func UnlockRounds(node types.MiningNode, pooldbClient *dbcl.Client) error {
 		}
 	}
 
-	if node.Chain() == "ERGO" {
-		return nil
-	}
-
 	immatureRounds, err := pooldb.GetImmatureRoundsByChain(pooldbClient.Reader(), node.Chain(), height-node.GetMatureDepth())
 	if err != nil {
 		return err
