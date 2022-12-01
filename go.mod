@@ -23,7 +23,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/zerolog v1.28.0
 	github.com/sencha-dev/powkit v0.4.3
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 	golang.org/x/text v0.3.7
 	google.golang.org/grpc v1.32.0
