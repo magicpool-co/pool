@@ -7,7 +7,7 @@ require (
 	github.com/aeternity/rlp-go v0.0.0-20190813143754-207301e28aeb
 	github.com/aws/aws-sdk-go v1.44.103
 	github.com/brianium/mnemonic v0.0.0-20180124190051-72af92c51f88
-	github.com/bsm/redislock v0.7.2
+	github.com/bsm/redislock v0.8.2
 	github.com/btcsuite/btcd/btcutil v1.1.0
 	github.com/dchest/blake2b v1.0.0
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1
@@ -37,6 +37,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
+	github.com/go-redis/redis/v9 v9.0.0-rc.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
@@ -48,7 +49,7 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
 	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	google.golang.org/genproto v0.0.0-20200825200019-8632dd797987 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
