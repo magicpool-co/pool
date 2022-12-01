@@ -316,7 +316,7 @@ func (node Node) GetSubscribeResponse(id []byte, clientID, extraNonce string) (i
 	return nil, nil
 }
 
-func (node Node) GetDifficultyRequest() (interface{}, error) {
+func (node Node) GetAuthorizeResponses(extraNonce string) ([]interface{}, error) {
 	return nil, nil
 }
 

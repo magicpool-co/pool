@@ -394,8 +394,13 @@ func (node Node) GetSubscribeResponse(id []byte, clientID, extraNonce string) (i
 	return rpc.NewResponse(id, []interface{}{clientID, extraNonce})
 }
 
-func (node Node) GetDifficultyRequest() (interface{}, error) {
-	return rpc.NewRequest("mining.set_target", node.GetShareDifficulty().TargetHex())
+func (node Node) GetAuthorizeResponses(extraNonce string) ([]interface{}, error) {
+	diffRes, err := rpc.NewRequest("mining.set_target", node.GetShareDifficulty().TargetHex())
+	if err != nil {
+		return nil, err
+	}
+
+	return []interface{}{diffRes}, nil
 }
 
 func (node Node) UnlockRound(round *pooldb.Round) error {

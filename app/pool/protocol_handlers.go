@@ -178,13 +178,12 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		msgs = []interface{}{rpc.NewResponseFromJSON(req.ID, common.JsonTrue)}
 	}
 
-	diffReq, err := p.node.GetDifficultyRequest()
+	authResponses, err := p.node.GetAuthorizeResponses(c.GetExtraNonce())
 	if err != nil {
 		p.logger.Error(err)
 		return msgs
-	} else if diffReq != nil {
-		msgs = append(msgs, diffReq)
 	}
+	msgs = append(msgs, authResponses...)
 
 	job := p.jobManager.LatestJob()
 	if job != nil {
@@ -209,12 +208,12 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		return false, err
 	}
 
-	// if len(extraNonce) > 0 {
-	// 	nonce := work.Nonce.Hex()
-	// 	if len(nonce) < len(extraNonce) || nonce[:len(extraNonce)] != extraNonce {
-	// 		return false, fmt.Errorf("nonce %s does not match extranonce %s", nonce, extraNonce)
-	// 	}
-	// }
+	if len(extraNonce) > 0 {
+		nonce := work.Nonce.Hex()
+		if len(nonce) < len(extraNonce) || nonce[:len(extraNonce)] != extraNonce {
+			return false, fmt.Errorf("nonce %s does not match extranonce %s", nonce, extraNonce)
+		}
+	}
 
 	var shareStatus types.ShareStatus
 	var round *pooldb.Round

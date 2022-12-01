@@ -27,10 +27,11 @@ type StratumJob struct {
 	Seed         *Hash
 	Height       *Number
 	Difficulty   *Difficulty
+	Timestamp    time.Time
 	Version      *Number
 	BlockBuilder BlockBuilder
 	CoinbaseTxID *Hash
-	Data         interface{} // @TODO: fix this (allow you to store a struct of a lot of data [for AE])
+	Data         interface{} // @TODO: fix this (allow you to store a struct of a lot of data [for AE/KAS])
 }
 
 type StratumWork struct {
@@ -113,7 +114,7 @@ type MiningNode interface {
 
 	// stratum helpers
 	GetSubscribeResponse([]byte, string, string) (interface{}, error)
-	GetDifficultyRequest() (interface{}, error)
+	GetAuthorizeResponses(string) ([]interface{}, error)
 	MarshalJob(interface{}, *StratumJob, bool) (interface{}, error)
 	ParseWork([]json.RawMessage, string) (*StratumWork, error)
 

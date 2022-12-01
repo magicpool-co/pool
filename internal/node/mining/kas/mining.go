@@ -362,29 +362,42 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 func (node Node) MarshalJob(id interface{}, job *types.StratumJob, cleanJobs bool) (interface{}, error) {
 	// @TODO: need to manage multiple versions of bzminer/lolminer responses
 	// https://github.com/onemorebsmith/kaspa-pool/blob/4d061af0f354ff5f17637060e78f478650624e07/src/kaspastratum/hasher.go#L83-L119
+	header := job.Header.Bytes()
+	timestamp := make([]byte, 8)
+	binary.BigEndian.PutUint64(timestamp, uint64(job.Timestamp.Unix()))
 
-	result := []interface{}{
-		job.ID,
-		job.Height.Value(),
-		job.Header.Hex(), // no 0x prefix
-		"",
-		"",
-		job.Version.Hex(), // no 0x prefix
-		node.GetShareDifficulty().TargetBig().String(),
-		"",
-		cleanJobs,
+	parts := make([]interface{}, 5)
+	for i := 0; i < 4; i++ {
+		parts[i] = binary.BigEndian.Uint64(header[i*8 : (i+1)*8])
+	}
+	parts[4] = uint64(binary.LittleEndian.Uint64(timestamp))
+
+	result := []interface{}{job.ID}
+	if true {
+		result = append(result, fmt.Sprintf("%016x%016x%016x%016x%016x", parts...))
+	} else {
+		result = append(result, parts...)
 	}
 
 	return rpc.NewRequestWithID(id, "mining.notify", result...)
 }
 
 func (node Node) GetSubscribeResponse(id []byte, clientID, extraNonce string) (interface{}, error) {
-	// @TODO: this should technically happen after authorize, maybe its okay here?
-	return rpc.NewRequest("mining.set_extranonce", extraNonce, 6)
+	return rpc.NewResponse(id, []interface{}{true})
 }
 
-func (node Node) GetDifficultyRequest() (interface{}, error) {
-	return rpc.NewRequest("mining.set_difficulty", 10)
+func (node Node) GetAuthorizeResponses(extraNonce string) ([]interface{}, error) {
+	extraNonceRes, err := rpc.NewRequest("mining.set_extranonce", extraNonce, 6)
+	if err != nil {
+		return nil, err
+	}
+
+	diffRes, err := rpc.NewRequest("mining.set_difficulty", 10)
+	if err != nil {
+		return nil, err
+	}
+
+	return []interface{}{extraNonceRes, diffRes}, nil
 }
 
 func (node Node) UnlockRound(round *pooldb.Round) error {
