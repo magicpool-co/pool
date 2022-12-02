@@ -5,6 +5,7 @@ package protowire
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"google.golang.org/grpc"
@@ -13,9 +14,11 @@ import (
 
 // GRPCClient is a gRPC-based RPC client
 type Client struct {
-	url     string
-	timeout time.Duration
-	stream  RPC_MessageStreamClient
+	url            string
+	timeout        time.Duration
+	isConnected    uint32
+	isReconnecting uint32
+	stream         RPC_MessageStreamClient
 }
 
 var opts = []grpc.CallOption{
@@ -44,9 +47,10 @@ func NewClient(url string, timeout time.Duration) (*Client, error) {
 	}
 
 	client := &Client{
-		url:     url,
-		timeout: timeout,
-		stream:  stream,
+		url:         url,
+		timeout:     timeout,
+		isConnected: 1,
+		stream:      stream,
 	}
 
 	return client, nil
@@ -60,7 +64,14 @@ func (c *Client) Send(raw interface{}) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("unable to cast raw object as *KaspadMessage")
 	} else if c.stream == nil {
-		return nil, fmt.Errorf("no active stream running")
+		if atomic.LoadUint32(&c.isReconnecting) == 1 {
+			return nil, fmt.Errorf("reconnecting client")
+		}
+
+		err := c.Reconnect()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err := c.stream.Send(request)
@@ -73,9 +84,15 @@ func (c *Client) Send(raw interface{}) (interface{}, error) {
 
 // Disconnects and from the RPC server
 func (c *Client) Reconnect() error {
-	if c.stream != nil {
+	swapped := atomic.CompareAndSwapUint32(&c.isReconnecting, 0, 1)
+	if !swapped {
+		return nil
+	}
+	defer atomic.StoreUint32(&c.isReconnecting, 0)
+
+	connected := atomic.CompareAndSwapUint32(&c.isConnected, 1, 0)
+	if connected {
 		err := c.stream.CloseSend()
-		c.stream = nil
 		if err != nil {
 			return err
 		}
@@ -86,6 +103,7 @@ func (c *Client) Reconnect() error {
 		return err
 	}
 	c.stream = newClient.stream
+	c.isConnected = newClient.isConnected
 
 	return nil
 }
