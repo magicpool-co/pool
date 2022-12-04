@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -23,7 +24,12 @@ import (
 const (
 	coinbaseRecursionLimit = 50
 	chainTipBufferSize     = 72
+
+	standardMinerClientID = 0
+	bzMinerClientID       = 1
 )
+
+var isBzminer = regexp.MustCompile(".*BzMiner.*")
 
 func (node Node) GetBlockExplorerURL(round *pooldb.Round) string {
 	if node.mainnet {
@@ -363,27 +369,34 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 	return work, nil
 }
 
-func (node Node) MarshalJob(id interface{}, job *types.StratumJob, cleanJobs bool) (interface{}, error) {
-	// @TODO: need to manage multiple versions of bzminer/lolminer responses
-	// https://github.com/onemorebsmith/kaspa-pool/blob/4d061af0f354ff5f17637060e78f478650624e07/src/kaspastratum/hasher.go#L83-L119
-	header := job.Header.Bytes()
+func (node Node) MarshalJob(id interface{}, job *types.StratumJob, cleanJobs bool, clientType int) (interface{}, error) {
 	timestamp := make([]byte, 8)
-	binary.BigEndian.PutUint64(timestamp, uint64(job.Timestamp.Unix()))
-
-	parts := make([]interface{}, 5)
-	for i := 0; i < 4; i++ {
-		parts[i] = binary.BigEndian.Uint64(header[i*8 : (i+1)*8])
-	}
-	parts[4] = uint64(binary.LittleEndian.Uint64(timestamp))
+	binary.LittleEndian.PutUint64(timestamp, uint64(job.Timestamp.Unix()))
 
 	result := []interface{}{job.ID}
-	if true {
-		result = append(result, fmt.Sprintf("%016x%016x%016x%016x%016x", parts...))
-	} else {
-		result = append(result, parts...)
+	switch clientType {
+	case standardMinerClientID:
+		header := job.Header.Bytes()
+		parts := make([]uint64, 4)
+		for i := 0; i < 4; i++ {
+			parts[i] = binary.BigEndian.Uint64(header[i*8 : (i+1)*8])
+		}
+
+		result = append(result, parts)
+		result = append(result, uint64(binary.BigEndian.Uint64(timestamp)))
+	case bzMinerClientID:
+		result = append(result, job.Header.Hex()+hex.EncodeToString(timestamp))
 	}
 
 	return rpc.NewRequestWithID(id, "mining.notify", result...)
+}
+
+func (node Node) GetClientType(minerClient string) int {
+	if isBzminer.MatchString(minerClient) {
+		return bzMinerClientID
+	}
+
+	return standardMinerClientID
 }
 
 func (node Node) GetSubscribeResponse(id []byte, clientID, extraNonce string) (interface{}, error) {
@@ -419,7 +432,7 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 
 	round.Value = dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(blockReward)}
 	round.Uncle = false
-	round.Orphan = false
+	round.Orphan = blockReward == 0
 	round.Pending = false
 	round.Mature = false
 	round.Spent = false

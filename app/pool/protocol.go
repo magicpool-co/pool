@@ -2,7 +2,6 @@ package pool
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 
 	"github.com/goccy/go-json"
@@ -11,8 +10,6 @@ import (
 	"github.com/magicpool-co/pool/pkg/stratum"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 )
-
-var isBzminer = regexp.MustCompile(".*BzMiner.*")
 
 type ProtocolHandler func(*stratum.Conn, *rpc.Request) error
 
@@ -76,9 +73,7 @@ func (p *Pool) subscribe(c *stratum.Conn, req *rpc.Request) error {
 		var minerClient string
 		err := json.Unmarshal(req.Params[0], &minerClient)
 		if err == nil {
-			if isBzminer.MatchString(minerClient) {
-				// set specific variation of stratum
-			}
+			c.SetClientType(p.node.GetClientType(minerClient))
 		}
 	}
 
@@ -142,7 +137,7 @@ func (p *Pool) getWork(c *stratum.Conn, req *rpc.Request) error {
 		return fmt.Errorf("no template for %s", p.chain)
 	}
 
-	res, err := p.node.MarshalJob(req.ID, work, true)
+	res, err := p.node.MarshalJob(req.ID, work, true, c.GetClientType())
 	if err != nil {
 		return err
 	}

@@ -25,6 +25,7 @@ type Conn struct {
 	extraNonce string
 	subscribed bool
 	authorized bool
+	clientType int
 }
 
 func (c *Conn) GetID() uint64         { return c.id }
@@ -36,6 +37,7 @@ func (c *Conn) GetUsername() string   { return c.username }
 func (c *Conn) GetExtraNonce() string { return c.extraNonce }
 func (c *Conn) GetSubscribed() bool   { return c.subscribed }
 func (c *Conn) GetAuthorized() bool   { return c.authorized }
+func (c *Conn) GetClientType() int    { return c.clientType }
 
 func (c *Conn) resetCompoundID()                { c.compoundID = fmt.Sprintf("%d:%d", c.minerID, c.workerID) }
 func (c *Conn) SetMinerID(minerID uint64)       { c.minerID = minerID; c.resetCompoundID() }
@@ -44,6 +46,7 @@ func (c *Conn) SetUsername(username string)     { c.username = username }
 func (c *Conn) SetExtraNonce(extraNonce string) { c.extraNonce = extraNonce }
 func (c *Conn) SetSubscribed(subscribed bool)   { c.subscribed = subscribed }
 func (c *Conn) SetAuthorized(authorized bool)   { c.authorized = authorized }
+func (c *Conn) SetClientType(clientType int)    { c.clientType = clientType }
 
 func (c *Conn) Write(msg interface{}) error {
 	data, err := json.Marshal(msg)

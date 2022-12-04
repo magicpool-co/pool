@@ -377,12 +377,16 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 	return work, nil
 }
 
-func (node Node) MarshalJob(id interface{}, job *types.StratumJob, cleanJobs bool) (interface{}, error) {
+func (node Node) MarshalJob(id interface{}, job *types.StratumJob, cleanJobs bool, clientType int) (interface{}, error) {
 	partialJob := job.BlockBuilder.PartialJob()
 	result := append([]interface{}{job.ID}, partialJob...)
 	result = append(result, cleanJobs, "125_4", "ZelProof")
 
 	return rpc.NewRequestWithID(id, "mining.notify", result...)
+}
+
+func (node Node) GetClientType(minerClient string) int {
+	return 0
 }
 
 func (node Node) GetSubscribeResponse(id []byte, clientID, extraNonce string) (interface{}, error) {

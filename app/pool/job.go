@@ -116,7 +116,7 @@ type JobManager struct {
 	ctx             context.Context
 	node            types.MiningNode
 	logger          *log.Logger
-	subscriptions   map[uint64]chan []byte
+	subscriptions   map[int]map[uint64]chan []byte
 	subscriptionsMu sync.RWMutex
 	jobList         *JobList
 }
@@ -126,7 +126,7 @@ func newJobManager(ctx context.Context, node types.MiningNode, logger *log.Logge
 		ctx:           ctx,
 		node:          node,
 		logger:        logger,
-		subscriptions: make(map[uint64]chan []byte),
+		subscriptions: make(map[int]map[uint64]chan []byte),
 		jobList:       newJobList(size, ageLimit),
 	}
 
@@ -145,35 +145,43 @@ func (m *JobManager) update(job *types.StratumJob) error {
 	}
 
 	cleanJobs := m.jobList.Append(job)
-	msg, err := m.node.MarshalJob(0, job, cleanJobs)
-	if err != nil {
-		return err
-	}
-
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return err
-	}
 
 	m.subscriptionsMu.Lock()
 	defer m.subscriptionsMu.Unlock()
-	for _, ch := range m.subscriptions {
-		select {
-		case <-ch:
-		default:
+
+	for clientType, clientSubscriptions := range m.subscriptions {
+		if len(clientSubscriptions) == 0 {
+			continue
+		}
+
+		msg, err := m.node.MarshalJob(0, job, cleanJobs, clientType)
+		if err != nil {
+			return err
+		}
+
+		data, err := json.Marshal(msg)
+		if err != nil {
+			return err
+		}
+
+		for _, ch := range clientSubscriptions {
 			select {
-			case ch <- data:
+			case <-ch:
 			default:
+				select {
+				case ch <- data:
+				default:
+				}
 			}
 		}
-	}
 
-	// garbage collect old subscriptions
-	for id, ch := range m.subscriptions {
-		select {
-		case <-ch:
-			delete(m.subscriptions, id)
-		default:
+		// garbage collect old subscriptions
+		for id, ch := range clientSubscriptions {
+			select {
+			case <-ch:
+				delete(clientSubscriptions, id)
+			default:
+			}
 		}
 	}
 
@@ -191,7 +199,11 @@ func (m *JobManager) AddConn(c *stratum.Conn) {
 	}()
 
 	m.subscriptionsMu.Lock()
-	m.subscriptions[c.GetID()] = jobs
+	clientType := c.GetClientType()
+	if _, ok := m.subscriptions[clientType]; !ok {
+		m.subscriptions[clientType] = make(map[uint64]chan []byte)
+	}
+	m.subscriptions[clientType][c.GetID()] = jobs
 	m.subscriptionsMu.Unlock()
 
 	for {
@@ -217,9 +229,11 @@ func (m *JobManager) RemoveConn(id uint64) {
 	m.subscriptionsMu.RLock()
 	defer m.subscriptionsMu.RUnlock()
 
-	ch, ok := m.subscriptions[id]
-	if ok {
-		close(ch)
+	for _, clientSubscriptions := range m.subscriptions {
+		if ch, ok := clientSubscriptions[id]; ok {
+			close(ch)
+		}
+		break
 	}
 }
 

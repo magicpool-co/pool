@@ -103,35 +103,35 @@ type Node struct {
 }
 
 type TransactionOutpoint struct {
-	TransactionId string
-	Index         uint32
+	TransactionId string `json:"TransactionId"`
+	Index         uint32 `json:"Index"`
 }
 
 type TransactionInput struct {
-	PreviousOutpoint *TransactionOutpoint
-	SignatureScript  string
-	Sequence         uint64
-	SigOpCount       uint32
+	PreviousOutpoint *TransactionOutpoint `json:"PreviousOutpoint"`
+	SignatureScript  string               `json:"SignatureScript"`
+	Sequence         uint64               `json:"Sequence"`
+	SigOpCount       uint32               `json:"SigOpCount"`
 }
 
 type TransactionScriptPubKey struct {
-	Version         uint32
-	ScriptPublicKey string
+	Version         uint32 `json:"Version"`
+	ScriptPublicKey string `json:"ScriptPublicKey"`
 }
 
 type TransactionOutput struct {
-	Amount          uint64
-	ScriptPublicKey *TransactionScriptPubKey
+	Amount          uint64                   `json:"Amount"`
+	ScriptPublicKey *TransactionScriptPubKey `json:"ScriptPublicKey"`
 }
 
 type Transaction struct {
-	Version      uint32
-	Inputs       []*TransactionInput
-	Outputs      []*TransactionOutput
-	LockTime     uint64
-	SubnetworkId string
-	Gas          uint64
-	Payload      string
+	Version      uint32               `json:"Version"`
+	Inputs       []*TransactionInput  `json:"Inputs"`
+	Outputs      []*TransactionOutput `json:"Outputs"`
+	LockTime     uint64               `json:"LockTime"`
+	SubnetworkId string               `json:"SubnetworkId"`
+	Gas          uint64               `json:"Gas"`
+	Payload      string               `json:"Payload"`
 }
 
 func protowireToTransaction(rpcTx *protowire.RpcTransaction) *Transaction {
@@ -212,27 +212,27 @@ func transactionToProtowire(tx *Transaction) *protowire.RpcTransaction {
 
 type Block struct {
 	// Header
-	Version              uint32
-	Parents              [][]string
-	HashMerkleRoot       string
-	AcceptedIdMerkleRoot string
-	UtxoCommitment       string
-	Timestamp            int64
-	Bits                 uint32
-	Nonce                uint64
-	DaaScore             uint64
-	BlueWork             string
-	PruningPoint         string
-	BlueScore            uint64
+	Version              uint32     `json:"Version"`
+	Parents              [][]string `json:"Parents"`
+	HashMerkleRoot       string     `json:"HashMerkleRoot"`
+	AcceptedIdMerkleRoot string     `json:"AcceptedIdMerkleRoot"`
+	UtxoCommitment       string     `json:"UtxoCommitment"`
+	Timestamp            int64      `json:"Timestamp"`
+	Bits                 uint32     `json:"Bits"`
+	Nonce                uint64     `json:"Nonce"`
+	DaaScore             uint64     `json:"DaaScore"`
+	BlueWork             string     `json:"BlueWork"`
+	PruningPoint         string     `json:"PruningPoint"`
+	BlueScore            uint64     `json:"BlueScore"`
 	// Transactions
-	Transactions []*Transaction
+	Transactions []*Transaction `json:"Transactions"`
 	// VerboseData
-	Hash                string
-	Difficulty          float64
-	MergeSetBluesHashes []string
-	MergeSetRedsHashes  []string
-	ChildrenHashes      []string
-	IsChainBlock        bool
+	Hash                string   `json:"Hash"`
+	Difficulty          float64  `json:"Difficulty"`
+	MergeSetBluesHashes []string `json:"MergeSetBluesHashes"`
+	MergeSetRedsHashes  []string `json:"MergeSetRedsHashes"`
+	ChildrenHashes      []string `json:"ChildrenHashes"`
+	IsChainBlock        bool     `json:"IsChainBlock"`
 }
 
 func protowireToBlock(rpcBlock *protowire.RpcBlock) *Block {

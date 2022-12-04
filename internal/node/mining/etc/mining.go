@@ -266,7 +266,7 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 	return work, nil
 }
 
-func (node Node) MarshalJob(rawID interface{}, job *types.StratumJob, cleanJobs bool) (interface{}, error) {
+func (node Node) MarshalJob(rawID interface{}, job *types.StratumJob, cleanJobs bool, clientType int) (interface{}, error) {
 	id, err := json.Marshal(rawID)
 	if err != nil {
 		return nil, err
@@ -280,6 +280,10 @@ func (node Node) MarshalJob(rawID interface{}, job *types.StratumJob, cleanJobs 
 	}
 
 	return rpc.NewResponse(id, result)
+}
+
+func (node Node) GetClientType(minerClient string) int {
+	return 0
 }
 
 func (node Node) GetSubscribeResponse(id []byte, clientID, extraNonce string) (interface{}, error) {

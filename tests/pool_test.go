@@ -367,6 +367,39 @@ func (suite *PoolSuite) TestPool() {
 			},
 		},
 		{
+			chain: "KAS",
+			priv:  "9476ca4050e719e3fb958be7ee64016d751e22d0063cca6b13880284c5bb42ad",
+			opts: &pool.Options{
+				Chain:           "KAS",
+				WindowSize:      100000,
+				ExtraNonceSize:  2,
+				JobListSize:     100,
+				JobListAgeLimit: 12,
+				PollingPeriod:   time.Millisecond * 100,
+			},
+			handshake: []*rpc.Request{
+				rpc.MustNewRequest("mining.subscribe"),
+				rpc.MustNewRequest("mining.authorize",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"x",
+				),
+			},
+			requests: []*rpc.Request{
+				// a submission consists of:
+				// 	- worker id
+				//	- job id
+				// 	- nonce
+				rpc.MustNewRequest("mining.submit",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"000001",
+					"ffff000016d9d7ca",
+				),
+			},
+			responses: [][]byte{
+				common.MustMarshalJSON(true),
+			},
+		},
+		{
 			chain: "RVN",
 			priv:  "03620b2ed304234abe4f02e4f95ece19626989351487c0f93821e4827ed1301e",
 			opts: &pool.Options{

@@ -167,6 +167,8 @@ func (c *Client) CollectBlocks(node types.MiningNode) error {
 			return fmt.Errorf("node is syncing")
 		} else if lastHash == "" {
 			// lastHash = "122b3e8d963f8f4a32a7834f4502dbbea2f0d6a2113657942d6233293a9afc6b"
+			// lastHash = "4bc9868653c24948b32eefd110095c9b0f1bad2e08cc41027f599ff9f3f13b69"
+			// lastHash = "05a17c707b3277534f7125e095772051d8d65962219f7c6d8342a125a5c0effa"
 			lastHash = "d51ecb18e59fd669857143e95b8e1ba879553e7967ef54029c2e26a50b8fd477"
 		}
 

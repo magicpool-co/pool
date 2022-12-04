@@ -187,7 +187,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 
 	job := p.jobManager.LatestJob()
 	if job != nil {
-		msg, err := p.node.MarshalJob(0, job, true)
+		msg, err := p.node.MarshalJob(0, job, true, c.GetClientType())
 		if err != nil {
 			p.logger.Error(err)
 			return msgs
