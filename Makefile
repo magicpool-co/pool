@@ -42,8 +42,11 @@ excli:
 loadtest:
 	go build -o magicpool-loadtest ./cmd/loadtest
 
+proxy:
+	go build -o magicpool-proxy ./cmd/proxy
+
 clean:
-	rm -rf magicpool-pool magicpool-worker magicpool-api magicpool-keygen magicpool-excli magicpool-loadtest
+	rm -rf magicpool-pool magicpool-worker magicpool-api magicpool-keygen magicpool-excli magicpool-loadtest magicpool-proxy
 	docker rm -f $(TEST_MYSQL) $(TEST_REDIS)
 
-.PHONY: reset-test-containers fmt unit integration pool worker api keygen excli loadtest clean
+.PHONY: reset-test-containers fmt unit integration pool worker api keygen excli loadtest proxy clean
