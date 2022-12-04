@@ -111,6 +111,7 @@ func (c *Client) rollupShares(node types.MiningNode, interval string) error {
 	for compoundID := range reported {
 		uniqueIDs[compoundID] = true
 	}
+	delete(uniqueIDs, "")
 
 	minerSharesIdx := make(map[uint64]*tsdb.Share)
 	workerSharesIdx := make(map[uint64]*tsdb.Share)
