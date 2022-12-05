@@ -1,6 +1,7 @@
 package kas
 
 import (
+	"encoding/json"
 	"math/big"
 
 	"github.com/magicpool-co/pool/types"
@@ -26,6 +27,12 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	return "", "", nil
 }
 
-func (node Node) BroadcastTx(tx string) (string, error) {
-	return "", nil
+func (node Node) BroadcastTx(txRaw string) (string, error) {
+	var tx *Transaction
+	err := json.Unmarshal([]byte(txRaw), &tx)
+	if err != nil {
+		return "", err
+	}
+
+	return node.submitTransaction(tx)
 }

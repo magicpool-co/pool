@@ -195,7 +195,7 @@ func (node Node) submitBlock(hostID string, block *Block) error {
 
 		obj := res.GetSubmitBlockResponse()
 		if obj == nil {
-			return fmt.Errorf("empty submit response")
+			return fmt.Errorf("empty submit block response")
 		} else if err = handleRPCError(method, obj.Error); err != nil {
 			return fmt.Errorf("%v: %s", err, obj.RejectReason.String())
 		} else if obj.RejectReason != 0 {
@@ -204,4 +204,35 @@ func (node Node) submitBlock(hostID string, block *Block) error {
 	}
 
 	return nil
+}
+
+func (node Node) submitTransaction(tx *Transaction) (string, error) {
+	const method = "submitBlock"
+
+	if node.mocked {
+		return "", nil
+	}
+
+	req := &protowire.KaspadMessage{
+		Payload: &protowire.KaspadMessage_SubmitTransactionRequest{
+			SubmitTransactionRequest: &protowire.SubmitTransactionRequestMessage{
+				Transaction: transactionToProtowire(tx),
+				AllowOrphan: false,
+			},
+		},
+	}
+
+	res, err := node.execAsGRPC(method, req)
+	if err != nil {
+		return "", err
+	}
+
+	obj := res.GetSubmitTransactionResponse()
+	if obj == nil {
+		return "", fmt.Errorf("empty submit transaction response")
+	} else if err = handleRPCError(method, obj.Error); err != nil {
+		return "", err
+	}
+
+	return obj.TransactionId, nil
 }
