@@ -167,7 +167,17 @@ func (j *NodeCheckJob) Run() {
 
 		// check for backup
 		if node.Backup {
-			if node.BackupAt == nil || time.Since(types.TimeValue(node.BackupAt)) >= backupPeriod {
+			needsBackup := node.BackupAt == nil
+			if !needsBackup {
+				switch node.ChainID {
+				case "KAS":
+					needsBackup = time.Since(types.TimeValue(node.BackupAt)) >= time.Hour*24*2
+				default:
+					needsBackup = time.Since(types.TimeValue(node.BackupAt)) >= backupPeriod
+				}
+			}
+
+			if needsBackup {
 				node.NeedsBackup = true
 				node.PendingBackup = true
 			}
