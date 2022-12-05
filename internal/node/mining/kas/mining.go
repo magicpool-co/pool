@@ -90,7 +90,7 @@ func (node Node) fetchBlockWithCache(hash string, cache *blockCache) (*Block, er
 	if err != nil {
 		return nil, err
 	} else if len(block.Transactions) == 0 {
-		return nil, fmt.Errorf("no transactions in block: %s", hash)
+		return nil, nil
 	} else if len(block.Transactions[0].Outputs) == 0 {
 		return nil, fmt.Errorf("no transaction outputs found in block: %s", hash)
 	} else if len(block.MergeSetBluesHashes) > len(block.Transactions[0].Outputs) {
@@ -125,6 +125,8 @@ func (node Node) getRewardsFromBlock(block *Block, cache *blockCache) (uint64, e
 			child, err := node.fetchBlockWithCache(childHash, cache)
 			if err != nil {
 				return 0, err
+			} else if child == nil {
+				continue
 			} else if !child.IsChainBlock {
 				if len(newChildrenHashes) == 0 {
 					depth++
