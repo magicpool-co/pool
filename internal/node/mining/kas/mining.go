@@ -197,7 +197,7 @@ func (node Node) GetBlocksByHash(startHash string, limit uint64) ([]*tsdb.RawBlo
 			block, err := node.fetchBlockWithCache(hash, cache)
 			if err != nil {
 				return nil, err
-			} else if idx[hash] {
+			} else if block == nil || idx[hash] {
 				continue
 			} else if block.BlueScore < minPrimaryBlueScore || block.BlueScore > maxPrimaryBlueScore {
 				continue
