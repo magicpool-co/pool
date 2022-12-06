@@ -17,6 +17,10 @@ message KaspadMessage {
     SubmitTransactionResponseMessage submitTransactionResponse = 1021;
     GetBlockRequestMessage getBlockRequest = 1025;
     GetBlockResponseMessage getBlockResponse = 1026;
+    GetVirtualSelectedParentChainFromBlockRequestMessage getVirtualSelectedParentChainFromBlockRequest = 1029;
+    GetVirtualSelectedParentChainFromBlockResponseMessage getVirtualSelectedParentChainFromBlockResponse = 1030;
+    GetBlocksRequestMessage getBlocksRequest = 1031;
+    GetBlocksResponseMessage getBlocksResponse = 1032;
     GetUtxosByAddressesRequestMessage getUtxosByAddressesRequest = 1052;
     GetUtxosByAddressesResponseMessage getUtxosByAddressesResponse = 1053;
     GetInfoRequestMessage getInfoRequest = 1063;
