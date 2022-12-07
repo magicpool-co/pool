@@ -164,9 +164,10 @@ func (node Node) postWalletRestore(hostID string) error {
 	}
 
 	body := map[string]interface{}{
-		"pass":         "rpcrpc",
-		"mnemonic":     node.mnemonic,
-		"mnemonicPass": "",
+		"pass":                    "rpcrpc",
+		"mnemonic":                node.mnemonic,
+		"mnemonicPass":            "",
+		"usePre1627KeyDerivation": true,
 	}
 
 	var result string
