@@ -32,8 +32,6 @@ func GetBlocksSingleMetric(q dbcl.Querier, metric string, period int) ([]*Block,
 	WHERE
 		period = ?
 	AND
-		chain_id != "KAS"
-	AND
 		pending = FALSE;`, metric)
 
 	output := []*Block{}
@@ -51,8 +49,6 @@ func GetBlocksAdjustedValue(q dbcl.Querier, period int) ([]*Block, error) {
 	JOIN prices ON blocks.end_time = prices.timestamp AND blocks.chain_id = prices.chain_id
 	WHERE
 		period = ?
-	AND
-		blocks.chain_id != "KAS"
 	AND
 		pending = FALSE;`
 
@@ -72,8 +68,6 @@ func GetBlocksProfitability(q dbcl.Querier, period int) ([]*Block, error) {
 	JOIN prices ON blocks.end_time = prices.timestamp AND blocks.chain_id = prices.chain_id
 	WHERE
 		period = ?
-	AND
-		blocks.chain_id != "KAS"
 	AND
 		pending = FALSE;`
 
