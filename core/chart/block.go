@@ -154,7 +154,7 @@ func (c *Client) CollectBlocks(node types.MiningNode) error {
 	var blocks []*tsdb.RawBlock
 	switch node.Chain() {
 	case "KAS":
-		const limit = 2500
+		const limit = 5000
 		lastHash, err := tsdb.GetRawBlockMaxHashByHeight(c.tsdb.Reader(), node.Chain())
 		if err != nil {
 			return err
