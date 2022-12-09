@@ -49,7 +49,7 @@ func EncodeOpCode(opCode int) []byte {
 
 func compileP2PK(serializedPubKey []byte) []byte {
 	return bytes.Join([][]byte{
-		encodeScriptData(serializedPubKey),
+		EncodeScriptData(serializedPubKey),
 		EncodeOpCode(OP_CHECKSIG),
 	}, nil)
 }
@@ -58,7 +58,7 @@ func compileP2PKH(pubKeyHash []byte) []byte {
 	return bytes.Join([][]byte{
 		EncodeOpCode(OP_DUP),
 		EncodeOpCode(OP_HASH160),
-		encodeScriptData(pubKeyHash),
+		EncodeScriptData(pubKeyHash),
 		EncodeOpCode(OP_EQUALVERIFY),
 		EncodeOpCode(OP_CHECKSIG),
 	}, nil)
@@ -67,7 +67,7 @@ func compileP2PKH(pubKeyHash []byte) []byte {
 func compileP2SH(scriptHash []byte) []byte {
 	return bytes.Join([][]byte{
 		EncodeOpCode(OP_HASH160),
-		encodeScriptData(scriptHash),
+		EncodeScriptData(scriptHash),
 		EncodeOpCode(OP_EQUAL),
 	}, nil)
 }
@@ -75,14 +75,14 @@ func compileP2SH(scriptHash []byte) []byte {
 func compileP2WPKH(pubKeyHash []byte) []byte {
 	return bytes.Join([][]byte{
 		EncodeOpCode(OP_0),
-		encodeScriptData(pubKeyHash),
+		EncodeScriptData(pubKeyHash),
 	}, nil)
 }
 
 func compileP2WSH(scriptHash []byte) []byte {
 	return bytes.Join([][]byte{
 		EncodeOpCode(OP_0),
-		encodeScriptData(scriptHash),
+		EncodeScriptData(scriptHash),
 	}, nil)
 }
 
@@ -95,12 +95,12 @@ func compileCoinbaseScript(blockHeight int32, extraNonce uint64) []byte {
 
 func generateScriptSig(sig []byte, pub []byte) []byte {
 	return bytes.Join([][]byte{
-		encodeScriptData(sig),
-		encodeScriptData(pub),
+		EncodeScriptData(sig),
+		EncodeScriptData(pub),
 	}, nil)
 }
 
-func encodeScriptData(data []byte) []byte {
+func EncodeScriptData(data []byte) []byte {
 	dataLen := len(data)
 
 	if dataLen < OP_PUSHDATA1 {

@@ -4,7 +4,7 @@ import (
 	"math/big"
 
 	"github.com/magicpool-co/pool/pkg/common"
-	"github.com/magicpool-co/pool/pkg/crypto/bech32"
+	"github.com/magicpool-co/pool/pkg/crypto/tx/kastx"
 	"github.com/magicpool-co/pool/types"
 )
 
@@ -14,9 +14,6 @@ const (
 	pubKeyAddrID      = 0x00
 	pubKeyECDSAAddrID = 0x01
 	scriptHashAddrID  = 0x08
-
-	pubKeySize      = 32
-	pubKeySizeECDSA = 33
 )
 
 var (
@@ -76,37 +73,13 @@ func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 }
 
 func ValidateAddress(address string) bool {
-	prefix, version, decoded, err := bech32.DecodeBCH(addressCharset, address)
-	if err != nil {
-		return false
-	} else if prefix != mainnetPrefix {
-		return false
-	}
+	_, err := kastx.AddressToScript(address, mainnetPrefix)
 
-	switch version {
-	case pubKeyAddrID, scriptHashAddrID:
-		return len(decoded) == pubKeySize
-	case pubKeyECDSAAddrID:
-		return len(decoded) == pubKeySizeECDSA
-	default:
-		return false
-	}
+	return err == nil
 }
 
 func (node Node) ValidateAddress(address string) bool {
-	prefix, version, decoded, err := bech32.DecodeBCH(addressCharset, address)
-	if err != nil {
-		return false
-	} else if prefix != node.prefix {
-		return false
-	}
+	_, err := kastx.AddressToScript(address, node.prefix)
 
-	switch version {
-	case pubKeyAddrID, scriptHashAddrID:
-		return len(decoded) == pubKeySize
-	case pubKeyECDSAAddrID:
-		return len(decoded) == pubKeySizeECDSA
-	default:
-		return false
-	}
+	return err == nil
 }

@@ -303,7 +303,7 @@ func (j *NodeBackupJob) Run() {
 			continue
 		}
 
-		j.logger.Info(fmt.Sprintf("running comamnd with id %s on instance %s", commandID, instanceID))
+		j.logger.Info(fmt.Sprintf("running command with id %s on instance %s", commandID, instanceID))
 		_, err = ec2.WaitForCommand(j.aws, instanceID, commandID)
 		if err != nil {
 			j.logger.Error(err)

@@ -206,8 +206,38 @@ func (node Node) submitBlock(hostID string, block *Block) error {
 	return nil
 }
 
-func (node Node) submitTransaction(tx *Transaction) (string, error) {
-	const method = "submitBlock"
+func (node Node) GetUtxosByAddress(address string) ([]*protowire.UtxosByAddressesEntry, error) {
+	const method = "getUtxosByAddresses"
+
+	if node.mocked {
+		return nil, nil
+	}
+
+	req := &protowire.KaspadMessage{
+		Payload: &protowire.KaspadMessage_GetUtxosByAddressesRequest{
+			GetUtxosByAddressesRequest: &protowire.GetUtxosByAddressesRequestMessage{
+				Addresses: []string{address},
+			},
+		},
+	}
+
+	res, err := node.execAsGRPC(method, req)
+	if err != nil {
+		return nil, err
+	}
+
+	obj := res.GetGetUtxosByAddressesResponse()
+	if obj == nil {
+		return nil, nil
+	} else if err = handleRPCError(method, obj.Error); err != nil {
+		return nil, err
+	}
+
+	return obj.Entries, nil
+}
+
+func (node Node) submitTransaction(tx *protowire.RpcTransaction) (string, error) {
+	const method = "submitTransaction"
 
 	if node.mocked {
 		return "", nil
@@ -216,7 +246,7 @@ func (node Node) submitTransaction(tx *Transaction) (string, error) {
 	req := &protowire.KaspadMessage{
 		Payload: &protowire.KaspadMessage_SubmitTransactionRequest{
 			SubmitTransactionRequest: &protowire.SubmitTransactionRequestMessage{
-				Transaction: transactionToProtowire(tx),
+				Transaction: tx,
 				AllowOrphan: false,
 			},
 		},
