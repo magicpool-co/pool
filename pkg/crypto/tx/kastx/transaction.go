@@ -1,6 +1,7 @@
 package kastx
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
@@ -8,347 +9,218 @@ import (
 	"golang.org/x/crypto/blake2b"
 
 	"github.com/magicpool-co/pool/internal/node/mining/kas/protowire"
+	"github.com/magicpool-co/pool/pkg/crypto/wire"
 )
 
-var transactionSigningECDSADomainHash = sha256.Sum256([]byte("TransactionSigningHashECDSA"))
+var (
+	transactionSigningHashDomain = []byte("TransactionSigningHash")
+	transactionIDDomain          = []byte("TransactionID")
 
-func writeUint8(writer []byte, value uint8) int {
-	const size = 1
-	writer[0] = value
+	transactionSigningECDSADomainHash = sha256.Sum256([]byte("TransactionSigningHashECDSA"))
+)
 
-	return size
-}
-
-func writeUint16(writer []byte, value uint16) int {
-	const size = 2
-	binary.LittleEndian.PutUint16(writer[:size], value)
-
-	return size
-}
-
-func writeUint32(writer []byte, value uint32) int {
-	const size = 4
-	binary.LittleEndian.PutUint32(writer[:size], value)
-
-	return size
-}
-
-func writeUint64(writer []byte, value uint64) int {
-	const size = 8
-	binary.LittleEndian.PutUint64(writer[:size], value)
-
-	return size
-}
-
-func writeBytes(writer []byte, value []byte) int {
-	copy(writer, value)
-
-	return len(value)
-}
-
-func writeHex(writer []byte, value string, length int) (int, error) {
-	data, err := hex.DecodeString(value)
+func writeBlake2b256(input, key []byte) ([]byte, error) {
+	blake, err := blake2b.New256(key)
 	if err != nil {
-		return 0, err
-	} else if len(data) != length {
-		return 0, fmt.Errorf("length mismatch: %d, %d", len(data), length)
-	}
-	copy(writer[:length], data)
-
-	return length, nil
-}
-
-func writeOutpoint(writer []byte, outpoint *protowire.RpcOutpoint) (int, error) {
-	pos, err := writeHex(writer, outpoint.TransactionId, 32)
-	if err != nil {
-		return 0, err
-	}
-	pos += writeUint32(writer[pos:], outpoint.Index)
-
-	return pos, nil
-}
-
-func writeTxOutput(writer []byte, output *protowire.RpcTransactionOutput) (int, error) {
-	var pos int
-	pos += writeUint64(writer[pos:], output.Amount)
-	pos += writeUint16(writer[pos:], uint16(output.ScriptPublicKey.Version))
-	offset, err := writeHex(writer[pos:], output.ScriptPublicKey.ScriptPublicKey, len(output.ScriptPublicKey.ScriptPublicKey)/2)
-	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	return pos + offset, nil
+	_, err = blake.Write(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return blake.Sum(nil), nil
 }
 
-func transactionSigningHash(input []byte) []byte {
-	blake, _ := blake2b.New256([]byte("TransactionSigningHash"))
-	blake.Write(input)
-
-	return blake.Sum(nil)
-}
-
-func transactionIDSigningHash(input []byte) []byte {
-	blake, _ := blake2b.New256([]byte("TransactionID"))
-	blake.Write(input)
-
-	return blake.Sum(nil)
-}
-
-func calculatePreviousOutputHash(inputs []*protowire.RpcTransactionInput) ([]byte, error) {
-	var pos int
-	writer := make([]byte, len(inputs)*(32+4))
+func calculatePreviousOutputHash(order binary.ByteOrder, inputs []*protowire.RpcTransactionInput) ([]byte, error) {
+	var buf bytes.Buffer
 	for _, input := range inputs {
-		offset, err := writeHex(writer[pos:], input.PreviousOutpoint.TransactionId, 32)
+		transactionID, err := hex.DecodeString(input.PreviousOutpoint.TransactionId)
 		if err != nil {
 			return nil, err
-		}
-		pos += offset
-		pos += writeUint32(writer[pos:], input.PreviousOutpoint.Index)
-	}
-
-	return transactionSigningHash(writer), nil
-}
-
-func calculateSequencesHash(inputs []*protowire.RpcTransactionInput) []byte {
-	var pos int
-	writer := make([]byte, len(inputs)*8)
-	for _, input := range inputs {
-		pos += writeUint64(writer[pos:], input.Sequence)
-	}
-
-	return transactionSigningHash(writer)
-}
-
-func calculateSigOpsCountsHash(inputs []*protowire.RpcTransactionInput) []byte {
-	writer := make([]byte, len(inputs))
-	for i, input := range inputs {
-		writer[i] = byte(input.SigOpCount)
-	}
-
-	return transactionSigningHash(writer)
-}
-
-func calculateOutputsHash(outputs []*protowire.RpcTransactionOutput) ([]byte, error) {
-	var length int
-	for _, output := range outputs {
-		length += 8 + 2 + 8 + len(output.ScriptPublicKey.ScriptPublicKey)/2
-	}
-
-	var pos int
-	writer := make([]byte, length)
-	for _, output := range outputs {
-		scriptPubKeyLength := len(output.ScriptPublicKey.ScriptPublicKey) / 2
-
-		pos += writeUint64(writer[pos:], output.Amount)
-		pos += writeUint16(writer[pos:], uint16(output.ScriptPublicKey.Version))
-		pos += writeUint64(writer[pos:], uint64(scriptPubKeyLength))
-		offset, err := writeHex(writer[pos:], output.ScriptPublicKey.ScriptPublicKey, scriptPubKeyLength)
-		if err != nil {
+		} else if err := wire.WriteElement(&buf, order, transactionID); err != nil {
+			return nil, err
+		} else if err := wire.WriteElement(&buf, order, input.PreviousOutpoint.Index); err != nil {
 			return nil, err
 		}
-		pos += offset
 	}
 
-	return transactionSigningHash(writer), nil
+	return writeBlake2b256(buf.Bytes(), transactionSigningHashDomain)
 }
 
-func serializePartialSize(tx *protowire.RpcTransaction, scriptPubKey []byte) int {
-	var txSize int
-	txSize += 2                     // version
-	txSize += 32 * 3                // previousOutputsHash, sequencesHash, sigOpCountsHash
-	txSize += 32 + 4                // outpoint
-	txSize += 2                     // scriptPubKeyVersion
-	txSize += 8 + len(scriptPubKey) // scriptPubKey
-	txSize += 8                     // amount
-	txSize += 8                     // sequence
-	txSize += 1                     // sigOpCount
-	txSize += 32                    // outputsHash
-	txSize += 8                     // lockTime
-	txSize += 20                    // subnetworkId
-	txSize += 8                     /// gas
-	txSize += 32                    // payload
-	txSize += 1                     // hashType
+func calculateSequencesHash(order binary.ByteOrder, inputs []*protowire.RpcTransactionInput) ([]byte, error) {
+	var buf bytes.Buffer
+	for _, input := range inputs {
+		if err := wire.WriteElement(&buf, order, input.Sequence); err != nil {
+			return nil, err
+		}
+	}
 
-	return txSize
+	return writeBlake2b256(buf.Bytes(), transactionSigningHashDomain)
+}
+
+func calculateSigOpsCountsHash(order binary.ByteOrder, inputs []*protowire.RpcTransactionInput) ([]byte, error) {
+	var buf bytes.Buffer
+	for _, input := range inputs {
+		if err := wire.WriteElement(&buf, order, byte(input.SigOpCount)); err != nil {
+			return nil, err
+		}
+	}
+
+	return writeBlake2b256(buf.Bytes(), transactionSigningHashDomain)
+}
+
+func calculateOutputsHash(order binary.ByteOrder, outputs []*protowire.RpcTransactionOutput) ([]byte, error) {
+	var buf bytes.Buffer
+	for _, output := range outputs {
+		scriptPubKey, err := hex.DecodeString(output.ScriptPublicKey.ScriptPublicKey)
+		if err != nil {
+			return nil, err
+		} else if err := wire.WriteElement(&buf, order, output.Amount); err != nil { // output.Amount
+			return nil, err
+		} else if err := wire.WriteElement(&buf, order, uint16(output.ScriptPublicKey.Version)); err != nil { // output.ScriptPublicKey.Version
+			return nil, err
+		} else if err := wire.WritePrefixedBytes(&buf, order, scriptPubKey); err != nil { // output.ScriptPublicKey.ScriptPublicKey
+			return nil, err
+		}
+	}
+
+	return writeBlake2b256(buf.Bytes(), transactionSigningHashDomain)
 }
 
 func serializePartial(tx *protowire.RpcTransaction, idx uint32, amount uint64, scriptPubKey []byte) ([]byte, error) {
+	var order = binary.LittleEndian
+
 	if len(tx.Inputs) <= int(idx) {
 		return nil, fmt.Errorf("index out of bounds")
 	}
 
-	txSize := serializePartialSize(tx, scriptPubKey)
-	txBytes := make([]byte, txSize)
-	var pos int
-
-	// version
-	pos += writeUint16(txBytes[pos:], uint16(tx.Version))
-
-	// previousOutputsHash
-	previousOutputsHash, err := calculatePreviousOutputHash(tx.Inputs)
-	if err != nil {
+	var buf bytes.Buffer
+	if err := wire.WriteElement(&buf, order, uint16(tx.Version)); err != nil { // version
 		return nil, err
 	}
-	pos += writeBytes(txBytes[pos:], previousOutputsHash)
 
-	// sequencesHash
-	sequencesHash := calculateSequencesHash(tx.Inputs)
-	pos += writeBytes(txBytes[pos:], sequencesHash)
-
-	// sigOpsCountsHash
-	sigOpsCountsHash := calculateSigOpsCountsHash(tx.Inputs)
-	pos += writeBytes(txBytes[pos:], sigOpsCountsHash)
-
-	// previousOutpoint
-	offset, err := writeHex(txBytes[pos:], tx.Inputs[idx].PreviousOutpoint.TransactionId, 32)
+	previousOutputsHash, err := calculatePreviousOutputHash(order, tx.Inputs)
 	if err != nil {
 		return nil, err
-	}
-	pos += offset
-	pos += writeUint32(txBytes[pos:], tx.Inputs[idx].PreviousOutpoint.Index)
-
-	// scriptPubKeyVersion
-	pos += writeUint16(txBytes[pos:], 0)
-
-	// scriptPubKey
-	pos += writeUint64(txBytes[pos:], uint64(len(scriptPubKey)))
-	copy(txBytes[pos:], scriptPubKey)
-	pos += len(scriptPubKey)
-
-	// amount
-	pos += writeUint64(txBytes[pos:], amount)
-
-	// sequence
-	pos += writeUint64(txBytes[pos:], tx.Inputs[idx].Sequence)
-
-	// sigOpCount
-	pos += writeUint8(txBytes[pos:], byte(tx.Inputs[idx].SigOpCount))
-
-	// outputsHash
-	outputsHash, err := calculateOutputsHash(tx.Outputs)
-	if err != nil {
+	} else if err := wire.WriteElement(&buf, order, previousOutputsHash); err != nil { // previousOutputsHash
 		return nil, err
 	}
-	pos += writeBytes(txBytes[pos:], outputsHash)
 
-	// lockTime
-	pos += writeUint64(txBytes[pos:], tx.LockTime)
-
-	// subnetworkId
-	offset, err = writeHex(txBytes[pos:], tx.SubnetworkId, len(tx.SubnetworkId)/2)
+	sequencesHash, err := calculateSequencesHash(order, tx.Inputs)
 	if err != nil {
 		return nil, err
-	}
-	pos += offset
-
-	// gas
-	pos += writeUint64(txBytes[pos:], tx.Gas)
-
-	// payload
-	pos += writeBytes(txBytes[pos:], make([]byte, 32))
-
-	// hashType
-	pos += writeUint8(txBytes[pos:], SIGHASH_ALL)
-
-	if pos != txSize {
-		return nil, fmt.Errorf("mismatch for final tx size")
+	} else if err := wire.WriteElement(&buf, order, sequencesHash); err != nil { // sequencesHash
+		return nil, err
 	}
 
-	return transactionSigningHash(txBytes), nil
-}
-
-func serializeFullSize(tx *protowire.RpcTransaction) int {
-	var txSize int
-	txSize += 2 // version
-	txSize += 8 // numInputs
-
-	for _ = range tx.Inputs {
-		txSize += 32 + 4 // previousOutput
-		txSize += 8      // signatureScript
-		txSize += 8      // sequence
+	sigOpsCountsHash, err := calculateSigOpsCountsHash(order, tx.Inputs)
+	if err != nil {
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, sigOpsCountsHash); err != nil { // sigOpsCountsHash
+		return nil, err
 	}
 
-	txSize += 8 // numOutputs
-
-	for _, output := range tx.Outputs {
-		txSize += 8                                               // amount
-		txSize += 2                                               // scriptPubKeyVersion
-		txSize += 8                                               // scriptPubKeyLength
-		txSize += len(output.ScriptPublicKey.ScriptPublicKey) / 2 // scriptPubKey
+	previousOutpointTransactionID, err := hex.DecodeString(tx.Inputs[idx].PreviousOutpoint.TransactionId)
+	if err != nil {
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, previousOutpointTransactionID); err != nil { // input.PreviousOutpoint.TransactionID
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, uint32(tx.Inputs[idx].PreviousOutpoint.Index)); err != nil { // input.PreviousOutpoint.Index
+		return nil, err
 	}
 
-	txSize += 8  // lockTime
-	txSize += 20 // subnetworkId
-	txSize += 8  /// gas
-	txSize += 8  // payload (empty)
+	if err := wire.WriteElement(&buf, order, uint16(0)); err != nil { // input.ScriptPublicKey.Version
+		return nil, err
+	} else if err := wire.WritePrefixedBytes(&buf, order, scriptPubKey); err != nil { // input.ScriptPublicKey.ScriptPublicKey
+		return nil, err
+	}
 
-	return txSize
+	if err := wire.WriteElement(&buf, order, amount); err != nil { // input.Amount
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, tx.Inputs[idx].Sequence); err != nil { // input.Sequence
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, byte(tx.Inputs[idx].SigOpCount)); err != nil { // input.SigOpCount
+		return nil, err
+	}
+
+	outputsHash, err := calculateOutputsHash(order, tx.Outputs)
+	if err != nil {
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, outputsHash); err != nil { // outputsHash
+		return nil, err
+	}
+
+	if err := wire.WriteElement(&buf, order, tx.LockTime); err != nil { // lockTime
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, make([]byte, 20)); err != nil { // subnetworkID
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, tx.Gas); err != nil { // gas
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, make([]byte, 32)); err != nil { // payload
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, uint8(SIGHASH_ALL)); err != nil { // hashType
+		return nil, err
+	}
+
+	return writeBlake2b256(buf.Bytes(), transactionSigningHashDomain)
 }
 
 func serializeFull(tx *protowire.RpcTransaction) ([]byte, error) {
-	txSize := serializeFullSize(tx)
-	txBytes := make([]byte, txSize)
-	var pos int
-
-	// version
-	pos += writeUint16(txBytes[pos:], uint16(tx.Version))
-
-	// numInputs
-	pos += writeUint64(txBytes[pos:], uint64(len(tx.Inputs)))
-
-	for _, input := range tx.Inputs {
-		// previousOutpoint
-		offset, err := writeHex(txBytes[pos:], input.PreviousOutpoint.TransactionId, 32)
-		if err != nil {
-			return nil, err
-		}
-		pos += offset
-		pos += writeUint32(txBytes[pos:], input.PreviousOutpoint.Index)
-
-		// signatureScript (empty)
-		pos += writeUint64(txBytes[pos:], 0)
-
-		// sequence
-		pos += writeUint64(txBytes[pos:], input.Sequence)
-	}
-
-	// numOutputs
-	pos += writeUint64(txBytes[pos:], uint64(len(tx.Outputs)))
-
-	for _, output := range tx.Outputs {
-		scriptPubKeyLength := len(output.ScriptPublicKey.ScriptPublicKey) / 2
-
-		pos += writeUint64(txBytes[pos:], output.Amount)
-		pos += writeUint16(txBytes[pos:], uint16(output.ScriptPublicKey.Version))
-		pos += writeUint64(txBytes[pos:], uint64(scriptPubKeyLength))
-		offset, err := writeHex(txBytes[pos:], output.ScriptPublicKey.ScriptPublicKey, scriptPubKeyLength)
-		if err != nil {
-			return nil, err
-		}
-		pos += offset
-	}
-
-	// lockTime
-	pos += writeUint64(txBytes[pos:], tx.LockTime)
-
-	// subnetworkId
-	offset, err := writeHex(txBytes[pos:], tx.SubnetworkId, len(tx.SubnetworkId)/2)
-	if err != nil {
+	var order = binary.LittleEndian
+	var buf bytes.Buffer
+	if err := wire.WriteElement(&buf, order, uint16(tx.Version)); err != nil { // version
 		return nil, err
 	}
-	pos += offset
 
-	// gas
-	pos += writeUint64(txBytes[pos:], tx.Gas)
-
-	// payload
-	pos += writeUint64(txBytes[pos:], 0)
-
-	if pos != txSize {
-		return nil, fmt.Errorf("mismatch for final tx size")
+	if err := wire.WriteElement(&buf, order, uint64(len(tx.Inputs))); err != nil { // numInputs
+		return nil, err
 	}
 
-	return transactionIDSigningHash(txBytes), nil
+	for _, input := range tx.Inputs {
+		previousOutpointTransactionID, err := hex.DecodeString(input.PreviousOutpoint.TransactionId)
+		if err != nil {
+			return nil, err
+		} else if err := wire.WriteElement(&buf, order, previousOutpointTransactionID); err != nil { // input.PreviousOutpoint.TransactionID
+			return nil, err
+		} else if err := wire.WriteElement(&buf, order, uint32(input.PreviousOutpoint.Index)); err != nil { // input.PreviousOutpoint.Index
+			return nil, err
+		} else if err := wire.WritePrefixedBytes(&buf, order, make([]byte, 0)); err != nil { // input.SignatureScript (empty)
+			return nil, err
+		} else if err := wire.WriteElement(&buf, order, input.Sequence); err != nil { // input.Sequence
+			return nil, err
+		}
+	}
+
+	if err := wire.WriteElement(&buf, order, uint64(len(tx.Outputs))); err != nil { // numOutputs
+		return nil, err
+	}
+
+	for _, output := range tx.Outputs {
+		scriptPubKey, err := hex.DecodeString(output.ScriptPublicKey.ScriptPublicKey)
+		if err != nil {
+			return nil, err
+		} else if err := wire.WriteElement(&buf, order, output.Amount); err != nil { // output.Amount
+			return nil, err
+		} else if err := wire.WriteElement(&buf, order, uint16(output.ScriptPublicKey.Version)); err != nil { // output.ScriptPublicKey.Version
+			return nil, err
+		} else if err := wire.WritePrefixedBytes(&buf, order, scriptPubKey); err != nil { // output.ScriptPublicKey.ScriptPublicKey
+			return nil, err
+		}
+	}
+
+	if err := wire.WriteElement(&buf, order, tx.LockTime); err != nil { // lockTime
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, make([]byte, 20)); err != nil { // subnetworkID
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, tx.Gas); err != nil { // gas
+		return nil, err
+	} else if err := wire.WritePrefixedBytes(&buf, order, make([]byte, 0)); err != nil { // payload (empty)
+		return nil, err
+	}
+
+	return writeBlake2b256(buf.Bytes(), transactionIDDomain)
 }
 
 func calculateScriptSig(tx *protowire.RpcTransaction, index uint32, amount uint64, scriptPubKey []byte) ([]byte, error) {
