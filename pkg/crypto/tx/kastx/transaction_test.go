@@ -18,7 +18,6 @@ var (
 					Index:         0,
 				},
 				Sequence: 0,
-				// UTXOEntry:        utxo.NewUTXOEntry(100, address1ToScript, false, 0),
 			},
 			&protowire.RpcTransactionInput{
 				PreviousOutpoint: &protowire.RpcOutpoint{
@@ -26,7 +25,6 @@ var (
 					Index:         1,
 				},
 				Sequence: 1,
-				// UTXOEntry:        utxo.NewUTXOEntry(200, address2ToScript, false, 0),
 			},
 			&protowire.RpcTransactionInput{
 				PreviousOutpoint: &protowire.RpcOutpoint{
@@ -34,7 +32,6 @@ var (
 					Index:         2,
 				},
 				Sequence: 2,
-				// UTXOEntry:        utxo.NewUTXOEntry(300, address2ToScript, false, 0),
 			},
 		},
 		Outputs: []*protowire.RpcTransactionOutput{

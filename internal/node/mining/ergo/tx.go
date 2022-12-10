@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/magicpool-co/pool/pkg/common"
+	txCommon "github.com/magicpool-co/pool/pkg/crypto/tx"
 	"github.com/magicpool-co/pool/types"
 )
 
@@ -54,37 +54,9 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	}
 
 	const fee = 1000000
-	sumValue := new(big.Int)
-	for _, output := range outputs {
-		if output.Value.Cmp(common.Big0) <= 0 {
-			return "", "", fmt.Errorf("output value is not greater than zero")
-		}
-		sumValue.Add(sumValue, output.Value)
-	}
-
-	usedFees := new(big.Int)
-	for _, output := range outputs {
-		output.Fee = new(big.Int).Mul(new(big.Int).SetUint64(fee), output.Value)
-		output.Fee.Div(output.Fee, sumValue)
-		output.Value.Sub(output.Value, output.Fee)
-		usedFees.Add(usedFees, output.Fee)
-	}
-
-	remainder := new(big.Int).Sub(new(big.Int).SetUint64(fee), usedFees)
-	if remainder.Cmp(common.Big0) < 0 {
-		return "", "", fmt.Errorf("fee remainder is negative")
-	} else if remainder.Cmp(common.Big0) > 0 {
-		for _, output := range outputs {
-			if output.Value.Cmp(remainder) > 0 {
-				output.Value.Sub(output.Value, remainder)
-				remainder = new(big.Int)
-				break
-			}
-		}
-	}
-
-	if remainder.Cmp(common.Big0) > 0 {
-		return "", "", fmt.Errorf("not enough value to cover the fee remainder")
+	err := txCommon.DistributeFees(inputs, outputs, fee)
+	if err != nil {
+		return "", "", err
 	}
 
 	addresses := make([]string, len(outputs))

@@ -3,15 +3,14 @@ package kastx
 import (
 	"encoding/hex"
 	"fmt"
-	"math/big"
 
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
 	secp256k1signer "github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/magicpool-co/pool/internal/node/mining/kas/protowire"
-	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/crypto/bech32"
+	txCommon "github.com/magicpool-co/pool/pkg/crypto/tx"
 	"github.com/magicpool-co/pool/types"
 )
 
@@ -101,55 +100,9 @@ func GenerateTx(privKey *secp256k1.PrivateKey, inputs []*types.TxInput, outputs 
 	}
 
 	fee := feePerInput * uint64(len(inputs))
-
-	var sumInputAmount uint64
-	for _, inp := range inputs {
-		sumInputAmount += inp.Value.Uint64()
-	}
-
-	var sumOutputAmount uint64
-	sumSplitAmount := new(big.Int)
-	for _, out := range outputs {
-		sumOutputAmount += out.Value.Uint64()
-		if out.SplitFee {
-			sumSplitAmount.Add(sumSplitAmount, out.Value)
-		}
-	}
-
-	if sumOutputAmount != sumInputAmount {
-		return nil, fmt.Errorf("amount mismatch: input %d, output %d", sumInputAmount, sumOutputAmount)
-	}
-
-	usedFees := new(big.Int)
-	for _, out := range outputs {
-		if !out.SplitFee {
-			out.Fee = new(big.Int)
-			continue
-		}
-
-		out.Fee = new(big.Int).Mul(new(big.Int).SetUint64(fee), out.Value)
-		out.Fee.Div(out.Fee, sumSplitAmount)
-		out.Value.Sub(out.Value, out.Fee)
-		usedFees.Add(usedFees, out.Fee)
-	}
-
-	remainder := new(big.Int).Sub(new(big.Int).SetUint64(fee), usedFees)
-	if remainder.Cmp(common.Big0) < 0 {
-		return nil, fmt.Errorf("fee remainder is negative")
-	} else if remainder.Cmp(common.Big0) > 0 {
-		for _, output := range outputs {
-			if !output.SplitFee {
-				continue
-			} else if output.Value.Cmp(remainder) > 0 {
-				output.Value.Sub(output.Value, remainder)
-				remainder = new(big.Int)
-				break
-			}
-		}
-	}
-
-	if remainder.Cmp(new(big.Int)) > 0 {
-		return nil, fmt.Errorf("not enough to spend fees")
+	err := txCommon.DistributeFees(inputs, outputs, fee)
+	if err != nil {
+		return nil, err
 	}
 
 	unsignedTx, err := generateUnsignedTx(inputs, outputs, prefix)

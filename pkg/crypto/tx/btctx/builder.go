@@ -3,14 +3,13 @@ package btctx
 import (
 	"encoding/hex"
 	"fmt"
-	"math/big"
 
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
 	secp256k1signer "github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 
-	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/crypto/base58"
+	txCommon "github.com/magicpool-co/pool/pkg/crypto/tx"
 	"github.com/magicpool-co/pool/types"
 )
 
@@ -25,53 +24,15 @@ func privKeyToAddress(privKey *secp256k1.PrivateKey, prefixP2PKH []byte) string 
 func GenerateRawTx(baseTx *transaction, inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64) (*transaction, error) {
 	tx := baseTx.shallowCopy()
 
-	var sumInputAmount uint64
+	err := txCommon.DistributeFees(inputs, outputs, fee)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, inp := range inputs {
-		sumInputAmount += inp.Value.Uint64()
 		err := tx.AddInput(inp.Hash, inp.Index, 0xFFFFFFFF, nil)
 		if err != nil {
 			return nil, err
-		}
-	}
-
-	var sumOutputAmount uint64
-	sumSplitAmount := new(big.Int)
-	for _, out := range outputs {
-		sumOutputAmount += out.Value.Uint64()
-		if out.SplitFee {
-			sumSplitAmount.Add(sumSplitAmount, out.Value)
-		}
-	}
-
-	if sumOutputAmount != sumInputAmount {
-		return nil, fmt.Errorf("amount mismatch: input %d, output %d", sumInputAmount, sumOutputAmount)
-	}
-
-	usedFees := new(big.Int)
-	for _, out := range outputs {
-		if !out.SplitFee {
-			out.Fee = new(big.Int)
-			continue
-		}
-
-		out.Fee = new(big.Int).Mul(new(big.Int).SetUint64(fee), out.Value)
-		out.Fee.Div(out.Fee, sumSplitAmount)
-		out.Value.Sub(out.Value, out.Fee)
-		usedFees.Add(usedFees, out.Fee)
-	}
-
-	remainder := new(big.Int).Sub(new(big.Int).SetUint64(fee), usedFees)
-	if remainder.Cmp(common.Big0) < 0 {
-		return nil, fmt.Errorf("fee remainder is negative")
-	} else if remainder.Cmp(common.Big0) > 0 {
-		for _, output := range outputs {
-			if !output.SplitFee {
-				continue
-			} else if output.Value.Cmp(remainder) > 0 {
-				output.Value.Sub(output.Value, remainder)
-				remainder = new(big.Int)
-				break
-			}
 		}
 	}
 
@@ -136,8 +97,7 @@ func GenerateTx(privKey *secp256k1.PrivateKey, baseTx *transaction, inputs []*ty
 	initialTxSerialized, err := initialTx.Serialize(nil)
 	if err != nil {
 		return nil, err
-	} else if len(initialTxSerialized) > 50000 {
-		// non-standard limit is actually 100000, but we should never come close to that
+	} else if len(initialTxSerialized) > 50000 { // non-standard limit is actually 100000
 		return nil, fmt.Errorf("transaction is non-standard with size of %d", len(initialTxSerialized))
 	}
 
