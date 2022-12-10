@@ -2,11 +2,13 @@ package firo
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/crypto/tx/btctx"
+	"github.com/magicpool-co/pool/pkg/crypto/wire"
 )
 
 const txVersion uint32 = 0x50003
@@ -20,18 +22,23 @@ func GenerateCoinbase(addresses []string, amounts []uint64, blockHeight, nTime u
 
 	tx := btctx.NewTransaction(txVersion, 0, prefixP2PKH, prefixP2SH, false)
 
-	extraNonceSize := []byte{0x04}
+	var extraNonceSize byte = 0x04
 	if addresses[0] == "a8ULhhDgfdSiXJhSZVdhb8EuDc6R3ogsaM" {
-		extraNonceSize = []byte{0x08}
+		extraNonceSize = 0x08
 	}
 
-	serializedBlockHeight := bytes.Join([][]byte{
-		crypto.SerializeNumber(blockHeight),
-		crypto.SerializeNumber(nTime),
-		extraNonceSize,
-		// crypto.VarIntToBytes(uint64(len(extraData))),
-		extraData,
-	}, nil)
+	var buf bytes.Buffer
+	var order = binary.LittleEndian
+	if err := wire.WriteSerializedNumber(&buf, order, blockHeight); err != nil {
+		return nil, nil, err
+	} else if err := wire.WriteSerializedNumber(&buf, order, nTime); err != nil {
+		return nil, nil, err
+	} else if err := wire.WriteElement(&buf, order, extraNonceSize); err != nil {
+		return nil, nil, err
+	} else if err := wire.WriteElement(&buf, order, extraData); err != nil {
+		return nil, nil, err
+	}
+	serializedBlockHeight := buf.Bytes()
 
 	prevTx := "0000000000000000000000000000000000000000000000000000000000000000"
 	tx.AddInput(prevTx, 0xFFFFFFFF, 0xFFFFFFFF, serializedBlockHeight)
@@ -45,7 +52,11 @@ func GenerateCoinbase(addresses []string, amounts []uint64, blockHeight, nTime u
 		tx.AddOutput(scriptPubKey, amounts[i])
 	}
 
-	extraPayloadBytes, _ := hex.DecodeString(extraPayload)
+	extraPayloadBytes, err := hex.DecodeString(extraPayload)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	serialized, err := tx.Serialize(extraPayloadBytes)
 	if err != nil {
 		return nil, nil, err

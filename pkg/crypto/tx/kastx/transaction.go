@@ -6,9 +6,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"golang.org/x/crypto/blake2b"
 
 	"github.com/magicpool-co/pool/internal/node/mining/kas/protowire"
+	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/crypto/wire"
 )
 
@@ -18,20 +18,6 @@ var (
 
 	transactionSigningECDSADomainHash = sha256.Sum256([]byte("TransactionSigningHashECDSA"))
 )
-
-func writeBlake2b256(input, key []byte) ([]byte, error) {
-	blake, err := blake2b.New256(key)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = blake.Write(input)
-	if err != nil {
-		return nil, err
-	}
-
-	return blake.Sum(nil), nil
-}
 
 func calculatePreviousOutputHash(order binary.ByteOrder, inputs []*protowire.RpcTransactionInput) ([]byte, error) {
 	var buf bytes.Buffer
@@ -46,7 +32,7 @@ func calculatePreviousOutputHash(order binary.ByteOrder, inputs []*protowire.Rpc
 		}
 	}
 
-	return writeBlake2b256(buf.Bytes(), transactionSigningHashDomain)
+	return crypto.Blake2b256MAC(buf.Bytes(), transactionSigningHashDomain)
 }
 
 func calculateSequencesHash(order binary.ByteOrder, inputs []*protowire.RpcTransactionInput) ([]byte, error) {
@@ -57,7 +43,7 @@ func calculateSequencesHash(order binary.ByteOrder, inputs []*protowire.RpcTrans
 		}
 	}
 
-	return writeBlake2b256(buf.Bytes(), transactionSigningHashDomain)
+	return crypto.Blake2b256MAC(buf.Bytes(), transactionSigningHashDomain)
 }
 
 func calculateSigOpsCountsHash(order binary.ByteOrder, inputs []*protowire.RpcTransactionInput) ([]byte, error) {
@@ -68,7 +54,7 @@ func calculateSigOpsCountsHash(order binary.ByteOrder, inputs []*protowire.RpcTr
 		}
 	}
 
-	return writeBlake2b256(buf.Bytes(), transactionSigningHashDomain)
+	return crypto.Blake2b256MAC(buf.Bytes(), transactionSigningHashDomain)
 }
 
 func calculateOutputsHash(order binary.ByteOrder, outputs []*protowire.RpcTransactionOutput) ([]byte, error) {
@@ -86,17 +72,17 @@ func calculateOutputsHash(order binary.ByteOrder, outputs []*protowire.RpcTransa
 		}
 	}
 
-	return writeBlake2b256(buf.Bytes(), transactionSigningHashDomain)
+	return crypto.Blake2b256MAC(buf.Bytes(), transactionSigningHashDomain)
 }
 
 func serializePartial(tx *protowire.RpcTransaction, idx uint32, amount uint64, scriptPubKey []byte) ([]byte, error) {
-	var order = binary.LittleEndian
-
 	if len(tx.Inputs) <= int(idx) {
 		return nil, fmt.Errorf("index out of bounds")
 	}
 
+	var order = binary.LittleEndian
 	var buf bytes.Buffer
+
 	if err := wire.WriteElement(&buf, order, uint16(tx.Version)); err != nil { // version
 		return nil, err
 	}
@@ -164,12 +150,13 @@ func serializePartial(tx *protowire.RpcTransaction, idx uint32, amount uint64, s
 		return nil, err
 	}
 
-	return writeBlake2b256(buf.Bytes(), transactionSigningHashDomain)
+	return crypto.Blake2b256MAC(buf.Bytes(), transactionSigningHashDomain)
 }
 
 func serializeFull(tx *protowire.RpcTransaction) ([]byte, error) {
 	var order = binary.LittleEndian
 	var buf bytes.Buffer
+
 	if err := wire.WriteElement(&buf, order, uint16(tx.Version)); err != nil { // version
 		return nil, err
 	}
@@ -220,7 +207,7 @@ func serializeFull(tx *protowire.RpcTransaction) ([]byte, error) {
 		return nil, err
 	}
 
-	return writeBlake2b256(buf.Bytes(), transactionIDDomain)
+	return crypto.Blake2b256MAC(buf.Bytes(), transactionIDDomain)
 }
 
 func calculateScriptSig(tx *protowire.RpcTransaction, index uint32, amount uint64, scriptPubKey []byte) ([]byte, error) {

@@ -2,9 +2,11 @@ package btctx
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 
 	"github.com/magicpool-co/pool/pkg/crypto"
+	"github.com/magicpool-co/pool/pkg/crypto/wire"
 )
 
 type transaction struct {
@@ -45,36 +47,8 @@ func (tx *transaction) SetExpiryHeight(expiryHeight uint32) {
 
 type witness [][]byte
 
-func (wit witness) SerializeSize() int {
-	n := crypto.VarIntSerializeSize(uint64(len(wit)))
-
-	for _, item := range wit {
-		n += crypto.VarIntSerializeSize(uint64(len(item))) + len(item)
-	}
-
-	return n
-}
-
-func (wit witness) Serialize() []byte {
-	pos := 0
-	out := make([]byte, wit.SerializeSize())
-
-	countLen := uint64(len(wit))
-	countLenVarInt := crypto.VarIntToBytes(countLen)
-	copy(out[pos:], countLenVarInt)
-	pos += len(countLenVarInt)
-
-	for _, w := range wit {
-		witLen := uint64(len(w))
-		witLenVarInt := crypto.VarIntToBytes(witLen)
-		copy(out[pos:], witLenVarInt)
-		pos += len(witLenVarInt)
-
-		copy(out[pos:], w)
-		pos += len(w)
-	}
-
-	return out
+func (wit witness) Serialize(buf *bytes.Buffer, order binary.ByteOrder) error {
+	return wire.WriteVarByteArray(buf, order, wit)
 }
 
 type input struct {
@@ -85,23 +59,18 @@ type input struct {
 	Witness   witness
 }
 
-func (inp *input) SerializeSize() int {
-	return 40 + crypto.VarIntSerializeSize(uint64(len(inp.Script))) + len(inp.Script)
-}
+func (inp *input) Serialize(buf *bytes.Buffer, order binary.ByteOrder) error {
+	if err := wire.WriteElement(buf, order, crypto.ReverseBytes(inp.PrevHash)); err != nil {
+		return err
+	} else if err := wire.WriteElement(buf, order, inp.PrevIndex); err != nil {
+		return err
+	} else if err := wire.WriteVarBytes(buf, order, inp.Script); err != nil {
+		return err
+	} else if err := wire.WriteElement(buf, order, inp.Sequence); err != nil {
+		return err
+	}
 
-func (inp *input) Serialize() []byte {
-	scriptLen := uint64(len(inp.Script))
-	scriptLenVarInt := crypto.VarIntToBytes(scriptLen)
-
-	data := bytes.Join([][]byte{
-		crypto.ReverseBytes(inp.PrevHash),
-		crypto.WriteUint32Le(inp.PrevIndex),
-		scriptLenVarInt,
-		inp.Script,
-		crypto.WriteUint32Le(inp.Sequence),
-	}, nil)
-
-	return data
+	return nil
 }
 
 type output struct {
@@ -109,21 +78,14 @@ type output struct {
 	Value  uint64
 }
 
-func (out *output) SerializeSize() int {
-	return 8 + crypto.VarIntSerializeSize(uint64(len(out.Script))) + len(out.Script)
-}
+func (out *output) Serialize(buf *bytes.Buffer, order binary.ByteOrder) error {
+	if err := wire.WriteElement(buf, order, out.Value); err != nil {
+		return err
+	} else if err := wire.WriteVarBytes(buf, order, out.Script); err != nil {
+		return err
+	}
 
-func (out *output) Serialize() []byte {
-	scriptLen := uint64(len(out.Script))
-	scriptLenVarInt := crypto.VarIntToBytes(scriptLen)
-
-	data := bytes.Join([][]byte{
-		crypto.WriteUint64Le(out.Value),
-		scriptLenVarInt,
-		out.Script,
-	}, nil)
-
-	return data
+	return nil
 }
 
 func (tx *transaction) AddInput(hash string, index, sequence uint32, script []byte) error {
@@ -179,137 +141,104 @@ func (tx *transaction) shallowCopy() *transaction {
 		LockTime:       tx.LockTime,
 		ExpiryHeight:   tx.ExpiryHeight,
 	}
+
 	inputs := make([]input, len(tx.Inputs))
 	for i, oldTxIn := range tx.Inputs {
 		inputs[i] = *oldTxIn
 		txCopy.Inputs[i] = &inputs[i]
 	}
+
 	outputs := make([]output, len(tx.Outputs))
 	for i, oldTxOut := range tx.Outputs {
 		outputs[i] = *oldTxOut
 		txCopy.Outputs[i] = &outputs[i]
 	}
+
 	return txCopy
 }
 
-func (tx *transaction) SerializeSize(extraPayload []byte) int {
-	length := 0
-
-	hasWitnesses := tx.hasWitnesses()
-	if hasWitnesses {
-		length += 10
-	} else {
-		length += 8
-	}
-
-	if tx.VersionGroupID != nil {
-		length += 4 + 11 // @TODO: no idea why this 11 is needed
-	}
-
-	length += crypto.VarIntSerializeSize(uint64(len(tx.Inputs)))
-	for _, input := range tx.Inputs {
-		length += input.SerializeSize()
-	}
-
-	length += crypto.VarIntSerializeSize(uint64(len(tx.Outputs)))
-	for _, output := range tx.Outputs {
-		length += output.SerializeSize()
-	}
-
-	if hasWitnesses {
-		for _, input := range tx.Inputs {
-			length += input.Witness.SerializeSize()
-		}
-	}
-
-	if tx.ExpiryHeight != nil {
-		length += 4
-	}
-
-	if len(extraPayload) > 0 {
-		length += 1 + len(extraPayload)
-	}
-
-	return length
-}
-
 func (tx *transaction) Serialize(extraPayload []byte) ([]byte, error) {
-	pos := 0
-	length := tx.SerializeSize(extraPayload)
-	serialized := make([]byte, length)
+	var order = binary.LittleEndian
+	var buf bytes.Buffer
 
 	// add version
-	versionBytes := crypto.WriteUint32Le(tx.Version)
-	copy(serialized[pos:], versionBytes)
-	pos += len(versionBytes)
+	if err := wire.WriteElement(&buf, order, tx.Version); err != nil {
+		return nil, err
+	}
 
 	// zcash specific field
 	if tx.VersionGroupID != nil {
-		versionGroupIDBytes := crypto.WriteUint32Le(*tx.VersionGroupID)
-		copy(serialized[pos:], versionGroupIDBytes)
-		pos += len(versionGroupIDBytes)
+		if err := wire.WriteElement(&buf, order, *tx.VersionGroupID); err != nil {
+			return nil, err
+		}
 	}
 
 	// if segwit tx, add witness flag
 	doWitness := tx.hasWitnesses()
 	if doWitness {
 		flags := []byte{TxFlagMarker, WitnessFlag}
-		copy(serialized[pos:], flags)
-		pos += len(flags)
+		if err := wire.WriteElement(&buf, order, flags); err != nil {
+			return nil, err
+		}
 	}
 
 	// add number of inputs
-	inputCountBytes := crypto.VarIntToBytes(uint64(len(tx.Inputs)))
-	copy(serialized[pos:], inputCountBytes)
-	pos += len(inputCountBytes)
+	if err := wire.WriteVarInt(&buf, order, uint64(len(tx.Inputs))); err != nil {
+		return nil, err
+	}
 
 	// add inputs
 	for _, input := range tx.Inputs {
-		inputSerialized := input.Serialize()
-		copy(serialized[pos:], inputSerialized)
-		pos += len(inputSerialized)
+		if err := input.Serialize(&buf, order); err != nil {
+			return nil, err
+		}
 	}
 
 	// add number of outputs
-	outputCountBytes := crypto.VarIntToBytes(uint64(len(tx.Outputs)))
-	copy(serialized[pos:], outputCountBytes)
-	pos += len(outputCountBytes)
+	if err := wire.WriteVarInt(&buf, order, uint64(len(tx.Outputs))); err != nil {
+		return nil, err
+	}
 
 	// add outputs
 	for _, output := range tx.Outputs {
-		outputSerialized := output.Serialize()
-		copy(serialized[pos:], outputSerialized)
-		pos += len(outputSerialized)
+		if err := output.Serialize(&buf, order); err != nil {
+			return nil, err
+		}
 	}
 
 	// if segwit tx, add witness data
 	if doWitness {
 		for _, input := range tx.Inputs {
-			witnessSerialized := input.Witness.Serialize()
-			copy(serialized[pos:], witnessSerialized)
-			pos += len(witnessSerialized)
+			if err := input.Witness.Serialize(&buf, order); err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	// add locktime
-	lockTimeBytes := crypto.WriteUint32Le(uint32(tx.LockTime))
-	copy(serialized[pos:], lockTimeBytes)
-	pos += len(lockTimeBytes)
+	if err := wire.WriteElement(&buf, order, tx.LockTime); err != nil {
+		return nil, err
+	}
 
 	// if zcash, add expiry height
 	if tx.ExpiryHeight != nil {
-		expiryHeightBytes := crypto.WriteUint32Le(*tx.ExpiryHeight)
-		copy(serialized[pos:], expiryHeightBytes)
-		pos += len(expiryHeightBytes)
+		if err := wire.WriteElement(&buf, order, *tx.ExpiryHeight); err != nil {
+			return nil, err
+		} else if err := wire.WriteElement(&buf, order, make([]byte, 11)); err != nil { // @TODO: no idea why this is needed
+			return nil, err
+		}
 	}
 
 	// if extra payload, add data
 	if len(extraPayload) > 0 {
-		serialized[pos] = byte(len(extraPayload))
-		copy(serialized[pos+1:], extraPayload)
+		if err := wire.WriteElement(&buf, order, byte(len(extraPayload))); err != nil {
+			return nil, err
+		} else if err := wire.WriteElement(&buf, order, extraPayload); err != nil {
+			return nil, err
+		}
 	}
 
-	return serialized, nil
+	return buf.Bytes(), nil
 }
 
 func (tx *transaction) CalculateScriptSig(index uint32, script []byte) ([]byte, error) {
@@ -327,10 +256,9 @@ func (tx *transaction) CalculateScriptSig(index uint32, script []byte) ([]byte, 
 	}
 
 	// add hash type
-	serialized = bytes.Join([][]byte{
-		serialized,
-		crypto.WriteUint32Le(SIGHASH_ALL),
-	}, nil)
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, SIGHASH_ALL)
+	serialized = append(serialized, buf...)
 
 	return crypto.Sha256d(serialized), nil
 }

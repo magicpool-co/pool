@@ -1,18 +1,22 @@
-package util
+package merkle
 
-type MerkleNode struct {
-	Left  *MerkleNode
-	Right *MerkleNode
+import (
+	"github.com/magicpool-co/pool/pkg/crypto"
+)
+
+type Node struct {
+	Left  *Node
+	Right *Node
 	Data  []byte
 }
 
-func NewMerkleNode(left, right *MerkleNode, data []byte) *MerkleNode {
-	node := MerkleNode{}
+func NewNode(left, right *Node, data []byte) *Node {
+	node := Node{}
 
 	if left == nil && right == nil {
-		node.Data = ReverseBytes(data)
+		node.Data = crypto.ReverseBytes(data)
 	} else {
-		node.Data = Sha256d(append(left.Data, right.Data...))
+		node.Data = crypto.Sha256d(append(left.Data, right.Data...))
 	}
 
 	node.Left = left
@@ -21,31 +25,31 @@ func NewMerkleNode(left, right *MerkleNode, data []byte) *MerkleNode {
 	return &node
 }
 
-func CalculateMerkleRoot(data [][]byte) []byte {
+func CalculateRoot(data [][]byte) []byte {
 	if len(data) == 1 {
 		return data[0]
 	}
 
-	var nodes []MerkleNode
+	var nodes []Node
 
 	if len(data)%2 != 0 {
 		data = append(data, data[len(data)-1])
 	}
 
 	for _, dat := range data {
-		node := NewMerkleNode(nil, nil, dat)
+		node := NewNode(nil, nil, dat)
 		nodes = append(nodes, *node)
 	}
 
 	for i := 0; i < len(data)/2; i++ {
-		var level []MerkleNode
+		var level []Node
 
 		for j := 0; j < len(nodes); j += 2 {
 			if len(nodes) < j+2 {
 				nodes = append(nodes, nodes[j])
 			}
 
-			node := NewMerkleNode(&nodes[j], &nodes[j+1], nil)
+			node := NewNode(&nodes[j], &nodes[j+1], nil)
 			level = append(level, *node)
 		}
 
@@ -55,5 +59,5 @@ func CalculateMerkleRoot(data [][]byte) []byte {
 		}
 	}
 
-	return ReverseBytes(nodes[0].Data)
+	return crypto.ReverseBytes(nodes[0].Data)
 }

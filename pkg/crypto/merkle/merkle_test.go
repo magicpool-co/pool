@@ -1,22 +1,9 @@
-package util
+package merkle
 
 import (
 	"encoding/hex"
 	"testing"
 )
-
-func hashesToBytes(inp []string) ([][]byte, error) {
-	out := make([][]byte, len(inp))
-	for i, val := range inp {
-		valBytes, err := hex.DecodeString(val)
-		if err != nil {
-			return nil, err
-		}
-		out[i] = valBytes
-	}
-
-	return out, nil
-}
 
 func TestMerkleRVN(t *testing.T) {
 	tests := map[uint64][]string{
@@ -69,13 +56,17 @@ func TestMerkleRVN(t *testing.T) {
 	}
 
 	for block, txHashes := range tests {
-		txHashesBytes, err := hashesToBytes(txHashes)
-		if err != nil {
-			t.Errorf("err (block %d): unable to encode transaction hashes", block)
-			return
+		txHashesBytes := make([][]byte, len(txHashes))
+		for i, hash := range txHashes {
+			var err error
+			txHashesBytes[i], err = hex.DecodeString(hash)
+			if err != nil {
+				t.Errorf("err (block %d): unable to encode transaction hashes", block)
+				return
+			}
 		}
 
-		merkleRoot := CalculateMerkleRoot(txHashesBytes)
+		merkleRoot := CalculateRoot(txHashesBytes)
 		if hex.EncodeToString(merkleRoot) != answers[block] {
 			t.Errorf("err (block %d): invalid merkle root", block)
 			return

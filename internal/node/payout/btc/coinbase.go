@@ -2,10 +2,12 @@ package btc
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/crypto/tx/btctx"
+	"github.com/magicpool-co/pool/pkg/crypto/wire"
 )
 
 var (
@@ -16,12 +18,16 @@ var (
 func GenerateCoinbase(version, lockTime uint32, address string, amount, blockHeight, nTime uint64, extraData, defaultWitness string, prefixP2PKH, prefixP2SH []byte) ([]byte, []byte, error) {
 	tx := btctx.NewTransaction(version, lockTime, addressPrefixP2PKH, addressPrefixP2PKH, true)
 
-	serializedBlockHeight := bytes.Join([][]byte{
-		crypto.SerializeNumber(blockHeight),
-		crypto.SerializeNumber(nTime),
-		// extraNonceSize,
-		[]byte(extraData),
-	}, nil)
+	var buf bytes.Buffer
+	var order = binary.LittleEndian
+	if err := wire.WriteSerializedNumber(&buf, order, blockHeight); err != nil {
+		return nil, nil, err
+	} else if err := wire.WriteSerializedNumber(&buf, order, nTime); err != nil {
+		return nil, nil, err
+	} else if err := wire.WriteElement(&buf, order, extraData); err != nil {
+		return nil, nil, err
+	}
+	serializedBlockHeight := buf.Bytes()
 
 	prevTx := "0000000000000000000000000000000000000000000000000000000000000000"
 	tx.AddInput(prevTx, 0xFFFFFFFF, 0xFFFFFFFF, serializedBlockHeight)

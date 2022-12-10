@@ -2,6 +2,7 @@ package btctx
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -10,7 +11,6 @@ import (
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
 
 	"github.com/magicpool-co/pool/pkg/crypto/base58"
-	"github.com/magicpool-co/pool/pkg/crypto/util"
 )
 
 const (
@@ -87,10 +87,11 @@ func compileP2WSH(scriptHash []byte) []byte {
 }
 
 func compileCoinbaseScript(blockHeight int32, extraNonce uint64) []byte {
-	return bytes.Join([][]byte{
-		util.WriteUint64Le(uint64(blockHeight)),
-		util.WriteUint64Le(uint64(extraNonce)),
-	}, nil)
+	buf := make([]byte, 16)
+	binary.LittleEndian.PutUint64(buf[:8], uint64(blockHeight))
+	binary.LittleEndian.PutUint64(buf[8:], extraNonce)
+
+	return buf
 }
 
 func generateScriptSig(sig []byte, pub []byte) []byte {
@@ -101,28 +102,29 @@ func generateScriptSig(sig []byte, pub []byte) []byte {
 }
 
 func EncodeScriptData(data []byte) []byte {
-	dataLen := len(data)
-
-	if dataLen < OP_PUSHDATA1 {
+	length := len(data)
+	if length < OP_PUSHDATA1 {
 		data = bytes.Join([][]byte{
-			[]byte{byte((OP_DATA_1 - 1) + dataLen)},
+			[]byte{byte((OP_DATA_1 - 1) + length)},
 			data,
 		}, nil)
-	} else if dataLen <= 0xff {
+	} else if length <= 0xff {
 		data = bytes.Join([][]byte{
 			[]byte{OP_PUSHDATA1},
-			[]byte{byte(dataLen)},
+			[]byte{byte(length)},
 			data,
 		}, nil)
-	} else if dataLen <= 0xffff {
-		buf := util.WriteUint16Le(uint16(dataLen))
+	} else if length <= 0xffff {
+		buf := make([]byte, 2)
+		binary.LittleEndian.PutUint16(buf, uint16(length))
 		data = bytes.Join([][]byte{
 			[]byte{OP_PUSHDATA2},
 			buf,
 			data,
 		}, nil)
 	} else {
-		buf := util.WriteUint32Le(uint32(dataLen))
+		buf := make([]byte, 4)
+		binary.LittleEndian.PutUint32(buf, uint32(length))
 		data = bytes.Join([][]byte{
 			[]byte{OP_PUSHDATA4},
 			buf,

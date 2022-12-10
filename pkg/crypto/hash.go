@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 
 	"github.com/dchest/blake2b"
+	blake2bStd "golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
 )
@@ -53,6 +54,15 @@ func Blake2b256Personal(data, personal []byte) ([]byte, error) {
 	}
 	d.Write(data)
 	return d.Sum(nil), nil
+}
+
+func Blake2b256MAC(data, key []byte) ([]byte, error) {
+	hasher, err := blake2bStd.New(32, key)
+	if err != nil {
+		return nil, err
+	}
+	hasher.Write(data)
+	return hasher.Sum(nil), nil
 }
 
 func HmacSha256(key, data string) []byte {

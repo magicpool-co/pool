@@ -2,60 +2,44 @@ package blkbuilder
 
 import (
 	"bytes"
-	"encoding/hex"
+	"encoding/binary"
 	"fmt"
 
-	"github.com/magicpool-co/pool/pkg/crypto/util"
+	"github.com/magicpool-co/pool/pkg/crypto"
+	"github.com/magicpool-co/pool/pkg/crypto/merkle"
+	"github.com/magicpool-co/pool/pkg/crypto/wire"
 	"github.com/magicpool-co/pool/types"
 )
 
 type ProgPowBuilder struct {
-	version    []byte
-	prevHash   []byte
-	merkleRoot []byte
-	nTime      []byte
-	bits       []byte
-	height     []byte
 	header     []byte
 	headerHash []byte
 	txHexes    [][]byte
 }
 
 func NewProgPowBuilder(version, nTime, height uint32, bits, prevHash string, txHashes, txHexes [][]byte) (*ProgPowBuilder, error) {
-	heightBytes := util.WriteUint32Be(height)
-	nTimeBytes := util.WriteUint32Be(nTime)
-	versionBytes := util.WriteUint32Be(version)
+	var buf bytes.Buffer
+	var order = binary.BigEndian
 
-	bitsBytes, err := hex.DecodeString(bits)
-	if err != nil {
+	merkleRoot := merkle.CalculateRoot(txHashes)
+	if err := wire.WriteElement(&buf, order, height); err != nil {
+		return nil, err
+	} else if err := wire.WriteHexString(&buf, order, bits); err != nil {
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, nTime); err != nil {
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, merkleRoot); err != nil {
+		return nil, err
+	} else if err := wire.WriteHexString(&buf, order, prevHash); err != nil {
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, version); err != nil {
 		return nil, err
 	}
 
-	prevHashBytes, err := hex.DecodeString(prevHash)
-	if err != nil {
-		return nil, err
-	}
-
-	merkleRootBytes := util.CalculateMerkleRoot(txHashes)
-
-	header := make([]byte, 80)
-	copy(header[0:4], heightBytes)       // 4
-	copy(header[4:8], bitsBytes)         // 4
-	copy(header[8:12], nTimeBytes)       // 4
-	copy(header[12:44], merkleRootBytes) // 32
-	copy(header[44:76], prevHashBytes)   // 32
-	copy(header[76:80], versionBytes)    // 4
-	header = util.ReverseBytes(header)
-
-	headerHash := util.ReverseBytes(util.Sha256d(header))
+	header := crypto.ReverseBytes(buf.Bytes())
+	headerHash := crypto.ReverseBytes(crypto.Sha256d(header))
 
 	builder := &ProgPowBuilder{
-		version:    versionBytes,
-		prevHash:   prevHashBytes,
-		merkleRoot: merkleRootBytes,
-		nTime:      nTimeBytes,
-		bits:       bitsBytes,
-		height:     heightBytes,
 		header:     header,
 		headerHash: headerHash,
 		txHexes:    txHexes,
@@ -75,60 +59,24 @@ func (b *ProgPowBuilder) SerializeBlock(work *types.StratumWork) ([]byte, error)
 		return nil, fmt.Errorf("no mix digest")
 	}
 
-	hex := bytes.Join([][]byte{
-		b.header,
-		util.ReverseBytes(work.Nonce.BytesBE()),
-		util.ReverseBytes(work.MixDigest.Bytes()),
-		util.VarIntToBytes(uint64(len(b.txHexes))),
-		bytes.Join(b.txHexes, nil),
-	}, nil)
+	var buf bytes.Buffer
+	var order = binary.BigEndian
 
-	return hex, nil
+	if err := wire.WriteElement(&buf, order, b.header); err != nil {
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, crypto.ReverseBytes(work.Nonce.BytesBE())); err != nil {
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, crypto.ReverseBytes(work.MixDigest.Bytes())); err != nil {
+		return nil, err
+	} else if err := wire.WriteVarInt(&buf, order, uint64(len(b.txHexes))); err != nil {
+		return nil, err
+	} else if err := wire.WriteElement(&buf, order, bytes.Join(b.txHexes, nil)); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 func (b *ProgPowBuilder) PartialJob() []interface{} {
 	return nil
-}
-
-func DecodeBlock(raw []byte) {
-	// first header
-	header := util.ReverseBytes(raw[:80])
-	headerHash := hex.EncodeToString(util.ReverseBytes(util.Sha256d(raw[:80])))
-
-	height := hex.EncodeToString(header[0:4])
-	bits := hex.EncodeToString(header[4:8])
-	nTime := hex.EncodeToString(header[8:12])
-	merkleRoot := hex.EncodeToString(header[12:44])
-	prevHash := hex.EncodeToString(header[44:76])
-	version := hex.EncodeToString(header[76:80])
-
-	// second header
-	nonce := hex.EncodeToString(util.ReverseBytes(raw[80:88]))
-	mixHash := hex.EncodeToString(raw[88:120])
-
-	var txLen uint64
-	var newIndex int
-	var err error
-	txLenVarIntPrefix := util.VarIntLength(raw[120])
-	if txLenVarIntPrefix == 1 {
-		txLen = uint64(raw[120])
-		newIndex = 121
-	} else {
-		txLen, err = util.BytesToVarInt(txLenVarIntPrefix, raw[121:121+txLenVarIntPrefix])
-		if err != nil {
-			panic(err)
-		}
-		newIndex = 121 + txLenVarIntPrefix
-	}
-
-	// @TODO: need to decode transactions (including coinbase, which is chain specific)
-
-	fmt.Println(txLen)
-
-	_ = raw[newIndex:]
-
-	if true {
-		fmt.Println(nonce, mixHash, headerHash)
-	}
-	fmt.Println(height, bits, nTime, merkleRoot, prevHash, version)
 }

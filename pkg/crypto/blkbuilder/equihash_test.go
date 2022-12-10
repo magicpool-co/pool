@@ -2,6 +2,7 @@ package blkbuilder
 
 import (
 	"bytes"
+	"reflect"
 	"testing"
 
 	"github.com/magicpool-co/pool/pkg/common"
@@ -22,6 +23,7 @@ func TestSerializeEquihash(t *testing.T) {
 		header      []byte
 		headerHash  []byte
 		block       []byte
+		partialJob  []interface{}
 	}{
 		{
 			height:      1134187,
@@ -202,6 +204,14 @@ func TestSerializeEquihash(t *testing.T) {
 				0x42, 0x31, 0xb6, 0xe8, 0xd0, 0xe6, 0xd4, 0x2c, 0xe9, 0xe3, 0xbb, 0x34, 0xe0, 0x6b, 0xc5, 0xcb,
 				0x55, 0x8b, 0x70, 0x56, 0xc5, 0xb4, 0x83, 0x73, 0x66, 0x12, 0xa5, 0x45, 0xde, 0xe9, 0x42, 0x16,
 			},
+			partialJob: []interface{}{
+				"04000000",
+				"a58de396a4391deb3d15732dd0d4555646c0c10a764829a239bd3a440f000000",
+				"e27a5a53cc84290c50a0fb5ff19ad77a7f14e7e0cf63917e6a3b3312b6cb5395",
+				"d9988e7adc9c6da15d12246eeb18623d1f8039f5ee6bcae29261e383248d7522",
+				"bf909862",
+				"a29f1b1d",
+			},
 		},
 		{
 			height:      1134309,
@@ -298,6 +308,14 @@ func TestSerializeEquihash(t *testing.T) {
 				0x31, 0xb3, 0xab, 0x23, 0x78, 0x31, 0x6d, 0xda, 0x88, 0xac, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			},
+			partialJob: []interface{}{
+				"04000000",
+				"389f266cdabe6a7c4e108814779ba13aa089431fba5149dfde20887e09000000",
+				"24dd82bd2aedfdd633c49c12ad8144f590a2f23dd03d5f993a70dbc68a921dc2",
+				"d9988e7adc9c6da15d12246eeb18623d1f8039f5ee6bcae29261e383248d7522",
+				"27ca9862",
+				"b2fb1a1d",
+			},
 		},
 	}
 
@@ -321,6 +339,11 @@ func TestSerializeEquihash(t *testing.T) {
 			t.Errorf("failed on %d: SerializeBlock: %v", i, err)
 		} else if bytes.Compare(block, tt.block) != 0 {
 			t.Errorf("failed on %d: block mismatch: have %x, want %x", i, block, tt.block)
+		}
+
+		partialJob := builder.PartialJob()
+		if !reflect.DeepEqual(partialJob, tt.partialJob) {
+			t.Errorf("failed on %d: partial job mismatch: have %v, want %v", i, partialJob, tt.partialJob)
 		}
 	}
 }

@@ -2,52 +2,47 @@ package blkbuilder
 
 import (
 	"bytes"
-	"encoding/hex"
+	"encoding/binary"
 
-	"github.com/magicpool-co/pool/pkg/crypto/util"
+	"github.com/magicpool-co/pool/pkg/crypto"
+	"github.com/magicpool-co/pool/pkg/crypto/merkle"
+	"github.com/magicpool-co/pool/pkg/crypto/wire"
 )
 
-func serializeBitcoinHeader(nonce, bits, nTime, merkleRoot, prevHash, version []byte) []byte {
-	header := make([]byte, 80)
-
-	copy(header[0:4], nonce)        // 4
-	copy(header[4:8], bits)         // 4
-	copy(header[8:12], nTime)       // 4
-	copy(header[12:44], merkleRoot) // 32
-	copy(header[44:76], prevHash)   // 32
-	copy(header[76:80], version)    // 4
-
-	return util.ReverseBytes(header)
-}
-
 func SerializeBitcoinBlockHeader(nonce, nTime, version uint32, bits, prevHash string, txHashes [][]byte) ([]byte, []byte, error) {
-	nonceBytes := util.WriteUint32Be(nonce)
-	nTimeBytes := util.WriteUint32Be(nTime)
-	versionBytes := util.WriteUint32Be(version)
+	var buf bytes.Buffer
+	var order = binary.BigEndian
 
-	bitsBytes, err := hex.DecodeString(bits)
-	if err != nil {
+	merkleRoot := merkle.CalculateRoot(txHashes)
+	if err := wire.WriteElement(&buf, order, nonce); err != nil {
+		return nil, nil, err
+	} else if err := wire.WriteHexString(&buf, order, bits); err != nil {
+		return nil, nil, err
+	} else if err := wire.WriteElement(&buf, order, nTime); err != nil {
+		return nil, nil, err
+	} else if err := wire.WriteElement(&buf, order, merkleRoot); err != nil {
+		return nil, nil, err
+	} else if err := wire.WriteHexString(&buf, order, prevHash); err != nil {
+		return nil, nil, err
+	} else if err := wire.WriteElement(&buf, order, version); err != nil {
 		return nil, nil, err
 	}
 
-	prevHashBytes, err := hex.DecodeString(prevHash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	merkleRoot := util.CalculateMerkleRoot(txHashes)
-	header := serializeBitcoinHeader(nonceBytes, bitsBytes, nTimeBytes, merkleRoot, prevHashBytes, versionBytes)
-	headerHash := util.ReverseBytes(util.Sha256d(header))
+	header := crypto.ReverseBytes(buf.Bytes())
+	headerHash := crypto.ReverseBytes(crypto.Sha256d(header))
 
 	return header, headerHash, nil
 }
 
 func SerializeBitcoinBlock(header []byte, txHexes [][]byte) ([]byte, error) {
-	hex := bytes.Join([][]byte{
-		header,
-		util.VarIntToBytes(uint64(len(txHexes))),
-		bytes.Join(txHexes, nil),
-	}, nil)
+	var buf bytes.Buffer
+	var order = binary.LittleEndian
 
-	return hex, nil
+	if err := wire.WriteElement(&buf, order, header); err != nil {
+		return nil, err
+	} else if err := wire.WriteVarByteArray(&buf, order, txHexes); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }

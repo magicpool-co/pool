@@ -6,6 +6,7 @@ package wire
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"io"
 	"math"
 )
@@ -96,27 +97,24 @@ func WriteVarInt(w io.Writer, order binary.ByteOrder, val uint64) error {
 	return binarySerializer.PutUint64(w, order, val)
 }
 
-// VarIntSerializeSize returns the number of bytes it would take to serialize
-// val as a variable length integer.
-func VarIntSerializeSize(val uint64) int {
-	// The value is small enough to be represented by itself, so it's
-	// just 1 byte.
-	if val < 0xfd {
-		return 1
+// Special helper for Firo coinbase
+func WriteSerializedNumber(w io.Writer, order binary.ByteOrder, val uint64) error {
+	var data []byte
+	if val >= 1 && val <= 16 {
+		data = []byte{byte(0x50 + val)}
+	} else if val <= 0x7F {
+		data = []byte{1, byte(val)}
+	} else {
+		data = make([]byte, 1)
+		n := val
+		for n = val; n > 0x7F; n >>= 8 {
+			data = append(data, byte(n&0xFF))
+		}
+		data[0] = byte(len(data))
+		data = append(data, byte(n))
 	}
 
-	// Discriminant 1 byte plus 2 bytes for the uint16.
-	if val <= math.MaxUint16 {
-		return 3
-	}
-
-	// Discriminant 1 byte plus 4 bytes for the uint32.
-	if val <= math.MaxUint32 {
-		return 5
-	}
-
-	// Discriminant 1 byte plus 8 bytes for the uint64.
-	return 9
+	return WriteElement(w, order, data)
 }
 
 // WriteVarString serializes str to w as a variable length integer containing
@@ -130,6 +128,38 @@ func WriteVarString(w io.Writer, order binary.ByteOrder, str string) error {
 	_, err = w.Write([]byte(str))
 
 	return err
+}
+
+// WriteHexString decodes a hex string and writes the decoded bytes.
+func WriteHexString(w io.Writer, order binary.ByteOrder, str string) error {
+	data, err := hex.DecodeString(str)
+	if err != nil {
+		return err
+	}
+
+	_, err = w.Write(data)
+
+	return err
+}
+
+// WriteVarHexString decodes a hex string and writes the decoded bytes as PrefixedBytes.
+func WritePrefixedHexString(w io.Writer, order binary.ByteOrder, str string) error {
+	data, err := hex.DecodeString(str)
+	if err != nil {
+		return err
+	}
+
+	return WritePrefixedBytes(w, order, data)
+}
+
+// WriteVarHexString decodes a hex string and writes the decoded bytes as VarBytes.
+func WriteVarHexString(w io.Writer, order binary.ByteOrder, str string) error {
+	data, err := hex.DecodeString(str)
+	if err != nil {
+		return err
+	}
+
+	return WriteVarBytes(w, order, data)
 }
 
 // WritePrefixedBytes serializes a variable length byte array to w as an int
@@ -156,6 +186,22 @@ func WriteVarBytes(w io.Writer, order binary.ByteOrder, bytes []byte) error {
 	}
 
 	_, err = w.Write(bytes)
+
+	return err
+}
+
+func WriteVarByteArray(w io.Writer, order binary.ByteOrder, byteArray [][]byte) error {
+	slen := uint64(len(byteArray))
+	err := WriteVarInt(w, order, slen)
+	if err != nil {
+		return err
+	}
+
+	for _, bytes := range byteArray {
+		if _, err := w.Write(bytes); err != nil {
+			return err
+		}
+	}
 
 	return err
 }
