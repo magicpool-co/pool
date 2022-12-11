@@ -30,7 +30,7 @@ func DistributeFees(inputs []*types.TxInput, outputs []*types.TxOutput, fee uint
 	}
 
 	if sumOutputAmount != sumInputAmount {
-		return ErrInputOutputAmountMismatch
+		return fmt.Errorf("input and output sum mismatch: %d, %d", sumOutputAmount, sumInputAmount)
 	}
 
 	usedFees := new(big.Int)
