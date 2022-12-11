@@ -2,6 +2,7 @@ package svc
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -76,7 +77,7 @@ func (r *Runner) Run() {
 
 		select {
 		case <-time.After(time.Minute):
-			r.logger.Error("exiting with status 1")
+			r.logger.Error(fmt.Errorf("exiting with status 1"))
 			returnCode <- 1
 		case <-r.done:
 			r.logger.Debug("exiting with status 0")
