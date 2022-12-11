@@ -293,13 +293,6 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 		return types.RejectedShare, nil, fmt.Errorf("unable to cast job data as block")
 	}
 
-	rawdata, err := json.Marshal(template)
-	if err != nil {
-		return types.RejectedShare, nil, err
-	} else {
-		node.logger.Info(fmt.Sprintf("work: {%s, %s, %d}, job: %s", work.WorkerID, work.JobID, work.Nonce.Value(), rawdata))
-	}
-
 	digest, err := node.pow.Compute(job.Header.Bytes(), template.Timestamp, work.Nonce.Value())
 	if err != nil {
 		return types.RejectedShare, nil, err
