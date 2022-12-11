@@ -70,7 +70,7 @@ func (p *Pool) routeRequest(req *rpc.Request) ProtocolHandler {
 
 func (p *Pool) subscribe(c *stratum.Conn, req *rpc.Request) error {
 	if len(req.Params) > 0 {
-		p.logger.Info(fmt.Sprintf("subscribing: %v", req.Params))
+		p.logger.Info(fmt.Sprintf("subscribing: %s", req.Params))
 		var minerClient string
 		err := json.Unmarshal(req.Params[0], &minerClient)
 		if err == nil {
