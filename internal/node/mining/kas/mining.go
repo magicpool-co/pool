@@ -300,6 +300,7 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 
 	hash := new(types.Hash).SetFromBytes(digest)
 	if !hash.MeetsDifficulty(node.GetShareDifficulty()) {
+		node.logger.Info(fmt.Sprintf("%x, %x, %d, %x", digest, job.Header.Bytes(), template.Timestamp, work.Nonce.Value()))
 		return types.RejectedShare, nil, nil
 	} else if !hash.MeetsDifficulty(job.Difficulty) {
 		return types.AcceptedShare, nil, nil
