@@ -17,7 +17,7 @@ import (
 
 func validateMiningChain(chain string) bool {
 	switch strings.ToUpper(chain) {
-	case "CFX", "CTXC", "ERGO", "ETC", "ETHW", "FIRO", "FLUX", "RVN":
+	case "CFX", "CTXC", "ERGO", "ETC", "ETHW", "FIRO", "FLUX", "KAS", "RVN":
 		return true
 	default:
 		return false
