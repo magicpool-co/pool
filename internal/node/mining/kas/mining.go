@@ -300,7 +300,6 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 
 	hash := new(types.Hash).SetFromBytes(digest)
 	if !hash.MeetsDifficulty(node.GetShareDifficulty()) {
-		node.logger.Info(fmt.Sprintf("%x, %x, %d, %x", digest, job.Header.Bytes(), template.Timestamp, work.Nonce.Value()))
 		return types.RejectedShare, nil, nil
 	} else if !hash.MeetsDifficulty(job.Difficulty) {
 		return types.AcceptedShare, nil, nil
@@ -373,21 +372,20 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 }
 
 func (node Node) MarshalJob(id interface{}, job *types.StratumJob, cleanJobs bool, clientType int) (interface{}, error) {
-	timestamp := make([]byte, 8)
-	binary.LittleEndian.PutUint64(timestamp, uint64(job.Timestamp.Unix()))
-
 	result := []interface{}{job.ID}
 	switch clientType {
 	case standardMinerClientID:
 		header := job.Header.Bytes()
 		parts := make([]uint64, 4)
 		for i := 0; i < 4; i++ {
-			parts[i] = binary.BigEndian.Uint64(header[i*8 : (i+1)*8])
+			parts[i] = binary.LittleEndian.Uint64(header[i*8 : (i+1)*8])
 		}
 
 		result = append(result, parts)
-		result = append(result, uint64(binary.BigEndian.Uint64(timestamp)))
+		result = append(result, job.Timestamp.Unix())
 	case bzMinerClientID:
+		timestamp := make([]byte, 8)
+		binary.LittleEndian.PutUint64(timestamp, uint64(job.Timestamp.Unix()))
 		result = append(result, job.Header.Hex()+hex.EncodeToString(timestamp))
 	}
 
