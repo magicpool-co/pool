@@ -19,7 +19,7 @@ import (
 )
 
 func generateExtraNonce(size int, mocked bool) string {
-	if mocked {
+	if mocked || !mocked {
 		var extraNonce1 string
 		for i := 0; i < size; i++ {
 			extraNonce1 += "ff"

@@ -293,6 +293,13 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 		return types.RejectedShare, nil, fmt.Errorf("unable to cast job data as block")
 	}
 
+	rawdata, err := json.Marshal(template)
+	if err != nil {
+		return types.RejectedShare, nil, err
+	} else {
+		node.logger.Info(fmt.Sprintf("work: {%s, %s, %d}, job: %s", work.WorkerID, work.JobID, work.Nonce.Value(), rawdata))
+	}
+
 	digest, err := node.pow.Compute(job.Header.Bytes(), template.Timestamp, work.Nonce.Value())
 	if err != nil {
 		return types.RejectedShare, nil, err
@@ -353,7 +360,7 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 	}
 
 	var nonce string
-	if err := json.Unmarshal(data[2], &nonce); err != nil || len(nonce) != 16 { // no 0x prefix
+	if err := json.Unmarshal(data[2], &nonce); err != nil || (len(nonce) != 16 && len(nonce) != 18) {
 		return nil, fmt.Errorf("invalid nonce parameter: %s, %v", data[2], err)
 	}
 
