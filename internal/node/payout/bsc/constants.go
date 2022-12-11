@@ -16,6 +16,10 @@ func (node Node) GetAccountingType() types.AccountingType {
 	return types.AccountStructure
 }
 
+func (node Node) GetAddressPrefix() string {
+	return ""
+}
+
 func (node Node) GetUnits() *types.Number {
 	return new(types.Number).SetFromValue(1e18)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/magicpool-co/pool/internal/node/mining/etc"
 	"github.com/magicpool-co/pool/internal/node/mining/firo"
 	"github.com/magicpool-co/pool/internal/node/mining/flux"
+	"github.com/magicpool-co/pool/internal/node/mining/kas"
 	"github.com/magicpool-co/pool/internal/node/mining/rvn"
 	"github.com/magicpool-co/pool/internal/node/payout/btc"
 	"github.com/magicpool-co/pool/internal/node/payout/eth"
@@ -65,6 +66,8 @@ func ValidateAddress(chain, address string) bool {
 		return firo.ValidateAddress(address)
 	case "FLUX":
 		return flux.ValidateAddress(address)
+	case "KAS":
+		return kas.ValidateAddress("kaspa:" + address)
 	case "RVN":
 		return rvn.ValidateAddress(address)
 	default:

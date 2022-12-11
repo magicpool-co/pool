@@ -89,6 +89,7 @@ type PayoutNode interface {
 	Address() string
 	GetUnits() *Number
 	GetAccountingType() AccountingType
+	GetAddressPrefix() string
 	ValidateAddress(string) bool
 
 	// tx helpers

@@ -32,6 +32,10 @@ func (node Node) GetAccountingType() types.AccountingType {
 	return types.UTXOStructure
 }
 
+func (node Node) GetAddressPrefix() string {
+	return ""
+}
+
 func (node Node) Mocked() bool {
 	return node.mocked
 }

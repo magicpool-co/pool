@@ -79,8 +79,8 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 
 	chain := strings.ToUpper(partial[0])
 	address := partial[1]
-	if chain == "CFX" {
-		address = "cfx:" + address
+	if prefix := p.node.GetAddressPrefix(); prefix != "" {
+		address = prefix + ":" + address
 	}
 
 	validChain, validAddress := p.validateAddress(chain, address)

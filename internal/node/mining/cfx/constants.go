@@ -33,6 +33,10 @@ func (node Node) GetAccountingType() types.AccountingType {
 	return types.AccountStructure
 }
 
+func (node Node) GetAddressPrefix() string {
+	return "cfx"
+}
+
 func (node Node) Mocked() bool {
 	return node.mocked
 }
