@@ -215,6 +215,15 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 	if len(extraNonce) > 0 {
 		nonce := work.Nonce.Hex()
 		if len(nonce) < len(extraNonce) || nonce[:len(extraNonce)] != extraNonce {
+			if c.GetExtraNonceSubscribed() {
+				msg, err := rpc.NewRequest("mining.set_extranonce", extraNonce, p.extraNonce1Size)
+				if err != nil {
+					return false, err
+				} else if err := c.Write(msg); err != nil {
+					return false, err
+				}
+			}
+
 			return false, fmt.Errorf("nonce %s does not match extranonce %s", nonce, extraNonce)
 		}
 	}
