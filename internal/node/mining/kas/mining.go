@@ -354,7 +354,7 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 
 	var nonce string
 	if err := json.Unmarshal(data[2], &nonce); err != nil || len(nonce) != 16 { // no 0x prefix
-		return nil, fmt.Errorf("invalid nonce parameter")
+		return nil, fmt.Errorf("invalid nonce parameter: %s, %v", data[2], err)
 	}
 
 	nonceVal, err := new(types.Number).SetFromHex(nonce)
