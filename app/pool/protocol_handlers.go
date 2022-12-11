@@ -79,8 +79,12 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 
 	chain := strings.ToUpper(partial[0])
 	address := partial[1]
+
+	// handling for prefixed addresses (like cfx: or kaspa:), especially since
+	// kaspa's prefix is different from the internal chain abbreviation we use
 	if prefix := p.node.GetAddressPrefix(); prefix != "" {
 		address = prefix + ":" + address
+		chain = p.node.Chain()
 	}
 
 	validChain, validAddress := p.validateAddress(chain, address)

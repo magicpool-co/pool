@@ -20,6 +20,7 @@ INSERT INTO chains (id, mineable, switchable, payable) VALUES
 	("FIRO", true, true, false),
 	("FLUX", true, true, false),
 	("RVN", true, true, false),
+	("KAS", true, true, true),
 	("USDC", false, false, true);
 
 CREATE TABLE nodes (
@@ -102,6 +103,14 @@ INSERT INTO nodes (url, chain_id, region, mainnet, enabled, backup, active, sync
 	("node-1.flux.eu-central-1.privatemagicpool.co", "FLUX", "eu-central-1", true, true, false, false, false, 0),
 	("node-0.flux.ap-southeast-1.privatemagicpool.co", "FLUX", "ap-southeast-1", true, true, false, false, false, 0),
 	("node-1.flux.ap-southeast-1.privatemagicpool.co", "FLUX", "ap-southeast-1", true, true, false, false, false, 0),
+
+	("node-0.kas.eu-west-1.privatemagicpool.co", "KAS", "eu-west-1", true, true, true, false, false, 0),
+	("node-0.kas.us-west-2.privatemagicpool.co", "KAS", "us-west-2", true, false, false, false, false, 0),
+	("node-1.kas.us-west-2.privatemagicpool.co", "KAS", "us-west-2", true, false, false, false, false, 0),
+	("node-0.kas.eu-central-1.privatemagicpool.co", "KAS", "eu-central-1", true, false, false, false, false, 0),
+	("node-1.kas.eu-central-1.privatemagicpool.co", "KAS", "eu-central-1", true, false, false, false, false, 0),
+	("node-0.kas.ap-southeast-1.privatemagicpool.co", "KAS", "ap-southeast-1", true, false, false, false, false, 0),
+	("node-1.kas.ap-southeast-1.privatemagicpool.co", "KAS", "ap-southeast-1", true, false, false, false, false, 0),
 
 	("node-0.rvn.eu-west-1.privatemagicpool.co", "RVN", "eu-west-1", true, true, true, false, false, 0),
 	("node-0.rvn.us-west-2.privatemagicpool.co", "RVN", "us-west-2", true, true, false, false, false, 0),

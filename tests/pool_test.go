@@ -380,7 +380,7 @@ func (suite *PoolSuite) TestPool() {
 			handshake: []*rpc.Request{
 				rpc.MustNewRequest("mining.subscribe"),
 				rpc.MustNewRequest("mining.authorize",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"kaspa:qyp4ek94qc9k7aqzmpe4l7kdp6pvqus3gqehy89zdlc9dssvhc2rqjq2wr26hvd.worker",
 					"x",
 				),
 			},
@@ -390,7 +390,7 @@ func (suite *PoolSuite) TestPool() {
 				//	- job id
 				// 	- nonce
 				rpc.MustNewRequest("mining.submit",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"kaspa:qyp4ek94qc9k7aqzmpe4l7kdp6pvqus3gqehy89zdlc9dssvhc2rqjq2wr26hvd.worker",
 					"000001",
 					"ffff000016d9d7ca",
 				),
