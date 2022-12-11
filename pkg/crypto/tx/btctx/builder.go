@@ -24,7 +24,7 @@ func privKeyToAddress(privKey *secp256k1.PrivateKey, prefixP2PKH []byte) string 
 func GenerateRawTx(baseTx *transaction, inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64) (*transaction, error) {
 	tx := baseTx.shallowCopy()
 
-	err := txCommon.DistributeFees(inputs, outputs, fee)
+	err := txCommon.DistributeFees(inputs, outputs, fee, true)
 	if err != nil {
 		return nil, err
 	}

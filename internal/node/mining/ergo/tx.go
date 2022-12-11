@@ -54,7 +54,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	}
 
 	const fee = 1000000
-	err := txCommon.DistributeFees(inputs, outputs, fee)
+	err := txCommon.DistributeFees(inputs, outputs, fee, false)
 	if err != nil {
 		return "", "", err
 	}

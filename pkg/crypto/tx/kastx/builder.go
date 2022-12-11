@@ -100,7 +100,7 @@ func GenerateTx(privKey *secp256k1.PrivateKey, inputs []*types.TxInput, outputs 
 	}
 
 	fee := feePerInput * uint64(len(inputs))
-	err := txCommon.DistributeFees(inputs, outputs, fee)
+	err := txCommon.DistributeFees(inputs, outputs, fee, true)
 	if err != nil {
 		return nil, err
 	}

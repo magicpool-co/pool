@@ -9,12 +9,13 @@ import (
 )
 
 var (
+	ErrOutputLessThanInput       = fmt.Errorf("output less than input")
 	ErrInputOutputAmountMismatch = fmt.Errorf("input and output sum mismatch")
 	ErrNegativeFeeRemainder      = fmt.Errorf("negative fee remainder")
 	ErrFeesNotDistributed        = fmt.Errorf("fees could not be distributed")
 )
 
-func DistributeFees(inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64) error {
+func DistributeFees(inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64, strict bool) error {
 	var sumInputAmount uint64
 	for _, inp := range inputs {
 		sumInputAmount += inp.Value.Uint64()
@@ -29,8 +30,10 @@ func DistributeFees(inputs []*types.TxInput, outputs []*types.TxOutput, fee uint
 		}
 	}
 
-	if sumOutputAmount != sumInputAmount {
-		return fmt.Errorf("input and output sum mismatch: %d, %d", sumOutputAmount, sumInputAmount)
+	if sumOutputAmount < sumInputAmount {
+		return ErrOutputLessThanInput
+	} else if strict && sumInputAmount != sumOutputAmount {
+		return ErrInputOutputAmountMismatch
 	}
 
 	usedFees := new(big.Int)
