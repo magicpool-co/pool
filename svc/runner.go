@@ -70,16 +70,16 @@ func (r *Runner) Run() {
 
 	go func() {
 		<-r.logger.ExitChan
-		r.logger.Info("notified of graceful stop request")
+		r.logger.Debug("notified of graceful stop request")
 
 		finishUP <- struct{}{}
 
 		select {
 		case <-time.After(time.Minute):
-			r.logger.Info("exiting with status 1")
+			r.logger.Error("exiting with status 1")
 			returnCode <- 1
 		case <-r.done:
-			r.logger.Info("exiting with status 0")
+			r.logger.Debug("exiting with status 0")
 			returnCode <- 0
 		}
 	}()
