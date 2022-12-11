@@ -17,6 +17,7 @@ var (
 		"ETHW": "EthereumPow",
 		"FLUX": "Flux",
 		"FIRO": "Firo",
+		"KAS":  "Kaspa",
 		"RVN":  "Ravencoin",
 	}
 )
