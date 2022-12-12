@@ -143,6 +143,11 @@ func (c *Client) CheckForNewBatch() error {
 	// check all input and output paths, remove the inputs/outputs that
 	// do not have deposits or withdrawals currently enabled
 	for inChainID, outputIdx := range inputPaths {
+		if inChainID == "KAS" {
+			delete(inputPaths, inChainID)
+			continue
+		}
+
 		// check for deposits being enabled on the input chains
 		depositsEnabled, _, err := c.exchange.GetWalletStatus(inChainID)
 		if err != nil {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
+	"github.com/magicpool-co/pool/types"
 )
 
 func getBlockExplorerURL(chain, hash string, height uint64) (string, error) {
@@ -81,8 +82,11 @@ func newRound(dbRound *pooldb.Round) (*Round, error) {
 		return nil, err
 	}
 
-	if parts := strings.Split(dbRound.Miner, ":"); len(parts) == 3 {
-		dbRound.Miner = strings.Join(parts[1:], ":")
+	if dbRound.Miner != nil {
+		miner := types.StringValue(dbRound.Miner)
+		if parts := strings.Split(miner, ":"); len(parts) == 3 {
+			dbRound.Miner = types.StringPtr(strings.Join(parts[1:], ":"))
+		}
 	}
 
 	round := &Round{
