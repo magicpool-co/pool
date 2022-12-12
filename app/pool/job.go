@@ -112,6 +112,17 @@ func (l *JobList) Latest() *types.StratumJob {
 	return l.index[l.order[0]]
 }
 
+func (l *JobList) Oldest() *types.StratumJob {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if len(l.order) == 0 {
+		return nil
+	}
+
+	return l.index[l.order[len(l.order)-1]]
+}
+
 type JobManager struct {
 	ctx             context.Context
 	node            types.MiningNode
@@ -139,9 +150,9 @@ func (m *JobManager) recoverPanic() {
 	}
 }
 
-func (m *JobManager) update(job *types.StratumJob) error {
+func (m *JobManager) update(job *types.StratumJob) (bool, error) {
 	if job == nil {
-		return nil
+		return false, nil
 	}
 
 	cleanJobs := m.jobList.Append(job)
@@ -156,12 +167,12 @@ func (m *JobManager) update(job *types.StratumJob) error {
 
 		msg, err := m.node.MarshalJob(0, job, cleanJobs, clientType)
 		if err != nil {
-			return err
+			return cleanJobs, err
 		}
 
 		data, err := json.Marshal(msg)
 		if err != nil {
-			return err
+			return cleanJobs, err
 		}
 
 		for _, ch := range clientSubscriptions {
@@ -185,7 +196,19 @@ func (m *JobManager) update(job *types.StratumJob) error {
 		}
 	}
 
-	return nil
+	return cleanJobs, nil
+}
+
+func (m *JobManager) isExpiredHeight(height uint64) bool {
+	// @TODO: this should be handled a better way
+	const indexDepth = 50
+
+	oldest := m.jobList.Oldest()
+	if oldest == nil || oldest.Height.Value()-height < indexDepth {
+		return false
+	}
+
+	return true
 }
 
 func (m *JobManager) AddConn(c *stratum.Conn) {

@@ -34,6 +34,15 @@ func (suite *RedisReadsSuite) TestGetMiners() {
 	}
 }
 
+func (suite *RedisReadsSuite) TestGetShareIndexes() {
+	var err error
+
+	_, err = redisClient.GetShareIndexes("")
+	if err != nil {
+		suite.T().Errorf("failed: GetShareIndexes: %v", err)
+	}
+}
+
 func (suite *RedisReadsSuite) TestGetRounds() {
 	var err error
 

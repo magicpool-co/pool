@@ -99,6 +99,11 @@ func (c *Client) baseDel(key string) error {
 	return c.writeClient.Del(context.Background(), key).Err()
 }
 
+func (c *Client) baseSAdd(key, value string) (bool, error) {
+	res, err := c.writeClient.SAdd(context.Background(), key, value).Result()
+	return res == 1, err
+}
+
 func (c *Client) baseResetList(key string, values []interface{}) error {
 	ctx := context.Background()
 	pipe := c.writeClient.Pipeline()

@@ -143,9 +143,51 @@ func (p *Pool) startJobNotify() {
 		case <-p.ctx.Done():
 			return
 		case job := <-jobCh:
-			p.jobManager.update(job)
+			isNew, err := p.jobManager.update(job)
+			if err != nil {
+				p.logger.Error(err)
+			}
+
+			if isNew {
+				err = p.redis.AddShareIndexHeight(p.chain, job.Height.Value())
+				if err != nil {
+					p.logger.Error(err)
+				}
+			}
 		case err := <-errCh:
 			p.logger.Error(err)
+		}
+	}
+}
+
+func (p *Pool) startShareIndexClearer() {
+	defer p.recoverPanic()
+
+	ticker := time.NewTicker(time.Minute * 5)
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		case <-ticker.C:
+			indexes, err := p.redis.GetShareIndexes(p.chain)
+			if err != nil {
+				p.logger.Error(err)
+				continue
+			}
+
+			for _, index := range indexes {
+				height, err := strconv.ParseUint(index, 10, 64)
+				if err != nil {
+					p.logger.Error(err)
+				} else if !p.jobManager.isExpiredHeight(height) {
+					continue
+				}
+
+				err = p.redis.DeleteShareIndexHeight(p.chain, height)
+				if err != nil {
+					p.logger.Error(err)
+				}
+			}
 		}
 	}
 }
@@ -270,6 +312,7 @@ func (p *Pool) Port() int {
 
 func (p *Pool) Serve() {
 	go p.startJobNotify()
+	go p.startShareIndexClearer()
 	go p.startReportedHashratePusher()
 	go p.startIPAddressPusher()
 	go p.startStratum()

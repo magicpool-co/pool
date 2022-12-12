@@ -126,7 +126,7 @@ type MiningNode interface {
 	GetBlocks(uint64, uint64) ([]*tsdb.RawBlock, error)
 	GetBlocksByHash(string, uint64) ([]*tsdb.RawBlock, error)
 	JobNotify(context.Context, time.Duration, chan *StratumJob, chan error)
-	SubmitWork(*StratumJob, *StratumWork) (ShareStatus, *pooldb.Round, error)
+	SubmitWork(*StratumJob, *StratumWork) (ShareStatus, *Hash, *pooldb.Round, error)
 	UnlockRound(*pooldb.Round) error
 	GetBlockExplorerURL(*pooldb.Round) string
 }

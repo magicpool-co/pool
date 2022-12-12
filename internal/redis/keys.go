@@ -33,6 +33,16 @@ func (c *Client) getTopMinersKey(chain string) string {
 	return c.getKey("pool", "mnrs", strings.ToLower(chain), "top")
 }
 
+/* share index */
+
+func (c *Client) getShareIndexKey(chain string) string {
+	return c.getKey("pool", strings.ToLower(chain), "ush")
+}
+
+func (c *Client) getUniqueSharesKey(chain string, height uint64) string {
+	return c.getKey("pool", strings.ToLower(chain), "ush", strconv.FormatUint(height, 10))
+}
+
 /* rounds */
 
 func (c *Client) getRoundSharesKey(chain string) string {
