@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
@@ -78,6 +79,10 @@ func newRound(dbRound *pooldb.Round) (*Round, error) {
 	explorerURL, err := getBlockExplorerURL(dbRound.ChainID, dbRound.Hash, dbRound.Height)
 	if err != nil {
 		return nil, err
+	}
+
+	if parts := strings.Split(dbRound.Miner, ":"); len(parts) == 3 {
+		dbRound.Miner = strings.Join(parts[1:], ":")
 	}
 
 	round := &Round{
