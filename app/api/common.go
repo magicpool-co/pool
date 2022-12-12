@@ -45,6 +45,7 @@ func parseMiner(miner string) (string, string, error) {
 		switch strings.ToLower(parts[0]) {
 		case "kaspa":
 			parts[0] = "KAS"
+			parts[1] = strings.ToLower(parts[0]) + ":" + parts[1]
 		default:
 			return "", "", errChainNotFound
 		}
