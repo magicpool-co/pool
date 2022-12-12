@@ -42,7 +42,12 @@ func parseMiner(miner string) (string, string, error) {
 	if len(parts) != 2 {
 		return "", "", errMinerNotFound
 	} else if !validatePayoutChain(parts[0]) {
-		return "", "", errChainNotFound
+		switch strings.ToLower(parts[0]) {
+		case "kaspa":
+			parts[0] = "KAS"
+		default:
+			return "", "", errChainNotFound
+		}
 	}
 
 	return strings.ToUpper(parts[0]), parts[1], nil
