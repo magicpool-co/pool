@@ -26,7 +26,7 @@ func UnlockRounds(node types.MiningNode, pooldbClient *dbcl.Client) error {
 		}
 
 		cols := []string{"uncle", "orphan", "pending", "mature", "spent", "height",
-			"epoch_height", "uncle_height", "hash", "value", "created_at"}
+			"epoch_height", "uncle_height", "hash", "coinbase_txid", "value", "created_at"}
 		err = pooldb.UpdateRound(pooldbClient.Writer(), round, cols)
 		if err != nil {
 			return err
