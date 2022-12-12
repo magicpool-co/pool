@@ -12,10 +12,12 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/tsdb"
 	"github.com/magicpool-co/pool/pkg/crypto/blkbuilder"
+	"github.com/magicpool-co/pool/pkg/crypto/tx/kastx"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 	"github.com/magicpool-co/pool/types"
@@ -106,13 +108,14 @@ func (node Node) fetchBlockWithCache(hash string, cache *blockCache) (*Block, er
 	return block, nil
 }
 
-func (node Node) getRewardsFromBlock(block *Block, cache *blockCache) (uint64, error) {
+func (node Node) getRewardsFromBlock(block *Block, cache *blockCache) (*Transaction, uint64, error) {
 	const maxRecursionDepth = 50
 
 	var reward uint64
 	if block.IsChainBlock {
 		tx := block.Transactions[0]
 		if len(block.MergeSetBluesHashes) == len(tx.Outputs)+1 {
+			// @TODO: we are not properly handling the utxo for red block merges
 			reward += tx.Outputs[len(tx.Outputs)-1].Amount
 		}
 	}
@@ -124,7 +127,7 @@ func (node Node) getRewardsFromBlock(block *Block, cache *blockCache) (uint64, e
 		for _, childHash := range childrenHashes {
 			child, err := node.fetchBlockWithCache(childHash, cache)
 			if err != nil {
-				return 0, err
+				return nil, 0, err
 			} else if child == nil {
 				continue
 			} else if !child.IsChainBlock {
@@ -136,22 +139,24 @@ func (node Node) getRewardsFromBlock(block *Block, cache *blockCache) (uint64, e
 				continue
 			}
 
+			var tx *Transaction
 			for i, mergeSetHash := range child.MergeSetBluesHashes {
 				if mergeSetHash == block.Hash {
+					tx = child.Transactions[0]
 					reward += child.Transactions[0].Outputs[i].Amount
 				}
 			}
 
-			return reward, nil
+			return tx, reward, nil
 		}
 
 		childrenHashes = newChildrenHashes
 		if depth > maxRecursionDepth {
-			return 0, fmt.Errorf("past max recursion depth for block: %s", block.Hash)
+			return nil, 0, fmt.Errorf("past max recursion depth for block: %s", block.Hash)
 		}
 	}
 
-	return 0, nil
+	return nil, 0, nil
 }
 
 func (node Node) GetBlocksByHash(startHash string, limit uint64) ([]*tsdb.RawBlock, error) {
@@ -203,7 +208,7 @@ func (node Node) GetBlocksByHash(startHash string, limit uint64) ([]*tsdb.RawBlo
 				continue
 			}
 
-			value, err := node.getRewardsFromBlock(block, cache)
+			_, value, err := node.getRewardsFromBlock(block, cache)
 			if err != nil {
 				return nil, err
 			}
@@ -431,12 +436,20 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 		return fmt.Errorf("round %s has a nonce mismatch", round.Hash)
 	}
 
-	blockReward, err := node.getRewardsFromBlock(block, nil)
+	coinbaseTx, blockReward, err := node.getRewardsFromBlock(block, nil)
 	if err != nil {
 		return err
 	}
 
+	coinbaseTxBytes, err := proto.Marshal(transactionToProtowire(coinbaseTx))
+	if err != nil {
+		return err
+	}
+
+	coinbaseTxID := kastx.CalculateTxID(hex.EncodeToString(coinbaseTxBytes))
+
 	round.Value = dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(blockReward)}
+	round.CoinbaseTxID = types.StringPtr(coinbaseTxID)
 	round.Uncle = false
 	round.Orphan = blockReward == 0
 	round.Pending = false
