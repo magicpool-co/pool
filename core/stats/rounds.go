@@ -29,6 +29,8 @@ func getBlockExplorerURL(chain, hash string, height uint64) (string, error) {
 		explorerURL = "https://explorer.firo.org/block/" + hash
 	case "FLUX":
 		explorerURL = "https://explorer.runonflux.io/block/" + hash
+	case "KAS":
+		explorerURL = "https://katnip.kaspad.net/block/" + hash
 	case "RVN":
 		explorerURL = "https://ravencoin.network/block/" + hash
 	default:

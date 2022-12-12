@@ -33,9 +33,9 @@ var isBzminer = regexp.MustCompile(".*BzMiner.*")
 
 func (node Node) GetBlockExplorerURL(round *pooldb.Round) string {
 	if node.mainnet {
-		return fmt.Sprintf("https://katnip.kaspad.net/blocks/%s", round.Hash)
+		return fmt.Sprintf("https://katnip.kaspad.net/block/%s", round.Hash)
 	}
-	return fmt.Sprintf("https://katnip-testnet.kaspad.net/blocks/%s", round.Hash)
+	return fmt.Sprintf("https://katnip-testnet.kaspad.net/block/%s", round.Hash)
 }
 
 func (node Node) getStatusByHost(hostID string) (uint64, bool, error) {
