@@ -55,6 +55,49 @@ var (
 	}
 )
 
+func TestSerializeFull(t *testing.T) {
+	tests := []struct {
+		tx         *protowire.RpcTransaction
+		serialized []byte
+	}{
+		{
+			tx: &protowire.RpcTransaction{
+				Version: 0,
+				Outputs: []*protowire.RpcTransactionOutput{
+					&protowire.RpcTransactionOutput{
+						Amount: 34922893143,
+						ScriptPublicKey: &protowire.RpcScriptPublicKey{
+							Version:         0,
+							ScriptPublicKey: "20fc0c592acf1e509c8fa680d1ee11d492c243f420542129a7d17b02caa0ca5340ac",
+						},
+					},
+					&protowire.RpcTransactionOutput{
+						Amount: 34922823143,
+						ScriptPublicKey: &protowire.RpcScriptPublicKey{
+							Version:         0,
+							ScriptPublicKey: "20c62cf30e4e57c5922086460235d5157a62f2666aa22707cb9b588f6211fc0ed6ac",
+						},
+					},
+				},
+				LockTime:     0,
+				SubnetworkId: "0100000000000000000000000000000000000000",
+				Gas:          0,
+				Payload:      "6105940100000000e7fd8f210800000000002220e3a134d07b6719befe296576fdea05a14f555f3491b4c13229b7fc77d3aff5b7ac302e31322e372f6575312e6163632d706f6f6c2e7077",
+			},
+			serialized: common.MustParseHex("9a02063591f93629c01f65ebf5d9ee271a19d631bb001faa686b846e7f3762ce"),
+		},
+	}
+
+	for i, tt := range tests {
+		serialized, err := serializeFull(tt.tx)
+		if err != nil {
+			t.Errorf("failed on %d: %v", i, err)
+		} else if bytes.Compare(serialized, tt.serialized) != 0 {
+			t.Errorf("failed on %d: have %x, want %x", i, serialized, tt.serialized)
+		}
+	}
+}
+
 func TestCalculateScriptSig(t *testing.T) {
 	tests := []struct {
 		tx           *protowire.RpcTransaction

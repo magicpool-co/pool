@@ -156,6 +156,7 @@ func serializePartial(tx *protowire.RpcTransaction, idx uint32, amount uint64, s
 func serializeFull(tx *protowire.RpcTransaction) ([]byte, error) {
 	var order = binary.LittleEndian
 	var buf bytes.Buffer
+	var isCoinbase = tx.SubnetworkId == "0100000000000000000000000000000000000000"
 
 	if err := wire.WriteElement(&buf, order, uint16(tx.Version)); err != nil { // version
 		return nil, err
@@ -173,9 +174,19 @@ func serializeFull(tx *protowire.RpcTransaction) ([]byte, error) {
 			return nil, err
 		} else if err := wire.WriteElement(&buf, order, uint32(input.PreviousOutpoint.Index)); err != nil { // input.PreviousOutpoint.Index
 			return nil, err
-		} else if err := wire.WritePrefixedBytes(&buf, order, make([]byte, 0)); err != nil { // input.SignatureScript (empty)
-			return nil, err
-		} else if err := wire.WriteElement(&buf, order, input.Sequence); err != nil { // input.Sequence
+		}
+
+		if isCoinbase {
+			if err := wire.WritePrefixedHexString(&buf, order, input.SignatureScript); err != nil { // input.SignatureScript (empty)
+				return nil, err
+			}
+		} else {
+			if err := wire.WritePrefixedBytes(&buf, order, make([]byte, 0)); err != nil { // input.SignatureScript (empty)
+				return nil, err
+			}
+		}
+
+		if err := wire.WriteElement(&buf, order, input.Sequence); err != nil { // input.Sequence
 			return nil, err
 		}
 	}
@@ -199,11 +210,11 @@ func serializeFull(tx *protowire.RpcTransaction) ([]byte, error) {
 
 	if err := wire.WriteElement(&buf, order, tx.LockTime); err != nil { // lockTime
 		return nil, err
-	} else if err := wire.WriteElement(&buf, order, make([]byte, 20)); err != nil { // subnetworkID
+	} else if err := wire.WriteHexString(&buf, order, tx.SubnetworkId); err != nil { // subnetworkID
 		return nil, err
 	} else if err := wire.WriteElement(&buf, order, tx.Gas); err != nil { // gas
 		return nil, err
-	} else if err := wire.WritePrefixedBytes(&buf, order, make([]byte, 0)); err != nil { // payload (empty)
+	} else if err := wire.WritePrefixedHexString(&buf, order, tx.Payload); err != nil { // payload
 		return nil, err
 	}
 
