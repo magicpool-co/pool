@@ -81,15 +81,13 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 	address := partial[1]
 
 	// for certain native payout chains (cfx and kas), the addresses are prefixed, but no
-	// non-native payout chains require this. so anytime the client is requesting native
-	// payouts, we check the node to see if that chain requires a prefix, and add it to
-	// the active address if it does (this works even for kas, which has a different prefix
+	// non-native payout chains require this. so on top of checking for the native/non-native
+	// payout chains, we also check for the prefix of the native chain and add it back to
+	// the active address if it matches (this works even for kas, which has a different prefix
 	// than the internal chain name, kaspa vs. kas).
-	if chain == p.chain {
-		if prefix := p.node.GetAddressPrefix(); prefix != "" {
-			address = prefix + ":" + address
-			chain = p.node.Chain()
-		}
+	if prefix := p.node.GetAddressPrefix(); prefix != "" && strings.ToLower(chain) == strings.ToLower(prefix) {
+		address = prefix + ":" + address
+		chain = p.node.Chain()
 	}
 
 	validChain, validAddress := p.validateAddress(chain, address)
