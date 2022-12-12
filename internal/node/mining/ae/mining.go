@@ -281,17 +281,22 @@ func (node Node) GetClientType(minerClient string) int {
 	return 0
 }
 
-func (node Node) GetSubscribeResponse(id []byte, clientID, extraNonce string) (interface{}, error) {
-	return rpc.NewResponse(id, []interface{}{nil, extraNonce, 4})
-}
-
-func (node Node) GetAuthorizeResponses(extraNonce string) ([]interface{}, error) {
-	diffRes, err := rpc.NewRequest("mining.set_difficulty", node.GetShareDifficulty().Value())
+func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) ([]interface{}, error) {
+	res, err := rpc.NewResponse(id, []interface{}{nil, extraNonce, 4})
 	if err != nil {
 		return nil, err
 	}
 
-	return []interface{}{diffRes}, nil
+	return []interface{}{res}, nil
+}
+
+func (node Node) GetAuthorizeResponses() ([]interface{}, error) {
+	res, err := rpc.NewRequest("mining.set_difficulty", node.GetShareDifficulty().Value())
+	if err != nil {
+		return nil, err
+	}
+
+	return []interface{}{res}, nil
 }
 
 func (node Node) getBlockReward(height uint64) (*big.Int, error) {

@@ -182,7 +182,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		msgs = []interface{}{rpc.NewResponseFromJSON(req.ID, common.JsonTrue)}
 	}
 
-	authResponses, err := p.node.GetAuthorizeResponses(c.GetExtraNonce())
+	authResponses, err := p.node.GetAuthorizeResponses()
 	if err != nil {
 		p.logger.Error(err)
 		return msgs
@@ -212,21 +212,12 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		return false, err
 	}
 
-	// if len(extraNonce) > 0 {
-	// 	nonce := work.Nonce.Hex()
-	// 	if len(nonce) < len(extraNonce) || nonce[:len(extraNonce)] != extraNonce {
-	// 		if c.GetExtraNonceSubscribed() {
-	// 			msg, err := rpc.NewRequest("mining.set_extranonce", extraNonce, p.extraNonce1Size)
-	// 			if err != nil {
-	// 				return false, err
-	// 			} else if err := c.Write(msg); err != nil {
-	// 				return false, err
-	// 			}
-	// 		}
-
-	// 		return false, fmt.Errorf("nonce %s does not match extranonce %s", nonce, extraNonce)
-	// 	}
-	// }
+	if len(extraNonce) > 0 {
+		nonce := work.Nonce.Hex()
+		if len(nonce) < len(extraNonce) || nonce[:len(extraNonce)] != extraNonce {
+			return false, fmt.Errorf("nonce %s does not match extranonce %s", nonce, extraNonce)
+		}
+	}
 
 	var shareStatus types.ShareStatus
 	var hash *types.Hash

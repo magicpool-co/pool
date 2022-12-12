@@ -316,11 +316,11 @@ func (node Node) GetClientType(minerClient string) int {
 	return 0
 }
 
-func (node Node) GetSubscribeResponse(id []byte, clientID, extraNonce string) (interface{}, error) {
+func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) ([]interface{}, error) {
 	return nil, nil
 }
 
-func (node Node) GetAuthorizeResponses(extraNonce string) ([]interface{}, error) {
+func (node Node) GetAuthorizeResponses() ([]interface{}, error) {
 	return nil, nil
 }
 

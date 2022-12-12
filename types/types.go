@@ -114,8 +114,8 @@ type MiningNode interface {
 	CalculateHashrate(float64, float64) float64
 
 	// stratum helpers
-	GetSubscribeResponse([]byte, string, string) (interface{}, error)
-	GetAuthorizeResponses(string) ([]interface{}, error)
+	GetSubscribeResponses([]byte, string, string) ([]interface{}, error)
+	GetAuthorizeResponses() ([]interface{}, error)
 	GetClientType(string) int
 	MarshalJob(interface{}, *StratumJob, bool, int) (interface{}, error)
 	ParseWork([]json.RawMessage, string) (*StratumWork, error)

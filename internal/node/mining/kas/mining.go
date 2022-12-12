@@ -400,22 +400,27 @@ func (node Node) GetClientType(minerClient string) int {
 	return standardMinerClientID
 }
 
-func (node Node) GetSubscribeResponse(id []byte, clientID, extraNonce string) (interface{}, error) {
-	return rpc.NewResponse(id, []interface{}{true})
-}
+func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) ([]interface{}, error) {
+	res, err := rpc.NewResponse(id, []interface{}{true})
+	if err != nil {
+		return nil, err
+	}
 
-func (node Node) GetAuthorizeResponses(extraNonce string) ([]interface{}, error) {
 	extraNonceRes, err := rpc.NewRequest("mining.set_extranonce", extraNonce, 6)
 	if err != nil {
 		return nil, err
 	}
 
-	diffRes, err := rpc.NewRequest("mining.set_difficulty", 10)
+	return []interface{}{res, extraNonceRes}, nil
+}
+
+func (node Node) GetAuthorizeResponses() ([]interface{}, error) {
+	res, err := rpc.NewRequest("mining.set_difficulty", 10)
 	if err != nil {
 		return nil, err
 	}
 
-	return []interface{}{extraNonceRes, diffRes}, nil
+	return []interface{}{res}, nil
 }
 
 func (node Node) UnlockRound(round *pooldb.Round) error {

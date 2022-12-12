@@ -94,11 +94,13 @@ func (p *Pool) subscribe(c *stratum.Conn, req *rpc.Request) error {
 	}
 
 	subID := strconv.FormatUint(c.GetID(), 16)
-	subRes, err := p.node.GetSubscribeResponse(req.ID, subID, c.GetExtraNonce())
+	subResponses, err := p.node.GetSubscribeResponses(req.ID, subID, c.GetExtraNonce())
 	if err != nil {
 		return err
-	} else if subRes != nil {
-		err = c.Write(subRes)
+	}
+
+	for _, msg := range subResponses {
+		err = c.Write(msg)
 		if err != nil {
 			return err
 		}
