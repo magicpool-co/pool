@@ -22,11 +22,22 @@ func (node Node) GetAddressExplorerURL(address string) string {
 }
 
 func (node Node) GetBalance() (*big.Int, error) {
-	return new(big.Int), nil
+	balance, err := node.getBalanceByAddress(node.address)
+	if err != nil {
+		return nil, err
+	}
+
+	return new(big.Int).SetUint64(balance), nil
 }
 
 func (node Node) GetTx(txid string) (*types.TxResponse, error) {
-	return nil, nil
+	res := &types.TxResponse{
+		Hash:        txid,
+		BlockNumber: 0,
+		Confirmed:   true,
+	}
+
+	return res, nil
 }
 
 func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, string, error) {

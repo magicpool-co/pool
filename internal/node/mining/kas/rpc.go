@@ -206,6 +206,36 @@ func (node Node) submitBlock(hostID string, block *Block) error {
 	return nil
 }
 
+func (node Node) getBalanceByAddress(address string) (uint64, error) {
+	const method = "getBalanceByAddress"
+
+	if node.mocked {
+		return 0, nil
+	}
+
+	req := &protowire.KaspadMessage{
+		Payload: &protowire.KaspadMessage_GetBalanceByAddressRequest{
+			GetBalanceByAddressRequest: &protowire.GetBalanceByAddressRequestMessage{
+				Address: address,
+			},
+		},
+	}
+
+	res, err := node.execAsGRPC(method, req)
+	if err != nil {
+		return 0, err
+	}
+
+	obj := res.GetGetBalanceByAddressResponse()
+	if obj == nil {
+		return 0, nil
+	} else if err = handleRPCError(method, obj.Error); err != nil {
+		return 0, err
+	}
+
+	return obj.Balance, nil
+}
+
 func (node Node) GetUtxosByAddress(address string) ([]*protowire.UtxosByAddressesEntry, error) {
 	const method = "getUtxosByAddresses"
 
