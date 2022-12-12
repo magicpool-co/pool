@@ -229,10 +229,11 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 	// }
 
 	var shareStatus types.ShareStatus
+	var hash *types.Hash
 	var round *pooldb.Round
 	job, activeShare := p.jobManager.GetJob(work.JobID)
 	if job != nil && activeShare {
-		shareStatus, round, err = p.node.SubmitWork(job, work)
+		shareStatus, hash, round, err = p.node.SubmitWork(job, work)
 		if err != nil {
 			return false, err
 		}
@@ -300,6 +301,19 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 				p.telegram.NotifyNewBlockCandidate(p.chain, explorerURL, round.Height, round.Luck)
 			}
 		}()
+	}
+
+	if shareStatus == types.AcceptedShare {
+		if hash == nil {
+			p.logger.Error(fmt.Errorf("no hash returned for an accepted share"))
+		} else {
+			isUnique, err := p.redis.AddUniqueShare(p.chain, job.Height.Value(), hash.Hex())
+			if err != nil {
+				return false, err
+			} else if !isUnique {
+				shareStatus = types.RejectedShare
+			}
+		}
 	}
 
 	// handle share

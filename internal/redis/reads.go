@@ -44,6 +44,12 @@ func (c *Client) GetTopMinerIDs(chain string) ([]uint64, error) {
 	return values, nil
 }
 
+/* share index */
+
+func (c *Client) GetShareIndexes(chain string) ([]string, error) {
+	return c.baseSMembers(c.getShareIndexKey(chain))
+}
+
 /* rounds */
 
 func (c *Client) GetRoundShares(chain string) (map[uint64]uint64, error) {

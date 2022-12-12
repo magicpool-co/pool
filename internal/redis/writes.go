@@ -40,6 +40,32 @@ func (c *Client) SetTopMinerIDs(chain string, minerIDs []uint64) error {
 	return c.baseResetList(c.getTopMinersKey(chain), values)
 }
 
+/* share index */
+
+func (c *Client) AddShareIndexHeight(chain string, height uint64) error {
+	_, err := c.baseSAdd(c.getShareIndexKey(chain), strconv.FormatUint(height, 10))
+	return err
+}
+
+func (c *Client) DeleteShareIndexHeight(chain string, height uint64) error {
+	ctx := context.Background()
+	pipe := c.writeClient.Pipeline()
+
+	// remove shares set
+	pipe.Del(ctx, c.getUniqueSharesKey(chain, height))
+
+	// remove height from the set
+	pipe.SRem(ctx, c.getShareIndexKey(chain), strconv.FormatUint(height, 10))
+
+	_, err := pipe.Exec(ctx)
+
+	return err
+}
+
+func (c *Client) AddUniqueShare(chain string, height uint64, hash string) (bool, error) {
+	return c.baseSAdd(c.getUniqueSharesKey(chain, height), hash)
+}
+
 /* rounds */
 
 func (c *Client) AddAcceptedShare(chain, interval, compoundID string, window int64) error {
@@ -83,7 +109,8 @@ func (c *Client) AddInvalidShare(chain, interval, compoundID string) error {
 /* interval */
 
 func (c *Client) AddInterval(chain, interval string) error {
-	return c.writeClient.SAdd(context.Background(), c.getIntervalsKey(chain), interval).Err()
+	_, err := c.baseSAdd(c.getIntervalsKey(chain), interval)
+	return err
 }
 
 func (c *Client) DeleteInterval(chain, interval string) error {

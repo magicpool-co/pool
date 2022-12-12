@@ -291,34 +291,34 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh ch
 	}()
 }
 
-func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (types.ShareStatus, *pooldb.Round, error) {
+func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
 	header, headerHash, err := job.BlockBuilder.SerializeHeader(work)
 	if err != nil {
-		return types.RejectedShare, nil, err
+		return types.RejectedShare, nil, nil, err
 	}
 
 	validSolution, err := node.pow.Verify(header, work.EquihashSolution[1:])
 	if err != nil {
-		return types.RejectedShare, nil, err
+		return types.RejectedShare, nil, nil, err
 	} else if !validSolution {
-		return types.InvalidShare, nil, nil
+		return types.InvalidShare, nil, nil, nil
 	}
 
 	hash := new(types.Hash).SetFromBytes(headerHash)
 	if !hash.MeetsDifficulty(node.GetShareDifficulty()) {
-		return types.RejectedShare, nil, nil
+		return types.RejectedShare, nil, nil, nil
 	} else if !hash.MeetsDifficulty(job.Difficulty) {
-		return types.AcceptedShare, nil, nil
+		return types.AcceptedShare, hash, nil, nil
 	}
 
 	serializedBlock, err := job.BlockBuilder.SerializeBlock(work)
 	if err != nil {
-		return types.AcceptedShare, nil, err
+		return types.AcceptedShare, hash, nil, err
 	}
 
 	err = node.submitBlock(job.HostID, hex.EncodeToString(serializedBlock))
 	if err != nil {
-		return types.AcceptedShare, nil, err
+		return types.AcceptedShare, hash, nil, err
 	}
 
 	round := &pooldb.Round{
@@ -335,7 +335,7 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 		Orphan:       false,
 	}
 
-	return types.AcceptedShare, round, nil
+	return types.AcceptedShare, hash, round, nil
 }
 
 func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.StratumWork, error) {

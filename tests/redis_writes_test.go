@@ -41,6 +41,25 @@ func (suite *RedisReadsSuite) TestWriteMiners() {
 	}
 }
 
+func (suite *RedisReadsSuite) TestWriteShareIndexes() {
+	var err error
+
+	err = redisClient.AddShareIndexHeight("", 0)
+	if err != nil {
+		suite.T().Errorf("failed: AddShareIndexHeight: %v", err)
+	}
+
+	err = redisClient.DeleteShareIndexHeight("", 0)
+	if err != nil {
+		suite.T().Errorf("failed: DeleteShareIndexHeight: %v", err)
+	}
+
+	_, err = redisClient.AddUniqueShare("", 0, "")
+	if err != nil {
+		suite.T().Errorf("failed: AddUniqueShare: %v", err)
+	}
+}
+
 func (suite *RedisReadsSuite) TestWriteRounds() {
 	var err error
 

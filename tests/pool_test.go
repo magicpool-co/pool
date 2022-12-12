@@ -85,11 +85,26 @@ func (suite *PoolSuite) TestPool() {
 						"1cd82e94", "1f614b02",
 					},
 				),
+				// test duplicate share
+				rpc.MustNewRequest("mining.submit",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"000001",
+					"85f9d18d",
+					[]string{
+						"01ffbd0b", "020072a2", "02b29b0c", "02ee4a27", "03f7a537", "0471bf13", "04806cd5", "0535b8ae",
+						"062d5562", "064d8a83", "07a35c79", "081e5c37", "08a1f0b2", "08b21c7e", "09b25d57", "0a65d2dc",
+						"0ae0572e", "0c9797e3", "0da570ea", "0e4a54e6", "1029f3c3", "103ce7a4", "118bb092", "11a84da4",
+						"11d7df84", "13bf2ab3", "1487c882", "14f26ac7", "15357fa0", "157d6931", "15eaf0fe", "16541e8b",
+						"1720ca3f", "17d30f85", "18226043", "18d4ed48", "191decd8", "19383ff0", "1974cae9", "1a90f244",
+						"1cd82e94", "1f614b02",
+					},
+				),
 			},
 			responses: [][]byte{
 				common.MustMarshalJSON(true),
 				common.MustMarshalJSON(true),
 				common.MustMarshalJSON(true),
+				common.MustMarshalJSON(false),
 			},
 		},
 		{
@@ -125,10 +140,18 @@ func (suite *PoolSuite) TestPool() {
 					"0x7d444f1f4381257d",
 					"0xde5b0ae317379fa03f768eb102fb1e3671c9beaafecc52ae3c24eb77e80d6e03",
 				),
+				// test duplicate share
+				rpc.MustNewRequest("mining.submit",
+					"cfx:aajpuruxmg5z90x07z2ynt2u5wrknz717ymnu6mhdp.worker",
+					"000001",
+					"0x7d444f1f4381257d",
+					"0xde5b0ae317379fa03f768eb102fb1e3671c9beaafecc52ae3c24eb77e80d6e03",
+				),
 			},
 			responses: [][]byte{
 				common.MustMarshalJSON(true),
 				common.MustMarshalJSON(true),
+				common.MustMarshalJSON(false),
 			},
 		},
 		{
@@ -173,11 +196,22 @@ func (suite *PoolSuite) TestPool() {
 						"9c781ccb7cae1d42aacd1e3d381f2422df922448e69c2706079e27391d08277522"+
 						"572a6679c13123b50132b9256e355ad16e387856523b8c56043b97bcc93dcd9484",
 				),
+				// test duplicate share
+				rpc.MustNewRequest("ctxc_submitWork",
+					"0x620600000e6e4271",
+					"0x3f62b7a620e9695597115ab1d5a219162136e7af6f187796b1a244793d27175d",
+					"0x0111504002d2191e02f87224048ab2e505ba0220087586cd08fb9667090137370b476013"+
+						"0c34c0340c8a8ae90e90fe5a0e969ce90ec3e6681053873e105ab58d1288012f12"+
+						"f1fd2714a3870d14f9c50c150afc73152a13ed15fdd43e162482961a46093d1c26"+
+						"9c781ccb7cae1d42aacd1e3d381f2422df922448e69c2706079e27391d08277522"+
+						"572a6679c13123b50132b9256e355ad16e387856523b8c56043b97bcc93dcd9484",
+				),
 			},
 			responses: [][]byte{
 				common.MustMarshalJSON(true),
 				common.MustMarshalJSON(true),
 				common.MustMarshalJSON(true),
+				common.MustMarshalJSON(false),
 			},
 		},
 		{
@@ -255,7 +289,12 @@ func (suite *PoolSuite) TestPool() {
 					"0x48b9e2560c8263614076d943d2c848044604b6e43c2423ed670ea5cc18b6edd8",
 					"0x645fda1ed38a9884029f0533a68363447f7dc62916e19ea42a1259a44ce3017b",
 				),
-
+				rpc.MustNewRequest("eth_submitWork",
+					"0x25a6eeb766e28d01",
+					"0x48b9e2560c8263614076d943d2c848044604b6e43c2423ed670ea5cc18b6edd8",
+					"0xefa4c0056216be6a82cfda1607d0aaa3ccfc484bad1eb7fbae3b7bd77d19a87a",
+				),
+				// test duplicate share
 				rpc.MustNewRequest("eth_submitWork",
 					"0x25a6eeb766e28d01",
 					"0x48b9e2560c8263614076d943d2c848044604b6e43c2423ed670ea5cc18b6edd8",
@@ -266,6 +305,7 @@ func (suite *PoolSuite) TestPool() {
 				common.MustMarshalJSON(true),
 				common.MustMarshalJSON(true),
 				common.MustMarshalJSON(true),
+				common.MustMarshalJSON(false),
 			},
 		},
 		{
@@ -303,6 +343,7 @@ func (suite *PoolSuite) TestPool() {
 					"0x93f52026533c86a3797637f6b82c96b99c90ce68b4649cac0d5af649df20c410",
 					"0xbdca50daa1912a3b826196f3115b3ef5e6060efd6b38ccc09992bfecdcb85403",
 				),
+				// test duplicate share
 				rpc.MustNewRequest("mining.submit",
 					"ETH:0x0000000000000000000000000000000000000000.worker",
 					"000001",
@@ -314,7 +355,7 @@ func (suite *PoolSuite) TestPool() {
 			responses: [][]byte{
 				common.MustMarshalJSON(true),
 				common.MustMarshalJSON(true),
-				common.MustMarshalJSON(true),
+				common.MustMarshalJSON(false),
 			},
 		},
 		{
@@ -359,11 +400,20 @@ func (suite *PoolSuite) TestPool() {
 					"0000000000000000000000000000000000000000000000002e200000",
 					"3401a7ef31e4b2a3b12ef557f15628631e3cbb2e2cdd9d778583f01354c86f991dfbb6107bec3b4732369cccbe1584798a2b2bc81a",
 				),
+				// test duplicate share
+				rpc.MustNewRequest("mining.submit",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"000001",
+					"bde70e63",
+					"0000000000000000000000000000000000000000000000002e200000",
+					"3401a7ef31e4b2a3b12ef557f15628631e3cbb2e2cdd9d778583f01354c86f991dfbb6107bec3b4732369cccbe1584798a2b2bc81a",
+				),
 			},
 			responses: [][]byte{
 				common.MustMarshalJSON(true),
 				common.MustMarshalJSON(true),
 				common.MustMarshalJSON(true),
+				common.MustMarshalJSON(false),
 			},
 		},
 		{
@@ -394,9 +444,16 @@ func (suite *PoolSuite) TestPool() {
 					"000001",
 					"ffff000016d9d7ca",
 				),
+				// test duplicate share
+				rpc.MustNewRequest("mining.submit",
+					"kaspa:qyp4ek94qc9k7aqzmpe4l7kdp6pvqus3gqehy89zdlc9dssvhc2rqjq2wr26hvd.worker",
+					"000001",
+					"ffff000016d9d7ca",
+				),
 			},
 			responses: [][]byte{
 				common.MustMarshalJSON(true),
+				common.MustMarshalJSON(false),
 			},
 		},
 		{
@@ -441,11 +498,20 @@ func (suite *PoolSuite) TestPool() {
 					"0x6fc2495aa1c4e6a90d7f5639c67dc3334647b8c41ef42a1a1cd690e49fe9e7f1",
 					"0xee1fae60fca1ea2b42195cf279ecff6ec62d1f60f7048296d9b83548e3ec05ba",
 				),
+				// test duplicate share
+				rpc.MustNewRequest("mining.submit",
+					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"000001",
+					"0xff5af611df410db8",
+					"0x6fc2495aa1c4e6a90d7f5639c67dc3334647b8c41ef42a1a1cd690e49fe9e7f1",
+					"0xee1fae60fca1ea2b42195cf279ecff6ec62d1f60f7048296d9b83548e3ec05ba",
+				),
 			},
 			responses: [][]byte{
 				common.MustMarshalJSON(true),
 				common.MustMarshalJSON(true),
 				common.MustMarshalJSON(true),
+				common.MustMarshalJSON(false),
 			},
 		},
 	}

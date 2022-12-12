@@ -287,22 +287,22 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh ch
 	}()
 }
 
-func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (types.ShareStatus, *pooldb.Round, error) {
+func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
 	template, ok := job.Data.(*Block)
 	if !ok {
-		return types.RejectedShare, nil, fmt.Errorf("unable to cast job data as block")
+		return types.RejectedShare, nil, nil, fmt.Errorf("unable to cast job data as block")
 	}
 
 	digest, err := node.pow.Compute(job.Header.Bytes(), template.Timestamp, work.Nonce.Value())
 	if err != nil {
-		return types.RejectedShare, nil, err
+		return types.RejectedShare, nil, nil, err
 	}
 
 	hash := new(types.Hash).SetFromBytes(digest)
 	if !hash.MeetsDifficulty(node.GetShareDifficulty()) {
-		return types.RejectedShare, nil, nil
+		return types.RejectedShare, nil, nil, nil
 	} else if !hash.MeetsDifficulty(job.Difficulty) {
-		return types.AcceptedShare, nil, nil
+		return types.AcceptedShare, hash, nil, nil
 	}
 
 	template.Nonce = work.Nonce.Value()
@@ -310,12 +310,12 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 		template.HashMerkleRoot, template.AcceptedIdMerkleRoot, template.UtxoCommitment, template.Timestamp,
 		template.Bits, template.Nonce, template.DaaScore, template.BlueScore, template.BlueWork, template.PruningPoint)
 	if err != nil {
-		return types.RejectedShare, nil, err
+		return types.AcceptedShare, hash, nil, err
 	}
 
 	err = node.submitBlock(job.HostID, template)
 	if err != nil {
-		return types.AcceptedShare, nil, err
+		return types.AcceptedShare, hash, nil, err
 	}
 
 	round := &pooldb.Round{
@@ -330,7 +330,7 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 		Orphan:     false,
 	}
 
-	return types.AcceptedShare, round, nil
+	return types.AcceptedShare, hash, round, nil
 }
 
 func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.StratumWork, error) {
