@@ -98,31 +98,13 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			return err
 		}
 
-		feeBalance := new(big.Int)
-		if node.Chain() == "USDC" {
-			feeBalanceOutputs, err := pooldb.GetUnpaidBalanceOutputsByMiner(dbTx, balanceOutput.MinerID, "ETH")
-			if err != nil {
-				return err
-			}
-
-			// @TODO: we arent actually checking if the fee balance meets the given threshold,
-			// so if it doesn't the payout will just error out.
-			for _, feeBalanceOutput := range feeBalanceOutputs {
-				if !feeBalanceOutput.Value.Valid {
-					return fmt.Errorf("no value for fee balance output %d", feeBalanceOutput.ID)
-				}
-				feeBalance.Add(feeBalance, feeBalanceOutput.Value.BigInt)
-				balanceOutputIdx[balanceOutput.MinerID] = append(balanceOutputIdx[balanceOutput.MinerID], feeBalanceOutput)
-			}
-		}
-
 		payouts[i] = &pooldb.Payout{
 			ChainID: node.Chain(),
 			MinerID: balanceOutput.MinerID,
 			Address: address,
 
 			Value:        balanceOutput.Value,
-			FeeBalance:   dbcl.NullBigInt{Valid: true, BigInt: feeBalance},
+			FeeBalance:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
 			PoolFees:     balanceOutput.PoolFees,
 			ExchangeFees: balanceOutput.ExchangeFees,
 

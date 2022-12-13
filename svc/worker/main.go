@@ -21,7 +21,7 @@ import (
 
 var (
 	miningChains = []string{"CFX", "CTXC", "ERGO", "ETC", "ETHW", "FIRO", "FLUX", "KAS", "RVN"}
-	payoutChains = []string{"BTC", "ETH", "USDC"}
+	payoutChains = []string{"BTC", "ETH"}
 )
 
 func initTunnel(secrets map[string]string) (*sshtunnel.SSHTunnel, error) {
@@ -125,11 +125,6 @@ func newWorker(secrets map[string]string, mainnet bool, metricsClient *metrics.C
 	for _, chain := range payoutChains {
 		priv := secrets[chain+"_PRIVATE_KEY"]
 		url := secrets[chain+"_NODE_URL"]
-		if chain == "USDC" && (priv == "" || url == "") {
-			priv = secrets["ETH_PRIVATE_KEY"]
-			url = secrets["ETH_NODE_URL"]
-		}
-
 		blockchairKey := secrets["BLOCKCHAIR_API_KEY"]
 		node, err := node.GetPayoutNode(mainnet, chain, priv, blockchairKey, url, logger)
 		if err != nil {
