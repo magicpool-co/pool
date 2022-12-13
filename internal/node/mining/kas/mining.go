@@ -156,7 +156,7 @@ func (node Node) getRewardsFromBlock(block *Block, cache *blockCache) ([]*Transa
 			}
 
 			if coinbaseTx == nil {
-				return nil, nil, nil, fmt.Errorf("unable to find coinbase tx in merging chain block")
+				return nil, nil, nil, fmt.Errorf("unable to find coinbase tx in merging chain block: %s", block.Hash)
 			}
 
 			txs := []*Transaction{coinbaseTx}
