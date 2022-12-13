@@ -1,10 +1,41 @@
 package credit
 
 import (
+	"fmt"
+
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
+
+func matureRound(node types.MiningNode, pooldbClient *dbcl.Client, round *pooldb.Round) error {
+	tx, err := pooldbClient.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.SafeRollback()
+
+	utxos, err := node.MatureRound(round)
+	if err != nil {
+		return err
+	}
+
+	cols := []string{"uncle", "orphan", "pending", "mature", "spent", "height",
+		"epoch_height", "uncle_height", "hash", "coinbase_txid", "value", "created_at"}
+	err = pooldb.UpdateRound(tx, round, cols)
+	if err != nil {
+		return err
+	}
+
+	for _, utxo := range utxos {
+		err = pooldb.InsertUTXOs(tx, utxo)
+		if err != nil {
+			return fmt.Errorf("failed on round: %d: %s: %v", round.ID, utxo.TxID, err)
+		}
+	}
+
+	return tx.SafeCommit()
+}
 
 func UnlockRounds(node types.MiningNode, pooldbClient *dbcl.Client) error {
 	height, syncing, err := node.GetStatus()
@@ -38,33 +69,12 @@ func UnlockRounds(node types.MiningNode, pooldbClient *dbcl.Client) error {
 		return err
 	}
 
-	tx, err := pooldbClient.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.SafeRollback()
-
-	utxos := make([]*pooldb.UTXO, len(immatureRounds))
 	for _, round := range immatureRounds {
-		roundUTXOs, err := node.MatureRound(round)
+		err := matureRound(node, pooldbClient, round)
 		if err != nil {
 			return err
 		}
-
-		cols := []string{"uncle", "orphan", "pending", "mature", "spent", "height",
-			"epoch_height", "uncle_height", "hash", "coinbase_txid", "value", "created_at"}
-		err = pooldb.UpdateRound(tx, round, cols)
-		if err != nil {
-			return err
-		}
-
-		utxos = append(utxos, roundUTXOs...)
 	}
 
-	err = pooldb.InsertUTXOs(tx, utxos...)
-	if err != nil {
-		return err
-	}
-
-	return tx.SafeCommit()
+	return nil
 }
