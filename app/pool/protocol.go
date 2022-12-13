@@ -110,7 +110,6 @@ func (p *Pool) subscribe(c *stratum.Conn, req *rpc.Request) error {
 }
 
 func (p *Pool) subscribeExtraNonce(c *stratum.Conn, req *rpc.Request) error {
-	p.logger.Info("extra nonce subscription")
 	if !c.GetExtraNonceSubscribed() {
 		c.SetExtraNonceSubscribed(true)
 	}
