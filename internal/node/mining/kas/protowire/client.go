@@ -23,8 +23,8 @@ type Client struct {
 
 var opts = []grpc.CallOption{
 	grpc.UseCompressor(gzip.Name),
-	grpc.MaxCallRecvMsgSize(1024 * 1024 * 1024),
-	grpc.MaxCallSendMsgSize(1024 * 1024 * 1024),
+	grpc.MaxCallRecvMsgSize(1024 * 1024 * 1024 * 5),
+	grpc.MaxCallSendMsgSize(1024 * 1024 * 1024 * 5),
 }
 
 func newGRPCClientConn(url string, timeout time.Duration) (*grpc.ClientConn, error) {
@@ -64,10 +64,6 @@ func (c *Client) Send(raw interface{}) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("unable to cast raw object as *KaspadMessage")
 	} else if c.stream == nil {
-		if atomic.LoadUint32(&c.isReconnecting) == 1 {
-			return nil, fmt.Errorf("reconnecting client")
-		}
-
 		err := c.Reconnect()
 		if err != nil {
 			return nil, err
@@ -86,13 +82,14 @@ func (c *Client) Send(raw interface{}) (interface{}, error) {
 func (c *Client) Reconnect() error {
 	swapped := atomic.CompareAndSwapUint32(&c.isReconnecting, 0, 1)
 	if !swapped {
-		return nil
+		return fmt.Errorf("reconnecting client")
 	}
 	defer atomic.StoreUint32(&c.isReconnecting, 0)
 
 	connected := atomic.CompareAndSwapUint32(&c.isConnected, 1, 0)
 	if connected {
 		err := c.stream.CloseSend()
+		atomic.StoreUint32(&c.isConnected, 0)
 		if err != nil {
 			return err
 		}
@@ -103,7 +100,7 @@ func (c *Client) Reconnect() error {
 		return err
 	}
 	c.stream = newClient.stream
-	c.isConnected = newClient.isConnected
+	atomic.StoreUint32(&c.isConnected, 1)
 
 	return nil
 }
