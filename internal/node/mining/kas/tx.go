@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"net/http"
+	"time"
 
 	"google.golang.org/protobuf/proto"
 
@@ -31,13 +33,48 @@ func (node Node) GetBalance() (*big.Int, error) {
 }
 
 func (node Node) GetTx(txid string) (*types.TxResponse, error) {
-	res := &types.TxResponse{
-		Hash:        txid,
-		BlockNumber: 0,
-		Confirmed:   true,
+	type apiResponse struct {
+		SubnetworkID            string   `json:"subnetwork_id"`
+		TransactionID           string   `json:"transaction_id"`
+		Hash                    string   `json:"hash"`
+		Mass                    string   `json:"mass"`
+		BlockHashes             []string `json:"block_hash"`
+		BlockTime               int64    `json:"block_time"`
+		IsAccepted              bool     `json:"is_accepted"`
+		AcceptingBlockHash      string   `json:"accepting_block_hash"`
+		AcceptingBlockBlueScore int64    `json:"accepting_block_blue_score"`
 	}
 
-	return res, nil
+	url := fmt.Sprintf("https://api.kaspa.org/transactions/%s?inputs=false&outputs=false", txid)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client := http.Client{
+		Timeout: time.Duration(3 * time.Second),
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+	data := new(apiResponse)
+	err = json.NewDecoder(res.Body).Decode(data)
+	if err != nil {
+		return nil, err
+	} else if data.AcceptingBlockBlueScore < 1 {
+		return nil, nil
+	}
+
+	txRes := &types.TxResponse{
+		Hash:        txid,
+		BlockNumber: uint64(data.AcceptingBlockBlueScore),
+		Confirmed:   data.IsAccepted,
+	}
+
+	return txRes, nil
 }
 
 func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, string, error) {
