@@ -190,7 +190,7 @@ func (node Node) getBlockTemplate(extraData string) (*Block, string, error) {
 		} else if err = handleRPCError(method, obj.Error); err != nil {
 			return nil, hostID, err
 		} else if !obj.IsSynced {
-			node.SetHostSyncStatus(hostID, false)
+			node.grpcHost.SetHostSyncStatus(hostID, false)
 			return nil, hostID, fmt.Errorf("node is not synced")
 		} else if obj.Block == nil {
 			return nil, hostID, fmt.Errorf("unable to find block template")
