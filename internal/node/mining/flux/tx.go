@@ -74,11 +74,9 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	const feeRate = 0
 	const expiryHeight = 21
 
-	height, syncing, err := node.GetStatus()
+	height, _, err := node.GetStatus()
 	if err != nil {
 		return "", "", err
-	} else if syncing {
-		return "", "", fmt.Errorf("node is syncing")
 	}
 
 	baseTx := btctx.NewTransaction(txVersion, 0, node.prefixP2PKH, node.prefixP2SH, false)

@@ -38,11 +38,9 @@ func matureRound(node types.MiningNode, pooldbClient *dbcl.Client, round *pooldb
 }
 
 func UnlockRounds(node types.MiningNode, pooldbClient *dbcl.Client) error {
-	height, syncing, err := node.GetStatus()
+	height, _, err := node.GetStatus()
 	if err != nil {
 		return err
-	} else if syncing {
-		return nil
 	}
 
 	pendingRounds, err := pooldb.GetPendingRoundsByChain(pooldbClient.Reader(), node.Chain(), height-node.GetImmatureDepth())
