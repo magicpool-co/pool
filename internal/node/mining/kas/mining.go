@@ -155,8 +155,9 @@ func (node Node) getRewardsFromBlock(block *Block, cache *blockCache) ([]*Transa
 				}
 			}
 
+			// means the block is red
 			if coinbaseTx == nil {
-				return nil, nil, nil, fmt.Errorf("unable to find coinbase tx in merging chain block: %s", block.Hash)
+				return nil, nil, nil, nil
 			}
 
 			txs := []*Transaction{coinbaseTx}
