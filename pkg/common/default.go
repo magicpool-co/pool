@@ -66,7 +66,7 @@ func GetDefaultPayoutThreshold(chain string) (*big.Int, error) {
 	case "FLUX":
 		threshold = MustParseBigInt("1000000000")
 	case "KAS":
-		threshold = MustParseBigInt("10000000000")
+		threshold = MustParseBigInt("100000000000")
 	case "RVN":
 		threshold = MustParseBigInt("250000000000")
 	case "USDC":
