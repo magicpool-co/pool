@@ -46,7 +46,7 @@ func newAPI(secrets map[string]string, port int) (*http.Server, *log.Logger, err
 		return nil, nil, err
 	}
 
-	chains := []string{"CFX", "ERGO", "ETC", "FLUX", "RVN"}
+	chains := []string{"ERGO", "ETC", "FLUX", "KAS", "RVN"}
 	nodes := make([]types.MiningNode, len(chains))
 	for i, chain := range chains {
 		nodes[i], err = node.GetMiningNode(true, chain, secrets[chain+"_PRIVATE_KEY"], nil, logger, nil)
