@@ -125,6 +125,7 @@ func (p *GRPCPool) AddHost(url string, port int) error {
 		p.index[id] = &grpcConn{
 			id:      id,
 			enabled: true,
+			synced:  true,
 			client:  client,
 		}
 	}
@@ -152,9 +153,19 @@ func (p *GRPCPool) EnableHost(id string) {
 	}
 }
 
+// Sets the sync status of a given host.
+func (p *GRPCPool) SetHostSyncStatus(id string, synced bool) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	if _, ok := p.index[id]; ok {
+		p.index[id].markSynced(synced)
+	}
+}
+
 // Executes a HTTP call to a specific host. If the host is not healthy, ErrNoHealthyHosts is returned.
 // If the host is healthy, the error is returned.
-func (p *GRPCPool) ExecSticky(hostID string, req interface{}) (interface{}, string, error) {
+func (p *GRPCPool) exec(hostID string, req interface{}, needsSynced bool) (interface{}, string, error) {
 	// iterate through all host connections until no healthy connections
 	// are left or a valid response is returned
 	var res interface{}
@@ -163,7 +174,7 @@ func (p *GRPCPool) ExecSticky(hostID string, req interface{}) (interface{}, stri
 	var count int
 	for {
 		count++
-		gc := p.getConn(hostID, count)
+		gc := p.getConn(hostID, count, needsSynced)
 		if gc == nil {
 			failed = true
 			break
@@ -189,12 +200,20 @@ func (p *GRPCPool) ExecSticky(hostID string, req interface{}) (interface{}, stri
 // hosts to begin with, ErrNoHealthyHosts is returned. If there are healthy hosts, though
 // all are actively unhealthy, the last error is returned.
 func (p *GRPCPool) Exec(req interface{}) (interface{}, error) {
-	res, _, err := p.ExecSticky("", req)
+	res, _, err := p.exec("", req, false)
 	return res, err
 }
 
+func (p *GRPCPool) ExecSticky(hostID string, req interface{}) (interface{}, string, error) {
+	return p.exec(hostID, req, false)
+}
+
+func (p *GRPCPool) ExecSynced(req interface{}) (interface{}, string, error) {
+	return p.exec("", req, true)
+}
+
 // pop the fastest healthy connection
-func (p *GRPCPool) getConn(hostID string, count int) *grpcConn {
+func (p *GRPCPool) getConn(hostID string, count int, needsSynced bool) *grpcConn {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
@@ -211,7 +230,7 @@ func (p *GRPCPool) getConn(hostID string, count int) *grpcConn {
 
 	for _, id := range p.order {
 		gc := p.index[id]
-		if gc.usable() {
+		if gc.usable(needsSynced) {
 			return gc
 		}
 	}

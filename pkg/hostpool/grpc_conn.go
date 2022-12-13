@@ -13,6 +13,7 @@ type grpcConn struct {
 	mu      sync.RWMutex
 	errors  uint
 	enabled bool
+	synced  bool
 
 	client GRPCClient
 }
@@ -24,11 +25,16 @@ func (gc *grpcConn) healthy() bool {
 	return gc.errors < 3
 }
 
-func (gc *grpcConn) usable() bool {
+func (gc *grpcConn) usable(needsSynced bool) bool {
 	gc.mu.RLock()
 	defer gc.mu.RUnlock()
 
-	return gc.enabled && gc.errors < 3
+	healthy := gc.enabled && gc.errors < 3
+	if needsSynced {
+		return healthy && gc.synced
+	}
+
+	return healthy
 }
 
 // Run a healthcheck on the given TCP connection.
@@ -64,6 +70,14 @@ func (gc *grpcConn) markHealthy(healthy bool) {
 	} else {
 		gc.errors++
 	}
+}
+
+// Change a host's sync status.
+func (gc *grpcConn) markSynced(synced bool) {
+	gc.mu.Lock()
+	defer gc.mu.Unlock()
+
+	gc.synced = synced
 }
 
 // Execute a request.

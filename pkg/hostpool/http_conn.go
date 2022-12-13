@@ -21,6 +21,7 @@ type httpConn struct {
 	mu      sync.RWMutex
 	errors  uint
 	enabled bool
+	synced  bool
 
 	client  *http.Client
 	headers http.Header
@@ -34,11 +35,16 @@ func (hc *httpConn) healthy() bool {
 	return hc.errors < 3
 }
 
-func (hc *httpConn) usable() bool {
+func (hc *httpConn) usable(needsSynced bool) bool {
 	hc.mu.RLock()
 	defer hc.mu.RUnlock()
 
-	return hc.enabled && hc.errors < 3
+	healthy := hc.enabled && hc.errors < 3
+	if needsSynced {
+		return healthy && hc.synced
+	}
+
+	return healthy
 }
 
 // Executes the healthcheck and measures the latency for the connection.
@@ -81,6 +87,14 @@ func (hc *httpConn) markHealthy(healthy bool) {
 	} else {
 		hc.errors++
 	}
+}
+
+// Change a host's sync status.
+func (hc *httpConn) markSynced(synced bool) {
+	hc.mu.Lock()
+	defer hc.mu.Unlock()
+
+	hc.synced = synced
 }
 
 // Base call to execute an HTTP call. If the request succeeeds, but the status code

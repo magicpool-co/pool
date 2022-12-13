@@ -17,6 +17,7 @@ type tcpConn struct {
 	mu      sync.RWMutex
 	errors  uint
 	enabled bool
+	synced  bool
 
 	client *stratum.Client
 }
@@ -28,11 +29,16 @@ func (tc *tcpConn) healthy() bool {
 	return tc.errors < 3
 }
 
-func (tc *tcpConn) usable() bool {
+func (tc *tcpConn) usable(needsSynced bool) bool {
 	tc.mu.RLock()
 	defer tc.mu.RUnlock()
 
-	return tc.enabled && tc.errors < 3
+	healthy := tc.enabled && tc.errors < 3
+	if needsSynced {
+		return healthy && tc.synced
+	}
+
+	return healthy
 }
 
 // Run a healthcheck on the given TCP connection.
@@ -74,6 +80,14 @@ func (tc *tcpConn) markHealthy(healthy bool) {
 	} else {
 		tc.errors++
 	}
+}
+
+// Change a host's sync status.
+func (tc *tcpConn) markSynced(synced bool) {
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+
+	tc.synced = synced
 }
 
 // Execute a request with a given timeout.

@@ -102,6 +102,7 @@ func (p *TCPPool) AddHost(url string, port int) error {
 			id:      id,
 			ctx:     ctx,
 			enabled: true,
+			synced:  true,
 			client:  stratum.NewClient(ctx, finalURL, time.Second*10, time.Second*30),
 		}
 
@@ -118,8 +119,9 @@ func (p *TCPPool) AddHost(url string, port int) error {
 					p.counts[id]++
 					ch, ok := p.reqChs[req.Method]
 					topID := p.order[0]
+					usable := p.index[id].usable(true)
 					p.mu.Unlock()
-					if ok && topID == id {
+					if ok && topID == id && usable {
 						ch <- req
 					}
 				case res := <-resCh:
@@ -159,6 +161,16 @@ func (p *TCPPool) EnableHost(id string) {
 	}
 }
 
+// Sets the sync status of a given host.
+func (p *TCPPool) SetHostSyncStatus(id string, synced bool) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	if _, ok := p.index[id]; ok {
+		p.index[id].markSynced(synced)
+	}
+}
+
 func (p *TCPPool) Subscribe(method string) chan *rpc.Request {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -170,12 +182,12 @@ func (p *TCPPool) Subscribe(method string) chan *rpc.Request {
 	return p.reqChs[method]
 }
 
-func (p *TCPPool) Exec(req *rpc.Request) (*rpc.Response, error) {
+func (p *TCPPool) exec(req *rpc.Request, needsSynced bool) (*rpc.Response, error) {
 	var res *rpc.Response
 	var err error
 	var failed bool
 	for {
-		tc := p.getConn(req.HostID)
+		tc := p.getConn(req.HostID, needsSynced)
 		if tc == nil {
 			failed = true
 			break
@@ -197,8 +209,16 @@ func (p *TCPPool) Exec(req *rpc.Request) (*rpc.Response, error) {
 	return res, err
 }
 
+func (p *TCPPool) Exec(req *rpc.Request) (*rpc.Response, error) {
+	return p.exec(req, false)
+}
+
+func (p *TCPPool) ExecSynced(req *rpc.Request) (*rpc.Response, error) {
+	return p.exec(req, true)
+}
+
 // pop the fastest healthy connection
-func (p *TCPPool) getConn(hostID string) *tcpConn {
+func (p *TCPPool) getConn(hostID string, needsSynced bool) *tcpConn {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
@@ -213,7 +233,7 @@ func (p *TCPPool) getConn(hostID string) *tcpConn {
 
 	for _, id := range p.order {
 		tc := p.index[id]
-		if tc.usable() {
+		if tc.usable(needsSynced) {
 			return tc
 		}
 	}

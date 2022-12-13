@@ -164,6 +164,7 @@ func (p *HTTPPool) AddHost(url string, port int, opt *HTTPHostOptions) error {
 		p.index[id] = &httpConn{
 			id:      id,
 			enabled: true,
+			synced:  true,
 			client:  new(http.Client),
 			headers: connHeaders,
 			url:     finalURL,
@@ -193,9 +194,19 @@ func (p *HTTPPool) EnableHost(id string) {
 	}
 }
 
+// Sets the sync status of a given host.
+func (p *HTTPPool) SetHostSyncStatus(id string, synced bool) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	if _, ok := p.index[id]; ok {
+		p.index[id].markSynced(synced)
+	}
+}
+
 // Executes a HTTP call to a specific host. If the host is not healthy, ErrNoHealthyHosts is returned.
 // If the host is healthy, the error is returned.
-func (p *HTTPPool) ExecHTTPSticky(hostID, method, path string, body, target interface{}) (string, error) {
+func (p *HTTPPool) execHTTP(hostID, method, path string, body, target interface{}, needsSynced bool) (string, error) {
 	// iterate through all host connections until no healthy connections
 	// are left or a valid response is returned
 	var res []byte
@@ -204,7 +215,7 @@ func (p *HTTPPool) ExecHTTPSticky(hostID, method, path string, body, target inte
 	var count int
 	for {
 		count++
-		hc := p.getConn(hostID, count)
+		hc := p.getConn(hostID, count, needsSynced)
 		if hc == nil {
 			failed = true
 			break
@@ -236,27 +247,16 @@ func (p *HTTPPool) ExecHTTPSticky(hostID, method, path string, body, target inte
 	return hostID, err
 }
 
-// Executes a HTTP call. All healthy hosts will be attempted, if there are no healthy
-// hosts to begin with, ErrNoHealthyHosts is returned. If there are healthy hosts, though
-// all are actively unhealthy, the last error is returned.
-//
-// Note that user error is a possibility for hosts being marked as unhealthy if the
-// json decoder fails. Target should be a pointer to the response object.
-func (p *HTTPPool) ExecHTTP(method, path string, body, target interface{}) error {
-	_, err := p.ExecHTTPSticky("", method, path, body, target)
-	return err
-}
-
 // Executes an RPC call to all healthy hosts, unless req.HostID is set, in which case it
 // will only try the defined host. It is just a convenient wrapper for
 // ExecHTTP that reduces the verbosity of RPC calls.
-func (p *HTTPPool) ExecRPC(req *rpc.Request) (*rpc.Response, error) {
+func (p *HTTPPool) execRPC(req *rpc.Request, needsSynced bool) (*rpc.Response, error) {
 	if len(req.JSONRPC) == 0 {
 		req.JSONRPC = "2.0"
 	}
 
 	var res rpc.Response
-	hostID, err := p.ExecHTTPSticky(req.HostID, "POST", "", req, &res)
+	hostID, err := p.execHTTP(req.HostID, "POST", "", req, &res, needsSynced)
 	if err != nil {
 		return nil, err
 	} else if res.Error != nil {
@@ -272,6 +272,39 @@ func (p *HTTPPool) ExecRPC(req *rpc.Request) (*rpc.Response, error) {
 	return &res, err
 }
 
+// Executes a HTTP call. All healthy hosts will be attempted, if there are no healthy
+// hosts to begin with, ErrNoHealthyHosts is returned. If there are healthy hosts, though
+// all are actively unhealthy, the last error is returned.
+//
+// Note that user error is a possibility for hosts being marked as unhealthy if the
+// json decoder fails. Target should be a pointer to the response object.
+func (p *HTTPPool) ExecHTTP(method, path string, body, target interface{}) error {
+	_, err := p.execHTTP("", method, path, body, target, false)
+	return err
+}
+
+// Executes a HTTP call. All healthy hosts will be attempted, if there are no healthy
+// hosts to begin with, ErrNoHealthyHosts is returned. If there are healthy hosts, though
+// all are actively unhealthy, the last error is returned.
+//
+// Note that user error is a possibility for hosts being marked as unhealthy if the
+// json decoder fails. Target should be a pointer to the response object.
+func (p *HTTPPool) ExecHTTPSticky(hostID, method, path string, body, target interface{}) (string, error) {
+	return p.execHTTP(hostID, method, path, body, target, false)
+}
+
+func (p *HTTPPool) ExecHTTPSynced(method, path string, body, target interface{}) (string, error) {
+	return p.execHTTP("", method, path, body, target, true)
+}
+
+func (p *HTTPPool) ExecRPC(req *rpc.Request) (*rpc.Response, error) {
+	return p.execRPC(req, false)
+}
+
+func (p *HTTPPool) ExecRPCSynced(req *rpc.Request) (*rpc.Response, error) {
+	return p.execRPC(req, true)
+}
+
 // Executes an RPC call and generates the *rpc.Request internally, requiring
 // only the method and the parameters.
 func (p *HTTPPool) ExecRPCFromArgs(method string, params ...interface{}) (*rpc.Response, error) {
@@ -280,19 +313,18 @@ func (p *HTTPPool) ExecRPCFromArgs(method string, params ...interface{}) (*rpc.R
 		return nil, err
 	}
 
-	return p.ExecRPC(req)
+	return p.execRPC(req, false)
 }
 
 // Executes an RPC call the same way as ExecRPCFromArgs, except it will only attempt
-// the request once instead of rotating through all hosts.
-func (p *HTTPPool) ExecRPCFromArgsOnce(method string, params ...interface{}) (*rpc.Response, error) {
+// the request on synced hosts.
+func (p *HTTPPool) ExecRPCFromArgsSynced(method string, params ...interface{}) (*rpc.Response, error) {
 	req, err := rpc.NewRequest(method, params...)
 	if err != nil {
 		return nil, err
 	}
-	req.HostID = onceHostID
 
-	return p.ExecRPC(req)
+	return p.execRPC(req, true)
 }
 
 // Executes a bulk RPC call to all healthy hosts.
@@ -302,7 +334,7 @@ func (p *HTTPPool) ExecRPCBulk(reqs []*rpc.Request) ([]*rpc.Response, error) {
 	}
 
 	responses := make([]*rpc.Response, 0)
-	err := p.ExecHTTP("POST", "", reqs, &responses)
+	_, err := p.ExecHTTPSynced("POST", "", reqs, &responses)
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +353,7 @@ func (p *HTTPPool) ExecRPCBulk(reqs []*rpc.Request) ([]*rpc.Response, error) {
 }
 
 // pop the fastest healthy connection
-func (p *HTTPPool) getConn(hostID string, count int) *httpConn {
+func (p *HTTPPool) getConn(hostID string, count int, needsSynced bool) *httpConn {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
@@ -338,7 +370,7 @@ func (p *HTTPPool) getConn(hostID string, count int) *httpConn {
 
 	for _, id := range p.order {
 		hc := p.index[id]
-		if hc.usable() {
+		if hc.usable(needsSynced) {
 			return hc
 		}
 	}
