@@ -55,6 +55,7 @@ func (node Node) getStatusByHost(hostID string) (uint64, bool, error) {
 	if err != nil {
 		return 0, false, err
 	}
+	node.grpcHost.SetHostSyncStatus(hostID, syncing)
 
 	return tip.BlueScore, !syncing, nil
 }

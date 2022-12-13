@@ -52,6 +52,8 @@ func (node Node) getStatusByHost(hostID string) (uint64, bool, error) {
 	}
 	timestamp := time.Unix(int64(rawTimestamp), 0)
 	syncing := now.Sub(timestamp) > time.Minute*5
+	node.rpcHost.SetHostSyncStatus(hostID, !syncing)
+	node.tcpHost.SetHostSyncStatus(hostID, !syncing)
 
 	return epochNumber, syncing, nil
 }

@@ -35,6 +35,7 @@ func (node Node) getStatusByHost(hostID string) (uint64, bool, error) {
 	if err != nil {
 		return 0, false, err
 	}
+	node.rpcHost.SetHostSyncStatus(hostID, !syncing)
 
 	return height, syncing, nil
 }

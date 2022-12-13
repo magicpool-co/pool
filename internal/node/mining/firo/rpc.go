@@ -11,15 +11,21 @@ import (
 
 func (node Node) getBlockchainInfo(hostID string) (*BlockchainInfo, error) {
 	var res *rpc.Response
+	var err error
 	if node.mocked {
 		res = mock.GetBlockchainInfo()
 	} else {
-		req, err := rpc.NewRequestWithHostID(hostID, "getblockchaininfo")
-		if err != nil {
-			return nil, err
+		if hostID == "" {
+			res, err = node.rpcHost.ExecRPCFromArgsSynced("getBlockchainInfo")
+		} else {
+			req, err := rpc.NewRequestWithHostID(hostID, "getblockchaininfo")
+			if err != nil {
+				return nil, err
+			}
+
+			res, err = node.rpcHost.ExecRPC(req)
 		}
 
-		res, err = node.rpcHost.ExecRPC(req)
 		if err != nil {
 			return nil, err
 		}
@@ -39,7 +45,7 @@ func (node Node) getRawTransaction(txid string) (*Transaction, error) {
 	if node.mocked {
 		// @TODO
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("getrawtransaction", txid, 1)
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("getrawtransaction", txid, 1)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +65,7 @@ func (node Node) getBlockHash(height uint64) (string, error) {
 	if node.mocked {
 		res = mock.GetBlockHash(height)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("getblockhash", height)
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("getblockhash", height)
 		if err != nil {
 			return "", err
 		}
@@ -112,7 +118,7 @@ func (node Node) getBlock(hash string) (*Block, error) {
 	if node.mocked {
 		res = mock.GetBlock(hash)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("getblock", hash, true)
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("getblock", hash, true)
 		if err != nil {
 			return nil, err
 		}
@@ -165,7 +171,7 @@ func (node Node) getSpecialTxesCoinbase(hash string) (*Transaction, error) {
 	if node.mocked {
 		res = mock.GetSpecialTxesCoinbase(hash)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("getspecialtxes", hash, 5, 1, 0, 2)
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("getspecialtxes", hash, 5, 1, 0, 2)
 		if err != nil {
 			return nil, err
 		}
@@ -190,7 +196,7 @@ func (node Node) getBlockTemplate() (string, *BlockTemplate, error) {
 		capabilities := map[string]interface{}{
 			"capabilities": []string{"coinbasetx", "workid", "coinbase/append"},
 		}
-		res, err = node.rpcHost.ExecRPCFromArgs("getblocktemplate", capabilities)
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("getblocktemplate", capabilities)
 		if err != nil {
 			return "", nil, err
 		}
@@ -238,7 +244,7 @@ func (node Node) sendRawTransaction(tx string) (string, error) {
 	if node.mocked {
 		res = mock.SendRawTransaction(tx)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgsOnce("sendrawtransaction", tx)
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("sendrawtransaction", tx)
 		if err != nil {
 			return "", err
 		}

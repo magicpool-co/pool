@@ -43,6 +43,20 @@ func (node Node) execAsGRPCSticky(hostID, method string, req interface{}) (*prot
 	return msg, hostID, nil
 }
 
+func (node Node) execAsGRPCSynced(method string, req interface{}) (*protowire.KaspadMessage, string, error) {
+	res, hostID, err := node.grpcHost.ExecSynced(req)
+	if err != nil {
+		return nil, "", err
+	}
+
+	msg, ok := res.(*protowire.KaspadMessage)
+	if !ok {
+		return nil, "", fmt.Errorf("%s: unable to cast as KaspadMessage", method)
+	}
+
+	return msg, hostID, nil
+}
+
 func (node Node) getInfo(hostID string) (bool, error) {
 	const method = "getInfo"
 
@@ -85,7 +99,14 @@ func (node Node) getSelectedTipHash(hostID string) (string, error) {
 			},
 		}
 
-		res, _, err := node.execAsGRPCSticky(hostID, method, req)
+		var res *protowire.KaspadMessage
+		var err error
+		if hostID == "" {
+			res, _, err = node.execAsGRPCSynced(method, req)
+		} else {
+			res, _, err = node.execAsGRPCSticky(hostID, method, req)
+		}
+
 		if err != nil {
 			return "", err
 		}
@@ -119,9 +140,12 @@ func (node Node) getBlock(hostID, hash string, includeTxs bool) (*Block, error) 
 			},
 		}
 
-		res, _, err := node.execAsGRPCSticky(hostID, method, req)
-		if err != nil {
-			return nil, err
+		var res *protowire.KaspadMessage
+		var err error
+		if hostID == "" {
+			res, _, err = node.execAsGRPCSynced(method, req)
+		} else {
+			res, _, err = node.execAsGRPCSticky(hostID, method, req)
 		}
 
 		obj = res.GetGetBlockResponse()
@@ -154,7 +178,7 @@ func (node Node) getBlockTemplate(extraData string) (*Block, string, error) {
 			},
 		}
 
-		res, rawHostID, err := node.execAsGRPCSticky("", method, req)
+		res, rawHostID, err := node.execAsGRPCSynced(method, req)
 		hostID = rawHostID
 		if err != nil {
 			return nil, hostID, err
@@ -166,6 +190,7 @@ func (node Node) getBlockTemplate(extraData string) (*Block, string, error) {
 		} else if err = handleRPCError(method, obj.Error); err != nil {
 			return nil, hostID, err
 		} else if !obj.IsSynced {
+			node.SetHostSyncStatus(hostID, false)
 			return nil, hostID, fmt.Errorf("node is not synced")
 		} else if obj.Block == nil {
 			return nil, hostID, fmt.Errorf("unable to find block template")
@@ -221,7 +246,7 @@ func (node Node) getBalanceByAddress(address string) (uint64, error) {
 		},
 	}
 
-	res, err := node.execAsGRPC(method, req)
+	res, _, err := node.execAsGRPCSynced(method, req)
 	if err != nil {
 		return 0, err
 	}
@@ -251,7 +276,7 @@ func (node Node) GetUtxosByAddress(address string) ([]*protowire.UtxosByAddresse
 		},
 	}
 
-	res, err := node.execAsGRPC(method, req)
+	res, _, err := node.execAsGRPCSynced(method, req)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +307,7 @@ func (node Node) submitTransaction(tx *protowire.RpcTransaction) (string, error)
 		},
 	}
 
-	res, err := node.execAsGRPC(method, req)
+	res, _, err := node.execAsGRPCSynced(method, req)
 	if err != nil {
 		return "", err
 	}

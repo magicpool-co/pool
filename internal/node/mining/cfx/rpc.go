@@ -14,7 +14,7 @@ import (
 )
 
 func (node Node) getTransactionByHash(txid string) (*Transaction, error) {
-	res, err := node.rpcHost.ExecRPCFromArgs("cfx_getTransactionByHash", txid)
+	res, err := node.rpcHost.ExecRPCFromArgsSynced("cfx_getTransactionByHash", txid)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (node Node) getBalance(address string) (*big.Int, error) {
 	if node.mocked {
 		res = mock.GetBalance(address)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("cfx_getBalance", address, "latest_state")
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("cfx_getBalance", address, "latest_state")
 		if err != nil {
 			return nil, err
 		}
@@ -54,7 +54,12 @@ func (node Node) getLatestBlock(hostID string) (*Block, error) {
 	if node.mocked {
 		res = mock.GetLatestBlock()
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("cfx_getBlockByEpochNumber", "latest_confirmed", false)
+		if hostID == "" {
+			res, err = node.rpcHost.ExecRPCFromArgsSynced("cfx_getBlockByEpochNumber", "latest_confirmed", false)
+		} else {
+			res, err = node.rpcHost.ExecRPCFromArgs("cfx_getBlockByEpochNumber", "latest_confirmed", false)
+		}
+
 		if err != nil {
 			return nil, err
 		}
@@ -76,7 +81,7 @@ func (node Node) getBlockRewardInfo(epochHeight uint64) ([]*BlockRewardInfo, err
 	if node.mocked {
 		res = mock.GetBlockRewardInfo(epochHeight)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("cfx_getBlockRewardInfo", common.Uint64ToHex(epochHeight))
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("cfx_getBlockRewardInfo", common.Uint64ToHex(epochHeight))
 		if err != nil {
 			return nil, err
 		}
@@ -144,7 +149,7 @@ func (node Node) getBlockByHash(blockHash string) (*Block, error) {
 	if node.mocked {
 		res = mock.GetBlockByHash(blockHash)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("cfx_getBlockByHash", blockHash, false)
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("cfx_getBlockByHash", blockHash, false)
 		if err != nil {
 			return nil, err
 		}
@@ -257,7 +262,7 @@ func (node Node) getGasPrice() (*big.Int, error) {
 	if node.mocked {
 		res = mock.GetGasPrice()
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("cfx_gasPrice")
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("cfx_gasPrice")
 		if err != nil {
 			return nil, err
 		}
@@ -278,7 +283,7 @@ func (node Node) getPendingNonce(address string) (uint64, error) {
 	if node.mocked {
 		res = mock.GetPendingNonce(address)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("cfx_getNextNonce", address, "latest_state")
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("cfx_getNextNonce", address, "latest_state")
 		if err != nil {
 			return 0, err
 		}
@@ -299,7 +304,7 @@ func (node Node) getEpochNumber() (uint64, error) {
 	if node.mocked {
 		res = mock.GetEpochNumber()
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("cfx_epochNumber", "latest_state")
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("cfx_epochNumber", "latest_state")
 		if err != nil {
 			return 0, err
 		}
@@ -330,7 +335,7 @@ func (node Node) sendEstimateGas(from, to string, data []byte, amount, gasPrice 
 				"nonce":    "0x" + fmt.Sprintf("%x", nonce),
 			},
 		}
-		res, err = node.rpcHost.ExecRPCFromArgs("cfx_estimateGasAndCollateral", params...)
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("cfx_estimateGasAndCollateral", params...)
 		if err != nil {
 			return 0, 0, err
 		}
@@ -364,7 +369,7 @@ func (node Node) sendRawTransaction(tx string) (string, error) {
 	if node.mocked {
 		res = mock.SendRawTransaction(tx)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgsOnce("cfx_sendRawTransaction", tx)
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("cfx_sendRawTransaction", tx)
 		if err != nil {
 			return "", err
 		}

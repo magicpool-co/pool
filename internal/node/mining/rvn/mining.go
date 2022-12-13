@@ -36,6 +36,7 @@ func (node Node) getStatusByHost(hostID string) (uint64, bool, error) {
 
 	height := info.Blocks
 	syncing := info.VerificationProgress < 0.9999 || info.Blocks != info.Headers
+	node.rpcHost.SetHostSyncStatus(hostID, !syncing)
 
 	return height, syncing, nil
 }

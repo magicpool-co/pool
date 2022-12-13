@@ -96,6 +96,7 @@ func (node Node) getStatusByHost(hostID string) (uint64, bool, error) {
 
 	height := info.FullHeight
 	syncing := info.MaxPeerHeight != info.FullHeight
+	node.httpHost.SetHostSyncStatus(hostID, !syncing)
 
 	return height, syncing, nil
 }

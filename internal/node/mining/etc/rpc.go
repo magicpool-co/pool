@@ -12,7 +12,7 @@ import (
 )
 
 func (node Node) getTransactionByHash(txid string) (*Transaction, error) {
-	res, err := node.rpcHost.ExecRPCFromArgs("eth_getTransactionByHash", txid)
+	res, err := node.rpcHost.ExecRPCFromArgsSynced("eth_getTransactionByHash", txid)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func (node Node) getTransactionByHash(txid string) (*Transaction, error) {
 }
 
 func (node Node) getTransactionReceipt(txid string) (*TransactionReceipt, error) {
-	res, err := node.rpcHost.ExecRPCFromArgs("eth_getTransactionReceipt", txid)
+	res, err := node.rpcHost.ExecRPCFromArgsSynced("eth_getTransactionReceipt", txid)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (node Node) getBalance(address string) (*big.Int, error) {
 	if node.mocked {
 		res = mock.GetBalance(address)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("eth_getBalance", address, "latest")
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("eth_getBalance", address, "latest")
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +132,7 @@ func (node Node) getChainID() (uint64, error) {
 	if node.mocked {
 		res = mock.GetChainID()
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("eth_chainId")
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("eth_chainId")
 		if err != nil {
 			return 0, err
 		}
@@ -152,7 +152,7 @@ func (node Node) getGasPrice() (*big.Int, error) {
 	if node.mocked {
 		res = mock.GetGasPrice()
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("eth_gasPrice")
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("eth_gasPrice")
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +172,7 @@ func (node Node) getPendingNonce(address string) (uint64, error) {
 	if node.mocked {
 		res = mock.GetPendingNonce(address)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("eth_getTransactionCount", address, "pending")
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("eth_getTransactionCount", address, "pending")
 		if err != nil {
 			return 0, err
 		}
@@ -188,15 +188,21 @@ func (node Node) getPendingNonce(address string) (uint64, error) {
 
 func (node Node) getBlockNumber(hostID string) (uint64, error) {
 	var res *rpc.Response
+	var err error
 	if node.mocked {
 		res = mock.GetBlockNumber()
 	} else {
-		req, err := rpc.NewRequestWithHostID(hostID, "eth_blockNumber")
-		if err != nil {
-			return 0, err
+		if hostID == "" {
+			res, err = node.rpcHost.ExecRPCFromArgsSynced("eth_blockNumber")
+		} else {
+			req, err := rpc.NewRequestWithHostID(hostID, "eth_blockNumber")
+			if err != nil {
+				return 0, err
+			}
+
+			res, err = node.rpcHost.ExecRPC(req)
 		}
 
-		res, err = node.rpcHost.ExecRPC(req)
 		if err != nil {
 			return 0, err
 		}
@@ -240,7 +246,7 @@ func (node Node) getBlockByNumber(height uint64) (*Block, error) {
 	if node.mocked {
 		res = mock.GetBlockByNumber(height)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("eth_getBlockByNumber", common.Uint64ToHex(height), true)
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("eth_getBlockByNumber", common.Uint64ToHex(height), true)
 		if err != nil {
 			return nil, err
 		}
@@ -261,7 +267,7 @@ func (node Node) getUncleByNumberAndIndex(height, index uint64) (*Block, error) 
 		res = mock.GetUncleByNumberAndIndex(height, index)
 	} else {
 		params := []interface{}{common.Uint64ToHex(height), common.Uint64ToHex(index)}
-		res, err = node.rpcHost.ExecRPCFromArgs("eth_getUncleByBlockNumberAndIndex", params...)
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("eth_getUncleByBlockNumberAndIndex", params...)
 		if err != nil {
 			return nil, err
 		}
@@ -281,7 +287,7 @@ func (node Node) getWork() (string, []string, error) {
 	if node.mocked {
 		res = mock.GetWork()
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgs("eth_getWork")
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("eth_getWork")
 		if err != nil {
 			return "", nil, err
 		}
@@ -304,7 +310,7 @@ func (node Node) sendEstimateGas(from, to string) (uint64, error) {
 		res = mock.SendEstimateGas(from, to)
 	} else {
 		tx := map[string]interface{}{"from": from, "to": to}
-		res, err = node.rpcHost.ExecRPCFromArgs("eth_estimateGas", tx)
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("eth_estimateGas", tx)
 		if err != nil {
 			return 0, err
 		}
@@ -349,7 +355,7 @@ func (node Node) sendRawTransaction(tx string) (string, error) {
 	if node.mocked {
 		res = mock.SendRawTransaction(tx)
 	} else {
-		res, err = node.rpcHost.ExecRPCFromArgsOnce("eth_sendRawTransaction", tx)
+		res, err = node.rpcHost.ExecRPCFromArgsSynced("eth_sendRawTransaction", tx)
 		if err != nil {
 			return "", err
 		}
