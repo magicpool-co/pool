@@ -222,7 +222,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 	// 	}
 	// }
 
-	var shareStatus types.ShareStatus
+	var shareStatus types.ShareStatus = types.RejectedShare
 	var hash *types.Hash
 	var round *pooldb.Round
 	job, activeShare := p.jobManager.GetJob(work.JobID)
