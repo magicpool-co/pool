@@ -62,11 +62,11 @@ func (node Node) GetMaxDifficulty() *big.Int {
 }
 
 func (node Node) GetImmatureDepth() uint64 {
-	return 2500000
+	return 250
 }
 
 func (node Node) GetMatureDepth() uint64 {
-	return 5000000
+	return 1000
 }
 
 func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
