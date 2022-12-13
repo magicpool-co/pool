@@ -519,6 +519,8 @@ func (node Node) MatureRound(round *pooldb.Round) ([]*pooldb.UTXO, error) {
 		return nil, nil
 	}
 
+	round.Mature = true
+
 	utxos := make([]*pooldb.UTXO, len(coinbaseTxs))
 	for i, tx := range coinbaseTxs {
 		txBytes, err := proto.Marshal(transactionToProtowire(tx))
