@@ -332,6 +332,10 @@ func (node Node) getBlockReward(height uint64) (*big.Int, error) {
 }
 
 func (node Node) UnlockRound(round *pooldb.Round) error {
+	if round.Nonce == nil {
+		return fmt.Errorf("block %d has no nonce", round.Height)
+	}
+
 	block, err := node.getBlock(round.Height)
 	if err != nil {
 		return err
@@ -345,7 +349,7 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 	round.Mature = false
 	round.Spent = false
 
-	if block.Beneficiary == node.address {
+	if block.Beneficiary == node.address && block.Nonce == types.Uint64Value(round.Nonce) {
 		blockReward, err := node.getBlockReward(round.Height)
 		if err != nil {
 			return err
@@ -358,4 +362,39 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 	}
 
 	return nil
+}
+
+func (node Node) MatureRound(round *pooldb.Round) ([]*pooldb.UTXO, error) {
+	if round.Pending || round.Mature || round.Orphan {
+		return nil, nil
+	} else if round.Nonce == nil {
+		return nil, fmt.Errorf("no nonce for round %d", round.ID)
+	} else if !round.Value.Valid {
+		return nil, fmt.Errorf("no value for round %d", round.ID)
+	}
+
+	block, err := node.getBlock(round.Height)
+	if err != nil {
+		return nil, err
+	} else if block == nil {
+		return nil, fmt.Errorf("empty block")
+	} else if block.Beneficiary != node.address || block.Nonce != types.Uint64Value(round.Nonce) {
+		round.Orphan = true
+		return nil, nil
+	}
+
+	round.Mature = true
+
+	utxos := []*pooldb.UTXO{
+		&pooldb.UTXO{
+			ChainID: round.ChainID,
+			Value:   round.Value,
+			TxID:    round.Hash,
+			Index:   0,
+			Active:  true,
+			Spent:   false,
+		},
+	}
+
+	return utxos, nil
 }

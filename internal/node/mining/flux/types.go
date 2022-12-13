@@ -195,10 +195,11 @@ type SignedTransaction struct {
 
 type Block struct {
 	Hash              string         `json:"hash"`
-	Confirmations     uint64         `json:"confirmations"`
+	Confirmations     int64          `json:"confirmations"`
 	StrippedSize      uint64         `json:"strippedsize"`
 	Size              uint64         `json:"size"`
 	Weight            uint64         `json:"weight"`
+	Height            uint64         `json:"height"`
 	Version           uint64         `json:"version"`
 	MerkleRoot        string         `json:"merkleroot"`
 	FinalSaplingRoot  string         `json:"finalsaplingroot"`

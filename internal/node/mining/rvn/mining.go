@@ -371,7 +371,12 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 	round.Mature = false
 	round.Spent = false
 
-	if block.Hash == round.Hash {
+	if block.Confirmations == -1 {
+		round.Orphan = true
+		return nil
+	} else if uint64(block.Confirmations) < node.GetImmatureDepth() {
+		return nil
+	} else if block.Hash == round.Hash {
 		coinbaseTxID := types.StringValue(round.CoinbaseTxID)
 		if len(block.Transactions) == 0 {
 			return nil
@@ -390,4 +395,41 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 	}
 
 	return nil
+}
+
+func (node Node) MatureRound(round *pooldb.Round) ([]*pooldb.UTXO, error) {
+	if round.Pending || round.Orphan || round.Mature {
+		return nil, nil
+	} else if !round.Value.Valid {
+		return nil, fmt.Errorf("no value for round %d", round.ID)
+	} else if round.CoinbaseTxID == nil {
+		return nil, fmt.Errorf("no coinbase txid for round %d", round.ID)
+	}
+
+	block, err := node.getBlock(round.Hash)
+	if err != nil {
+		return nil, err
+	} else if block.Height != round.Height {
+		return nil, fmt.Errorf("mismatch on round and block height for round %d", round.ID)
+	} else if block.Confirmations == -1 {
+		round.Orphan = true
+		return nil, nil
+	} else if uint64(block.Confirmations) < node.GetMatureDepth() {
+		return nil, nil
+	}
+
+	round.Mature = true
+
+	utxos := []*pooldb.UTXO{
+		&pooldb.UTXO{
+			ChainID: round.ChainID,
+			Value:   round.Value,
+			TxID:    types.StringValue(round.CoinbaseTxID),
+			Index:   0,
+			Active:  true,
+			Spent:   false,
+		},
+	}
+
+	return utxos, nil
 }

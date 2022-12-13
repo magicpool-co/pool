@@ -45,29 +45,20 @@ func UnlockRounds(node types.MiningNode, pooldbClient *dbcl.Client) error {
 	defer tx.SafeRollback()
 
 	utxos := make([]*pooldb.UTXO, len(immatureRounds))
-	for i, round := range immatureRounds {
-		round.Mature = true
-		err = pooldb.UpdateRound(tx, round, []string{"mature"})
+	for _, round := range immatureRounds {
+		roundUTXOs, err := node.MatureRound(round)
 		if err != nil {
 			return err
 		}
 
-		var utxoHash string
-		if round.CoinbaseTxID != nil {
-			utxoHash = types.StringValue(round.CoinbaseTxID)
-		} else {
-			utxoHash = round.Hash
+		cols := []string{"uncle", "orphan", "pending", "mature", "spent", "height",
+			"epoch_height", "uncle_height", "hash", "coinbase_txid", "value", "created_at"}
+		err = pooldb.UpdateRound(tx, round, cols)
+		if err != nil {
+			return err
 		}
 
-		utxos[i] = &pooldb.UTXO{
-			ChainID: round.ChainID,
-
-			Value:  round.Value,
-			TxID:   utxoHash,
-			Index:  0,
-			Active: true,
-			Spent:  false,
-		}
+		utxos = append(utxos, roundUTXOs...)
 	}
 
 	err = pooldb.InsertUTXOs(tx, utxos...)

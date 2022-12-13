@@ -437,3 +437,75 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 
 	return nil
 }
+
+func (node Node) MatureRound(round *pooldb.Round) ([]*pooldb.UTXO, error) {
+	if round.Pending || round.Mature || round.Orphan {
+		return nil, nil
+	} else if !round.Value.Valid {
+		return nil, fmt.Errorf("no value for round %d", round.ID)
+	}
+
+	height := round.Height
+	if round.Uncle {
+		if round.UncleHeight == nil {
+			return nil, fmt.Errorf("no uncle height for round %d", round.ID)
+		}
+		height = types.Uint64Value(round.UncleHeight)
+	}
+
+	block, err := node.getBlockByNumber(height)
+	if err != nil {
+		return nil, err
+	}
+
+	if round.Uncle {
+		var foundUncle bool
+		for uncleIndex := range block.Uncles {
+			uncle, err := node.getUncleByNumberAndIndex(height, uint64(uncleIndex))
+			if err != nil {
+				return nil, err
+			} else if !common.StringsEqualInsensitive(uncle.Miner, node.address) {
+				continue
+			}
+
+			nonce, err := common.HexToUint64(uncle.Nonce)
+			if err != nil {
+				return nil, err
+			} else if nonce != types.Uint64Value(round.Nonce) {
+				continue
+			}
+
+			foundUncle = true
+			break
+		}
+
+		if !foundUncle {
+			round.Uncle = false
+			round.Orphan = true
+			return nil, nil
+		}
+	} else {
+		blockHeight, err := common.HexToUint64(block.Number)
+		if err != nil {
+			return nil, err
+		} else if round.Hash != block.Hash || height != blockHeight {
+			round.Orphan = true
+			return nil, nil
+		}
+	}
+
+	round.Mature = true
+
+	utxos := []*pooldb.UTXO{
+		&pooldb.UTXO{
+			ChainID: round.ChainID,
+			Value:   round.Value,
+			TxID:    round.Hash,
+			Index:   0,
+			Active:  true,
+			Spent:   false,
+		},
+	}
+
+	return utxos, nil
+}

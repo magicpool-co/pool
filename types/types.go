@@ -121,6 +121,7 @@ type MiningNode interface {
 	ParseWork([]json.RawMessage, string) (*StratumWork, error)
 
 	// mining helpers
+	GetBlockExplorerURL(*pooldb.Round) string
 	GetStatus() (uint64, bool, error)
 	PingHosts() ([]string, []uint64, []bool, []error)
 	GetBlocks(uint64, uint64) ([]*tsdb.RawBlock, error)
@@ -128,7 +129,7 @@ type MiningNode interface {
 	JobNotify(context.Context, time.Duration, chan *StratumJob, chan error)
 	SubmitWork(*StratumJob, *StratumWork) (ShareStatus, *Hash, *pooldb.Round, error)
 	UnlockRound(*pooldb.Round) error
-	GetBlockExplorerURL(*pooldb.Round) string
+	MatureRound(*pooldb.Round) ([]*pooldb.UTXO, error)
 }
 
 /* exchange */

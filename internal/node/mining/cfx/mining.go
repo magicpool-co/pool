@@ -420,3 +420,47 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 
 	return nil
 }
+
+func (node Node) MatureRound(round *pooldb.Round) ([]*pooldb.UTXO, error) {
+	if round.Pending || round.Mature || round.Orphan {
+		return nil, nil
+	} else if !round.Value.Valid {
+		return nil, fmt.Errorf("no value for round %d", round.ID)
+	}
+
+	block, err := node.getBlockByHash(round.Hash)
+	if err != nil {
+		return nil, err
+	}
+
+	blockHeight, err := common.HexToUint64(block.Height)
+	if err != nil {
+		return nil, err
+	} else if round.Height != blockHeight {
+		round.Orphan = true
+		return nil, err
+	}
+
+	nonce, err := common.HexToUint64(block.Nonce)
+	if err != nil {
+		return nil, err
+	} else if nonce != types.Uint64Value(round.Nonce) {
+		round.Orphan = true
+		return nil, nil
+	}
+
+	round.Mature = true
+
+	utxos := []*pooldb.UTXO{
+		&pooldb.UTXO{
+			ChainID: round.ChainID,
+			Value:   round.Value,
+			TxID:    round.Hash,
+			Index:   0,
+			Active:  true,
+			Spent:   false,
+		},
+	}
+
+	return utxos, nil
+}

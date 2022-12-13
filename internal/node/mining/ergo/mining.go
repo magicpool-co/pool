@@ -59,7 +59,7 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 
 			unitsBigFloat := new(big.Float).SetInt(node.GetUnits().Big())
 			rewardBigInt := getBlockReward(height)
-			_, txFees, err := node.getRewardsFromBlock(rawBlock)
+			_, _, txFees, err := node.getRewardsFromBlock(rawBlock)
 			if err != nil {
 				return nil, err
 			}
@@ -152,46 +152,43 @@ func (node Node) getBlockTemplate() (*types.StratumJob, error) {
 	return template, nil
 }
 
-func (node Node) getRewardsFromBlock(block *Block) (string, uint64, error) {
-	var ergoTree string
-	var value uint64
+func (node Node) getRewardsFromBlock(block *Block) (string, []string, uint64, error) {
 	if block.BlockTransactions == nil {
-		return "", 0, fmt.Errorf("block transactions is nil")
+		return "", nil, 0, fmt.Errorf("block transactions is nil")
+	} else if len(block.BlockTransactions.Transactions) == 0 {
+		return "", nil, 0, fmt.Errorf("no transactions in block")
 	}
 
-	txLen := len(block.BlockTransactions.Transactions)
-	if txLen == 0 {
-		return "", 0, fmt.Errorf("no transactions in block")
-	} else if txLen == 1 {
-		// means theres no transactions in the block
-		coinbaseTx := block.BlockTransactions.Transactions[0]
-		if len(coinbaseTx.Outputs) < 2 {
-			return "", 0, fmt.Errorf("invalid coinbase tx")
-		}
+	coinbaseTx := block.BlockTransactions.Transactions[0]
+	if len(coinbaseTx.Outputs) < 2 {
+		return "", nil, 0, fmt.Errorf("invalid coinbase tx")
+	}
 
-		for _, output := range coinbaseTx.Outputs[1:] {
-			if ergoTree == "" {
-				ergoTree = output.ErgoTree
-			}
+	txids := []string{coinbaseTx.ID}
+	var address string
+	for _, output := range coinbaseTx.Outputs[1:] {
+		var err error
+		address, err = node.getAddressFromErgoTree(output.ErgoTree)
+		if err != nil {
+			return "", nil, 0, err
 		}
-	} else {
+		break
+	}
+
+	var feeValue uint64
+	if txCount := len(block.BlockTransactions.Transactions); txCount != 1 {
 		// if there are transactions in the block, the final
 		// transaction will be the tx for transaction fees
-		feeTx := block.BlockTransactions.Transactions[txLen-1]
+		feeTx := block.BlockTransactions.Transactions[txCount-1]
 		if len(feeTx.Outputs) != 1 {
-			return "", 0, fmt.Errorf("invalid fee tx")
+			return "", nil, 0, fmt.Errorf("invalid fee tx")
 		}
 
-		value += feeTx.Outputs[0].Value
-		ergoTree = feeTx.Outputs[0].ErgoTree
+		txids = append(txids, feeTx.ID)
+		feeValue = feeTx.Outputs[0].Value
 	}
 
-	address, err := node.getAddressFromErgoTree(ergoTree)
-	if err != nil {
-		return "", 0, err
-	}
-
-	return address, value, nil
+	return address, txids, feeValue, nil
 }
 
 func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh chan *types.StratumJob, errCh chan error) {
@@ -352,7 +349,7 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 			return fmt.Errorf("empty block")
 		}
 
-		address, txFees, err := node.getRewardsFromBlock(block)
+		address, txids, txFees, err := node.getRewardsFromBlock(block)
 		if err != nil {
 			return err
 		} else if address == node.address {
@@ -360,10 +357,15 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 			if err != nil {
 				return err
 			} else if nonce == types.Uint64Value(round.Nonce) {
+				if len(txids) == 0 {
+					return fmt.Errorf("no txids for round %d", round.ID)
+				}
+
 				blockReward := getBlockReward(round.Height)
 				blockReward.Add(blockReward, new(big.Int).SetUint64(txFees))
 
 				round.Value = dbcl.NullBigInt{Valid: true, BigInt: blockReward}
+				round.CoinbaseTxID = types.StringPtr(txids[0])
 				round.Hash = hash
 				round.Orphan = false
 				round.CreatedAt = time.Unix(block.Header.Timestamp/1000, 0)
@@ -372,4 +374,63 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 	}
 
 	return nil
+}
+
+func (node Node) MatureRound(round *pooldb.Round) ([]*pooldb.UTXO, error) {
+	if round.Pending || round.Orphan || round.Mature {
+		return nil, nil
+	} else if round.Nonce == nil {
+		return nil, fmt.Errorf("no nonce for round %d", round.ID)
+	}
+
+	block, err := node.getBlock(round.Hash)
+	if err != nil {
+		return nil, err
+	} else if block == nil || block.Header == nil {
+		return nil, fmt.Errorf("empty block for round %d", round.ID)
+	}
+
+	address, txids, feeValue, err := node.getRewardsFromBlock(block)
+	if err != nil {
+		return nil, err
+	} else if address != node.address {
+		round.Orphan = true
+		return nil, nil
+	} else if (feeValue > 0 && len(txids) != 2) || (feeValue == 0 && len(txids) != 1) {
+		return nil, fmt.Errorf("bad txid count for round %d", round.ID)
+	}
+
+	nonce, err := common.HexToUint64(block.Header.PowSolutions.N)
+	if err != nil {
+		return nil, err
+	} else if nonce != types.Uint64Value(round.Nonce) {
+		round.Orphan = true
+		return nil, nil
+	}
+
+	round.Mature = true
+
+	utxos := []*pooldb.UTXO{
+		&pooldb.UTXO{
+			ChainID: round.ChainID,
+			Value:   dbcl.NullBigInt{Valid: true, BigInt: getBlockReward(round.Height)},
+			TxID:    txids[0],
+			Index:   0,
+			Active:  true,
+			Spent:   false,
+		},
+	}
+
+	if len(txids) != 2 {
+		utxos = append(utxos, &pooldb.UTXO{
+			ChainID: round.ChainID,
+			Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(feeValue)},
+			TxID:    txids[1],
+			Index:   uint32(len(block.BlockTransactions.Transactions) - 1),
+			Active:  true,
+			Spent:   false,
+		})
+	}
+
+	return utxos, nil
 }

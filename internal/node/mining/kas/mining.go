@@ -108,15 +108,19 @@ func (node Node) fetchBlockWithCache(hash string, cache *blockCache) (*Block, er
 	return block, nil
 }
 
-func (node Node) getRewardsFromBlock(block *Block, cache *blockCache) (*Transaction, uint64, error) {
+func (node Node) getRewardsFromBlock(block *Block, cache *blockCache) ([]*Transaction, []uint32, []uint64, error) {
 	const maxRecursionDepth = 50
 
-	var reward uint64
+	// handle rewards in case the block takes the reward of red blocks that it merges
+	var mergeTx *Transaction
+	var mergeIndex uint32
+	var mergeValue uint64
 	if block.IsChainBlock {
 		tx := block.Transactions[0]
 		if len(block.MergeSetBluesHashes) == len(tx.Outputs)+1 {
-			// @TODO: we are not properly handling the utxo for red block merges
-			reward += tx.Outputs[len(tx.Outputs)-1].Amount
+			mergeTx = tx
+			mergeIndex = 0
+			mergeValue = tx.Outputs[len(tx.Outputs)-1].Amount
 		}
 	}
 
@@ -127,7 +131,7 @@ func (node Node) getRewardsFromBlock(block *Block, cache *blockCache) (*Transact
 		for _, childHash := range childrenHashes {
 			child, err := node.fetchBlockWithCache(childHash, cache)
 			if err != nil {
-				return nil, 0, err
+				return nil, nil, nil, err
 			} else if child == nil {
 				continue
 			} else if !child.IsChainBlock {
@@ -139,24 +143,41 @@ func (node Node) getRewardsFromBlock(block *Block, cache *blockCache) (*Transact
 				continue
 			}
 
-			var tx *Transaction
+			var coinbaseTx *Transaction
+			var coinbaseIndex uint32
+			var coinbaseValue uint64
 			for i, mergeSetHash := range child.MergeSetBluesHashes {
 				if mergeSetHash == block.Hash {
-					tx = child.Transactions[0]
-					reward += child.Transactions[0].Outputs[i].Amount
+					coinbaseTx = child.Transactions[0]
+					coinbaseIndex = uint32(i)
+					coinbaseValue = child.Transactions[0].Outputs[i].Amount
+					break
 				}
 			}
 
-			return tx, reward, nil
+			if coinbaseTx == nil {
+				return nil, nil, nil, fmt.Errorf("unable to find coinbase tx in merging chain block")
+			}
+
+			txs := []*Transaction{coinbaseTx}
+			indexes := []uint32{coinbaseIndex}
+			values := []uint64{coinbaseValue}
+			if mergeTx != nil {
+				txs = append(txs, mergeTx)
+				indexes = append(indexes, mergeIndex)
+				values = append(values, mergeValue)
+			}
+
+			return txs, indexes, values, nil
 		}
 
 		childrenHashes = newChildrenHashes
 		if depth > maxRecursionDepth {
-			return nil, 0, fmt.Errorf("past max recursion depth for block: %s", block.Hash)
+			return nil, nil, nil, fmt.Errorf("past max recursion depth for block: %s", block.Hash)
 		}
 	}
 
-	return nil, 0, nil
+	return nil, nil, nil, nil
 }
 
 func (node Node) GetBlocksByHash(startHash string, limit uint64) ([]*tsdb.RawBlock, error) {
@@ -208,9 +229,14 @@ func (node Node) GetBlocksByHash(startHash string, limit uint64) ([]*tsdb.RawBlo
 				continue
 			}
 
-			_, value, err := node.getRewardsFromBlock(block, cache)
+			_, _, coinbaseRewards, err := node.getRewardsFromBlock(block, cache)
 			if err != nil {
 				return nil, err
+			}
+
+			var blockReward uint64
+			for _, coinbaseReward := range coinbaseRewards {
+				blockReward += coinbaseReward
 			}
 
 			idx[hash] = true
@@ -219,7 +245,7 @@ func (node Node) GetBlocksByHash(startHash string, limit uint64) ([]*tsdb.RawBlo
 				Hash:       block.Hash,
 				Height:     block.BlueScore,
 				Difficulty: block.Difficulty / 2,
-				Value:      float64(value) / 1e8,
+				Value:      float64(blockReward) / 1e8,
 				TxCount:    uint64(len(block.Transactions)),
 				Timestamp:  time.Unix(block.Timestamp/1000, 0),
 			})
@@ -436,26 +462,84 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 		return fmt.Errorf("round %s has a nonce mismatch", round.Hash)
 	}
 
-	coinbaseTx, blockReward, err := node.getRewardsFromBlock(block, nil)
+	coinbaseTxs, _, coinbaseRewards, err := node.getRewardsFromBlock(block, nil)
 	if err != nil {
 		return err
 	}
 
-	coinbaseTxBytes, err := proto.Marshal(transactionToProtowire(coinbaseTx))
-	if err != nil {
-		return err
+	orphan := len(coinbaseTxs) == 0
+	var coinbaseTxID *string
+	if !orphan {
+		coinbaseTxBytes, err := proto.Marshal(transactionToProtowire(coinbaseTxs[0]))
+		if err != nil {
+			return err
+		}
+		coinbaseTxID = types.StringPtr(kastx.CalculateTxID(hex.EncodeToString(coinbaseTxBytes)))
 	}
 
-	coinbaseTxID := kastx.CalculateTxID(hex.EncodeToString(coinbaseTxBytes))
+	var blockReward uint64
+	for _, coinbaseReward := range coinbaseRewards {
+		blockReward += coinbaseReward
+	}
 
 	round.Value = dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(blockReward)}
-	round.CoinbaseTxID = types.StringPtr(coinbaseTxID)
+	round.CoinbaseTxID = coinbaseTxID
 	round.Uncle = false
-	round.Orphan = blockReward == 0
+	round.Orphan = orphan
 	round.Pending = false
 	round.Mature = false
 	round.Spent = false
 	round.CreatedAt = time.Unix(block.Timestamp/1000, 0)
 
 	return nil
+}
+
+func (node Node) MatureRound(round *pooldb.Round) ([]*pooldb.UTXO, error) {
+	if round.Pending || round.Orphan || round.Mature {
+		return nil, nil
+	} else if round.Nonce == nil {
+		return nil, fmt.Errorf("no nonce for round %d", round.ID)
+	} else if !round.Value.Valid {
+		return nil, fmt.Errorf("no value for round %d", round.ID)
+	}
+
+	block, err := node.getBlock("", round.Hash, true)
+	if err != nil {
+		return nil, err
+	} else if block.Nonce != types.Uint64Value(round.Nonce) {
+		round.Orphan = true
+		return nil, nil
+	}
+
+	coinbaseTxs, coinbaseIndexes, coinbaseRewards, err := node.getRewardsFromBlock(block, nil)
+	if err != nil {
+		return nil, err
+	} else if len(coinbaseTxs) == 0 {
+		round.Orphan = true
+		return nil, nil
+	}
+
+	utxos := make([]*pooldb.UTXO, len(coinbaseTxs))
+	for i, tx := range coinbaseTxs {
+		txBytes, err := proto.Marshal(transactionToProtowire(tx))
+		if err != nil {
+			return nil, err
+		}
+
+		txid := kastx.CalculateTxID(hex.EncodeToString(txBytes))
+		if txid == "" {
+			return nil, fmt.Errorf("calculated empty coinbase txid")
+		}
+
+		utxos[i] = &pooldb.UTXO{
+			ChainID: round.ChainID,
+			Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(coinbaseRewards[i])},
+			TxID:    txid,
+			Index:   coinbaseIndexes[i],
+			Active:  true,
+			Spent:   false,
+		}
+	}
+
+	return utxos, nil
 }
