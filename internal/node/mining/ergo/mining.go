@@ -421,7 +421,7 @@ func (node Node) MatureRound(round *pooldb.Round) ([]*pooldb.UTXO, error) {
 		},
 	}
 
-	if len(txids) != 2 {
+	if len(txids) == 2 {
 		utxos = append(utxos, &pooldb.UTXO{
 			ChainID: round.ChainID,
 			Value:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(feeValue)},
