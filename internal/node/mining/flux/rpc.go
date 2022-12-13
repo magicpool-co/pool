@@ -16,7 +16,7 @@ func (node Node) getBlockchainInfo(hostID string) (*BlockchainInfo, error) {
 		res = mock.GetBlockchainInfo()
 	} else {
 		if hostID == "" {
-			res, err = node.rpcHost.ExecRPCFromArgsSynced("getBlockchainInfo")
+			res, err = node.rpcHost.ExecRPCFromArgsSynced("getblockchaininfo")
 		} else {
 			req, err := rpc.NewRequestWithHostID(hostID, "getblockchaininfo")
 			if err != nil {
