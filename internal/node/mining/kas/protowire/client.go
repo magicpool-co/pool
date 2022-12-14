@@ -18,7 +18,9 @@ type Client struct {
 	timeout        time.Duration
 	isConnected    uint32
 	isReconnecting uint32
-	stream         RPC_MessageStreamClient
+
+	conn   *grpc.ClientConn
+	stream RPC_MessageStreamClient
 }
 
 var opts = []grpc.CallOption{
@@ -50,7 +52,9 @@ func NewClient(url string, timeout time.Duration) (*Client, error) {
 		url:         url,
 		timeout:     timeout,
 		isConnected: 1,
-		stream:      stream,
+
+		conn:   conn,
+		stream: stream,
 	}
 
 	return client, nil
@@ -63,7 +67,7 @@ func (c *Client) Send(raw interface{}) (interface{}, error) {
 	request, ok := raw.(*KaspadMessage)
 	if !ok {
 		return nil, fmt.Errorf("unable to cast raw object as *KaspadMessage")
-	} else if c.stream == nil {
+	} else if atomic.LoadUint32(&c.isConnected) != 1 {
 		err := c.Reconnect()
 		if err != nil {
 			return nil, err
@@ -82,7 +86,19 @@ func (c *Client) Send(raw interface{}) (interface{}, error) {
 func (c *Client) Reconnect() error {
 	swapped := atomic.CompareAndSwapUint32(&c.isReconnecting, 0, 1)
 	if !swapped {
-		return fmt.Errorf("reconnecting client")
+		timer := time.NewTimer(time.Millisecond * 500)
+		for {
+			select {
+			case <-timer.C:
+				reconnecting := atomic.LoadUint32(&c.isReconnecting)
+				connected := atomic.LoadUint32(&c.isConnected)
+
+				if reconnecting == 0 && connected == 1 {
+					return nil
+				}
+				return fmt.Errorf("reconnecting client")
+			}
+		}
 	}
 	defer atomic.StoreUint32(&c.isReconnecting, 0)
 
@@ -95,12 +111,21 @@ func (c *Client) Reconnect() error {
 		}
 	}
 
-	newClient, err := NewClient(c.url, c.timeout)
-	if err != nil {
-		return err
-	}
-	c.stream = newClient.stream
-	atomic.StoreUint32(&c.isConnected, 1)
+	// try three times before disconnecting for good
+	var err error
+	for i := 0; i < 3; i++ {
+		var newClient *Client
+		newClient, err = NewClient(c.url, c.timeout)
+		if err != nil {
+			continue
+		}
 
-	return nil
+		c.conn.Close()
+		c.conn = newClient.conn
+		c.stream = newClient.stream
+		atomic.StoreUint32(&c.isConnected, 1)
+		break
+	}
+
+	return err
 }
