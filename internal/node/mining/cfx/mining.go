@@ -192,7 +192,9 @@ func (node Node) GetBlocksByHash(startHash string, limit uint64) ([]*tsdb.RawBlo
 	return nil, fmt.Errorf("GetBlocks: not implemented")
 }
 
-func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh chan *types.StratumJob, errCh chan error) {
+func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *types.StratumJob {
+	jobCh := make(chan *types.StratumJob)
+
 	go func() {
 		defer node.logger.RecoverPanic()
 
@@ -204,39 +206,39 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh ch
 			case req := <-notifyCh:
 				data := req.Params
 				if len(data) < 3 {
-					errCh <- fmt.Errorf("invalid job recieved: %v", data)
+					node.logger.Error(fmt.Errorf("invalid job recieved: %v", data))
 					continue
 				}
 
 				var ok bool
 				var rawEpoch, rawHash, rawBoundary string
 				if err := json.Unmarshal(data[1], &rawEpoch); err != nil {
-					errCh <- fmt.Errorf("failed to parse epoch %v", data[1])
+					node.logger.Error(fmt.Errorf("failed to parse epoch %v", data[1]))
 					continue
 				} else if err := json.Unmarshal(data[2], &rawHash); err != nil {
-					errCh <- fmt.Errorf("failed to parse hash %v", data[2])
+					node.logger.Error(fmt.Errorf("failed to parse hash %v", data[2]))
 					continue
 				} else if err := json.Unmarshal(data[3], &rawBoundary); err != nil {
-					errCh <- fmt.Errorf("failed to parse boundary %v", data[3])
+					node.logger.Error(fmt.Errorf("failed to parse boundary %v", data[3]))
 					continue
 				}
 
 				epochVal, err := new(types.Number).SetFromString(rawEpoch)
 				if err != nil {
-					errCh <- fmt.Errorf("failed to set epoch %s", rawEpoch)
+					node.logger.Error(fmt.Errorf("failed to set epoch %s", rawEpoch))
 					continue
 				}
 
 				hashVal, err := new(types.Hash).SetFromHex(rawHash)
 				if err != nil {
-					errCh <- fmt.Errorf("failed to set hash %s", rawHash)
+					node.logger.Error(fmt.Errorf("failed to set hash %s", rawHash))
 					continue
 				}
 
 				rawBoundary = strings.ReplaceAll(rawBoundary, "0x", "")
 				boundaryBig, ok := new(big.Int).SetString(rawBoundary, 16)
 				if !ok {
-					errCh <- fmt.Errorf("failed to set boundary %s", rawBoundary)
+					node.logger.Error(fmt.Errorf("failed to set boundary %s", rawBoundary))
 					continue
 				}
 
@@ -251,6 +253,8 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh ch
 			}
 		}
 	}()
+
+	return jobCh
 }
 
 func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {

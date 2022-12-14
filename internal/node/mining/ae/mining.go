@@ -109,8 +109,9 @@ func (node Node) getBlockTemplate() (*types.StratumJob, error) {
 	return job, nil
 }
 
-func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh chan *types.StratumJob, errCh chan error) {
-	refreshTimer := time.NewTimer(interval)
+func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *types.StratumJob {
+	jobCh := make(chan *types.StratumJob)
+	ticker := time.NewTicker(interval)
 	staticInterval := time.Second * 15
 
 	go func() {
@@ -122,21 +123,21 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration, jobCh ch
 			select {
 			case <-ctx.Done():
 				return
-			case <-refreshTimer.C:
+			case <-ticker.C:
 				now := time.Now()
 				job, err := node.getBlockTemplate()
 				if err != nil {
-					errCh <- err
+					node.logger.Error(err)
 				} else if lastHeight != job.Height.Value() || now.After(lastJob.Add(staticInterval)) {
 					lastHeight = job.Height.Value()
 					lastJob = now
 					jobCh <- job
 				}
-
-				refreshTimer.Reset(interval)
 			}
 		}
 	}()
+
+	return jobCh
 }
 
 func hashSolution(sol []uint64) []byte {

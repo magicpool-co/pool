@@ -134,10 +134,9 @@ func (p *Pool) getCurrentInterval(reset bool) string {
 func (p *Pool) startJobNotify() {
 	defer p.recoverPanic()
 
-	jobCh := make(chan *types.StratumJob)
-	errCh := make(chan error)
+	timer := time.NewTimer(time.Minute * 10)
+	jobCh := p.node.JobNotify(p.ctx, p.pollingPeriod)
 
-	p.node.JobNotify(p.ctx, p.pollingPeriod, jobCh, errCh)
 	for {
 		select {
 		case <-p.ctx.Done():
@@ -149,13 +148,14 @@ func (p *Pool) startJobNotify() {
 			}
 
 			if isNew {
+				timer.Reset(time.Minute * 10)
 				err = p.redis.AddShareIndexHeight(p.chain, job.Height.Value())
 				if err != nil {
 					p.logger.Error(err)
 				}
 			}
-		case err := <-errCh:
-			p.logger.Error(err)
+		case <-timer.C:
+			p.logger.Error(fmt.Errorf("have not recieved new job in past 10 minutes"))
 		}
 	}
 }
