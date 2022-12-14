@@ -18,32 +18,32 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 	// distributed lock to avoid race conditions
 	lock, err := c.fetchLock(node.Chain())
 	if err != nil {
-		return txs, err
+		return nil, err
 	} else if lock == nil {
-		return txs, nil
+		return nil, nil
 	}
 	defer lock.Release(context.Background())
 
 	// verify that there are no other unspent transactions active
 	count, err := pooldb.GetUnspentTransactionCount(q, node.Chain())
 	if err != nil {
-		return txs, err
+		return nil, err
 	} else if count > 0 {
-		return txs, nil
+		return nil, nil
 	}
 
 	inputUTXOs, err := pooldb.GetUnspentUTXOsByChain(q, node.Chain())
 	if err != nil {
-		return txs, err
+		return nil, err
 	} else if len(inputUTXOs) == 0 {
-		return txs, nil
+		return nil, nil
 	}
 
 	// calculate total spendable value
 	totalInputUTXOSum := new(big.Int)
 	for _, inputUTXO := range inputUTXOs {
 		if !inputUTXO.Value.Valid {
-			return txs, fmt.Errorf("no value for utxo %d", inputUTXO.ID)
+			return nil, fmt.Errorf("no value for utxo %d", inputUTXO.ID)
 		}
 		totalInputUTXOSum.Add(totalInputUTXOSum, inputUTXO.Value.BigInt)
 	}
@@ -66,7 +66,7 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 		inputUTXOSum := new(big.Int)
 		for _, inputUTXO := range inputUTXOs {
 			if !inputUTXO.Value.Valid {
-				return txs, fmt.Errorf("no value for utxo %d", inputUTXO.ID)
+				return nil, fmt.Errorf("no value for utxo %d", inputUTXO.ID)
 			}
 			inputUTXOSum.Add(inputUTXOSum, inputUTXO.Value.BigInt)
 		}
@@ -80,9 +80,9 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 		// check for empty, negative, and over spends
 		remainder := new(big.Int).Sub(inputUTXOSum, txOutputSum)
 		if txOutputSum.Cmp(common.Big0) <= 0 {
-			return txs, fmt.Errorf("%s empty or negative spend: %s", node.Chain(), txOutputSum)
+			return nil, fmt.Errorf("%s empty or negative spend: %s", node.Chain(), txOutputSum)
 		} else if remainder.Cmp(common.Big0) < 0 {
-			return txs, fmt.Errorf("%s overspend: %s < %s", node.Chain(), inputUTXOSum, txOutputSum)
+			return nil, fmt.Errorf("%s overspend: %s < %s", node.Chain(), inputUTXOSum, txOutputSum)
 		}
 
 		// add inputs from UTXOs based off of chain accounting type (account or UTXO)
@@ -91,7 +91,7 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 		case types.AccountStructure:
 			count, err := pooldb.GetUnspentTransactionCount(q, node.Chain())
 			if err != nil {
-				return txs, err
+				return nil, err
 			}
 
 			// txOutputs count has to be non-zero since output
@@ -129,7 +129,7 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 		// create tx and insert it into the db
 		txid, txHex, err := node.CreateTx(inputs, txOutputs)
 		if err != nil {
-			return txs, err
+			return nil, err
 		}
 
 		feeSum := new(big.Int)
@@ -150,7 +150,7 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 
 		txs[i].ID, err = pooldb.InsertTransaction(q, txs[i])
 		if err != nil {
-			return txs, err
+			return nil, err
 		}
 
 		// bind utxos to transaction
@@ -158,7 +158,7 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 			utxo.TransactionID = types.Uint64Ptr(txs[i].ID)
 			err = pooldb.UpdateUTXO(q, utxo, []string{"transaction_id"})
 			if err != nil {
-				return txs, err
+				return nil, err
 			}
 		}
 
@@ -175,7 +175,7 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 
 			remainderUTXO.ID, err = pooldb.InsertUTXO(q, remainderUTXO)
 			if err != nil {
-				return txs, err
+				return nil, err
 			}
 		}
 	}

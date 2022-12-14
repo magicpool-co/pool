@@ -32,7 +32,7 @@ func New(pooldbClient *dbcl.Client, redisClient *redis.Client, telegramClient *t
 
 func (c *Client) fetchLock(chain string) (*redislock.Lock, error) {
 	ctx := context.Background()
-	key := "payout:" + strings.ToLower(chain) + ":prep"
+	key := "tx:" + strings.ToLower(chain) + ":prep"
 	lock, err := c.locker.Obtain(ctx, key, time.Minute*15, nil)
 	if err != nil {
 		if err != redislock.ErrNotObtained {
