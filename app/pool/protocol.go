@@ -63,21 +63,10 @@ func (p *Pool) routeRequest(req *rpc.Request) ProtocolHandler {
 		}
 	}
 
-	return p.logMethod
+	return nil
 }
 
 /* protocol functions */
-
-func (p *Pool) logMethod(c *stratum.Conn, req *rpc.Request) error {
-	data, err := json.Marshal(req)
-	if err != nil {
-		return err
-	}
-
-	p.logger.Info(fmt.Sprintf("recieved unknown request: %s: %s", req.Method, data))
-
-	return nil
-}
 
 func (p *Pool) subscribe(c *stratum.Conn, req *rpc.Request) error {
 	if len(req.Params) > 0 {

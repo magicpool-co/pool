@@ -82,7 +82,9 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 }
 
 func (node Node) fetchBlockWithCache(hash string, cache *blockCache) (*Block, error) {
-	if cache != nil {
+	if hash == "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" {
+		return nil, fmt.Errorf("block not yet set")
+	} else if cache != nil {
 		block := cache.get(hash)
 		if block != nil {
 			return block, nil
@@ -132,7 +134,7 @@ func (node Node) getRewardsFromBlock(block *Block, cache *blockCache) ([]*Transa
 		for _, childHash := range childrenHashes {
 			child, err := node.fetchBlockWithCache(childHash, cache)
 			if err != nil {
-				return nil, nil, nil, err
+				return nil, nil, nil, fmt.Errorf("a: %v", err)
 			} else if child == nil {
 				continue
 			} else if !child.IsChainBlock {
@@ -224,7 +226,7 @@ func (node Node) GetBlocksByHash(startHash string, limit uint64) ([]*tsdb.RawBlo
 		for _, hash := range pendingHashes {
 			block, err := node.fetchBlockWithCache(hash, cache)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("b: %v", err)
 			} else if block == nil || idx[hash] {
 				continue
 			} else if block.BlueScore < minPrimaryBlueScore || block.BlueScore > maxPrimaryBlueScore {
