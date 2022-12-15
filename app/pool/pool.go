@@ -149,13 +149,20 @@ func (p *Pool) startJobNotify() {
 
 			if isNew {
 				timer.Reset(time.Minute * 10)
+
 				err = p.redis.AddShareIndexHeight(p.chain, job.Height.Value())
 				if err != nil {
 					p.logger.Error(err)
 				}
 			}
 		case <-timer.C:
-			p.logger.Error(fmt.Errorf("have not recieved new job in past 10 minutes"))
+			timer.Reset(time.Minute * 10)
+			job := p.jobManager.LatestJob()
+			if job != nil {
+				p.logger.Error(fmt.Errorf("have not recieved new job in past 10 minutes: %s", job.HeaderHash.Hex()))
+			} else {
+				p.logger.Error(fmt.Errorf("have not recieved new job in past 10 minutes"))
+			}
 		}
 	}
 }
