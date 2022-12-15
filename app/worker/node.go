@@ -77,21 +77,24 @@ type NodeStatusJob struct {
 func (j *NodeStatusJob) Run() {
 	defer j.logger.RecoverPanic()
 
+	var didObtainLock bool
 	ctx := context.Background()
 	lock, err := j.locker.Obtain(ctx, "cron:nodestatus", time.Minute*5, nil)
 	if err != nil {
 		if err != redislock.ErrNotObtained {
 			j.logger.Error(err)
+			return
 		}
-		return
+	} else {
+		defer lock.Release(ctx)
+		didObtainLock = true
 	}
-	defer lock.Release(ctx)
 
 	for _, node := range j.nodes {
 		hostIDs, heights, syncings, errs := node.PingHosts()
-		for i := range heights {
+		for i := range hostIDs {
 			if errs[i] != nil {
-				j.logger.Error(err)
+				j.logger.Error(fmt.Errorf("status: %v", err))
 				continue
 			}
 
@@ -101,17 +104,19 @@ func (j *NodeStatusJob) Run() {
 				region = parts[2]
 			}
 
-			poolNode := &pooldb.Node{
-				URL:    hostIDs[i],
-				Active: true,
-				Height: types.Uint64Ptr(heights[i]),
-				Synced: !syncings[i],
-			}
+			if didObtainLock {
+				poolNode := &pooldb.Node{
+					URL:    hostIDs[i],
+					Active: true,
+					Height: types.Uint64Ptr(heights[i]),
+					Synced: !syncings[i],
+				}
 
-			cols := []string{"active", "synced", "height"}
-			err := pooldb.UpdateNode(j.pooldb.Writer(), poolNode, cols)
-			if err != nil {
-				j.logger.Error(err)
+				cols := []string{"active", "synced", "height"}
+				err := pooldb.UpdateNode(j.pooldb.Writer(), poolNode, cols)
+				if err != nil {
+					j.logger.Error(err)
+				}
 			}
 
 			if j.metrics != nil {

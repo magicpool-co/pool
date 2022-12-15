@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	grpcTimeout     = time.Second * 5
 	grpcDialTimeout = time.Second * 2
 )
 

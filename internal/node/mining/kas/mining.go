@@ -302,11 +302,11 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *ty
 				now := time.Now()
 				template, hostID, err := node.getBlockTemplate("")
 				if err != nil {
-					node.logger.Error(fmt.Errorf("kas: %v", err))
+					node.logger.Error(err)
 				} else {
 					job, err := node.parseBlockTemplate(template)
 					if err != nil {
-						node.logger.Error(fmt.Errorf("kas: %v", err))
+						node.logger.Error(err)
 					} else if job.Header.Hex() != lastHash || now.After(lastJob.Add(staticInterval)) {
 						job.HostID = hostID
 						lastHash = job.Header.Hex()

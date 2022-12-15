@@ -60,6 +60,28 @@ func NewClient(url string, timeout time.Duration) (*Client, error) {
 	return client, nil
 }
 
+// withGRPCTimeout runs f and returns its error.  If the timeout elapses first,
+// it returns a context deadline exceeded error instead.
+func (c *Client) sendWithTimeout(request *KaspadMessage) error {
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- c.stream.Send(request)
+		close(errChan)
+	}()
+
+	timer := time.NewTimer(c.timeout)
+	select {
+	case <-timer.C:
+		go c.Reconnect()
+		return fmt.Errorf("context deadline exceeded")
+	case err := <-errChan:
+		if !timer.Stop() {
+			<-timer.C
+		}
+		return err
+	}
+}
+
 // Send is a helper function that sends the given request to the
 // RPC server, accepts the first response that arrives back, and
 // returns the response
@@ -74,7 +96,7 @@ func (c *Client) Send(raw interface{}) (interface{}, error) {
 		}
 	}
 
-	err := c.stream.Send(request)
+	err := c.sendWithTimeout(request)
 	if err != nil {
 		return nil, err
 	}
