@@ -122,7 +122,7 @@ func (node Node) getRewardsFromBlock(block *Block, cache *blockCache) ([]*Transa
 		tx := block.Transactions[0]
 		if len(tx.Outputs) == len(block.MergeSetBluesHashes)+1 {
 			mergeTx = tx
-			mergeIndex = 0
+			mergeIndex = uint32(len(tx.Outputs))
 			mergeValue = tx.Outputs[len(tx.Outputs)-1].Amount
 		}
 	}
