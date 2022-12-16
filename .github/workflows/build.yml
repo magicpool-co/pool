@@ -59,7 +59,7 @@ jobs:
       matrix:
         app: [pool]
         region: [us-west-2, eu-central-1]
-        chain: [kas]
+        chain: [flux]
         include:
           - region: eu-west-1
             app: worker

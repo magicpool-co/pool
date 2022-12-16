@@ -159,7 +159,14 @@ func (p *Pool) startJobNotify() {
 			timer.Reset(time.Minute * 10)
 			job := p.jobManager.LatestJob()
 			if job != nil {
-				p.logger.Error(fmt.Errorf("have not recieved new job in past 10 minutes: %s %s", job.HeaderHash.Hex(), job.HostID))
+				var hash string
+				if job.HeaderHash != nil {
+					hash = job.HeaderHash.Hex()
+				} else if job.CoinbaseTxID != nil {
+					hash = job.CoinbaseTxID.Hex()
+				}
+
+				p.logger.Error(fmt.Errorf("have not recieved new job in past 10 minutes: %s %s", hash, job.HostID))
 			} else {
 				p.logger.Error(fmt.Errorf("have not recieved new job in past 10 minutes"))
 			}
