@@ -120,7 +120,7 @@ func (node Node) getRewardsFromBlock(block *Block, cache *blockCache) ([]*Transa
 	var mergeValue uint64
 	if block.IsChainBlock {
 		tx := block.Transactions[0]
-		if len(block.MergeSetBluesHashes) == len(tx.Outputs)+1 {
+		if len(tx.Outputs) == len(block.MergeSetBluesHashes)+1 {
 			mergeTx = tx
 			mergeIndex = 0
 			mergeValue = tx.Outputs[len(tx.Outputs)-1].Amount
