@@ -94,7 +94,7 @@ func (j *NodeStatusJob) Run() {
 		hostIDs, heights, syncings, errs := node.PingHosts()
 		for i := range hostIDs {
 			if errs[i] != nil {
-				j.logger.Error(fmt.Errorf("status: %v", err))
+				j.logger.Error(errs[i])
 				continue
 			}
 
