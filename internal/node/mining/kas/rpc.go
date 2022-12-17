@@ -220,7 +220,7 @@ func (node Node) submitBlock(hostID string, block *Block) error {
 
 		obj := res.GetSubmitBlockResponse()
 		if obj == nil {
-			return fmt.Errorf("empty submit block response")
+			return nil
 		} else if err = handleRPCError(method, obj.Error); err != nil {
 			return fmt.Errorf("%v: %s", err, obj.RejectReason.String())
 		} else if obj.RejectReason != 0 {
