@@ -2,6 +2,7 @@ package kas
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/magicpool-co/pool/internal/node/mining/kas/mock"
 	"github.com/magicpool-co/pool/internal/node/mining/kas/protowire"
@@ -147,6 +148,9 @@ func (node Node) getBlock(hostID, hash string, includeTxs bool) (*Block, error) 
 		} else {
 			res, _, err = node.execAsGRPCSticky(hostID, method, req)
 		}
+		if err != nil {
+			return nil, err
+		}
 
 		obj = res.GetGetBlockResponse()
 		if obj == nil {
@@ -155,6 +159,10 @@ func (node Node) getBlock(hostID, hash string, includeTxs bool) (*Block, error) 
 			return nil, err
 		} else if obj.Block == nil {
 			return nil, fmt.Errorf("unable to find block: %s", hash)
+		} else if obj.Block.VerboseData == nil {
+			return nil, fmt.Errorf("unable to find block: VerboseData: %s", hash)
+		} else if obj.Block.VerboseData.Hash != hash {
+			return nil, fmt.Errorf("hash mismatch on GetBlock: have %s, want %s", obj.Block.VerboseData.Hash, hash)
 		}
 	}
 
@@ -203,32 +211,35 @@ func (node Node) getBlockTemplate(extraData string) (*Block, string, error) {
 func (node Node) submitBlock(hostID string, block *Block) error {
 	const method = "submitBlock"
 
+	var err error
 	if !node.mocked {
-		req := &protowire.KaspadMessage{
-			Payload: &protowire.KaspadMessage_SubmitBlockRequest{
-				SubmitBlockRequest: &protowire.SubmitBlockRequestMessage{
-					Block:             blockToProtowire(block),
-					AllowNonDAABlocks: false,
+		for i := 0; i < 5; i++ {
+			req := &protowire.KaspadMessage{
+				Payload: &protowire.KaspadMessage_SubmitBlockRequest{
+					SubmitBlockRequest: &protowire.SubmitBlockRequestMessage{
+						Block:             blockToProtowire(block),
+						AllowNonDAABlocks: false,
+					},
 				},
-			},
-		}
+			}
 
-		res, _, err := node.execAsGRPCSticky(hostID, method, req)
-		if err != nil {
-			return err
-		}
+			var res *protowire.KaspadMessage
+			res, _, err = node.execAsGRPCSticky(hostID, method, req)
+			if err != nil {
+				time.Sleep(time.Millisecond * 100)
+				continue
+			}
 
-		obj := res.GetSubmitBlockResponse()
-		if obj == nil {
-			return nil
-		} else if err = handleRPCError(method, obj.Error); err != nil {
-			return fmt.Errorf("%v: %s", err, obj.RejectReason.String())
-		} else if obj.RejectReason != 0 {
-			return fmt.Errorf("rejected block: %s", obj.RejectReason.String())
+			obj := res.GetSubmitBlockResponse()
+			if obj == nil {
+				return nil
+			} else if err = handleRPCError(method, obj.Error); err != nil {
+				return fmt.Errorf("%v: %s", err, obj.RejectReason.String())
+			}
 		}
 	}
 
-	return nil
+	return err
 }
 
 func (node Node) getBalanceByAddress(address string) (uint64, error) {
@@ -261,7 +272,7 @@ func (node Node) getBalanceByAddress(address string) (uint64, error) {
 	return obj.Balance, nil
 }
 
-func (node Node) GetUtxosByAddress(address string) ([]*protowire.UtxosByAddressesEntry, error) {
+func (node Node) getUtxosByAddress(address string) ([]*protowire.UtxosByAddressesEntry, error) {
 	const method = "getUtxosByAddresses"
 
 	if node.mocked {

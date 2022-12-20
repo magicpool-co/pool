@@ -25,6 +25,7 @@ func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel
 	var (
 		port            = 16110
 		hostHealthCheck = &hostpool.GRPCHealthCheck{
+			Interval: time.Second * 5,
 			Request: &protowire.KaspadMessage{
 				Payload: &protowire.KaspadMessage_GetSelectedTipHashRequest{
 					GetSelectedTipHashRequest: &protowire.GetSelectedTipHashRequestMessage{},
@@ -38,7 +39,7 @@ func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel
 	}
 
 	factory := func(url string, timeout time.Duration) (hostpool.GRPCClient, error) {
-		return protowire.NewClient(strings.ReplaceAll(url, "http://", ""), timeout)
+		return protowire.NewClient(strings.ReplaceAll(url, "http://", ""), timeout, logger)
 	}
 
 	host := hostpool.NewGRPCPool(context.Background(), factory, logger, hostHealthCheck, tunnel)

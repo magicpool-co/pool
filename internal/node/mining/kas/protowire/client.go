@@ -1,152 +1,139 @@
-//go:generate protoc --go_out=. --go-grpc_out=. --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative rpc.proto messages.proto
-
 package protowire
 
 import (
-	"context"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"time"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/encoding/gzip"
+	"github.com/magicpool-co/pool/internal/log"
 )
 
-// GRPCClient is a gRPC-based RPC client
 type Client struct {
 	url            string
 	timeout        time.Duration
+	mu             sync.RWMutex
+	logger         *log.Logger
+	conn           *conn
+	router         *router
 	isConnected    uint32
 	isReconnecting uint32
-
-	conn   *grpc.ClientConn
-	stream RPC_MessageStreamClient
+	isClosed       uint32
 }
 
-var opts = []grpc.CallOption{
-	grpc.UseCompressor(gzip.Name),
-	grpc.MaxCallRecvMsgSize(1024 * 1024 * 1024),
-	grpc.MaxCallSendMsgSize(1024 * 1024 * 1024),
-}
+func NewClient(url string, timeout time.Duration, logger *log.Logger) (*Client, error) {
+	c := &Client{
+		url:     url,
+		timeout: timeout,
+		logger:  logger,
+	}
 
-func newGRPCClientConn(url string, timeout time.Duration) (*grpc.ClientConn, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	return grpc.DialContext(ctx, url, grpc.WithInsecure(), grpc.WithBlock())
-}
-
-func NewClient(url string, timeout time.Duration) (*Client, error) {
-	conn, err := newGRPCClientConn(url, timeout)
+	err := c.connect()
 	if err != nil {
 		return nil, err
 	}
 
-	rpcClient := NewRPCClient(conn)
-	stream, err := rpcClient.MessageStream(context.Background(), opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	client := &Client{
-		url:         url,
-		timeout:     timeout,
-		isConnected: 1,
-
-		conn:   conn,
-		stream: stream,
-	}
-
-	return client, nil
+	return c, nil
 }
 
-// withGRPCTimeout runs f and returns its error.  If the timeout elapses first,
-// it returns a context deadline exceeded error instead.
-func (c *Client) sendWithTimeout(request *KaspadMessage) error {
-	errChan := make(chan error, 1)
-	go func() {
-		errChan <- c.stream.Send(request)
-		close(errChan)
-	}()
-
-	timer := time.NewTimer(c.timeout)
-	select {
-	case <-timer.C:
-		go c.Reconnect()
-		return fmt.Errorf("context deadline exceeded")
-	case err := <-errChan:
-		if !timer.Stop() {
-			<-timer.C
+func (c *Client) disconnectHandler() {
+	atomic.StoreUint32(&c.isConnected, 0)
+	if atomic.LoadUint32(&c.isClosed) == 0 {
+		err := c.disconnect()
+		if err != nil {
+			c.logger.Error(fmt.Errorf("kaspad grpc: disconnect: %v", err))
 		}
+
+		err = c.Reconnect()
+		if err != nil {
+			c.logger.Error(fmt.Errorf("kaspad grpc: reconnect: %v", err))
+		}
+	}
+}
+
+func (c *Client) errorHandler(err error) {
+	c.logger.Error(fmt.Errorf("kaspad grpc: err: %v", err))
+	c.disconnectHandler()
+}
+
+func (c *Client) connect() error {
+	rtr := newRouter()
+	grpcConn, err := newConn(c.url, c.timeout, rtr, c.logger, c.disconnectHandler, c.errorHandler)
+	if err != nil {
 		return err
 	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.router = rtr
+	c.conn = grpcConn
+	atomic.StoreUint32(&c.isConnected, 1)
+
+	return nil
 }
 
-// Send is a helper function that sends the given request to the
-// RPC server, accepts the first response that arrives back, and
-// returns the response
+func (c *Client) disconnect() error {
+	return c.conn.disconnect()
+}
+
 func (c *Client) Send(raw interface{}) (interface{}, error) {
-	request, ok := raw.(*KaspadMessage)
+	req, ok := raw.(*KaspadMessage)
 	if !ok {
-		return nil, fmt.Errorf("unable to cast raw object as *KaspadMessage")
+		return nil, ErrUnknownMessage
 	} else if atomic.LoadUint32(&c.isConnected) != 1 {
-		err := c.Reconnect()
-		if err != nil {
-			return nil, err
-		}
+		return nil, ErrClientNotConnected
 	}
 
-	err := c.sendWithTimeout(request)
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	err := c.router.outgoing.enqueue(req)
 	if err != nil {
 		return nil, err
 	}
 
-	return c.stream.Recv()
+	cmd := req.getCmd()
+	rte, ok := c.router.incoming[cmd]
+	if !ok {
+		return nil, ErrRouteNotFound
+	}
+
+	timer := time.NewTimer(c.timeout)
+	for {
+		select {
+		case <-timer.C:
+			return nil, ErrRouteTimedOut
+		case res, ok := <-rte.ch:
+			if !ok {
+				return nil, ErrRouteClosed
+			}
+			return res, nil
+		}
+	}
 }
 
-// Disconnects and from the RPC server
 func (c *Client) Reconnect() error {
-	swapped := atomic.CompareAndSwapUint32(&c.isReconnecting, 0, 1)
-	if !swapped {
-		timer := time.NewTimer(time.Millisecond * 500)
-		for {
-			select {
-			case <-timer.C:
-				reconnecting := atomic.LoadUint32(&c.isReconnecting)
-				connected := atomic.LoadUint32(&c.isConnected)
-
-				if reconnecting == 0 && connected == 1 {
-					return nil
-				}
-				return fmt.Errorf("reconnecting client")
-			}
-		}
+	if atomic.LoadUint32(&c.isClosed) == 1 {
+		return fmt.Errorf("cannot reconnect from a closed client")
+	} else if !atomic.CompareAndSwapUint32(&c.isReconnecting, 0, 1) {
+		return nil
 	}
 	defer atomic.StoreUint32(&c.isReconnecting, 0)
 
-	connected := atomic.CompareAndSwapUint32(&c.isConnected, 1, 0)
-	if connected {
-		err := c.stream.CloseSend()
-		atomic.StoreUint32(&c.isConnected, 0)
+	if atomic.LoadUint32(&c.isConnected) == 1 {
+		err := c.disconnect()
 		if err != nil {
 			return err
 		}
 	}
 
-	// try three times before disconnecting for good
 	var err error
 	for i := 0; i < 3; i++ {
-		var newClient *Client
-		newClient, err = NewClient(c.url, c.timeout)
-		if err != nil {
-			continue
+		err = c.connect()
+		if err == nil {
+			return nil
 		}
-
-		c.conn.Close()
-		c.conn = newClient.conn
-		c.stream = newClient.stream
-		atomic.StoreUint32(&c.isConnected, 1)
-		break
 	}
 
 	return err

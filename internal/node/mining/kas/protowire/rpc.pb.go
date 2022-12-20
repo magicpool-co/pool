@@ -2366,171 +2366,6 @@ func (x *GetBalanceByAddressResponseMessage) GetError() *RPCError {
 	return nil
 }
 
-type GetBalancesByAddressesRequestMessage struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Addresses []string `protobuf:"bytes,1,rep,name=addresses,proto3" json:"addresses,omitempty"`
-}
-
-func (x *GetBalancesByAddressesRequestMessage) Reset() {
-	*x = GetBalancesByAddressesRequestMessage{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_rpc_proto_msgTypes[36]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *GetBalancesByAddressesRequestMessage) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetBalancesByAddressesRequestMessage) ProtoMessage() {}
-
-func (x *GetBalancesByAddressesRequestMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[36]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetBalancesByAddressesRequestMessage.ProtoReflect.Descriptor instead.
-func (*GetBalancesByAddressesRequestMessage) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{36}
-}
-
-func (x *GetBalancesByAddressesRequestMessage) GetAddresses() []string {
-	if x != nil {
-		return x.Addresses
-	}
-	return nil
-}
-
-type BalancesByAddressEntry struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Address string    `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Balance uint64    `protobuf:"varint,2,opt,name=balance,proto3" json:"balance,omitempty"`
-	Error   *RPCError `protobuf:"bytes,1000,opt,name=error,proto3" json:"error,omitempty"`
-}
-
-func (x *BalancesByAddressEntry) Reset() {
-	*x = BalancesByAddressEntry{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_rpc_proto_msgTypes[37]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *BalancesByAddressEntry) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BalancesByAddressEntry) ProtoMessage() {}
-
-func (x *BalancesByAddressEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[37]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BalancesByAddressEntry.ProtoReflect.Descriptor instead.
-func (*BalancesByAddressEntry) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{37}
-}
-
-func (x *BalancesByAddressEntry) GetAddress() string {
-	if x != nil {
-		return x.Address
-	}
-	return ""
-}
-
-func (x *BalancesByAddressEntry) GetBalance() uint64 {
-	if x != nil {
-		return x.Balance
-	}
-	return 0
-}
-
-func (x *BalancesByAddressEntry) GetError() *RPCError {
-	if x != nil {
-		return x.Error
-	}
-	return nil
-}
-
-type GetBalancesByAddressesResponseMessage struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Entries []*BalancesByAddressEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
-	Error   *RPCError                 `protobuf:"bytes,1000,opt,name=error,proto3" json:"error,omitempty"`
-}
-
-func (x *GetBalancesByAddressesResponseMessage) Reset() {
-	*x = GetBalancesByAddressesResponseMessage{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_rpc_proto_msgTypes[38]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *GetBalancesByAddressesResponseMessage) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetBalancesByAddressesResponseMessage) ProtoMessage() {}
-
-func (x *GetBalancesByAddressesResponseMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[38]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetBalancesByAddressesResponseMessage.ProtoReflect.Descriptor instead.
-func (*GetBalancesByAddressesResponseMessage) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{38}
-}
-
-func (x *GetBalancesByAddressesResponseMessage) GetEntries() []*BalancesByAddressEntry {
-	if x != nil {
-		return x.Entries
-	}
-	return nil
-}
-
-func (x *GetBalancesByAddressesResponseMessage) GetError() *RPCError {
-	if x != nil {
-		return x.Error
-	}
-	return nil
-}
-
 var File_rpc_proto protoreflect.FileDescriptor
 
 var file_rpc_proto_rawDesc = []byte{
@@ -2880,31 +2715,10 @@ var file_rpc_proto_rawDesc = []byte{
 	0x07, 0x62, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x12, 0x2a, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f,
 	0x72, 0x18, 0xe8, 0x07, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
 	0x77, 0x69, 0x72, 0x65, 0x2e, 0x52, 0x50, 0x43, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x52, 0x05, 0x65,
-	0x72, 0x72, 0x6f, 0x72, 0x22, 0x44, 0x0a, 0x24, 0x47, 0x65, 0x74, 0x42, 0x61, 0x6c, 0x61, 0x6e,
-	0x63, 0x65, 0x73, 0x42, 0x79, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x65, 0x73, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x1c, 0x0a, 0x09,
-	0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52,
-	0x09, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x65, 0x73, 0x22, 0x78, 0x0a, 0x16, 0x42, 0x61,
-	0x6c, 0x61, 0x6e, 0x63, 0x65, 0x73, 0x42, 0x79, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x45,
-	0x6e, 0x74, 0x72, 0x79, 0x12, 0x18, 0x0a, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x18,
-	0x0a, 0x07, 0x62, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x04, 0x52,
-	0x07, 0x62, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x12, 0x2a, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f,
-	0x72, 0x18, 0xe8, 0x07, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x77, 0x69, 0x72, 0x65, 0x2e, 0x52, 0x50, 0x43, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x52, 0x05, 0x65,
-	0x72, 0x72, 0x6f, 0x72, 0x22, 0x90, 0x01, 0x0a, 0x25, 0x47, 0x65, 0x74, 0x42, 0x61, 0x6c, 0x61,
-	0x6e, 0x63, 0x65, 0x73, 0x42, 0x79, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x65, 0x73, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x3b,
-	0x0a, 0x07, 0x65, 0x6e, 0x74, 0x72, 0x69, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32,
-	0x21, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x77, 0x69, 0x72, 0x65, 0x2e, 0x42, 0x61, 0x6c, 0x61,
-	0x6e, 0x63, 0x65, 0x73, 0x42, 0x79, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x45, 0x6e, 0x74,
-	0x72, 0x79, 0x52, 0x07, 0x65, 0x6e, 0x74, 0x72, 0x69, 0x65, 0x73, 0x12, 0x2a, 0x0a, 0x05, 0x65,
-	0x72, 0x72, 0x6f, 0x72, 0x18, 0xe8, 0x07, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x77, 0x69, 0x72, 0x65, 0x2e, 0x52, 0x50, 0x43, 0x45, 0x72, 0x72, 0x6f, 0x72,
-	0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x42, 0x26, 0x5a, 0x24, 0x67, 0x69, 0x74, 0x68, 0x75,
-	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6b, 0x61, 0x73, 0x70, 0x61, 0x6e, 0x65, 0x74, 0x2f, 0x6b,
-	0x61, 0x73, 0x70, 0x61, 0x64, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x77, 0x69, 0x72, 0x65, 0x62,
-	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x72, 0x72, 0x6f, 0x72, 0x42, 0x26, 0x5a, 0x24, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63,
+	0x6f, 0x6d, 0x2f, 0x6b, 0x61, 0x73, 0x70, 0x61, 0x6e, 0x65, 0x74, 0x2f, 0x6b, 0x61, 0x73, 0x70,
+	0x61, 0x64, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x77, 0x69, 0x72, 0x65, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -2920,7 +2734,7 @@ func file_rpc_proto_rawDescGZIP() []byte {
 }
 
 var file_rpc_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
+var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_rpc_proto_goTypes = []interface{}{
 	(SubmitBlockResponseMessage_RejectReason)(0), // 0: protowire.SubmitBlockResponseMessage.RejectReason
 	(*RPCError)(nil),                                              // 1: protowire.RPCError
@@ -2959,9 +2773,6 @@ var file_rpc_proto_goTypes = []interface{}{
 	(*UtxosByAddressesEntry)(nil),                                 // 34: protowire.UtxosByAddressesEntry
 	(*GetBalanceByAddressRequestMessage)(nil),                     // 35: protowire.GetBalanceByAddressRequestMessage
 	(*GetBalanceByAddressResponseMessage)(nil),                    // 36: protowire.GetBalanceByAddressResponseMessage
-	(*GetBalancesByAddressesRequestMessage)(nil),                  // 37: protowire.GetBalancesByAddressesRequestMessage
-	(*BalancesByAddressEntry)(nil),                                // 38: protowire.BalancesByAddressEntry
-	(*GetBalancesByAddressesResponseMessage)(nil),                 // 39: protowire.GetBalancesByAddressesResponseMessage
 }
 var file_rpc_proto_depIdxs = []int32{
 	3,  // 0: protowire.RpcBlock.header:type_name -> protowire.RpcBlockHeader
@@ -2996,14 +2807,11 @@ var file_rpc_proto_depIdxs = []int32{
 	10, // 29: protowire.UtxosByAddressesEntry.outpoint:type_name -> protowire.RpcOutpoint
 	11, // 30: protowire.UtxosByAddressesEntry.utxoEntry:type_name -> protowire.RpcUtxoEntry
 	1,  // 31: protowire.GetBalanceByAddressResponseMessage.error:type_name -> protowire.RPCError
-	1,  // 32: protowire.BalancesByAddressEntry.error:type_name -> protowire.RPCError
-	38, // 33: protowire.GetBalancesByAddressesResponseMessage.entries:type_name -> protowire.BalancesByAddressEntry
-	1,  // 34: protowire.GetBalancesByAddressesResponseMessage.error:type_name -> protowire.RPCError
-	35, // [35:35] is the sub-list for method output_type
-	35, // [35:35] is the sub-list for method input_type
-	35, // [35:35] is the sub-list for extension type_name
-	35, // [35:35] is the sub-list for extension extendee
-	0,  // [0:35] is the sub-list for field type_name
+	32, // [32:32] is the sub-list for method output_type
+	32, // [32:32] is the sub-list for method input_type
+	32, // [32:32] is the sub-list for extension type_name
+	32, // [32:32] is the sub-list for extension extendee
+	0,  // [0:32] is the sub-list for field type_name
 }
 
 func init() { file_rpc_proto_init() }
@@ -3444,42 +3252,6 @@ func file_rpc_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_proto_msgTypes[36].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetBalancesByAddressesRequestMessage); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_rpc_proto_msgTypes[37].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BalancesByAddressEntry); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_rpc_proto_msgTypes[38].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetBalancesByAddressesResponseMessage); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -3487,7 +3259,7 @@ func file_rpc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_rpc_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   39,
+			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
