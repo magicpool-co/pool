@@ -230,12 +230,13 @@ func (node Node) submitBlock(hostID string, block *Block) error {
 				continue
 			}
 
-			obj := res.GetSubmitBlockResponse()
-			if obj == nil {
-				return nil
-			} else if err = handleRPCError(method, obj.Error); err != nil {
-				return fmt.Errorf("%v: %s", err, obj.RejectReason.String())
+			if obj := res.GetSubmitBlockResponse(); obj != nil {
+				if err := handleRPCError(method, obj.Error); err != nil {
+					return fmt.Errorf("%v: %s", err, obj.RejectReason.String())
+				}
 			}
+
+			return nil
 		}
 	}
 

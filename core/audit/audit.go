@@ -18,7 +18,7 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 		// subtract the 1 ERG that is sitting as excess in the wallet
 		walletBalance.Sub(walletBalance, new(big.Int).SetUint64(1_000_000_000))
 	} else if chain == "KAS" {
-		walletBalance.Sub(walletBalance, new(big.Int).SetUint64(29366476791))
+		walletBalance.Sub(walletBalance, new(big.Int).SetUint64(29366476791+58733053582))
 	}
 
 	utxoBalance, err := pooldb.GetSumUnspentUTXOValueByChain(pooldbClient.Reader(), chain)
