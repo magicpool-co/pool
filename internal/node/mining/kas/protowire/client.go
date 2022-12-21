@@ -82,7 +82,9 @@ func (c *Client) Send(raw interface{}) (interface{}, error) {
 	if !ok {
 		return nil, ErrUnknownMessage
 	} else if atomic.LoadUint32(&c.isConnected) != 1 {
-		return nil, ErrClientNotConnected
+		var err = ErrClientNotConnected
+		err = c.Reconnect()
+		return nil, err
 	}
 
 	c.mu.RLock()
