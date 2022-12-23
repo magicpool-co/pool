@@ -212,7 +212,7 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 	accepted, err := node.sendSubmitWork(job.HostID, work.Nonce.PrefixedHex(),
 		work.Hash.PrefixedHex(), work.MixDigest.PrefixedHex())
 	if err != nil {
-		return types.AcceptedShare, hash, nil, nil
+		return types.AcceptedShare, hash, nil, err
 	} else if !accepted {
 		return types.AcceptedShare, hash, nil, fmt.Errorf("block not accepted")
 	}
