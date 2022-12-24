@@ -53,7 +53,7 @@ type GRPCHealthCheck struct {
 // health check interval defaults to one minute, the timeout defaults to
 func NewGRPCPool(ctx context.Context, factory GRPCClientFactory, logger *log.Logger, healthCheck *GRPCHealthCheck, tunnel *sshtunnel.SSHTunnel) *GRPCPool {
 	if healthCheck.Interval == 0 {
-		healthCheck.Interval = time.Second * 15
+		healthCheck.Interval = time.Second * 30
 	}
 	if healthCheck.Timeout == 0 {
 		healthCheck.Timeout = time.Second * 2

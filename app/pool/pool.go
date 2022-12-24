@@ -131,6 +131,20 @@ func (p *Pool) getCurrentInterval(reset bool) string {
 	return interval
 }
 
+func (p *Pool) startPingHosts() {
+	defer p.recoverPanic()
+
+	ticker := time.NewTicker(time.Second * 30)
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		case <-ticker.C:
+			p.node.PingHosts()
+		}
+	}
+}
+
 func (p *Pool) startJobNotify() {
 	defer p.recoverPanic()
 
@@ -325,6 +339,7 @@ func (p *Pool) Port() int {
 }
 
 func (p *Pool) Serve() {
+	go p.startPingHosts()
 	go p.startJobNotify()
 	go p.startShareIndexClearer()
 	go p.startReportedHashratePusher()

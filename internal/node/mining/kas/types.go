@@ -25,7 +25,6 @@ func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel
 	var (
 		port            = 16110
 		hostHealthCheck = &hostpool.GRPCHealthCheck{
-			Interval: time.Second * 5,
 			Request: &protowire.KaspadMessage{
 				Payload: &protowire.KaspadMessage_GetSelectedTipHashRequest{
 					GetSelectedTipHashRequest: &protowire.GetSelectedTipHashRequestMessage{},
