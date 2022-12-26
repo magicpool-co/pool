@@ -31,6 +31,7 @@ type Options struct {
 	ForceErrorOnResponse bool
 	Flush                bool
 	PollingPeriod        time.Duration
+	PingingPeriod        time.Duration
 	Metrics              *metrics.Client
 }
 
@@ -47,12 +48,14 @@ type Pool struct {
 	node                 types.MiningNode
 
 	pollingPeriod time.Duration
-	jobManager    *JobManager
-	counter       uint64
-	counterMu     sync.Mutex
-	interval      string
-	intervalMu    sync.Mutex
-	intervalDone  uint32
+	pingingPeriod time.Duration
+
+	jobManager   *JobManager
+	counter      uint64
+	counterMu    sync.Mutex
+	interval     string
+	intervalMu   sync.Mutex
+	intervalDone uint32
 
 	reportedMu    sync.Mutex
 	reportedIndex map[string]string
@@ -86,7 +89,9 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 		node:                 node,
 
 		pollingPeriod: opt.PollingPeriod,
-		jobManager:    newJobManager(ctx, node, logger, opt.JobListSize, opt.JobListAgeLimit),
+		pingingPeriod: opt.PingingPeriod,
+
+		jobManager: newJobManager(ctx, node, logger, opt.JobListSize, opt.JobListAgeLimit),
 
 		reportedIndex:  make(map[string]string),
 		lastShareIndex: make(map[string]int64),
@@ -132,9 +137,13 @@ func (p *Pool) getCurrentInterval(reset bool) string {
 }
 
 func (p *Pool) startPingHosts() {
+	if p.pingingPeriod == 0 {
+		return
+	}
+
 	defer p.recoverPanic()
 
-	ticker := time.NewTicker(time.Second * 30)
+	ticker := time.NewTicker(p.pingingPeriod)
 	for {
 		select {
 		case <-p.ctx.Done():

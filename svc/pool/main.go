@@ -39,6 +39,7 @@ var defaultOptions = map[string]*pool.Options{
 		JobListSize:          5,
 		ForceErrorOnResponse: true,
 		PollingPeriod:        time.Millisecond * 100,
+		PingingPeriod:        time.Minute,
 	},
 	"ETC": &pool.Options{
 		Chain:           "ETC",
@@ -75,6 +76,7 @@ var defaultOptions = map[string]*pool.Options{
 		JobListSize:     100,
 		JobListAgeLimit: 12, // could be 18
 		PollingPeriod:   time.Millisecond * 100,
+		PingingPeriod:   time.Second * 30,
 	},
 	"RVN": &pool.Options{
 		Chain:          "RVN",
