@@ -207,6 +207,7 @@ func (p *Pool) startShareIndexClearer() {
 				height, err := strconv.ParseUint(index, 10, 64)
 				if err != nil {
 					p.logger.Error(err)
+					continue
 				} else if !p.jobManager.isExpiredHeight(height) {
 					continue
 				}

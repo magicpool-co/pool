@@ -204,7 +204,7 @@ func (m *JobManager) isExpiredHeight(height uint64) bool {
 	const indexDepth = 50
 
 	oldest := m.jobList.Oldest()
-	if oldest == nil || oldest.Height.Value()-height < indexDepth {
+	if oldest == nil || height-oldest.Height.Value() < indexDepth {
 		return false
 	}
 
