@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -11,10 +12,13 @@ import (
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/metrics"
 	"github.com/magicpool-co/pool/internal/pooldb"
+	"github.com/magicpool-co/pool/internal/telegram"
 	"github.com/magicpool-co/pool/pkg/aws"
+	"github.com/magicpool-co/pool/pkg/aws/autoscaling"
 	"github.com/magicpool-co/pool/pkg/aws/ec2"
 	"github.com/magicpool-co/pool/pkg/aws/ecs"
 	"github.com/magicpool-co/pool/pkg/aws/route53"
+	"github.com/magicpool-co/pool/pkg/aws/sqs"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
@@ -121,6 +125,111 @@ func (j *NodeStatusJob) Run() {
 
 			if j.metrics != nil {
 				j.metrics.SetGauge("node_height", float64(heights[i]), hostIDs[i], node.Chain(), region)
+			}
+		}
+	}
+}
+
+type NodeInstanceChangeJob struct {
+	env      string
+	mainnet  bool
+	locker   *redislock.Client
+	logger   *log.Logger
+	aws      *aws.Client
+	telegram *telegram.Client
+}
+
+func (j *NodeInstanceChangeJob) Run() {
+	defer j.logger.RecoverPanic()
+
+	ctx := context.Background()
+	lock, err := j.locker.Obtain(ctx, "cron:nodeinstancechange", time.Minute*5, nil)
+	if err != nil {
+		if err != redislock.ErrNotObtained {
+			j.logger.Error(err)
+		}
+		return
+	}
+	defer lock.Release(ctx)
+
+	prefix := "mainnet"
+	if !j.mainnet {
+		prefix = "testnet"
+	}
+
+	zoneID, err := route53.GetZoneIDByName(j.aws, zoneName)
+	if err != nil {
+		j.logger.Error(err)
+		return
+	}
+
+	for _, region := range []string{"eu-west-1", "eu-central-1", "us-west-2"} {
+		client, err := aws.NewSession(region, "")
+		if err != nil {
+			j.logger.Error(err)
+			continue
+		}
+
+		queue := fmt.Sprintf("%s-full-node-asg-events-%s", prefix, region)
+		msgs, err := sqs.PopFromQueue(client, queue)
+		if err != nil {
+			j.logger.Error(err)
+			continue
+		}
+
+		for _, msg := range msgs {
+			asg, ok := msg.Attributes["AutoScalingGroupName"]
+			if !ok {
+				j.logger.Error(fmt.Errorf("no asg name for node instance event"))
+			}
+
+			chain, ok := msg.Attributes["chain"]
+			if !ok {
+				chain = strings.Split(asg, "-")[0]
+			}
+
+			chain = strings.ToLower(chain)
+			if !j.mainnet {
+				chain += "-testnet"
+			}
+
+			var needsRebalance bool
+			switch msg.Attributes["LifecycleTransition"] {
+			case "autoscaling:TEST_NOTIFICATION":
+			case "autoscaling:EC2_INSTANCE_LAUNCHING":
+				needsRebalance = true
+				j.telegram.NotifyNodeInstanceLaunched(chain, region)
+			case "autoscaling:EC2_INSTANCE_TERMINATING":
+				needsRebalance = true
+				j.telegram.NotifyNodeInstanceTerminated(chain, region)
+			default:
+				j.logger.Error(fmt.Errorf("unknown node instance event: %s", msg.Attributes["LifecycleTransition"]))
+			}
+
+			if needsRebalance && asg != "" && chain != "" {
+				ips, err := autoscaling.GetGroupInstanceIPs(client, asg)
+				if err != nil {
+					j.logger.Error(err)
+					continue
+				}
+
+				sort.Strings(ips)
+
+				records := make(map[string]string, len(ips))
+				for i, ip := range ips {
+					key := fmt.Sprintf("node-%d.%s.%s.privatemagicpool.co", i, chain, region)
+					records[key] = ip
+				}
+
+				err = route53.UpdateARecords(j.aws, zoneID, records)
+				if err != nil {
+					j.logger.Error(err)
+				}
+			}
+
+			err := sqs.DeleteFromQueue(client, queue, msg.ID)
+			if err != nil {
+				j.logger.Error(err)
 			}
 		}
 	}

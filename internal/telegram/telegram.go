@@ -142,6 +142,18 @@ func (t *Client) NotifyNewHost(host, env string) error {
 	return t.sendMessage(msg, t.ErrorChatID)
 }
 
+func (t *Client) NotifyNodeInstanceLaunched(chain, region string) error {
+	msg := fmt.Sprintf("node instance launched for `%s` in %s", chain, region)
+
+	return t.sendMessage(msg, t.ErrorChatID)
+}
+
+func (t *Client) NotifyNodeInstanceTerminated(chain, region string) error {
+	msg := fmt.Sprintf("node instance terminated for `%s` in %s", chain, region)
+
+	return t.sendMessage(msg, t.ErrorChatID)
+}
+
 /* info channel */
 
 func (t *Client) NotifyNewBlockCandidate(chain, explorerURL string, height uint64, luck float64) error {

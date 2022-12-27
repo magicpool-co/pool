@@ -22,8 +22,8 @@ func GetARecordIPByName(client *aws.Client, zoneID, name string) (string, error)
 		name += "."
 	}
 
-	route53Svc := route53.New(client.Session())
-	records, err := route53Svc.ListResourceRecordSets(&route53.ListResourceRecordSetsInput{
+	svc := route53.New(client.Session())
+	records, err := svc.ListResourceRecordSets(&route53.ListResourceRecordSetsInput{
 		HostedZoneId:    types.StringPtr(zoneID),
 		StartRecordName: types.StringPtr(name),
 		StartRecordType: types.StringPtr("A"),
@@ -50,8 +50,8 @@ func GetZoneIDByName(client *aws.Client, name string) (string, error) {
 		name += "."
 	}
 
-	route53Svc := route53.New(client.Session())
-	zones, err := route53Svc.ListHostedZonesByName(&route53.ListHostedZonesByNameInput{
+	svc := route53.New(client.Session())
+	zones, err := svc.ListHostedZonesByName(&route53.ListHostedZonesByNameInput{
 		DNSName: types.StringPtr(name),
 	})
 	if err != nil {
@@ -65,4 +65,35 @@ func GetZoneIDByName(client *aws.Client, name string) (string, error) {
 	}
 
 	return "", ErrRecordNotFound
+}
+
+func UpdateARecords(client *aws.Client, zone string, records map[string]string) error {
+	var count int
+	changes := make([]*route53.Change, len(records))
+	for record, ip := range records {
+		changes[count] = &route53.Change{
+			Action: types.StringPtr("UPSERT"),
+			ResourceRecordSet: &route53.ResourceRecordSet{
+				Name: types.StringPtr(record),
+				Type: types.StringPtr("A"),
+				TTL:  types.Int64Ptr(60),
+				ResourceRecords: []*route53.ResourceRecord{
+					&route53.ResourceRecord{
+						Value: types.StringPtr(ip),
+					},
+				},
+			},
+		}
+		count++
+	}
+
+	svc := route53.New(client.Session())
+	_, err := svc.ChangeResourceRecordSets(&route53.ChangeResourceRecordSetsInput{
+		HostedZoneId: types.StringPtr(zone),
+		ChangeBatch: &route53.ChangeBatch{
+			Changes: changes,
+		},
+	})
+
+	return err
 }
