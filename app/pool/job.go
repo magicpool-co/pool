@@ -200,15 +200,17 @@ func (m *JobManager) update(job *types.StratumJob) (bool, error) {
 }
 
 func (m *JobManager) isExpiredHeight(height uint64) bool {
-	// @TODO: this should be handled a better way
-	const indexDepth = 50
+	indexDepth := 50
+	if m.ageLimit > 0 {
+		indexDepth = m.ageLimit
+	}
 
 	oldest := m.jobList.Oldest()
-	if oldest == nil || height-oldest.Height.Value() < indexDepth {
+	if oldest == nil {
 		return false
 	}
 
-	return true
+	return oldest.Height.Value()-indexDepth > height
 }
 
 func (m *JobManager) AddConn(c *stratum.Conn) {
