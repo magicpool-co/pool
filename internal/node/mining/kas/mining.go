@@ -359,7 +359,7 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 		Height:     job.Height.Value(),
 		Hash:       hex.EncodeToString(blockHash),
 		Nonce:      types.Uint64Ptr(work.Nonce.Value()),
-		Difficulty: job.Difficulty.Value() / 2,
+		Difficulty: job.Difficulty.Value(),
 		Pending:    true,
 		Mature:     false,
 		Uncle:      false,
