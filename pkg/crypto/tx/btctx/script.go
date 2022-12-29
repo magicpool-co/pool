@@ -15,8 +15,7 @@ import (
 
 const (
 	// opcodes
-	OP_0 = 0x00
-
+	OP_0           = 0x00
 	OP_DATA_1      = 0x01
 	OP_DATA_20     = 0x14
 	OP_DATA_21     = 0x15
@@ -25,6 +24,7 @@ const (
 	OP_PUSHDATA1   = 0x4c
 	OP_PUSHDATA2   = 0x4d
 	OP_PUSHDATA4   = 0x4e
+	OP_1           = 0x51
 	OP_DUP         = 0x76
 	OP_EQUAL       = 0x87
 	OP_EQUALVERIFY = 0x88
@@ -82,6 +82,13 @@ func compileP2WPKH(pubKeyHash []byte) []byte {
 func compileP2WSH(scriptHash []byte) []byte {
 	return bytes.Join([][]byte{
 		EncodeOpCode(OP_0),
+		EncodeScriptData(scriptHash),
+	}, nil)
+}
+
+func compileP2TR(scriptHash []byte) []byte {
+	return bytes.Join([][]byte{
+		EncodeOpCode(OP_1),
 		EncodeScriptData(scriptHash),
 	}, nil)
 }
@@ -161,7 +168,7 @@ func AddressToScript(addr string, p2pkhPrefix, p2shPrefix []byte, segwit bool) (
 				return compileP2WPKH(witnessProg), nil
 			case 32:
 				if witnessVer == 1 {
-					return nil, fmt.Errorf("taproot not supported")
+					return compileP2TR(witnessProg), nil
 				}
 
 				return compileP2WSH(witnessProg), nil
