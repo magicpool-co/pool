@@ -223,7 +223,9 @@ CREATE TABLE rounds (
 
 	INDEX idx_rounds_chain_id (chain_id),
 	INDEX idx_rounds_miner_id (miner_id),
-	INDEX idx_rounds_chain_id_height (chain_id, height DESC)
+	INDEX idx_rounds_chain_id_height (chain_id, height DESC),
+	INDEX idx_rounds_height (height DESC),
+	INDEX idx_rounds_miner_id_height (miner_id, height DESC)
 );
 
 CREATE TABLE shares (

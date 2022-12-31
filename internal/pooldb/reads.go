@@ -449,7 +449,7 @@ func GetRounds(q dbcl.Querier, page, size uint64) ([]*Round, error) {
 	const query = `SELECT rounds.*, CONCAT(miners.chain_id, ":", miners.address) miner
 	FROM rounds
 	JOIN miners ON rounds.miner_id = miners.id
-	ORDER BY id DESC
+	ORDER BY height DESC
 	LIMIT ? OFFSET ?`
 
 	output := []*Round{}
@@ -475,7 +475,7 @@ func GetRoundsByMiners(q dbcl.Querier, minerIDs []uint64, page, size uint64) ([]
 	JOIN balance_inputs ON rounds.id = balance_inputs.round_id AND balance_inputs.miner_id = shares.miner_id
 	WHERE
 		shares.miner_id IN (?)
-	ORDER BY id DESC
+	ORDER BY height DESC
 	LIMIT ? OFFSET ?`
 
 	if len(minerIDs) == 0 {
