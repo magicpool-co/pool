@@ -354,24 +354,24 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 		address, txids, txFees, err := node.getRewardsFromBlock(block)
 		if err != nil {
 			return err
-		} else if address == node.address {
-			nonce, err := common.HexToUint64(block.Header.PowSolutions.N)
-			if err != nil {
-				return err
-			} else if nonce == types.Uint64Value(round.Nonce) {
-				if len(txids) == 0 {
-					return fmt.Errorf("no txids for round %d", round.ID)
-				}
+		}
 
-				blockReward := getBlockReward(round.Height)
-				blockReward.Add(blockReward, new(big.Int).SetUint64(txFees))
-
-				round.Value = dbcl.NullBigInt{Valid: true, BigInt: blockReward}
-				round.CoinbaseTxID = types.StringPtr(txids[0])
-				round.Hash = hash
-				round.Orphan = false
-				round.CreatedAt = time.Unix(block.Header.Timestamp/1000, 0)
+		nonce, err := common.HexToUint64(block.Header.PowSolutions.N)
+		if err != nil {
+			return err
+		} else if nonce == types.Uint64Value(round.Nonce) {
+			if len(txids) == 0 {
+				return fmt.Errorf("no txids for round %d", round.ID)
 			}
+
+			blockReward := getBlockReward(round.Height)
+			blockReward.Add(blockReward, new(big.Int).SetUint64(txFees))
+
+			round.Value = dbcl.NullBigInt{Valid: true, BigInt: blockReward}
+			round.CoinbaseTxID = types.StringPtr(txids[0])
+			round.Hash = hash
+			round.Orphan = false
+			round.CreatedAt = time.Unix(block.Header.Timestamp/1000, 0)
 		}
 	}
 
@@ -395,9 +395,6 @@ func (node Node) MatureRound(round *pooldb.Round) ([]*pooldb.UTXO, error) {
 	address, txids, feeValue, err := node.getRewardsFromBlock(block)
 	if err != nil {
 		return nil, err
-	} else if address != node.address {
-		round.Orphan = true
-		return nil, nil
 	} else if (feeValue > 0 && len(txids) != 2) || (feeValue == 0 && len(txids) != 1) {
 		return nil, fmt.Errorf("bad txid count for round %d", round.ID)
 	}
