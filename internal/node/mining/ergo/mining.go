@@ -351,7 +351,7 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 			return fmt.Errorf("empty block")
 		}
 
-		address, txids, txFees, err := node.getRewardsFromBlock(block)
+		_, txids, txFees, err := node.getRewardsFromBlock(block)
 		if err != nil {
 			return err
 		}
@@ -392,7 +392,7 @@ func (node Node) MatureRound(round *pooldb.Round) ([]*pooldb.UTXO, error) {
 		return nil, fmt.Errorf("empty block for round %d", round.ID)
 	}
 
-	address, txids, feeValue, err := node.getRewardsFromBlock(block)
+	_, txids, feeValue, err := node.getRewardsFromBlock(block)
 	if err != nil {
 		return nil, err
 	} else if (feeValue > 0 && len(txids) != 2) || (feeValue == 0 && len(txids) != 1) {
