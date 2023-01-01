@@ -142,14 +142,20 @@ func (t *Client) NotifyNewHost(host, env string) error {
 	return t.sendMessage(msg, t.ErrorChatID)
 }
 
-func (t *Client) NotifyNodeInstanceLaunched(chain, region string) error {
+func (t *Client) NotifyNodeInstanceLaunched(chain, region, ip string) error {
 	msg := fmt.Sprintf("node instance launched for `%s` in %s", chain, region)
+	if ip != "" {
+		msg += ": \\(`" + ip + "`\\)"
+	}
 
 	return t.sendMessage(msg, t.ErrorChatID)
 }
 
-func (t *Client) NotifyNodeInstanceTerminated(chain, region string) error {
+func (t *Client) NotifyNodeInstanceTerminated(chain, region, ip string) error {
 	msg := fmt.Sprintf("node instance terminated for `%s` in %s", chain, region)
+	if ip != "" {
+		msg += ": \\(`" + ip + "`\\)"
+	}
 
 	return t.sendMessage(msg, t.ErrorChatID)
 }

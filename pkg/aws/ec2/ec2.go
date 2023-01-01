@@ -11,6 +11,24 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
+func GetInstanceIPByID(client *aws.Client, id string) (string, error) {
+	ec2Svc := ec2.New(client.Session())
+	instances, err := ec2Svc.DescribeInstances(&ec2.DescribeInstancesInput{
+		InstanceIds: []*string{types.StringPtr(id)},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	for _, reservation := range instances.Reservations {
+		for _, instance := range reservation.Instances {
+			return types.StringValue(instance.PrivateIpAddress), nil
+		}
+	}
+
+	return "", fmt.Errorf("unable to find instance from id %s", id)
+}
+
 func GetInstanceIDByIP(client *aws.Client, ip string) (string, error) {
 	ec2Svc := ec2.New(client.Session())
 	instances, err := ec2Svc.DescribeInstances(&ec2.DescribeInstancesInput{

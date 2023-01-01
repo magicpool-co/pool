@@ -193,15 +193,24 @@ func (j *NodeInstanceChangeJob) Run() {
 				chain += "-testnet"
 			}
 
+			var instanceIP string
+			if instanceID, ok := msg.Attributes["EC2InstanceId"]; ok {
+				instanceIP, err = ec2.GetInstanceIPByID(client, instanceID)
+				if err != nil {
+					j.logger.Error(err)
+					continue
+				}
+			}
+
 			var needsRebalance bool
 			switch msg.Attributes["LifecycleTransition"] {
 			case "autoscaling:TEST_NOTIFICATION":
 			case "autoscaling:EC2_INSTANCE_LAUNCHING":
 				needsRebalance = true
-				j.telegram.NotifyNodeInstanceLaunched(chain, region)
+				j.telegram.NotifyNodeInstanceLaunched(chain, region, instanceIP)
 			case "autoscaling:EC2_INSTANCE_TERMINATING":
 				needsRebalance = true
-				j.telegram.NotifyNodeInstanceTerminated(chain, region)
+				j.telegram.NotifyNodeInstanceTerminated(chain, region, instanceIP)
 			default:
 				j.logger.Error(fmt.Errorf("unknown node instance event: %s", msg.Attributes["LifecycleTransition"]))
 			}
