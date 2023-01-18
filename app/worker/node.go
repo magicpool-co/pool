@@ -195,11 +195,7 @@ func (j *NodeInstanceChangeJob) Run() {
 
 			var instanceIP string
 			if instanceID, ok := msg.Attributes["EC2InstanceId"]; ok {
-				instanceIP, err = ec2.GetInstanceIPByID(client, instanceID)
-				if err != nil {
-					j.logger.Error(err)
-					continue
-				}
+				instanceIP, _ = ec2.GetInstanceIPByID(client, instanceID)
 			}
 
 			var needsRebalance bool
