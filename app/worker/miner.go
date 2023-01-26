@@ -74,6 +74,7 @@ func (j *MinerJob) Run() {
 				IPAddress: ipAddress,
 
 				Active:    true,
+				Expired:   false,
 				LastShare: time.Unix(int64(timestamp), 0),
 			}
 			addresses = append(addresses, address)
