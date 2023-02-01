@@ -41,14 +41,19 @@ func parseMiner(miner string) (string, string, error) {
 	parts := strings.Split(miner, ":")
 	if len(parts) != 2 {
 		return "", "", errMinerNotFound
-	} else if !validatePayoutChain(parts[0]) {
-		switch strings.ToLower(parts[0]) {
-		case "kaspa":
-			parts[0] = "KAS"
-			parts[1] = strings.ToLower(parts[0]) + ":" + parts[1]
-		default:
-			return "", "", errChainNotFound
-		}
+	}
+
+	switch strings.ToLower(parts[0]) {
+	case "kaspa":
+		parts[0] = "KAS"
+		parts[1] = miner
+	case "cfx":
+		parts[0] = "CFX"
+		parts[1] = miner
+	}
+
+	if !validatePayoutChain(parts[0]) {
+		return "", "", errChainNotFound
 	}
 
 	return strings.ToUpper(parts[0]), parts[1], nil
