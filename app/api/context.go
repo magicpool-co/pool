@@ -1,6 +1,7 @@
 package api
 
 import (
+	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
@@ -597,6 +598,37 @@ func (ctx *Context) getRounds(args roundArgs) http.Handler {
 	})
 }
 
+type thresholdBoundsArgs struct {
+	chain string
+}
+
+func (ctx *Context) getThresholdBounds(args thresholdBoundsArgs) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		bounds, err := common.GetDefaultPayoutBounds(args.chain)
+		if err != nil {
+			ctx.writeErrorResponse(w, errChainNotFound)
+			return
+		}
+
+		units, err := common.GetDefaultUnits(args.chain)
+		if err != nil {
+			ctx.writeErrorResponse(w, errChainNotFound)
+			return
+		}
+
+		data := map[string]interface{}{
+			"chain":     strings.ToUpper(args.chain),
+			"min":       common.BigIntToFloat64(bounds.Min, units),
+			"default":   common.BigIntToFloat64(bounds.Default, units),
+			"max":       common.BigIntToFloat64(bounds.Max, units),
+			"precision": bounds.Precision,
+			"units":     bounds.Units,
+		}
+
+		ctx.writeOkResponse(w, data)
+	})
+}
+
 type thresholdArgs struct {
 	miner string
 }
@@ -640,12 +672,13 @@ func (ctx *Context) getThreshold(args thresholdArgs) http.Handler {
 		if miner.Threshold.Valid {
 			threshold = common.BigIntToFloat64(miner.Threshold.BigInt, units)
 		} else {
-			rawThreshold, err := common.GetDefaultPayoutThreshold(miner.ChainID)
+			payoutBound, err := common.GetDefaultPayoutBounds(miner.ChainID)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
 			}
-			threshold = common.BigIntToFloat64(rawThreshold, units)
+
+			threshold = common.BigIntToFloat64(payoutBound.Default, units)
 		}
 
 		data := map[string]interface{}{
@@ -700,7 +733,20 @@ func (ctx *Context) updateThreshold(args updateThresholdArgs) http.Handler {
 			return
 		}
 
-		// @TODO: check that the threshold is within the proper bounds
+		payoutBound, err := common.GetDefaultPayoutBounds(miner.ChainID)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		} else if threshold.Cmp(payoutBound.Min) < 0 {
+			ctx.writeErrorResponse(w, errThresholdTooSmall)
+			return
+		} else if threshold.Cmp(payoutBound.Max) > 0 {
+			ctx.writeErrorResponse(w, errThresholdTooBig)
+			return
+		} else if new(big.Int).Mod(threshold, payoutBound.PrecisionMask()).Cmp(common.Big0) > 0 {
+			ctx.writeErrorResponse(w, errThresholdTooPrecise)
+			return
+		}
 
 		miner.Threshold = dbcl.NullBigInt{Valid: true, BigInt: threshold}
 		err = pooldb.UpdateMiner(ctx.pooldb.Writer(), miner, []string{"threshold"})

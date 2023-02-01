@@ -44,36 +44,115 @@ func GetDefaultUnits(chain string) (*big.Int, error) {
 	return new(big.Int).SetUint64(units), nil
 }
 
-func GetDefaultPayoutThreshold(chain string) (*big.Int, error) {
-	var threshold *big.Int
+type PayoutBounds struct {
+	Min       *big.Int
+	Default   *big.Int
+	Max       *big.Int
+	Precision uint64
+	Units     uint64
+}
+
+func (b *PayoutBounds) PrecisionMask() *big.Int {
+	precision := new(big.Int).SetUint64(b.Units - b.Precision)
+	mask := new(big.Int).Exp(Big10, precision, nil)
+
+	return mask
+}
+
+func GetDefaultPayoutBounds(chain string) (*PayoutBounds, error) {
+	var bounds *PayoutBounds
 	switch strings.ToUpper(chain) {
 	case "BTC":
-		threshold = MustParseBigInt("10000000")
+		bounds = &PayoutBounds{
+			Min:       MustParseBigInt("50000"),
+			Default:   MustParseBigInt("10000000"),
+			Max:       MustParseBigInt("200000000"),
+			Precision: 4,
+			Units:     8,
+		}
 	case "CFX":
-		threshold = MustParseBigInt("1000000000000000000")
+		bounds = &PayoutBounds{
+			Min:       MustParseBigInt("10000000000000000000"),
+			Default:   MustParseBigInt("50000000000000000000"),
+			Max:       MustParseBigInt("1000000000000000000000000"),
+			Precision: 1,
+			Units:     18,
+		}
 	case "CTXC":
-		threshold = MustParseBigInt("1000000000000000000000")
+		bounds = &PayoutBounds{
+			Min:       MustParseBigInt("5000000000000000000"),
+			Default:   MustParseBigInt("25000000000000000000"),
+			Max:       MustParseBigInt("250000000000000000000000"),
+			Precision: 1,
+			Units:     18,
+		}
 	case "ERGO":
-		threshold = MustParseBigInt("5000000000")
+		bounds = &PayoutBounds{
+			Min:       MustParseBigInt("100000000"),
+			Default:   MustParseBigInt("5000000000"),
+			Max:       MustParseBigInt("25000000000000"),
+			Precision: 2,
+			Units:     9,
+		}
 	case "ETC":
-		threshold = MustParseBigInt("500000000000000000")
+		bounds = &PayoutBounds{
+			Min:       MustParseBigInt("50000000000000000"),
+			Default:   MustParseBigInt("500000000000000000"),
+			Max:       MustParseBigInt("2000000000000000000000"),
+			Precision: 3,
+			Units:     18,
+		}
 	case "ETH":
-		threshold = MustParseBigInt("100000000000000000")
+		bounds = &PayoutBounds{
+			Min:       MustParseBigInt("5000000000000000"),
+			Default:   MustParseBigInt("100000000000000000"),
+			Max:       MustParseBigInt("25000000000000000000"),
+			Precision: 4,
+			Units:     18,
+		}
 	case "ETHW":
-		threshold = MustParseBigInt("5000000000000000000")
+		bounds = &PayoutBounds{
+			Min:       MustParseBigInt("1000000000000000000"),
+			Default:   MustParseBigInt("5000000000000000000"),
+			Max:       MustParseBigInt("20000000000000000000000"),
+			Precision: 3,
+			Units:     18,
+		}
 	case "FIRO":
-		threshold = MustParseBigInt("3000000000")
+		bounds = &PayoutBounds{
+			Min:       MustParseBigInt("10000000"),
+			Default:   MustParseBigInt("500000000"),
+			Max:       MustParseBigInt("2500000000000"),
+			Precision: 2,
+			Units:     8,
+		}
 	case "FLUX":
-		threshold = MustParseBigInt("1000000000")
+		bounds = &PayoutBounds{
+			Min:       MustParseBigInt("10000000"),
+			Default:   MustParseBigInt("100000000"),
+			Max:       MustParseBigInt("5000000000000"),
+			Precision: 2,
+			Units:     8,
+		}
 	case "KAS":
-		threshold = MustParseBigInt("100000000000")
+		bounds = &PayoutBounds{
+			Min:       MustParseBigInt("10000000000"),
+			Default:   MustParseBigInt("100000000000"),
+			Max:       MustParseBigInt("1000000000000000"),
+			Precision: 1,
+			Units:     8,
+		}
 	case "RVN":
-		threshold = MustParseBigInt("250000000000")
-	case "USDC":
-		threshold = MustParseBigInt("100000000")
+		bounds = &PayoutBounds{
+			Min:       MustParseBigInt("1000000000"),
+			Default:   MustParseBigInt("20000000000"),
+			Max:       MustParseBigInt("200000000000000"),
+			Precision: 1,
+			Units:     8,
+		}
 	default:
-		return nil, fmt.Errorf("unsupported chain %s for get threshold", chain)
+		return nil, fmt.Errorf("unsupported chain %s for get payout bounds", chain)
 	}
 
-	return threshold, nil
+	return bounds, nil
 }

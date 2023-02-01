@@ -13,6 +13,7 @@ var (
 	errInvalidThreshold    = newHttpError(400, "InvalidThreshold", "Invalid payout threshold")
 	errThresholdTooSmall   = newHttpError(400, "ThresholdTooSmall", "Threshold too small")
 	errThresholdTooBig     = newHttpError(400, "ThresholdTooBig", "Threshold too big")
+	errThresholdTooPrecise = newHttpError(400, "ThresholdTooPrecise", "Threshold too precise")
 	errIncorrectIPAddress  = newHttpError(403, "IncorrectIPAddress", "Incorrect IP address")
 	errRouteNotFound       = newHttpError(404, "RouteNotFound", "Route not found")
 	errChainNotFound       = newHttpError(404, "ChainNotFound", "Chain not found")

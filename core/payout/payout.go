@@ -42,12 +42,12 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 	}
 	defer dbTx.SafeRollback()
 
-	defaultThreshold, err := common.GetDefaultPayoutThreshold(node.Chain())
+	payoutBound, err := common.GetDefaultPayoutBounds(node.Chain())
 	if err != nil {
 		return err
 	}
 
-	minerIDs, err := pooldb.GetUnpaidMinerIDsAbovePayoutThreshold(dbTx, node.Chain(), defaultThreshold.String())
+	minerIDs, err := pooldb.GetUnpaidMinerIDsAbovePayoutThreshold(dbTx, node.Chain(), payoutBound.Default.String())
 	if err != nil {
 		return err
 	} else if len(minerIDs) == 0 {
