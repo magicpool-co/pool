@@ -761,6 +761,10 @@ func (ctx *Context) updateThreshold(args updateThresholdArgs) http.Handler {
 			return
 		}
 
+		if len(strings.Split(args.Threshold, ".")) == 1 {
+			args.Threshold += ".0"
+		}
+
 		threshold, err := common.StringDecimalToBigint(args.Threshold, units)
 		if err != nil {
 			ctx.writeErrorResponse(w, errInvalidThreshold)
