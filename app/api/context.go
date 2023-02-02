@@ -29,13 +29,18 @@ type Context struct {
 }
 
 func NewContext(logger *log.Logger, metricsClient *metrics.Client, pooldbClient, tsdbClient *dbcl.Client, redisClient *redis.Client, nodes []types.MiningNode) *Context {
+	chains := make([]string, len(nodes))
+	for i, node := range nodes {
+		chains[i] = node.Chain()
+	}
+
 	ctx := &Context{
 		logger:  logger,
 		metrics: metricsClient,
 		pooldb:  pooldbClient,
 		tsdb:    tsdbClient,
 		redis:   redisClient,
-		stats:   stats.New(pooldbClient, tsdbClient, redisClient),
+		stats:   stats.New(pooldbClient, tsdbClient, redisClient, chains),
 		nodes:   nodes,
 	}
 

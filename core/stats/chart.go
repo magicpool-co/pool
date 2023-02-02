@@ -87,7 +87,9 @@ func (c *Client) GetBlockSingleMetricChart(metric types.NetworkMetric, period ty
 	itemsIdx := make(map[time.Time]map[string]*tsdb.Block)
 	chainIdx := make(map[string]time.Time)
 	for _, item := range items {
-		if _, ok := itemsIdx[item.EndTime]; !ok {
+		if !c.chains[item.ChainID] {
+			continue
+		} else if _, ok := itemsIdx[item.EndTime]; !ok {
 			itemsIdx[item.EndTime] = make(map[string]*tsdb.Block)
 		}
 		itemsIdx[item.EndTime][item.ChainID] = item
