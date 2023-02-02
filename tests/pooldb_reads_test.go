@@ -95,6 +95,11 @@ func (suite *PooldbReadsSuite) TestReadMiner() {
 func (suite *PooldbReadsSuite) TestReadWorker() {
 	var err error
 
+	_, err = pooldb.GetWorker(pooldbClient.Reader())
+	if err != nil {
+		suite.T().Errorf("failed: GetWorker: %v", err)
+	}
+
 	_, err = pooldb.GetWorkerID(pooldbClient.Reader(), 0, "ETH")
 	if err != nil {
 		suite.T().Errorf("failed: GetWorkerID: %v", err)
@@ -127,6 +132,11 @@ func (suite *PooldbReadsSuite) TestReadIPAddress() {
 	_, err = pooldb.GetOldestActiveIPAddress(pooldbClient.Reader(), 0)
 	if err != nil {
 		suite.T().Errorf("failed: GetOldestActiveIPAddress: %v", err)
+	}
+
+	_, err = pooldb.GetNewestInactiveIPAddress(pooldbClient.Reader(), 0)
+	if err != nil {
+		suite.T().Errorf("failed: GetNewestInactiveIPAddress: %v", err)
 	}
 }
 

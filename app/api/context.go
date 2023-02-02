@@ -146,6 +146,20 @@ func (ctx *Context) getWorkerID(minerID uint64, worker string) (uint64, error) {
 	return workerID, nil
 }
 
+func (ctx *Context) getThresholdIPAddress(minerID uint64) (*pooldb.IPAddress, error) {
+	lastIP, err := pooldb.GetOldestActiveIPAddress(ctx.pooldb.Reader(), minerID)
+	if err != nil {
+		return nil, err
+	} else if lastIP == nil {
+		lastIP, err = pooldb.GetNewestInactiveIPAddress(ctx.pooldb.Reader(), minerID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return lastIP, nil
+}
+
 /* routes */
 
 func (ctx *Context) getBase() http.HandlerFunc {
@@ -641,9 +655,8 @@ func (ctx *Context) getThreshold(args thresholdArgs) http.Handler {
 			return
 		}
 
-		// @TODO: maybe we could cache this
-		var ipHint *string
-		lastIP, err := pooldb.GetOldestActiveIPAddress(ctx.pooldb.Reader(), minerID)
+		var ipHint, workerName *string
+		lastIP, err := ctx.getThresholdIPAddress(minerID)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
@@ -654,6 +667,16 @@ func (ctx *Context) getThreshold(args thresholdArgs) http.Handler {
 				return
 			}
 			ipHint = types.StringPtr(obscuredIP)
+
+			if lastIP.WorkerID != 0 {
+				worker, err := pooldb.GetWorker(ctx.pooldb.Reader(), lastIP.WorkerID)
+				if err != nil {
+					ctx.writeErrorResponse(w, err)
+					return
+				} else if worker != nil {
+					workerName = types.StringPtr(worker.Name)
+				}
+			}
 		}
 
 		miner, err := pooldb.GetMiner(ctx.pooldb.Reader(), minerID)
@@ -683,6 +706,7 @@ func (ctx *Context) getThreshold(args thresholdArgs) http.Handler {
 
 		data := map[string]interface{}{
 			"chain":     miner.ChainID,
+			"worker":    workerName,
 			"threshold": threshold,
 			"ipHint":    ipHint,
 		}
@@ -705,12 +729,11 @@ func (ctx *Context) updateThreshold(args updateThresholdArgs) http.Handler {
 			return
 		}
 
-		// @TODO: maybe we could cache this
-		lastIP, err := pooldb.GetOldestActiveIPAddress(ctx.pooldb.Reader(), minerID)
+		ip, err := ctx.getThresholdIPAddress(minerID)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
-		} else if lastIP.IPAddress != args.IP {
+		} else if ip.IPAddress != args.IP {
 			ctx.writeErrorResponse(w, errIncorrectIPAddress)
 			return
 		}

@@ -184,6 +184,23 @@ func GetRecipients(q dbcl.Querier) ([]*Miner, error) {
 
 /* workers */
 
+func GetWorker(q dbcl.Querier, id uint64) (*Worker, error) {
+	const query = `SELECT *
+	FROM workers
+	WHERE
+		id = ?`
+
+	output := new(Worker)
+	err := q.Get(output, query, id)
+	if err != nil && err != sql.ErrNoRows {
+		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return output, nil
+}
+
 func GetWorkerID(q dbcl.Querier, minerID uint64, name string) (uint64, error) {
 	const query = `SELECT id
 	FROM workers
@@ -381,6 +398,27 @@ func GetOldestActiveIPAddress(q dbcl.Querier, minerID uint64) (*IPAddress, error
 	AND
 		expired IS FALSE
 	ORDER BY created_at
+	LIMIT 1;`
+
+	output := new(IPAddress)
+	err := q.Get(output, query, minerID)
+	if err != nil && err != sql.ErrNoRows {
+		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return output, nil
+}
+
+func GetNewestInactiveIPAddress(q dbcl.Querier, minerID uint64) (*IPAddress, error) {
+	const query = `SELECT *
+	FROM ip_addresses
+	WHERE
+		miner_id = ?
+	AND
+		active IS FALSE
+	ORDER BY last_share DESC
 	LIMIT 1;`
 
 	output := new(IPAddress)
