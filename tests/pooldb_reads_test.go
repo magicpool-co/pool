@@ -95,7 +95,7 @@ func (suite *PooldbReadsSuite) TestReadMiner() {
 func (suite *PooldbReadsSuite) TestReadWorker() {
 	var err error
 
-	_, err = pooldb.GetWorker(pooldbClient.Reader())
+	_, err = pooldb.GetWorker(pooldbClient.Reader(), 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetWorker: %v", err)
 	}
