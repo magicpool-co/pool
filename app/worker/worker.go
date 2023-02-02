@@ -168,14 +168,14 @@ func (w *Worker) Start() {
 		telegram: w.telegram,
 	})
 
-	// w.cron.AddJob("* * * * *", &ChartJob{
-	// 	locker: locker,
-	// 	logger: w.logger,
-	// 	redis:  w.redis,
-	// 	pooldb: w.pooldb,
-	// 	tsdb:   w.tsdb,
-	// 	nodes:  w.miningNodes,
-	// })
+	w.cron.AddJob("* * * * *", &ChartJob{
+		locker: locker,
+		logger: w.logger,
+		redis:  w.redis,
+		pooldb: w.pooldb,
+		tsdb:   w.tsdb,
+		nodes:  w.miningNodes,
+	})
 
 	w.cron.Start()
 }
