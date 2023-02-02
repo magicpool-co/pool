@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	miningChains = []string{"CFX", "CTXC", "ERGO", "ETC", "ETHW", "FIRO", "FLUX", "KAS", "RVN"}
+	miningChains = []string{"CFX", "CTXC", "ERGO", "ETC", "FIRO", "FLUX", "KAS", "RVN"}
 	payoutChains = []string{"BTC", "ETH"}
 )
 
