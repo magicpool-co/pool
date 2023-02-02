@@ -176,12 +176,18 @@ type existsArgs struct {
 func (ctx *Context) getExists(args existsArgs) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		exists := true
+		var chain *string
 		if args.miner == "" {
 			exists = false
 		} else {
 			minerID, err := ctx.getMinerID(args.miner)
 			if err != nil {
 				exists = false
+			} else {
+				miner, err := pooldb.GetMiner(ctx.pooldb.Reader(), minerID)
+				if err == nil && miner != nil {
+					chain = types.StringPtr(miner.ChainID)
+				}
 			}
 
 			if exists && args.worker != "" {
@@ -192,7 +198,12 @@ func (ctx *Context) getExists(args existsArgs) http.HandlerFunc {
 			}
 		}
 
-		ctx.writeOkResponse(w, map[string]interface{}{"exists": exists})
+		data := map[string]interface{}{
+			"exists": exists,
+			"chain":  chain,
+		}
+
+		ctx.writeOkResponse(w, data)
 	})
 }
 
