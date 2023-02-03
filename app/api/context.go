@@ -29,9 +29,15 @@ type Context struct {
 }
 
 func NewContext(logger *log.Logger, metricsClient *metrics.Client, pooldbClient, tsdbClient *dbcl.Client, redisClient *redis.Client, nodes []types.MiningNode) *Context {
-	chains := make([]string, len(nodes))
-	for i, node := range nodes {
-		chains[i] = node.Chain()
+	statsChains := []string{
+		"CFX",
+		"CTXC",
+		"ERGO",
+		"ETC",
+		"FIRO",
+		"FLUX",
+		"KAS",
+		"RVN",
 	}
 
 	ctx := &Context{
@@ -40,7 +46,7 @@ func NewContext(logger *log.Logger, metricsClient *metrics.Client, pooldbClient,
 		pooldb:  pooldbClient,
 		tsdb:    tsdbClient,
 		redis:   redisClient,
-		stats:   stats.New(pooldbClient, tsdbClient, redisClient, chains),
+		stats:   stats.New(pooldbClient, tsdbClient, redisClient, statsChains),
 		nodes:   nodes,
 	}
 
