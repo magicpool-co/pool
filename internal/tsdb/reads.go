@@ -58,6 +58,24 @@ func GetBlocksAdjustedValue(q dbcl.Querier, period int) ([]*Block, error) {
 	return output, err
 }
 
+func GetBlocksAdjustedEmission(q dbcl.Querier, period int) ([]*Block, error) {
+	const query = `SELECT
+		blocks.chain_id,
+		blocks.value * blocks.count * prices.price_usd value,
+		blocks.end_time
+	FROM blocks
+	JOIN prices ON blocks.end_time = prices.timestamp AND blocks.chain_id = prices.chain_id
+	WHERE
+		period = ?
+	AND
+		pending = FALSE;`
+
+	output := []*Block{}
+	err := q.Select(&output, query, period)
+
+	return output, err
+}
+
 func GetBlocksProfitability(q dbcl.Querier, period int) ([]*Block, error) {
 	const query = `SELECT
 		blocks.chain_id,

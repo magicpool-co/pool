@@ -160,6 +160,7 @@ const (
 	NetworkBlockTime     NetworkMetric = "block_time"
 	NetworkHashrate      NetworkMetric = "hashrate"
 	NetworkProfitability NetworkMetric = "profitability"
+	NetworkEmission      NetworkMetric = "emission"
 )
 
 func ParseNetworkMetric(raw string) (NetworkMetric, error) {
@@ -174,6 +175,8 @@ func ParseNetworkMetric(raw string) (NetworkMetric, error) {
 		return NetworkHashrate, nil
 	case "profitability":
 		return NetworkProfitability, nil
+	case "emission":
+		return NetworkEmission, nil
 	default:
 		return "", fmt.Errorf("unknown metric type")
 	}
