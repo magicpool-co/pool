@@ -155,7 +155,7 @@ func (c *Client) GetBlockSingleMetricChart(metric types.NetworkMetric, period ty
 		for chain, item := range itemsIdx[timestamp] {
 			var value float64
 			switch metric {
-			case types.NetworkValue:
+			case types.NetworkValue, types.NetworkEmission:
 				value = item.Value
 			case types.NetworkDifficulty:
 				value = item.Difficulty
