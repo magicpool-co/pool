@@ -19,7 +19,7 @@ import (
 var (
 	mainnetPrefixP2PKH      = []byte{0x1C, 0xB8}
 	mainnetPrefixP2SH       = []byte{0x1C, 0xBD}
-	mainnetDevWalletAmounts = []uint64{562500000, 937500000, 2250000000}
+	mainnetDevWalletAmounts = []uint64{281250000, 468750000, 1125000000}
 
 	testnetPrefixP2PKH      = []byte{0x1D, 0x25}
 	testnetPrefixP2SH       = []byte{0x1C, 0xBA}
