@@ -52,8 +52,8 @@ func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) 
 	// copy value to avoid overwriting it elsewhere
 	roundValue = new(big.Int).Set(roundValue)
 
-	// takes a 1% fee from the value as the pool fees
-	feeValue := common.SplitBigPercentage(roundValue, 100, 10000)
+	// takes a 0.01% fee from the value as the pool fees
+	feeValue := common.SplitBigPercentage(roundValue, 1, 10000)
 	adjustedRoundValue := new(big.Int).Sub(roundValue, feeValue)
 
 	// calculate the miner distributions and remainder
