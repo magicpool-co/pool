@@ -43,6 +43,11 @@ func TestAddressToScript(t *testing.T) {
 			prefix:       "kaspasim",
 			scriptPubKey: common.MustParseHex("20fcef4c106cf11135bbd70f02a726a92162d2fb8b22f0469126f800862ad884e8ac"),
 		},
+		{
+			addr:         "kaspa:qzklthn6r28x9dhl9w7hlcj5ckeshlxggua09w0mdez0dyf0kmdhzfac92awy",
+			prefix:       "kaspa",
+			scriptPubKey: common.MustParseHex("20adf5de7a1a8e62b6ff2bbd7fe254c5b30bfcc8473af2b9fb6e44f6912fb6db71ac"),
+		},
 	}
 
 	for i, tt := range tests {
