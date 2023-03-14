@@ -18,6 +18,10 @@ func (c *Client) ID() types.ExchangeID {
 	return types.BinanceID
 }
 
+func (c *Client) GetTradeTimeout() time.Duration {
+	return 0
+}
+
 /* account */
 
 func (c *Client) GetAccountStatus() error {
@@ -382,12 +386,12 @@ func (c *Client) GetTradeByID(market, tradeID string, inputValue float64) (*type
 		return nil, err
 	}
 
-	var completed bool
+	var completed, active bool
 	switch obj.Status {
 	case "NEW", "PARTIALLY_FILLED":
-		completed = false
+		completed, active = false, true
 	case "FILLED":
-		completed = true
+		completed, active = true, false
 	case "PENDING_CANCEL", "CANCELLED":
 		return nil, fmt.Errorf("order was cancelled")
 	case "REJECTED", "EXPIRED":
@@ -459,9 +463,14 @@ func (c *Client) GetTradeByID(market, tradeID string, inputValue float64) (*type
 		Price:    strconv.FormatFloat(avgFillPrice, 'f', 8, 64),
 
 		Completed: completed,
+		Active:    active,
 	}
 
 	return parsedTrade, nil
+}
+
+func (c *Client) CancelTradeByID(market, tradeID string) error {
+	return nil
 }
 
 /* withdrawal */

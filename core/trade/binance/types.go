@@ -8,7 +8,7 @@ type Account struct {
 	CanDeposit       bool   `json:"canDeposit"`
 	CanTrade         bool   `json:"canTrade"`
 	CanWithdraw      bool   `json:"canWithdraw"`
-	UpdateTime       int    `json:"updateTime"`
+	UpdateTime       *int   `json:"updateTime"`
 	AccountType      string `json:"accountType"`
 	Balances         []struct {
 		Asset  string `json:"asset"`

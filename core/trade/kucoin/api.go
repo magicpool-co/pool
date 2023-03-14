@@ -20,6 +20,10 @@ func (c *Client) ID() types.ExchangeID {
 	return types.KucoinID
 }
 
+func (c *Client) GetTradeTimeout() time.Duration {
+	return 0
+}
+
 /* account */
 
 func (c *Client) GetAccountStatus() error {
@@ -218,7 +222,7 @@ func (c *Client) GetDepositAddress(chain string) (string, error) {
 	}
 
 	if obj.Chain != chain {
-		return "", fmt.Errorf("deposit address chain mismatch: have %s, want %s", addresses[0].Chain, chain)
+		return "", fmt.Errorf("deposit address chain mismatch: have %s, want %s", obj.Chain, chain)
 	} else if obj.Address == "" {
 		return "", fmt.Errorf("deposit address empty for chain %s", chain)
 	}
@@ -563,9 +567,14 @@ func (c *Client) GetTradeByID(market, tradeID string, inputValue float64) (*type
 		Price:    strconv.FormatFloat(avgFillPrice, 'f', 8, 64),
 
 		Completed: !obj.IsActive,
+		Active:    obj.IsActive,
 	}
 
 	return parsedTrade, nil
+}
+
+func (c *Client) CancelTradeByID(market, tradeID string) error {
+	return nil
 }
 
 /* withdrawal */

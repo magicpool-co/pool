@@ -54,6 +54,15 @@ const (
 	TradeSell
 )
 
+type TradeStrategy int
+
+const (
+	TradeMarket TradeStrategy = iota
+	TradeLimit
+	TradeLimitMarket
+	TradeExpiringLimitToLimitMarket
+)
+
 /* transaction */
 
 type TransactionType int

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"time"
 
 	"github.com/magicpool-co/pool/internal/accounting"
 	"github.com/magicpool-co/pool/internal/pooldb"
@@ -88,6 +89,7 @@ func (c *Client) InitiateTrades(batchID uint64) error {
 					BatchID: batchID,
 					PathID:  pathID,
 					StageID: i + 1,
+					StepID:  0,
 
 					InitialChainID: fromChainID,
 					FromChainID:    parsedTrade.FromChain,
@@ -118,6 +120,8 @@ func (c *Client) InitiateTradeStage(batchID uint64, stage int) error {
 		tradeStageStatus = TradesActiveStageOne
 	case 2:
 		tradeStageStatus = TradesActiveStageTwo
+	case 3:
+		tradeStageStatus = TradesActiveStageThree
 	default:
 		return fmt.Errorf("unsupported trade stage %d", stage)
 	}
@@ -171,12 +175,17 @@ func (c *Client) InitiateTradeStage(batchID uint64, stage int) error {
 }
 
 func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
-	var tradeStageStatus Status
+	var tradeStageStatus, tradeStageIncompleteStatus Status
 	switch stage {
 	case 1:
 		tradeStageStatus = TradesCompleteStageOne
+		tradeStageIncompleteStatus = TradesActiveStageOne
 	case 2:
 		tradeStageStatus = TradesCompleteStageTwo
+		tradeStageIncompleteStatus = TradesActiveStageTwo
+	case 3:
+		tradeStageStatus = TradesCompleteStageThree
+		tradeStageIncompleteStatus = TradesActiveStageThree
 	default:
 		return fmt.Errorf("unsupported trade stage %d", stage)
 	}
@@ -198,6 +207,8 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 			return fmt.Errorf("no order price for trade %d", trade.ID)
 		}
 
+		completedTrade := true
+
 		// fetch the units for the from and to chains
 		fromUnits, err := common.GetDefaultUnits(trade.FromChainID)
 		if err != nil {
@@ -215,9 +226,70 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 		parsedTrade, err := c.exchange.GetTradeByID(trade.Market, tradeID, value)
 		if err != nil {
 			return err
-		} else if !parsedTrade.Completed {
-			completedAll = false
-			continue
+		} else if parsedTrade == nil || !parsedTrade.Completed {
+			completedAll, completedTrade = false, false
+			timeout := c.exchange.GetTradeTimeout()
+			if timeout == 0 {
+				continue
+			}
+
+			// if the trade has taken longer than the set timeout,
+			// cancel it, refetch the trade, then make a new trade
+			// to finish out the rest of the order
+			if time.Since(trade.UpdatedAt) > timeout {
+				err = c.exchange.CancelTradeByID(trade.Market, tradeID)
+				if err != nil {
+					return err
+				}
+
+				time.Sleep(time.Second)
+
+				// refetch the trade in case more was filled
+				parsedTrade, err = c.exchange.GetTradeByID(trade.Market, tradeID, value)
+				if err != nil {
+					return err
+				}
+
+				tradeValue := dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)}
+				newTradeValue := trade.Value
+				if parsedTrade != nil {
+					partialValue, err := common.StringDecimalToBigint(parsedTrade.Value, fromUnits)
+					if err != nil {
+						return err
+					}
+
+					tradeValueBig := new(big.Int).Sub(trade.Value.BigInt, partialValue)
+					tradeValue = dbcl.NullBigInt{Valid: true, BigInt: tradeValueBig}
+					newTradeValue = dbcl.NullBigInt{Valid: true, BigInt: partialValue}
+				}
+
+				trade.Value = tradeValue
+				nextTrade := &pooldb.ExchangeTrade{
+					BatchID: trade.BatchID,
+					PathID:  trade.PathID,
+					StageID: trade.StageID,
+					StepID:  trade.StepID + 1,
+
+					InitialChainID: trade.InitialChainID,
+					FromChainID:    trade.FromChainID,
+					ToChainID:      trade.ToChainID,
+					Market:         trade.Market,
+					Direction:      trade.Direction,
+
+					Value:                 newTradeValue,
+					CumulativeDepositFees: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				}
+
+				err = pooldb.InsertExchangeTrades(c.pooldb.Writer(), nextTrade)
+				if err != nil {
+					return err
+				}
+
+				err = c.updateBatchStatus(batchID, tradeStageIncompleteStatus)
+				if err != nil {
+					return err
+				}
+			}
 		}
 
 		// process the proceeds and fees as big ints in the current chain's units
@@ -242,7 +314,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 		prevTrade, err := pooldb.GetExchangeTradeByPathAndStage(c.pooldb.Reader(), batchID, trade.PathID, trade.StageID-1)
 		if err != nil {
 			return err
-		} else if prevTrade != nil {
+		} else if prevTrade != nil && completedTrade {
 			if prevTrade.CumulativeFillPrice == nil {
 				return fmt.Errorf("no cumulative fill price for trade %d", prevTrade.ID)
 			} else if !prevTrade.Proceeds.Valid || prevTrade.Proceeds.BigInt.Cmp(common.Big0) <= 0 {

@@ -1,10 +1,10 @@
 package mexc
 
 import (
-	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -22,6 +22,7 @@ var (
 
 type Client struct {
 	url        string
+	legacyURL  string
 	apiKey     string
 	secretKey  string
 	httpClient *http.Client
@@ -29,11 +30,13 @@ type Client struct {
 
 func New(apiKey, secretKey string) *Client {
 	const (
-		mainnetURL = "https://www.mexc.com"
+		mainnetURL = "https://api.mexc.com"
+		legacyURL  = "https://www.mexc.com"
 	)
 
 	client := &Client{
 		url:        mainnetURL,
+		legacyURL:  legacyURL,
 		apiKey:     apiKey,
 		secretKey:  secretKey,
 		httpClient: &http.Client{},
@@ -48,69 +51,61 @@ func (c *Client) doTimeoutRequest(req *http.Request) (*http.Response, error) {
 	return c.httpClient.Do(req.WithContext(ctx))
 }
 
-func (c *Client) do(method, path string, payload map[string]string, target interface{}, authNeeded bool) error {
-	var query url.Values
-	var body []byte
-	var err error
+func (c *Client) do(method, path string, payload map[string]string, target interface{}, legacy, authNeeded bool) error {
 	switch method {
-	case "GET":
-		query = url.Values{}
-		for k, v := range payload {
-			query.Set(k, v)
-		}
-	case "POST":
-		body, err = json.Marshal(payload)
-		if err != nil {
-			return err
-		}
+	case "GET", "POST":
 	default:
 		return fmt.Errorf("unknown http method")
 	}
 
+	query := url.Values{}
+	for k, v := range payload {
+		query.Set(k, v)
+	}
+
+	baseUrl := c.url
+	if legacy {
+		baseUrl = c.legacyURL
+	}
+
+	if authNeeded {
+		query.Set("recvWindow", "5000")
+		query.Set("timestamp", strconv.FormatInt(time.Now().UnixNano()/1e6, 10))
+		query.Set("signature", hex.EncodeToString(crypto.HmacSha256(c.secretKey, query.Encode())))
+	}
+
 	queryString := query.Encode()
-	fullUrl := c.url + path
+	fullUrl := baseUrl + path
 	if queryString != "" {
 		fullUrl += "?" + queryString
 	}
 
-	parsedURL, err := url.Parse(fullUrl)
+	req, err := http.NewRequest(method, fullUrl, nil)
 	if err != nil {
 		return err
 	}
 
-	headers := http.Header{
-		"Content-Type": []string{"application/json"},
+	req.Header = http.Header{
+		"X-MEXC-APIKEY": []string{c.apiKey},
+		"Content-Type":  []string{"application/json"},
 	}
-
-	if authNeeded {
-		timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
-		var sigData bytes.Buffer
-		sigData.WriteString(parsedURL.RequestURI())
-		sigData.WriteString(timestamp) // @TODO: actually is apart of the query string
-		sig := crypto.HmacSha256(c.secretKey, sigData.String())
-
-		headers.Set("api_key", c.apiKey)
-		headers.Set("req_time", timestamp)
-		headers.Set("sign", hex.EncodeToString(sig))
-	}
-
-	req, err := http.NewRequest(method, fullUrl, bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-	req.Header = headers
 
 	res, err := c.doTimeoutRequest(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("z: %v", err)
 	}
 
 	defer res.Body.Close()
-	var response *Response
-	err = json.NewDecoder(res.Body).Decode(&response)
+	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return err
-	} else if response.Code != 200 {
+	}
+
+	var response *Response
+	err = json.Unmarshal(data, &response)
+	if legacy && err != nil {
+		return err
+	} else if err == nil && response != nil && response.Code > 200 {
 		switch response.Code {
 		case 429:
 			return ErrTooManyRequests
@@ -121,7 +116,11 @@ func (c *Client) do(method, path string, payload map[string]string, target inter
 		return fmt.Errorf("status: %v message:%s", res.Status, string(response.Data))
 	}
 
-	err = json.Unmarshal(response.Data, target)
+	if legacy {
+		err = json.Unmarshal(response.Data, target)
+	} else {
+		err = json.Unmarshal(data, target)
+	}
 	if err != nil {
 		return err
 	} else if target == nil {

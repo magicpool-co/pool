@@ -8,6 +8,7 @@ import (
 	"github.com/magicpool-co/pool/core/trade/binance"
 	"github.com/magicpool-co/pool/core/trade/bittrex"
 	"github.com/magicpool-co/pool/core/trade/kucoin"
+	"github.com/magicpool-co/pool/core/trade/mexc"
 	"github.com/magicpool-co/pool/svc"
 	"github.com/magicpool-co/pool/types"
 )
@@ -20,6 +21,7 @@ func main() {
 	argValue := flag.Float64("value", 0, "The value")
 	argMarket := flag.String("market", "", "The market")
 	argDirection := flag.String("direction", "", "The direction")
+	argAddress := flag.String("addr", "", "The address")
 
 	flag.Parse()
 
@@ -32,10 +34,12 @@ func main() {
 	switch *argExchange {
 	case "binance":
 		ex = binance.New(secrets["BINANCE_API_KEY"], secrets["BINANCE_API_SECRET"])
-	case "kucoin":
-		ex = kucoin.New(secrets["KUCOIN_API_KEY"], secrets["KUCOIN_API_SECRET"], secrets["KUCOIN_API_PASSPHRASE"])
 	case "bittrex":
 		ex = bittrex.New(secrets["BITTREX_API_KEY"], secrets["BITTREX_API_SECRET"])
+	case "mexc":
+		ex = mexc.New(secrets["MEXC_API_KEY"], secrets["MEXC_API_SECRET"])
+	case "kucoin":
+		ex = kucoin.New(secrets["KUCOIN_API_KEY"], secrets["KUCOIN_API_SECRET"], secrets["KUCOIN_API_PASSPHRASE"])
 	default:
 		log.Fatalf("exchange: unsupported exchange %s", *argExchange)
 	}
@@ -125,7 +129,7 @@ func main() {
 
 		// withdrawal
 	case "CreateWithdrawal":
-		id, err := ex.CreateWithdrawal(chain, chain, *argValue)
+		id, err := ex.CreateWithdrawal(chain, *argAddress, *argValue)
 		if err != nil {
 			log.Fatalf("create withdrawal: %v", err)
 		}

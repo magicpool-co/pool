@@ -17,6 +17,10 @@ func (c *Client) ID() types.ExchangeID {
 	return types.BittrexID
 }
 
+func (c *Client) GetTradeTimeout() time.Duration {
+	return 0
+}
+
 /* account */
 
 func (c *Client) GetAccountStatus() error {
@@ -301,12 +305,12 @@ func (c *Client) GetTradeByID(market, tradeID string, inputValue float64) (*type
 		avgFillPrice = proceedsFloat / fillQtyFloat
 	}
 
-	var completed bool
+	var completed, active bool
 	switch obj.Status {
 	case "OPEN":
-		completed = false
+		completed, active = false, true
 	case "CLOSED":
-		completed = true
+		completed, active = true, false
 	default:
 		return nil, fmt.Errorf("order has an unknown status %s", obj.Status)
 	}
@@ -372,9 +376,14 @@ func (c *Client) GetTradeByID(market, tradeID string, inputValue float64) (*type
 		Price:    strconv.FormatFloat(avgFillPrice, 'f', 8, 64),
 
 		Completed: completed,
+		Active:    active,
 	}
 
 	return parsedTrade, nil
+}
+
+func (c *Client) CancelTradeByID(market, tradeID string) error {
+	return nil
 }
 
 /* withdrawal */

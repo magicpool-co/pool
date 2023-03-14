@@ -136,6 +136,7 @@ type MiningNode interface {
 
 type Exchange interface {
 	ID() ExchangeID
+	GetTradeTimeout() time.Duration
 
 	// account
 	GetAccountStatus() error
@@ -163,6 +164,7 @@ type Exchange interface {
 	GenerateTradePath(string, string) ([]*Trade, error)
 	CreateTrade(string, TradeDirection, float64) (string, error)
 	GetTradeByID(string, string, float64) (*Trade, error)
+	CancelTradeByID(string, string) error
 
 	// withdrawal
 	CreateWithdrawal(string, string, float64) (string, error)
@@ -198,6 +200,7 @@ type Trade struct {
 	Price    string
 
 	Completed bool
+	Active    bool
 }
 
 type Withdrawal struct {

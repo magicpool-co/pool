@@ -222,7 +222,8 @@ func UpdateExchangeDeposit(q dbcl.Querier, obj *ExchangeDeposit, updateCols []st
 func InsertExchangeTrades(q dbcl.Querier, objects ...*ExchangeTrade) error {
 	const table = "exchange_trades"
 	cols := []string{
-		"batch_id", "path_id", "stage_id", "exchange_trade_id", "initial_chain_id",
+		"batch_id", "path_id", "stage_id", "step_id", "is_market_order",
+		"trade_strategy", "exchange_id", "exchange_trade_id", "initial_chain_id",
 		"from_chain_id", "to_chain_id", "market", "direction", "value", "proceeds",
 		"trade_fees", "cumulative_deposit_fees", "cumulative_trade_fees", "order_price",
 		"fill_price", "cumulative_fill_price", "slippage", "initiated", "confirmed",

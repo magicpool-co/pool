@@ -225,11 +225,15 @@ type ExchangeDeposit struct {
 }
 
 type ExchangeTrade struct {
-	ID      uint64 `db:"id"`
-	BatchID uint64 `db:"batch_id"`
-	PathID  int    `db:"path_id"`
-	StageID int    `db:"stage_id"`
+	ID            uint64 `db:"id"`
+	BatchID       uint64 `db:"batch_id"`
+	PathID        int    `db:"path_id"`
+	StageID       int    `db:"stage_id"`
+	StepID        int    `db:"step_id"`
+	IsMarketOrder bool   `db:"is_market_order"`
+	TradeStrategy int    `db:"trade_strategy"`
 
+	ExchangeID      int     `db:"exchange_id"`
 	ExchangeTradeID *string `db:"exchange_trade_id"`
 
 	InitialChainID string `db:"initial_chain_id"`

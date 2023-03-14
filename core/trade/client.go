@@ -65,6 +65,8 @@ const (
 	TradesCompleteStageOne
 	TradesActiveStageTwo
 	TradesCompleteStageTwo
+	TradesActiveStageThree
+	TradesCompleteStageThree
 	WithdrawalsActive
 	WithdrawalsComplete
 	BatchComplete

@@ -1,1 +1,122 @@
 package mexc
+
+import (
+	"math/big"
+
+	"github.com/magicpool-co/pool/types"
+)
+
+var (
+	/* primary markets */
+	cfxUsdtSell = &types.Market{Market: "CFXUSDT", Base: "CFX", Quote: "USDT", Direction: types.TradeSell}
+
+	ctxcUsdtSell = &types.Market{Market: "CTXCUSDT", Base: "CTXC", Quote: "USDT", Direction: types.TradeSell}
+
+	etcBtcSell = &types.Market{Market: "ETCUSDT", Base: "ETC", Quote: "USDT", Direction: types.TradeSell}
+
+	firoUsdtSell = &types.Market{Market: "FIROUSDT", Base: "FIRO", Quote: "USDT", Direction: types.TradeSell}
+
+	fluxUsdtSell = &types.Market{Market: "FLUX1USDT", Base: "FLUX1", Quote: "USDT", Direction: types.TradeSell}
+
+	kasUsdtSell = &types.Market{Market: "KASUSDT", Base: "KAS", Quote: "USDT", Direction: types.TradeSell}
+
+	rvnUsdtSell = &types.Market{Market: "RVNUSDT", Base: "RVN", Quote: "USDT", Direction: types.TradeSell}
+
+	/* secondary markets */
+	busdUsdtBuy = &types.Market{Market: "BUSDUSDT", Base: "BUSD", Quote: "USDT", Direction: types.TradeBuy}
+	btcUsdtBuy  = &types.Market{Market: "BTCUSDT", Base: "BTC", Quote: "USDT", Direction: types.TradeBuy}
+	ethUsdtBuy  = &types.Market{Market: "ETHUSDT", Base: "ETH", Quote: "USDT", Direction: types.TradeBuy}
+	usdcUsdtBuy = &types.Market{Market: "USDCUSDT", Base: "USDC", Quote: "USDT", Direction: types.TradeBuy}
+
+	/* tertiary markets */
+	btcBusdBuy = &types.Market{Market: "BTCBUSD", Base: "BTC", Quote: "BUSD", Direction: types.TradeBuy}
+	ethBusdBuy = &types.Market{Market: "ETHBUSD", Base: "ETH", Quote: "BUSD", Direction: types.TradeBuy}
+)
+
+var (
+	presetTradePaths = map[string]map[string][]*types.Market{
+		"CFX": map[string][]*types.Market{
+			"BTC": []*types.Market{
+				cfxUsdtSell, busdUsdtBuy, btcBusdBuy,
+			},
+			"ETH": []*types.Market{
+				cfxUsdtSell, busdUsdtBuy, ethBusdBuy,
+			},
+			"USDC": []*types.Market{
+				cfxUsdtSell, usdcUsdtBuy,
+			},
+		},
+		"CTXC": map[string][]*types.Market{
+			"BTC": []*types.Market{
+				ctxcUsdtSell, busdUsdtBuy, btcBusdBuy,
+			},
+			"ETH": []*types.Market{
+				ctxcUsdtSell, busdUsdtBuy, ethBusdBuy,
+			},
+			"USDC": []*types.Market{
+				ctxcUsdtSell, usdcUsdtBuy,
+			},
+		},
+		"ETC": map[string][]*types.Market{
+			"BTC": []*types.Market{
+				etcBtcSell, busdUsdtBuy, btcBusdBuy,
+			},
+			"ETH": []*types.Market{
+				etcBtcSell, busdUsdtBuy, ethBusdBuy,
+			},
+			"USDC": []*types.Market{
+				etcBtcSell, usdcUsdtBuy,
+			},
+		},
+		"FIRO": map[string][]*types.Market{
+			"BTC": []*types.Market{
+				firoUsdtSell, busdUsdtBuy, btcBusdBuy,
+			},
+			"ETH": []*types.Market{
+				firoUsdtSell, busdUsdtBuy, ethBusdBuy,
+			},
+			"USDC": []*types.Market{
+				firoUsdtSell, usdcUsdtBuy,
+			},
+		},
+		"FLUX": map[string][]*types.Market{
+			"BTC": []*types.Market{
+				fluxUsdtSell, busdUsdtBuy, btcBusdBuy,
+			},
+			"ETH": []*types.Market{
+				fluxUsdtSell, busdUsdtBuy, ethBusdBuy,
+			},
+			"USDC": []*types.Market{
+				fluxUsdtSell, usdcUsdtBuy,
+			},
+		},
+		"KAS": map[string][]*types.Market{
+			"BTC": []*types.Market{
+				kasUsdtSell, busdUsdtBuy, btcBusdBuy,
+			},
+			"ETH": []*types.Market{
+				kasUsdtSell, busdUsdtBuy, ethBusdBuy,
+			},
+			"USDC": []*types.Market{
+				kasUsdtSell, usdcUsdtBuy,
+			},
+		},
+		"RVN": map[string][]*types.Market{
+			"BTC": []*types.Market{
+				rvnUsdtSell, busdUsdtBuy, btcBusdBuy,
+			},
+			"ETH": []*types.Market{
+				rvnUsdtSell, busdUsdtBuy, ethBusdBuy,
+			},
+			"USDC": []*types.Market{
+				rvnUsdtSell, usdcUsdtBuy,
+			},
+		},
+	}
+
+	presetOutputThresholds = map[string]*big.Int{
+		"BTC":  new(big.Int).SetUint64(5_000_000),
+		"ETH":  new(big.Int).SetUint64(500_000_000_000_000_000),
+		"USDC": new(big.Int).SetUint64(2_000_000_000),
+	}
+)

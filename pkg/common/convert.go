@@ -87,7 +87,13 @@ func StringDecimalToBigint(dec string, exp *big.Int) (*big.Int, error) {
 	// separate the integer and fraction parts of the decimal
 	raw := strings.Split(dec, ".")
 	if len(raw) != 2 {
-		return nil, fmt.Errorf("invalid decimal")
+		if strings.ReplaceAll(dec, "0", "") == "" {
+			return new(big.Int), nil
+		} else if len(raw) != 1 {
+			return nil, fmt.Errorf("invalid decimal, %s", dec)
+		}
+
+		raw = append(raw, "0")
 	}
 
 	intPart, fracPart := raw[0], raw[1]

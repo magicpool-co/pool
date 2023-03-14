@@ -883,7 +883,9 @@ func GetExchangeTradesByStage(q dbcl.Querier, batchID uint64, stage int) ([]*Exc
 	WHERE
 		batch_id = ?
 	AND
-		stage_id = ?;`
+		stage_id = ?
+	ORDER BY step_id DESC
+	LIMIT 1;`
 
 	output := []*ExchangeTrade{}
 	err := q.Select(&output, query, batchID, stage)
@@ -892,14 +894,35 @@ func GetExchangeTradesByStage(q dbcl.Querier, batchID uint64, stage int) ([]*Exc
 }
 
 func GetExchangeTradeByPathAndStage(q dbcl.Querier, batchID uint64, path, stage int) (*ExchangeTrade, error) {
-	const query = `SELECT *
+	const query = `SELECT
+	    exchange_trades.batch_id,
+	    exchange_trades.path_id,
+	    exchange_trades.stage_id,
+	    exchange_trades.initial_chain_id,
+	    exchange_trades.from_chain_id,
+	    exchange_trades.to_chain_id,
+	    exchange_trades.direction,
+	    SUM(exchange_trades.value) AS value,
+	    SUM(exchange_trades.proceeds) AS proceeds,
+	    SUM(exchange_trades.trade_fees) AS trade_fees,
+	    SUM(exchange_trades.cumulative_deposit_fees) AS cumulative_deposit_fees,
+	    SUM(exchange_trades.cumulative_trade_fees) AS cumulative_trade_fees,
+	    SUM(order_price * proceeds) / SUM(proceeds) as order_price,
+	    SUM(fill_price * proceeds) / SUM(proceeds) as fill_price,
+	    SUM(cumulative_fill_price) as cumulative_fill_price,
+	    SUM(slippage * proceeds) / SUM(proceeds) as slippage,
+	    MIN(initiated) as initiated,
+	    MIN(confirmed) as confirmed,
+	    MIN(created_at) as created_at,
+	    MAX(updated_at) as updated_at
 	FROM exchange_trades
 	WHERE
 		batch_id = ?
 	AND
 		path_id = ?
 	AND
-		stage_id = ?;`
+		stage_id = ?
+	GROUP by batch_id, path_id, stage_id, initial_chain_id, from_chain_id, to_chain_id, direction;`
 
 	output := new(ExchangeTrade)
 	err := q.Get(output, query, batchID, path, stage)
@@ -920,11 +943,32 @@ func GetFinalExchangeTrades(q dbcl.Querier, batchID uint64) ([]*ExchangeTrade, e
 			batch_id = ?
 		GROUP BY path_id
 	)
-	SELECT exchange_trades.*
+	SELECT
+	    exchange_trades.batch_id,
+	    exchange_trades.path_id,
+	    exchange_trades.stage_id,
+	    exchange_trades.initial_chain_id,
+	    exchange_trades.from_chain_id,
+	    exchange_trades.to_chain_id,
+	    exchange_trades.direction,
+	    SUM(exchange_trades.value) AS value,
+	    SUM(exchange_trades.proceeds) AS proceeds,
+	    SUM(exchange_trades.trade_fees) AS trade_fees,
+	    SUM(exchange_trades.cumulative_deposit_fees) AS cumulative_deposit_fees,
+	    SUM(exchange_trades.cumulative_trade_fees) AS cumulative_trade_fees,
+	    SUM(order_price * proceeds) / SUM(proceeds) as order_price,
+	    SUM(fill_price * proceeds) / SUM(proceeds) as fill_price,
+	    SUM(cumulative_fill_price) as cumulative_fill_price,
+	    SUM(slippage * proceeds) / SUM(proceeds) as slippage,
+	    MIN(initiated) as initiated,
+	    MIN(confirmed) as confirmed,
+	    MIN(created_at) as created_at,
+	    MAX(updated_at) as updated_at
 	FROM exchange_trades
 	JOIN cte ON exchange_trades.stage_id = cte.max_stage AND exchange_trades.path_id = cte.path_id
 	WHERE
-		batch_id = ?;`
+		batch_id = ?
+	GROUP by batch_id, path_id, stage_id, initial_chain_id, from_chain_id, to_chain_id, direction;`
 
 	output := []*ExchangeTrade{}
 	err := q.Select(&output, query, batchID, batchID)
