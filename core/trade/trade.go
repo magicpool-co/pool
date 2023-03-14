@@ -229,6 +229,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 		} else if parsedTrade == nil || !parsedTrade.Completed {
 			completedAll, completedTrade = false, false
 			timeout := c.exchange.GetTradeTimeout()
+			// if the exchange doesn't support trade timeouts, just keep looping.
 			if timeout == 0 {
 				continue
 			}
@@ -250,6 +251,9 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 					return err
 				}
 
+				// set the old trade value to zero and the new trade value to
+				// the full desired trade value. check if any of the old trade was filled
+				// alter the old trade and new trade values accordingly.
 				tradeValue := dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)}
 				newTradeValue := trade.Value
 				if parsedTrade != nil {
@@ -263,6 +267,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 					newTradeValue = dbcl.NullBigInt{Valid: true, BigInt: partialValue}
 				}
 
+				// modify the old trade value, make the new trade, and update/insert them.
 				trade.Value = tradeValue
 				nextTrade := &pooldb.ExchangeTrade{
 					BatchID: trade.BatchID,
@@ -285,6 +290,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 					return err
 				}
 
+				// flip back to the previous stage to kick off the newly created trade.
 				err = c.updateBatchStatus(batchID, tradeStageIncompleteStatus)
 				if err != nil {
 					return err
@@ -358,8 +364,6 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 				return fmt.Errorf("no cumulative deposit fees for trade %d", trade.ID)
 			}
 
-			// set cumulative fill price to 1
-			cumulativeFillPrice = 1
 			if fillPrice > 0 {
 				depositFees := trade.CumulativeDepositFees.BigInt
 				switch types.TradeDirection(trade.Direction) {
@@ -380,7 +384,9 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 
 		// check for the next trade to update the trade value, since it is only known
 		// after the previous (current) trade is filled. if no next trade exists, transfer
-		// the balance from the trade account to the main account (kucoin only, empty method otherwise)
+		// the balance from the trade account to the main account (kucoin only, empty method otherwise).
+		// if there are multiple trade steps, this will just partially update the next trade's value
+		// sequentially.
 		nextTrade, err := pooldb.GetExchangeTradeByPathAndStage(c.pooldb.Reader(), batchID, trade.PathID, trade.StageID+1)
 		if err != nil {
 			return err
@@ -391,7 +397,12 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 				return err
 			}
 		} else {
-			nextTrade.Value = dbcl.NullBigInt{Valid: true, BigInt: proceeds}
+			if nextTrade.Value.Valid {
+				nextTrade.Value.BigInt.Add(nextTrade.Value.BigInt, proceeds)
+			} else {
+				nextTrade.Value = dbcl.NullBigInt{Valid: true, BigInt: proceeds}
+			}
+
 			cols := []string{"value"}
 			err = pooldb.UpdateExchangeTrade(c.pooldb.Writer(), nextTrade, cols)
 			if err != nil {
