@@ -278,6 +278,10 @@ func (c *Client) ProcessBatch(batchID uint64) error {
 	case TradesActiveStageTwo:
 		return c.ConfirmTradeStage(batchID, 2)
 	case TradesCompleteStageTwo:
+		return c.InitiateTradeStage(batchID, 3)
+	case TradesActiveStageThree:
+		return c.ConfirmTradeStage(batchID, 3)
+	case TradesCompleteStageThree:
 		return c.InitiateWithdrawals(batchID)
 	case WithdrawalsActive:
 		return c.ConfirmWithdrawals(batchID)
