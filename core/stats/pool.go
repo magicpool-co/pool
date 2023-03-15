@@ -67,8 +67,8 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 			Workers:   workers,
 			Hashrate:  newNumberFromFloat64(hashrate, "H/s", true),
 			Luck:      newNumberFromFloat64(luck, "%", false),
-			ProfitUSD: newNumberFromFloat64WithPrecision(profitUsd, 32, "$/H/s", false),
-			ProfitBTC: newNumberFromFloat64WithPrecision(profitBtc, 32, "BTC/H/s", false),
+			ProfitUSD: newNumberFromFloat64WithPrecision(profitUsd, 32, " $/H/s", false),
+			ProfitBTC: newNumberFromFloat64WithPrecision(profitBtc, 32, " BTC/H/s", false),
 		}
 	}
 

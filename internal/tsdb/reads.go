@@ -96,24 +96,32 @@ func GetBlocksProfitability(q dbcl.Querier, period int) ([]*Block, error) {
 }
 
 func GetBlocksProfitabilityLast(q dbcl.Querier, period int) ([]*Block, error) {
-	const query = `WITH cte AS (
-	    SELECT chain_id, MAX(end_time) end_time
+	const query = `WITH block_times AS (
+	    SELECT chain_id, MAX(end_time) AS end_time
 	    FROM blocks
 	    WHERE period = ?
 	    GROUP BY chain_id
+	), price_times AS (
+	    SELECT chain_id, MAX(timestamp) AS timestamp
+	    FROM prices
+	    GROUP BY chain_id
+	), prices AS (
+	    SELECT prices.chain_id, price_usd, price_btc
+	    FROM prices
+	    JOIN price_times ON prices.chain_id = price_times.chain_id AND prices.timestamp = price_times.timestamp
 	) SELECT
-	    blocks.chain_id,
-	    blocks.profitability * prices.price_usd profitability,
-	    blocks.avg_profitability * prices.price_usd avg_profitability,
-	    blocks.profitability * prices.price_btc profitability_btc,
-	    blocks.avg_profitability * prices.price_btc avg_profitability_btc
+	      blocks.chain_id,
+	      blocks.profitability * prices.price_usd AS profitability,
+	      blocks.avg_profitability * prices.price_usd AS avg_profitability,
+	      blocks.profitability * prices.price_btc AS profitability_btc,
+	      blocks.avg_profitability * prices.price_btc AS avg_profitability_btc
 	FROM blocks
-	JOIN cte on blocks.end_time = cte.end_time AND blocks.chain_id = cte.chain_id
-	JOIN prices ON blocks.end_time = prices.timestamp AND blocks.chain_id = prices.chain_id
+	JOIN block_times ON blocks.chain_id = block_times.chain_id AND blocks.end_time = block_times.end_time
+	JOIN prices ON blocks.chain_id = prices.chain_id
 	WHERE
-	    period = ?
-	AND
-	    pending = FALSE;`
+	        period = ?
+	  AND
+	        pending = FALSE;`
 
 	output := []*Block{}
 	err := q.Select(&output, query, period, period)
