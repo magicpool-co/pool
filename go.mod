@@ -10,7 +10,7 @@ require (
 	github.com/bsm/redislock v0.7.2
 	github.com/btcsuite/btcd/btcutil v1.1.0
 	github.com/dchest/blake2b v1.0.0
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0
 	github.com/ethereum/go-ethereum v1.11.4
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-redis/redis_rate/v9 v9.1.2
