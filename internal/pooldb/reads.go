@@ -895,6 +895,7 @@ func GetExchangeTradesByStage(q dbcl.Querier, batchID uint64, stage int) ([]*Exc
 
 func GetExchangeTradeByPathAndStage(q dbcl.Querier, batchID uint64, path, stage int) (*ExchangeTrade, error) {
 	const query = `SELECT
+	    MIN(exchange_trades.id) as id,
 	    exchange_trades.batch_id,
 	    exchange_trades.path_id,
 	    exchange_trades.stage_id,
