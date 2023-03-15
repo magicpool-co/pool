@@ -22,13 +22,13 @@ type Worker struct {
 	pooldb      *dbcl.Client
 	tsdb        *dbcl.Client
 	redis       *redis.Client
-	exchange    types.Exchange
+	exchanges   []types.Exchange
 	aws         *aws.Client
 	metrics     *metrics.Client
 	telegram    *telegram.Client
 }
 
-func NewWorker(env string, mainnet bool, logger *log.Logger, miningNodes []types.MiningNode, payoutNodes []types.PayoutNode, pooldbClient, tsdbClient *dbcl.Client, redisClient *redis.Client, awsClient *aws.Client, metricsClient *metrics.Client, exchange types.Exchange, telegramClient *telegram.Client) *Worker {
+func NewWorker(env string, mainnet bool, logger *log.Logger, miningNodes []types.MiningNode, payoutNodes []types.PayoutNode, pooldbClient, tsdbClient *dbcl.Client, redisClient *redis.Client, awsClient *aws.Client, metricsClient *metrics.Client, exchanges []types.Exchange, telegramClient *telegram.Client) *Worker {
 	cronClient := cron.New(
 		cron.WithParser(
 			cron.NewParser(
@@ -44,7 +44,7 @@ func NewWorker(env string, mainnet bool, logger *log.Logger, miningNodes []types
 		redis:       redisClient,
 		pooldb:      pooldbClient,
 		tsdb:        tsdbClient,
-		exchange:    exchange,
+		exchanges:   exchanges,
 		aws:         awsClient,
 		metrics:     metricsClient,
 		telegram:    telegramClient,
@@ -141,13 +141,13 @@ func (w *Worker) Start() {
 	})
 
 	w.cron.AddJob("*/5 * * * *", &TradeJob{
-		locker:   locker,
-		logger:   w.logger,
-		pooldb:   w.pooldb,
-		redis:    w.redis,
-		nodes:    w.payoutNodes,
-		exchange: w.exchange,
-		telegram: w.telegram,
+		locker:    locker,
+		logger:    w.logger,
+		pooldb:    w.pooldb,
+		redis:     w.redis,
+		nodes:     w.payoutNodes,
+		exchanges: w.exchanges,
+		telegram:  w.telegram,
 	})
 
 	w.cron.AddJob("*/5 * * * *", &PayoutJob{

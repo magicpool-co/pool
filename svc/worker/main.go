@@ -84,11 +84,18 @@ func newWorker(secrets map[string]string, mainnet bool, metricsClient *metrics.C
 		return nil, nil, err
 	}
 
-	exchange, err := trade.NewExchange(types.KucoinID, secrets["KUCOIN_API_KEY"],
+	kucoin, err := trade.NewExchange(types.KucoinID, secrets["KUCOIN_API_KEY"],
 		secrets["KUCOIN_API_SECRET"], secrets["KUCOIN_API_PASSPHRASE"])
 	if err != nil {
 		return nil, nil, err
 	}
+
+	mexc, err := trade.NewExchange(types.MEXCGlobalID, secrets["MEXC_API_KEY"], secrets["MEXC_API_SECRET"], "")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	exchanges := []types.Exchange{kucoin, mexc}
 
 	tunnel, err := initTunnel(secrets)
 	if err != nil {
@@ -134,7 +141,7 @@ func newWorker(secrets map[string]string, mainnet bool, metricsClient *metrics.C
 	}
 
 	workerClient := worker.NewWorker(secrets["ENVIRONMENT"], mainnet, logger, miningNodes, payoutNodes,
-		pooldbClient, tsdbClient, redisClient, awsClient, metricsClient, exchange, telegramClient)
+		pooldbClient, tsdbClient, redisClient, awsClient, metricsClient, exchanges, telegramClient)
 
 	return workerClient, logger, nil
 }

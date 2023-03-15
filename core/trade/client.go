@@ -30,6 +30,17 @@ var (
 		"FLUX": new(big.Int).SetUint64(30_000_000_000),              // 300 FLUX
 		"RVN":  new(big.Int).SetUint64(500_000_000_000),             // 5,000 RVN
 	}
+
+	exchangeChainMaps = map[string]types.ExchangeID{
+		"CFX":  types.KucoinID,
+		"CTXC": types.MEXCGlobalID,
+		"ERGO": types.KucoinID,
+		"ETC":  types.KucoinID,
+		"KAS":  types.MEXCGlobalID,
+		"FIRO": types.MEXCGlobalID,
+		"FLUX": types.KucoinID,
+		"RVN":  types.KucoinID,
+	}
 )
 
 /* exchange */
@@ -71,29 +82,32 @@ const (
 )
 
 type Client struct {
-	exchangeID types.ExchangeID
-	exchange   types.Exchange
-	pooldb     *dbcl.Client
-	redis      *redis.Client
-	nodes      map[string]types.PayoutNode
-	telegram   *telegram.Client
-	bank       *bank.Client
+	exchanges map[int]types.Exchange
+	pooldb    *dbcl.Client
+	redis     *redis.Client
+	nodes     map[string]types.PayoutNode
+	telegram  *telegram.Client
+	bank      *bank.Client
 }
 
-func New(pooldbClient *dbcl.Client, redisClient *redis.Client, nodes []types.PayoutNode, exchange types.Exchange, telegramClient *telegram.Client) *Client {
+func New(pooldbClient *dbcl.Client, redisClient *redis.Client, nodes []types.PayoutNode, exchanges []types.Exchange, telegramClient *telegram.Client) *Client {
 	nodeIdx := make(map[string]types.PayoutNode)
 	for _, node := range nodes {
 		nodeIdx[node.Chain()] = node
 	}
 
+	exchangesIdx := make(map[int]types.Exchange)
+	for _, exchange := range exchanges {
+		exchangesIdx[int(exchange.ID())] = exchange
+	}
+
 	client := &Client{
-		exchangeID: exchange.ID(),
-		exchange:   exchange,
-		pooldb:     pooldbClient,
-		redis:      redisClient,
-		nodes:      nodeIdx,
-		telegram:   telegramClient,
-		bank:       bank.New(pooldbClient, redisClient, telegramClient),
+		exchanges: exchangesIdx,
+		pooldb:    pooldbClient,
+		redis:     redisClient,
+		nodes:     nodeIdx,
+		telegram:  telegramClient,
+		bank:      bank.New(pooldbClient, redisClient, telegramClient),
 	}
 
 	return client
@@ -117,7 +131,18 @@ func (c *Client) updateBatchStatus(batchID uint64, status Status) error {
 
 /* core methods */
 
-func (c *Client) CheckForNewBatch() error {
+func (c *Client) CheckForNewBatches() error {
+	for _, exchange := range c.exchanges {
+		err := c.checkForNewBatch(exchange)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Client) checkForNewBatch(exchange types.Exchange) error {
 	activeBatches, err := pooldb.GetActiveExchangeBatches(c.pooldb.Reader())
 	if err != nil {
 		return err
@@ -143,13 +168,14 @@ func (c *Client) CheckForNewBatch() error {
 	// check all input and output paths, remove the inputs/outputs that
 	// do not have deposits or withdrawals currently enabled
 	for inChainID, outputIdx := range inputPaths {
-		if inChainID == "KAS" {
+		// only run the process for the specific exchange
+		if exchangeChainMaps[inChainID] != exchange.ID() {
 			delete(inputPaths, inChainID)
 			continue
 		}
 
 		// check for deposits being enabled on the input chains
-		depositsEnabled, _, err := c.exchange.GetWalletStatus(inChainID)
+		depositsEnabled, _, err := exchange.GetWalletStatus(inChainID)
 		if err != nil {
 			return err
 		} else if !depositsEnabled {
@@ -159,7 +185,7 @@ func (c *Client) CheckForNewBatch() error {
 
 		for outChainID := range outputIdx {
 			// check for withdrawals being enabled on the output chains
-			_, withdrawalsEnabled, err := c.exchange.GetWalletStatus(outChainID)
+			_, withdrawalsEnabled, err := exchange.GetWalletStatus(outChainID)
 			if err != nil {
 				return err
 			} else if !withdrawalsEnabled {
@@ -168,8 +194,8 @@ func (c *Client) CheckForNewBatch() error {
 		}
 	}
 
-	outputThresholds := c.exchange.GetOutputThresholds()
-	prices, err := c.exchange.GetPrices(inputPaths)
+	outputThresholds := exchange.GetOutputThresholds()
+	prices, err := exchange.GetPrices(inputPaths)
 	if err != nil {
 		return err
 	}
@@ -197,7 +223,7 @@ func (c *Client) CheckForNewBatch() error {
 	defer tx.SafeRollback()
 
 	batch := &pooldb.ExchangeBatch{
-		ExchangeID: int(c.exchangeID),
+		ExchangeID: int(exchange.ID()),
 		Status:     int(BatchInactive),
 	}
 
@@ -259,32 +285,37 @@ func (c *Client) ProcessBatch(batchID uint64) error {
 		return fmt.Errorf("batch not found")
 	}
 
+	exchange, ok := c.exchanges[batch.ExchangeID]
+	if !ok {
+		return fmt.Errorf("exchange not found in batch %d", batch.ID)
+	}
+
 	// switch on the batch status and execute the proper action
 	switch Status(batch.Status) {
 	case BatchInactive:
-		return c.InitiateDeposits(batchID)
+		return c.InitiateDeposits(batchID, exchange)
 	case DepositsActive:
-		return c.RegisterDeposits(batchID)
+		return c.RegisterDeposits(batchID, exchange)
 	case DepositsRegistered:
-		return c.ConfirmDeposits(batchID)
+		return c.ConfirmDeposits(batchID, exchange)
 	case DepositsComplete:
-		return c.InitiateTrades(batchID)
+		return c.InitiateTrades(batchID, exchange)
 	case TradesInactive:
-		return c.InitiateTradeStage(batchID, 1)
+		return c.InitiateTradeStage(batchID, exchange, 1)
 	case TradesActiveStageOne:
-		return c.ConfirmTradeStage(batchID, 1)
+		return c.ConfirmTradeStage(batchID, exchange, 1)
 	case TradesCompleteStageOne:
-		return c.InitiateTradeStage(batchID, 2)
+		return c.InitiateTradeStage(batchID, exchange, 2)
 	case TradesActiveStageTwo:
-		return c.ConfirmTradeStage(batchID, 2)
+		return c.ConfirmTradeStage(batchID, exchange, 2)
 	case TradesCompleteStageTwo:
-		return c.InitiateTradeStage(batchID, 3)
+		return c.InitiateTradeStage(batchID, exchange, 3)
 	case TradesActiveStageThree:
-		return c.ConfirmTradeStage(batchID, 3)
+		return c.ConfirmTradeStage(batchID, exchange, 3)
 	case TradesCompleteStageThree:
-		return c.InitiateWithdrawals(batchID)
+		return c.InitiateWithdrawals(batchID, exchange)
 	case WithdrawalsActive:
-		return c.ConfirmWithdrawals(batchID)
+		return c.ConfirmWithdrawals(batchID, exchange)
 	case WithdrawalsComplete:
 		return c.CreditWithdrawals(batchID)
 	case BatchComplete:

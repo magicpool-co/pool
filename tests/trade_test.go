@@ -10,7 +10,7 @@ type TradeSuite struct {
 	suite.Suite
 }
 
-func (suite *TradeSuite) TestCheckForNewBatch() {
+func (suite *TradeSuite) TestCheckForNewBatches() {
 
 }
 

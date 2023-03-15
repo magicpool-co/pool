@@ -10,7 +10,7 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
-func (c *Client) InitiateDeposits(batchID uint64) error {
+func (c *Client) InitiateDeposits(batchID uint64, exchange types.Exchange) error {
 	exchangeInputs, err := pooldb.GetExchangeInputs(c.pooldb.Reader(), batchID)
 	if err != nil {
 		return err
@@ -39,7 +39,7 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 		}
 
 		// verify the exchange supports the chain for deposits and withdrawals
-		depositsEnabled, _, err := c.exchange.GetWalletStatus(chain)
+		depositsEnabled, _, err := exchange.GetWalletStatus(chain)
 		if err != nil {
 			return err
 		} else if !depositsEnabled {
@@ -47,7 +47,7 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 		}
 
 		// fetch the deposit address from the exchange
-		address, err := c.exchange.GetDepositAddress(chain)
+		address, err := exchange.GetDepositAddress(chain)
 		if err != nil {
 			return err
 		}
@@ -121,7 +121,7 @@ func (c *Client) InitiateDeposits(batchID uint64) error {
 	return nil
 }
 
-func (c *Client) RegisterDeposits(batchID uint64) error {
+func (c *Client) RegisterDeposits(batchID uint64, exchange types.Exchange) error {
 	deposits, err := pooldb.GetExchangeDeposits(c.pooldb.Reader(), batchID)
 	if err != nil {
 		return err
@@ -134,7 +134,7 @@ func (c *Client) RegisterDeposits(batchID uint64) error {
 		}
 
 		// fetch the deposit from the exchange and register it in the db
-		parsedDeposit, err := c.exchange.GetDepositByTxID(deposit.ChainID, deposit.DepositTxID)
+		parsedDeposit, err := exchange.GetDepositByTxID(deposit.ChainID, deposit.DepositTxID)
 		if err != nil {
 			return err
 		} else if parsedDeposit.ID == "" {
@@ -160,7 +160,7 @@ func (c *Client) RegisterDeposits(batchID uint64) error {
 	return nil
 }
 
-func (c *Client) ConfirmDeposits(batchID uint64) error {
+func (c *Client) ConfirmDeposits(batchID uint64, exchange types.Exchange) error {
 	deposits, err := pooldb.GetExchangeDeposits(c.pooldb.Reader(), batchID)
 	if err != nil {
 		return err
@@ -178,7 +178,7 @@ func (c *Client) ConfirmDeposits(batchID uint64) error {
 		}
 
 		// fetch the deposit from the exchange
-		parsedDeposit, err := c.exchange.GetDepositByID(deposit.ChainID, depositID)
+		parsedDeposit, err := exchange.GetDepositByID(deposit.ChainID, depositID)
 		if err != nil {
 			return err
 		} else if !parsedDeposit.Completed {
@@ -201,7 +201,7 @@ func (c *Client) ConfirmDeposits(batchID uint64) error {
 
 		// transfer the balance from the main account to the
 		// trade account (kucoin only, empty method otherwise)
-		err = c.exchange.TransferToTradeAccount(deposit.ChainID, common.BigIntToFloat64(valueBig, units))
+		err = exchange.TransferToTradeAccount(deposit.ChainID, common.BigIntToFloat64(valueBig, units))
 		if err != nil {
 			return err
 		}

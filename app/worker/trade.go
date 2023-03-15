@@ -17,13 +17,13 @@ import (
 )
 
 type TradeJob struct {
-	locker   *redislock.Client
-	logger   *log.Logger
-	pooldb   *dbcl.Client
-	redis    *redis.Client
-	nodes    []types.PayoutNode
-	exchange types.Exchange
-	telegram *telegram.Client
+	locker    *redislock.Client
+	logger    *log.Logger
+	pooldb    *dbcl.Client
+	redis     *redis.Client
+	nodes     []types.PayoutNode
+	exchanges []types.Exchange
+	telegram  *telegram.Client
 }
 
 func (j *TradeJob) Run() {
@@ -39,8 +39,8 @@ func (j *TradeJob) Run() {
 	}
 	defer lock.Release(ctx)
 
-	client := trade.New(j.pooldb, j.redis, j.nodes, j.exchange, j.telegram)
-	if err := client.CheckForNewBatch(); err != nil {
+	client := trade.New(j.pooldb, j.redis, j.nodes, j.exchanges, j.telegram)
+	if err := client.CheckForNewBatches(); err != nil {
 		j.logger.Error(fmt.Errorf("check: %v", err))
 	}
 

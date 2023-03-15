@@ -13,7 +13,7 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
-func (c *Client) InitiateTrades(batchID uint64) error {
+func (c *Client) InitiateTrades(batchID uint64, exchange types.Exchange) error {
 	deposits, err := pooldb.GetExchangeDeposits(c.pooldb.Reader(), batchID)
 	if err != nil {
 		return err
@@ -71,7 +71,7 @@ func (c *Client) InitiateTrades(batchID uint64) error {
 	for fromChainID, outputIdx := range depositValueIdx {
 		for toChainID, depositValue := range outputIdx {
 			// generate the respective exchange's trades for a given trade path
-			parsedTrades, err := c.exchange.GenerateTradePath(fromChainID, toChainID)
+			parsedTrades, err := exchange.GenerateTradePath(fromChainID, toChainID)
 			if err != nil {
 				return err
 			}
@@ -113,7 +113,7 @@ func (c *Client) InitiateTrades(batchID uint64) error {
 	return c.updateBatchStatus(batchID, TradesInactive)
 }
 
-func (c *Client) InitiateTradeStage(batchID uint64, stage int) error {
+func (c *Client) InitiateTradeStage(batchID uint64, exchange types.Exchange, stage int) error {
 	var tradeStageStatus Status
 	switch stage {
 	case 1:
@@ -144,7 +144,7 @@ func (c *Client) InitiateTradeStage(batchID uint64, stage int) error {
 			return err
 		}
 
-		orderPrice, err := c.exchange.GetRate(trade.Market)
+		orderPrice, err := exchange.GetRate(trade.Market)
 		if err != nil {
 			return err
 		}
@@ -152,7 +152,7 @@ func (c *Client) InitiateTradeStage(batchID uint64, stage int) error {
 		// process the trade value as a float and execute the trade
 		floatValue := common.BigIntToFloat64(trade.Value.BigInt, units)
 		direction := types.TradeDirection(trade.Direction)
-		tradeID, err := c.exchange.CreateTrade(trade.Market, direction, floatValue)
+		tradeID, err := exchange.CreateTrade(trade.Market, direction, floatValue)
 		if err != nil {
 			return err
 		}
@@ -174,7 +174,7 @@ func (c *Client) InitiateTradeStage(batchID uint64, stage int) error {
 	return c.updateBatchStatus(batchID, tradeStageStatus)
 }
 
-func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
+func (c *Client) ConfirmTradeStage(batchID uint64, exchange types.Exchange, stage int) error {
 	var tradeStageStatus, tradeStageIncompleteStatus Status
 	switch stage {
 	case 1:
@@ -223,12 +223,12 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 		// process the trade value as a float and fetch the trade from the exchange
 		tradeID := types.StringValue(trade.ExchangeTradeID)
 		value := common.BigIntToFloat64(trade.Value.BigInt, fromUnits)
-		parsedTrade, err := c.exchange.GetTradeByID(trade.Market, tradeID, value)
+		parsedTrade, err := exchange.GetTradeByID(trade.Market, tradeID, value)
 		if err != nil {
 			return err
 		} else if parsedTrade == nil || !parsedTrade.Completed {
 			completedAll, completedTrade = false, false
-			timeout := c.exchange.GetTradeTimeout()
+			timeout := exchange.GetTradeTimeout()
 			// if the exchange doesn't support trade timeouts, just keep looping.
 			if timeout == 0 {
 				continue
@@ -238,7 +238,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 			// cancel it, refetch the trade, then make a new trade
 			// to finish out the rest of the order
 			if time.Since(trade.UpdatedAt) > timeout {
-				err = c.exchange.CancelTradeByID(trade.Market, tradeID)
+				err = exchange.CancelTradeByID(trade.Market, tradeID)
 				if err != nil {
 					return err
 				}
@@ -246,7 +246,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 				time.Sleep(time.Second)
 
 				// refetch the trade in case more was filled
-				parsedTrade, err = c.exchange.GetTradeByID(trade.Market, tradeID, value)
+				parsedTrade, err = exchange.GetTradeByID(trade.Market, tradeID, value)
 				if err != nil {
 					return err
 				}
@@ -392,7 +392,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, stage int) error {
 			return err
 		} else if nextTrade == nil {
 			proceedsFloat := common.BigIntToFloat64(proceeds, toUnits)
-			err = c.exchange.TransferToMainAccount(trade.ToChainID, proceedsFloat)
+			err = exchange.TransferToMainAccount(trade.ToChainID, proceedsFloat)
 			if err != nil {
 				return err
 			}

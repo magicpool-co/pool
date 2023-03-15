@@ -11,7 +11,7 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
-func (c *Client) InitiateWithdrawals(batchID uint64) error {
+func (c *Client) InitiateWithdrawals(batchID uint64, exchange types.Exchange) error {
 	trades, err := pooldb.GetFinalExchangeTrades(c.pooldb.Reader(), batchID)
 	if err != nil {
 		return err
@@ -56,7 +56,7 @@ func (c *Client) InitiateWithdrawals(batchID uint64) error {
 			return fmt.Errorf("no node for %s", chain)
 		}
 
-		_, withdrawalsEnabled, err := c.exchange.GetWalletStatus(chain)
+		_, withdrawalsEnabled, err := exchange.GetWalletStatus(chain)
 		if err != nil {
 			return err
 		} else if !withdrawalsEnabled {
@@ -78,7 +78,7 @@ func (c *Client) InitiateWithdrawals(batchID uint64) error {
 	for chain, value := range values {
 		// @TODO: check if withdrawal has already been executed
 		floatValue := common.BigIntToFloat64(value, c.nodes[chain].GetUnits().Big())
-		exchangeWithdrawalID, err := c.exchange.CreateWithdrawal(chain, c.nodes[chain].Address(), floatValue)
+		exchangeWithdrawalID, err := exchange.CreateWithdrawal(chain, c.nodes[chain].Address(), floatValue)
 		if err != nil {
 			return err
 		}
@@ -108,7 +108,7 @@ func (c *Client) InitiateWithdrawals(batchID uint64) error {
 	return c.updateBatchStatus(batchID, WithdrawalsActive)
 }
 
-func (c *Client) ConfirmWithdrawals(batchID uint64) error {
+func (c *Client) ConfirmWithdrawals(batchID uint64, exchange types.Exchange) error {
 	withdrawals, err := pooldb.GetExchangeWithdrawals(c.pooldb.Reader(), batchID)
 	if err != nil {
 		return err
@@ -129,7 +129,7 @@ func (c *Client) ConfirmWithdrawals(batchID uint64) error {
 		}
 
 		// fetch the withdrawal from the exchange
-		parsedWithdrawal, err := c.exchange.GetWithdrawalByID(withdrawal.ChainID, withdrawal.ExchangeWithdrawalID)
+		parsedWithdrawal, err := exchange.GetWithdrawalByID(withdrawal.ChainID, withdrawal.ExchangeWithdrawalID)
 		if err != nil {
 			return err
 		} else if parsedWithdrawal == nil || !parsedWithdrawal.Completed {
