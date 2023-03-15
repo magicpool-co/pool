@@ -9,6 +9,7 @@ import (
 	"github.com/magicpool-co/pool/core/trade/binance"
 	"github.com/magicpool-co/pool/core/trade/bittrex"
 	"github.com/magicpool-co/pool/core/trade/kucoin"
+	"github.com/magicpool-co/pool/core/trade/mexc"
 	"github.com/magicpool-co/pool/internal/accounting"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/redis"
@@ -24,15 +25,10 @@ var (
 		"CTXC": common.MustParseBigInt("5000000000000000000000000"), // 5,000,000 CTXC
 		"ERGO": new(big.Int).SetUint64(100_000_000_000),             // 100 ERGO
 		"ETC":  common.MustParseBigInt("25000000000000000000"),      // 25 ETC
+		"KAS":  new(big.Int).SetUint64(1_000_000_000_000),           // 10,000 KAS
 		"FIRO": new(big.Int).SetUint64(10_000_000_000),              // 100 FIRO
 		"FLUX": new(big.Int).SetUint64(30_000_000_000),              // 300 FLUX
 		"RVN":  new(big.Int).SetUint64(500_000_000_000),             // 5,000 RVN
-	}
-
-	outputThresholds = map[string]*big.Int{
-		"BTC":  new(big.Int).SetUint64(5_000_000),                 // 0.05 BTC
-		"ETH":  new(big.Int).SetUint64(1_000_000_000_000_000_000), // 1 ETH
-		"USDC": new(big.Int).SetUint64(20_000_000_000),            // 20,000 USDC
 	}
 )
 
@@ -46,6 +42,8 @@ func NewExchange(exchangeID types.ExchangeID, apiKey, secretKey, secretPassphras
 		return kucoin.New(apiKey, secretKey, secretPassphrase), nil
 	case types.BittrexID:
 		return bittrex.New(apiKey, secretKey), nil
+	case types.MEXCGlobalID:
+		return mexc.New(apiKey, secretKey), nil
 	default:
 		return nil, fmt.Errorf("unsupported exchange %d", exchangeID)
 	}
@@ -170,7 +168,7 @@ func (c *Client) CheckForNewBatch() error {
 		}
 	}
 
-	// outputThresholds := c.exchange.GetOutputThresholds()
+	outputThresholds := c.exchange.GetOutputThresholds()
 	prices, err := c.exchange.GetPrices(inputPaths)
 	if err != nil {
 		return err

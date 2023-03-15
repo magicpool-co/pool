@@ -88,8 +88,8 @@ var (
 	}
 
 	presetOutputThresholds = map[string]*big.Int{
-		"BTC":  new(big.Int).SetUint64(5_000_000),
-		"ETH":  new(big.Int).SetUint64(500_000_000_000_000_000),
-		"USDC": new(big.Int).SetUint64(2_000_000_000),
+		"BTC":  new(big.Int).SetUint64(5_000_000),                 // 0.05 BTC
+		"ETH":  new(big.Int).SetUint64(1_000_000_000_000_000_000), // 1 ETH
+		"USDC": new(big.Int).SetUint64(20_000_000_000),            // 20,000 USDC
 	}
 )

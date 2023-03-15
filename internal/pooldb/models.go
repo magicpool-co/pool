@@ -233,7 +233,6 @@ type ExchangeTrade struct {
 	IsMarketOrder bool   `db:"is_market_order"`
 	TradeStrategy int    `db:"trade_strategy"`
 
-	ExchangeID      int     `db:"exchange_id"`
 	ExchangeTradeID *string `db:"exchange_trade_id"`
 
 	InitialChainID string `db:"initial_chain_id"`

@@ -1,4 +1,3 @@
-ALTER TABLE exchange_trades DROP COLUMN exchange_id;
 ALTER TABLE exchange_trades DROP COLUMN trade_strategy;
 ALTER TABLE exchange_trades DROP COLUMN is_market_order;
 ALTER TABLE exchange_trades DROP COLUMN step_id;
