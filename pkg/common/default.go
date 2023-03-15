@@ -35,7 +35,7 @@ func GetDefaultUnits(chain string) (*big.Int, error) {
 		units = 1e18
 	case "ERGO":
 		units = 1e9
-	case "USDC", "USDT":
+	case "USDC", "USDT", "BUSD":
 		units = 1e6
 	default:
 		return nil, fmt.Errorf("unsupported chain %s for get units", chain)
