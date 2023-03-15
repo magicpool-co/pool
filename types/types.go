@@ -169,6 +169,7 @@ type Exchange interface {
 	// withdrawal
 	CreateWithdrawal(string, string, float64) (string, error)
 	GetWithdrawalByID(string, string) (*Withdrawal, error)
+	NeedsWithdrawalFeeSubtraction() bool
 }
 
 type Deposit struct {

@@ -74,6 +74,10 @@ func (c *Client) GetTradeTimeout() time.Duration {
 	return time.Minute * 2
 }
 
+func (c *Client) NeedsWithdrawalFeeSubtraction() bool {
+	return true
+}
+
 /* account */
 
 func (c *Client) GetAccountStatus() error {
@@ -473,7 +477,7 @@ func (c *Client) CreateTrade(market string, direction types.TradeDirection, quan
 			return "", err
 		}
 
-		var slippage float64 = 0.0001
+		var slippage float64 = 0.0000
 		var price string
 		switch direction {
 		case types.TradeBuy:

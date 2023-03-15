@@ -21,6 +21,10 @@ func (c *Client) GetTradeTimeout() time.Duration {
 	return 0
 }
 
+func (c *Client) NeedsWithdrawalFeeSubtraction() bool {
+	return false
+}
+
 /* account */
 
 func (c *Client) GetAccountStatus() error {

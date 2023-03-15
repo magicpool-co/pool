@@ -154,6 +154,10 @@ func (c *Client) ConfirmWithdrawals(batchID uint64, exchange types.Exchange) err
 			return err
 		}
 
+		if exchange.NeedsWithdrawalFeeSubtraction() {
+			valueBig.Sub(valueBig, withdrawalFeesBig)
+		}
+
 		// sum all fees to get the final cumulative fee
 		cumulativeFeesBig := new(big.Int)
 		cumulativeFeesBig.Add(cumulativeFeesBig, withdrawal.DepositFees.BigInt)
