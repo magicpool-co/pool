@@ -12,6 +12,10 @@ var (
 	addressExpr = regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 )
 
+func (node Node) Name() string {
+	return "Ethereum"
+}
+
 func (node Node) Chain() string {
 	if node.erc20 != nil {
 		return node.erc20.Chain

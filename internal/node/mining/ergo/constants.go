@@ -17,6 +17,10 @@ var (
 	units        = new(types.Number).SetFromValue(1e9)
 )
 
+func (node Node) Name() string {
+	return "Ergo"
+}
+
 func (node Node) Chain() string {
 	return "ERGO"
 }

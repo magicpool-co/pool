@@ -85,6 +85,7 @@ type TxResponse struct {
 /* node */
 
 type PayoutNode interface {
+	Name() string
 	Chain() string
 	Address() string
 	GetUnits() *Number

@@ -5,6 +5,10 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
+func (node Node) Name() string {
+	return "Bitcoin"
+}
+
 func (node Node) Chain() string {
 	return "BTC"
 }

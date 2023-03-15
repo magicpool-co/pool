@@ -30,7 +30,7 @@ func newNumberFromUint64Ptr(value uint64) *Number {
 	return &n
 }
 
-func newNumberFromFloat64(value float64, units string, scaleUnits bool) Number {
+func newNumberFromFloat64WithPrecision(value float64, precision int, units string, scaleUnits bool) Number {
 	if scaleUnits {
 		scale, scaledValue := common.GetDefaultUnitScale(value)
 		value /= scaledValue
@@ -39,10 +39,14 @@ func newNumberFromFloat64(value float64, units string, scaleUnits bool) Number {
 
 	n := Number{
 		Value:     value,
-		Formatted: strconv.FormatFloat(value, 'f', 1, 64) + units,
+		Formatted: strconv.FormatFloat(value, 'f', precision, 64) + units,
 	}
 
 	return n
+}
+
+func newNumberFromFloat64(value float64, units string, scaleUnits bool) Number {
+	return newNumberFromFloat64WithPrecision(value, 1, units, scaleUnits)
 }
 
 func newNumberFromFloat64Ptr(value float64, units string, scaleUnits bool) *Number {
@@ -82,14 +86,15 @@ func newNumberFromBigIntPtr(value *big.Int, chain string) (*Number, error) {
 
 /* pool */
 
-type PoolStats struct {
-	Name     string `json:"name"`
-	Symbol   string `json:"symbol"`
-	Miners   uint64 `json:"miners"`
-	Workers  uint64 `json:"workers"`
-	Hashrate Number `json:"hashrate"`
-	Luck     Number `json:"luck"`
-	Uptime   Number `json:"uptime"`
+type PoolSummary struct {
+	Name      string `json:"name"`
+	Symbol    string `json:"symbol"`
+	Miners    uint64 `json:"miners"`
+	Workers   uint64 `json:"workers"`
+	Hashrate  Number `json:"hashrate"`
+	Luck      Number `json:"luck"`
+	ProfitUSD Number `json:"profitUsd"`
+	ProfitBTC Number `json:"profitBtc"`
 }
 
 /* dashboard */

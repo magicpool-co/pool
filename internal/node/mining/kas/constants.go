@@ -26,6 +26,10 @@ var (
 	units        = new(types.Number).SetFromValue(1e8)
 )
 
+func (node Node) Name() string {
+	return "Kaspa"
+}
+
 func (node Node) Chain() string {
 	return "KAS"
 }

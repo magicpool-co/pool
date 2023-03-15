@@ -4,6 +4,10 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
+func (node Node) Name() string {
+	return "Binance Smart Chain"
+}
+
 func (node Node) Chain() string {
 	return "BSC"
 }

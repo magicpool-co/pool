@@ -17,6 +17,17 @@ var (
 	addressExpr = regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 )
 
+func (node Node) Name() string {
+	switch node.ethType {
+	case ETC:
+		return "Ethereum Classic"
+	case ETHW:
+		return "EthereumPoW"
+	default:
+		return ""
+	}
+}
+
 func (node Node) Chain() string {
 	switch node.ethType {
 	case ETC:

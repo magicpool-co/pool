@@ -21,6 +21,10 @@ var (
 	addressExpr = regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 )
 
+func (node Node) Name() string {
+	return "Cortex"
+}
+
 func (node Node) Chain() string {
 	return "CTXC"
 }

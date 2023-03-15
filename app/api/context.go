@@ -291,7 +291,7 @@ func (ctx *Context) getWorkers(args workersArgs) http.HandlerFunc {
 
 func (ctx *Context) getPools() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		pools, err := ctx.stats.GetPoolStats(ctx.nodes)
+		pools, err := ctx.stats.GetPoolSummary(ctx.nodes)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
@@ -336,7 +336,7 @@ func (ctx *Context) getDashboard(args dashboardArgs) http.Handler {
 
 			dashboard, err = ctx.stats.GetMinerDashboard(minerIDs)
 		} else {
-			dashboard, err = ctx.stats.GetGlobalDashboard()
+			ctx.writeErrorResponse(w, errInvalidParameters)
 		}
 
 		if err != nil {
