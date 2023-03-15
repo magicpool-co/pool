@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.103
 	github.com/brianium/mnemonic v0.0.0-20180124190051-72af92c51f88
 	github.com/bsm/redislock v0.7.2
-	github.com/btcsuite/btcd/btcutil v1.1.0
+	github.com/btcsuite/btcd/btcutil v1.1.3
 	github.com/dchest/blake2b v1.0.0
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1
 	github.com/ethereum/go-ethereum v1.11.4
