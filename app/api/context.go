@@ -336,7 +336,7 @@ func (ctx *Context) getDashboard(args dashboardArgs) http.Handler {
 
 			dashboard, err = ctx.stats.GetMinerDashboard(minerIDs)
 		} else {
-			ctx.writeErrorResponse(w, errInvalidParameters)
+			dashboard, err = ctx.stats.GetGlobalDashboard()
 		}
 
 		if err != nil {

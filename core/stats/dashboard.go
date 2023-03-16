@@ -61,6 +61,37 @@ func processShareInfo(shares []*tsdb.Share) map[string]*ShareInfo {
 	return idx
 }
 
+func (c *Client) GetGlobalDashboard() (*Dashboard, error) {
+	sumShares, err := tsdb.GetGlobalSharesSum(c.tsdb.Reader(), dashboardAggPeriod, dashboardAggDuration)
+	if err != nil {
+		return nil, err
+	}
+
+	lastShares, err := tsdb.GetGlobalSharesLast(c.tsdb.Reader(), dashboardAggPeriod)
+	if err != nil {
+		return nil, err
+	}
+
+	activeMiners, err := pooldb.GetActiveMinersCount(c.pooldb.Reader(), "")
+	if err != nil {
+		return nil, err
+	}
+
+	activeWorkers, err := pooldb.GetActiveWorkersCount(c.pooldb.Reader(), "")
+	if err != nil {
+		return nil, err
+	}
+
+	dashboard := &Dashboard{
+		Miners:        newNumberFromUint64Ptr(activeMiners),
+		ActiveWorkers: newNumberFromUint64Ptr(activeWorkers),
+		HashrateInfo:  processHashrateInfo(lastShares),
+		ShareInfo:     processShareInfo(sumShares),
+	}
+
+	return dashboard, nil
+}
+
 func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
 	// fetch last shares
 	lastShares, err := tsdb.GetMinersSharesLast(c.tsdb.Reader(), minerIDs, dashboardAggPeriod)
