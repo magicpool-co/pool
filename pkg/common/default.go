@@ -29,7 +29,7 @@ func GetDefaultUnitScale(val float64) (string, float64) {
 func GetDefaultUnits(chain string) (*big.Int, error) {
 	var units uint64
 	switch strings.ToUpper(chain) {
-	case "BTC", "FIRO", "FLUX", "KAS", "RVN":
+	case "BTC", "FIRO", "FLUX", "KAS", "NEXA", "RVN":
 		units = 1e8
 	case "CFX", "CTXC", "ETC", "ETH":
 		units = 1e18
@@ -139,6 +139,14 @@ func GetDefaultPayoutBounds(chain string) (*PayoutBounds, error) {
 			Min:       MustParseBigInt("10000000000"),
 			Default:   MustParseBigInt("100000000000"),
 			Max:       MustParseBigInt("1000000000000000"),
+			Precision: 1,
+			Units:     8,
+		}
+	case "NEXA":
+		bounds = &PayoutBounds{
+			Min:       MustParseBigInt("10000000000000"),
+			Default:   MustParseBigInt("100000000000000"),
+			Max:       MustParseBigInt("1000000000000000000"),
 			Precision: 1,
 			Units:     8,
 		}

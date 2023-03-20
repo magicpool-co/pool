@@ -193,6 +193,8 @@ func (c *Client) CollectBlocks(node types.MiningNode) error {
 				lastHeight = 1198000
 			case "FIRO":
 				lastHeight = 530000
+			case "NEXA":
+				lastHeight = 223500
 			case "RVN":
 				lastHeight = 2432500
 			default:
@@ -211,7 +213,7 @@ func (c *Client) CollectBlocks(node types.MiningNode) error {
 			if currentHeight-lastHeight > 250 {
 				currentHeight = lastHeight + 250
 			}
-		case "ERGO", "FLUX", "FIRO", "RVN":
+		case "ERGO", "FLUX", "FIRO", "NEXA", "RVN":
 			if currentHeight-lastHeight > 500 {
 				currentHeight = lastHeight + 500
 			}

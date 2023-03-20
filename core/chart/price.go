@@ -233,6 +233,8 @@ func (c *Client) ProcessPrices(chain string) error {
 			startTime = time.Unix(1664182800, 0)
 		case "KAS":
 			startTime = time.Unix(1664290800, 0)
+		case "NEXA":
+			startTime = time.Unix(1678147200, 0)
 		default:
 			startTime = time.Unix(1661990400, 0)
 		}
@@ -275,6 +277,11 @@ func (c *Client) ProcessPrices(chain string) error {
 		}
 	case "KAS":
 		idx, err = getMEXCNativeUSDTOnly("KAS", startTime, endTime)
+		if err == mexc.ErrTooManyRequests {
+			return nil
+		}
+	case "NEXA":
+		idx, err = getMEXCNativeUSDTOnly("NEXA", startTime, endTime)
 		if err == mexc.ErrTooManyRequests {
 			return nil
 		}

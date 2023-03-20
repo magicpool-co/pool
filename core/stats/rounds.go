@@ -33,6 +33,8 @@ func getBlockExplorerURL(chain, hash string, height uint64) (string, error) {
 		explorerURL = "https://explorer.runonflux.io/block/" + hash
 	case "KAS":
 		explorerURL = "https://katnip.kaspad.net/block/" + hash
+	case "NEXA":
+		explorerURL = "https://explorer.nexa.org/block/" + hash
 	case "RVN":
 		explorerURL = "https://ravencoin.network/block/" + hash
 	default:

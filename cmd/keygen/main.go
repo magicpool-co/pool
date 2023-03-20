@@ -64,7 +64,7 @@ func main() {
 	switch chain {
 	case "AE":
 		rawPriv, err = generateEd25519Priv(*argObscure)
-	case "BTC", "ERGO", "FIRO", "FLUX", "KAS", "RVN":
+	case "BTC", "ERGO", "FIRO", "FLUX", "KAS", "NEXA", "RVN":
 		rawPriv, obscuredPriv, err = generateSecp256k1Priv(*argObscure)
 		rawPriv = obscuredPriv
 	case "CTXC", "BSC", "ETC", "ETH":

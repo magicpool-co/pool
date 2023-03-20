@@ -78,6 +78,13 @@ var defaultOptions = map[string]*pool.Options{
 		PollingPeriod:   time.Millisecond * 100,
 		PingingPeriod:   time.Second * 30,
 	},
+	"NEXA": &pool.Options{
+		Chain:          "NEXA",
+		WindowSize:     150000,
+		ExtraNonceSize: 8,
+		JobListSize:    5,
+		PollingPeriod:  time.Second,
+	},
 	"RVN": &pool.Options{
 		Chain:          "RVN",
 		WindowSize:     300000,

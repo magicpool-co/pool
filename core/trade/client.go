@@ -28,6 +28,7 @@ var (
 		"KAS":  new(big.Int).SetUint64(1_000_000_000_000),           // 10,000 KAS
 		"FIRO": new(big.Int).SetUint64(10_000_000_000),              // 100 FIRO
 		"FLUX": new(big.Int).SetUint64(30_000_000_000),              // 300 FLUX
+		"NEXA": new(big.Int).SetUint64(1_000_000_000_000_000),       // 10,000,000 NEXA
 		"RVN":  new(big.Int).SetUint64(500_000_000_000),             // 5,000 RVN
 	}
 
@@ -39,6 +40,7 @@ var (
 		"KAS":  types.MEXCGlobalID,
 		"FIRO": types.MEXCGlobalID,
 		"FLUX": types.KucoinID,
+		"NEXA": types.MEXCGlobalID,
 		"RVN":  types.KucoinID,
 	}
 )

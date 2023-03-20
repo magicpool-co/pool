@@ -10,6 +10,7 @@ import (
 	"github.com/magicpool-co/pool/internal/node/mining/firo"
 	"github.com/magicpool-co/pool/internal/node/mining/flux"
 	"github.com/magicpool-co/pool/internal/node/mining/kas"
+	"github.com/magicpool-co/pool/internal/node/mining/nexa"
 	"github.com/magicpool-co/pool/internal/node/mining/rvn"
 	"github.com/magicpool-co/pool/internal/node/payout/btc"
 	"github.com/magicpool-co/pool/internal/node/payout/eth"
@@ -17,7 +18,7 @@ import (
 
 func validateMiningChain(chain string) bool {
 	switch strings.ToUpper(chain) {
-	case "CFX", "CTXC", "ERGO", "ETC", "ETHW", "FIRO", "FLUX", "KAS", "RVN":
+	case "CFX", "CTXC", "ERGO", "ETC", "ETHW", "FIRO", "FLUX", "KAS", "NEXA", "RVN":
 		return true
 	default:
 		return false
@@ -44,11 +45,14 @@ func parseMiner(miner string) (string, string, error) {
 	}
 
 	switch strings.ToLower(parts[0]) {
+	case "cfx":
+		parts[0] = "CFX"
+		parts[1] = miner
 	case "kaspa":
 		parts[0] = "KAS"
 		parts[1] = miner
-	case "cfx":
-		parts[0] = "CFX"
+	case "nexa":
+		parts[0] = "NEXA"
 		parts[1] = miner
 	}
 
@@ -79,6 +83,8 @@ func ValidateAddress(chain, address string) bool {
 		return flux.ValidateAddress(address)
 	case "KAS":
 		return kas.ValidateAddress(address)
+	case "NEXA":
+		return nexa.ValidateAddress(address)
 	case "RVN":
 		return rvn.ValidateAddress(address)
 	default:

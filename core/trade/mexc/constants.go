@@ -20,6 +20,8 @@ var (
 
 	kasUsdtSell = &types.Market{Market: "KASUSDT", Base: "KAS", Quote: "USDT", Direction: types.TradeSell}
 
+	nexaUsdtSell = &types.Market{Market: "NEXAUSDT", Base: "NEXA", Quote: "USDT", Direction: types.TradeSell}
+
 	rvnUsdtSell = &types.Market{Market: "RVNUSDT", Base: "RVN", Quote: "USDT", Direction: types.TradeSell}
 
 	/* secondary markets */
@@ -99,6 +101,17 @@ var (
 			},
 			"USDC": []*types.Market{
 				kasUsdtSell, usdcUsdtBuy,
+			},
+		},
+		"NEXA": map[string][]*types.Market{
+			"BTC": []*types.Market{
+				nexaUsdtSell, busdUsdtBuy, btcBusdBuy,
+			},
+			"ETH": []*types.Market{
+				nexaUsdtSell, busdUsdtBuy, ethBusdBuy,
+			},
+			"USDC": []*types.Market{
+				nexaUsdtSell, usdcUsdtBuy,
 			},
 		},
 		"RVN": map[string][]*types.Market{

@@ -32,6 +32,8 @@ func getTxExplorerURL(chain, hash string) (string, error) {
 		explorerURL = "https://explorer.runonflux.io/tx/" + hash
 	case "KAS":
 		explorerURL = "https://katnip.kaspad.net/tx/" + hash
+	case "NEXA":
+		explorerURL = "https://explorer.nexa.org/tx/" + hash
 	case "RVN":
 		explorerURL = "https://ravencoin.network/tx/" + hash
 	case "USDC":

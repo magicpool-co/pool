@@ -37,6 +37,7 @@ func NewContext(logger *log.Logger, metricsClient *metrics.Client, pooldbClient,
 		"FIRO",
 		"FLUX",
 		"KAS",
+		"NEXA",
 		"RVN",
 	}
 

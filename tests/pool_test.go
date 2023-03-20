@@ -457,6 +457,48 @@ func (suite *PoolSuite) TestPool() {
 			},
 		},
 		{
+			chain: "NEXA",
+			priv:  "9476ca4050e719e3fb958be7ee64016d751e22d0063cca6b13880284c5bb42ad",
+			opts: &pool.Options{
+				Chain:          "NEXA",
+				WindowSize:     100000,
+				ExtraNonceSize: 8,
+				JobListSize:    5,
+				PollingPeriod:  time.Millisecond * 100,
+			},
+			handshake: []*rpc.Request{
+				rpc.MustNewRequest("mining.subscribe"),
+				rpc.MustNewRequest("mining.authorize",
+					"nexa:qzrpqsursz4dprxly2zfrvh8qgu64zvfe55dqxj2gy.worker",
+					"x",
+				),
+			},
+			requests: []*rpc.Request{
+				// a submission consists of:
+				// 	- worker id
+				//	- job id
+				// 	- nonce
+				//  - timestamp
+				rpc.MustNewRequest("mining.submit",
+					"nexa:qzrpqsursz4dprxly2zfrvh8qgu64zvfe55dqxj2gy.worker",
+					"1",
+					"ffffffffffffffff28545a77947d0d00",
+					"0000000064155638",
+				),
+				// test duplicate share
+				rpc.MustNewRequest("mining.submit",
+					"nexa:qzrpqsursz4dprxly2zfrvh8qgu64zvfe55dqxj2gy.worker",
+					"1",
+					"ffffffffffffffff28545a77947d0d00",
+					"0000000064155638",
+				),
+			},
+			responses: [][]byte{
+				common.MustMarshalJSON(true),
+				common.MustMarshalJSON(false),
+			},
+		},
+		{
 			chain: "RVN",
 			priv:  "03620b2ed304234abe4f02e4f95ece19626989351487c0f93821e4827ed1301e",
 			opts: &pool.Options{

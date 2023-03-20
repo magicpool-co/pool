@@ -142,6 +142,23 @@ func WriteHexString(w io.Writer, order binary.ByteOrder, str string) error {
 	return err
 }
 
+// WriteHexString decodes a hex string and writes the decoded bytes in reversed byte order.
+func WriteReversedHexString(w io.Writer, order binary.ByteOrder, str string) error {
+	data, err := hex.DecodeString(str)
+	if err != nil {
+		return err
+	}
+
+	// reverse bytes
+	for i, j := 0, len(data)-1; i < j; i, j = i+1, j-1 {
+		data[i], data[j] = data[j], data[i]
+	}
+
+	_, err = w.Write(data)
+
+	return err
+}
+
 // WriteVarHexString decodes a hex string and writes the decoded bytes as PrefixedBytes.
 func WritePrefixedHexString(w io.Writer, order binary.ByteOrder, str string) error {
 	data, err := hex.DecodeString(str)
@@ -160,6 +177,13 @@ func WriteVarHexString(w io.Writer, order binary.ByteOrder, str string) error {
 	}
 
 	return WriteVarBytes(w, order, data)
+}
+
+// WriteBytes writes a byte slice.
+func WriteBytes(w io.Writer, order binary.ByteOrder, bytes []byte) error {
+	_, err := w.Write(bytes)
+
+	return err
 }
 
 // WritePrefixedBytes serializes a variable length byte array to w as an int
