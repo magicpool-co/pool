@@ -93,7 +93,7 @@ func (node Node) GetBlocks(start, end uint64) ([]*tsdb.RawBlock, error) {
 				return nil, fmt.Errorf("no transactions in block")
 			}
 
-			value, err := node.getRewardsFromTX(block.Transactions[0])
+			_, value, err := node.getRewardsFromTX(block.Transactions[0])
 			if err != nil {
 				return nil, err
 			}
@@ -118,21 +118,21 @@ func (node Node) GetBlocksByHash(startHash string, limit uint64) ([]*tsdb.RawBlo
 	return nil, fmt.Errorf("GetBlocks: not implemented")
 }
 
-func (node Node) getRewardsFromTX(tx *Transaction) (uint64, error) {
+func (node Node) getRewardsFromTX(tx *Transaction) (string, uint64, error) {
+	var txid string
 	var amount uint64
-	for _, input := range tx.Inputs {
-		if len(input.Coinbase) > 0 {
-			for _, out := range tx.Outputs {
-				valBig, err := common.StringDecimalToBigint(out.Value.String(), node.GetUnits().Big())
-				if err != nil {
-					return amount, err
-				}
-				amount += valBig.Uint64()
+	if len(tx.Inputs) == 0 {
+		txid = tx.TxID
+		for _, out := range tx.Outputs {
+			valBig, err := common.StringDecimalToBigint(out.Value.String(), node.GetUnits().Big())
+			if err != nil {
+				return txid, amount, err
 			}
+			amount += valBig.Uint64()
 		}
 	}
 
-	return amount, nil
+	return txid, amount, nil
 }
 
 func (node Node) getBlockTemplate() (*types.StratumJob, error) {
@@ -330,10 +330,6 @@ func (node Node) GetAuthorizeResponses() ([]interface{}, error) {
 }
 
 func (node Node) UnlockRound(round *pooldb.Round) error {
-	if round.CoinbaseTxID == nil {
-		return fmt.Errorf("block %d has no coinbase txid", round.Height)
-	}
-
 	blockHash, err := node.getBlockHash(round.Height)
 	if err != nil {
 		return err
@@ -356,18 +352,12 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 	} else if uint64(block.Confirmations) < node.GetImmatureDepth() {
 		return nil
 	} else if block.Hash == round.Hash {
-		coinbaseTxID := types.StringValue(round.CoinbaseTxID)
-		if len(block.Transactions) == 0 {
-			return nil
-		} else if tx := block.Transactions[0]; tx.TxID != coinbaseTxID && tx.Hash != coinbaseTxID {
-			return nil
-		}
-
-		value, err := node.getRewardsFromTX(block.Transactions[0])
+		txid, value, err := node.getRewardsFromTX(block.Transactions[0])
 		if err != nil {
 			return err
 		}
 
+		round.CoinbaseTxID = types.StringPtr(txid)
 		round.Value = dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(value)}
 		round.Orphan = false
 		round.CreatedAt = time.Unix(block.Time, 0)
