@@ -115,7 +115,6 @@ type Transaction struct {
 	Data          string `json:"data"`
 	TxID          string `json:"txid"`
 	Hash          string `json:"hash"`
-	Fee           uint64 `json:"fee"`
 	SigOps        int    `json:"sigops"`
 	Weight        int    `json:"weight"`
 	Height        int64  `json:"height"`
