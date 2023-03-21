@@ -31,15 +31,16 @@ func newNumberFromUint64Ptr(value uint64) *Number {
 }
 
 func newNumberFromFloat64WithPrecision(value float64, precision int, units string, scaleUnits bool) Number {
+	formattedValue := value
 	if scaleUnits {
 		scale, scaledValue := common.GetDefaultUnitScale(value)
-		value /= scaledValue
+		formattedValue /= scaledValue
 		units = " " + scale + units
 	}
 
 	n := Number{
 		Value:     value,
-		Formatted: strconv.FormatFloat(value, 'f', precision, 64) + units,
+		Formatted: strconv.FormatFloat(formattedValue, 'f', precision, 64) + units,
 	}
 
 	return n
