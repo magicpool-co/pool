@@ -12,8 +12,6 @@ import (
 func formatChain(chain string) string {
 	chain = strings.ToUpper(chain)
 	switch chain {
-	case "ERGO":
-		return "ERG"
 	default:
 		return chain
 	}
@@ -22,8 +20,6 @@ func formatChain(chain string) string {
 func unformatChain(chain string) string {
 	chain = strings.ToUpper(chain)
 	switch chain {
-	case "ERG":
-		return "ERGO"
 	case "ERC20":
 		return "ETH"
 	default:

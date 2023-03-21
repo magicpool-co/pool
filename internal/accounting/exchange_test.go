@@ -20,7 +20,7 @@ var (
 			"ETH":  0.00008286,
 			"USDC": 0.121389,
 		},
-		"ERGO": map[string]float64{
+		"ERG": map[string]float64{
 			"BTC":  0.00020660,
 			"ETH":  0.00283834,
 			"USDC": 4.16,
@@ -66,7 +66,7 @@ func TestReverseMap(t *testing.T) {
 					"BTC":  common.MustParseBigInt("500000000000000000000"),
 					"USDC": common.MustParseBigInt("500000000000000000000"),
 				},
-				"ERGO": map[string]*big.Int{
+				"ERG": map[string]*big.Int{
 					"ETH":  new(big.Int).SetUint64(10_000_000_000),
 					"BTC":  new(big.Int).SetUint64(10_000_000_000),
 					"USDC": new(big.Int).SetUint64(10_000_000_000),
@@ -97,7 +97,7 @@ func TestReverseMap(t *testing.T) {
 				"BTC": map[string]*big.Int{
 					"CFX":  new(big.Int).SetUint64(486000),
 					"CTXC": new(big.Int).SetUint64(301500),
-					"ERGO": new(big.Int).SetUint64(206600),
+					"ERG":  new(big.Int).SetUint64(206600),
 					"ETC":  new(big.Int).SetUint64(513525),
 					"FIRO": new(big.Int).SetUint64(1488200),
 					"FLUX": new(big.Int).SetUint64(1632600),
@@ -106,7 +106,7 @@ func TestReverseMap(t *testing.T) {
 				"ETH": map[string]*big.Int{
 					"CFX":  new(big.Int).SetUint64(66880000000000000),
 					"CTXC": new(big.Int).SetUint64(41430000000000000),
-					"ERGO": new(big.Int).SetUint64(28383400000000000),
+					"ERG":  new(big.Int).SetUint64(28383400000000000),
 					"ETC":  new(big.Int).SetUint64(70600620000000000),
 					"FIRO": new(big.Int).SetUint64(204601000000000000),
 					"FLUX": new(big.Int).SetUint64(224481000000000000),
@@ -115,7 +115,7 @@ func TestReverseMap(t *testing.T) {
 				"USDC": map[string]*big.Int{
 					"CFX":  new(big.Int).SetUint64(97958000),
 					"CTXC": new(big.Int).SetUint64(60694500),
-					"ERGO": new(big.Int).SetUint64(41600000),
+					"ERG":  new(big.Int).SetUint64(41600000),
 					"ETC":  new(big.Int).SetUint64(103380000),
 					"FIRO": new(big.Int).SetUint64(300000000),
 					"FLUX": new(big.Int).SetUint64(330000000),
@@ -203,7 +203,7 @@ func TestCalculateExchangePaths(t *testing.T) {
 					"BTC":  common.MustParseBigInt("500000000000000000000"),
 					"USDC": common.MustParseBigInt("500000000000000000000"),
 				},
-				"ERGO": map[string]*big.Int{
+				"ERG": map[string]*big.Int{
 					"ETH":  new(big.Int).SetUint64(39_049_076_512_513),
 					"BTC":  new(big.Int).SetUint64(241_000_423_000_312),
 					"USDC": new(big.Int).SetUint64(132_042_004_041_420_314),
@@ -247,7 +247,7 @@ func TestCalculateExchangePaths(t *testing.T) {
 					"BTC":  common.MustParseBigInt("500000000000000000000"),
 					"USDC": common.MustParseBigInt("500000000000000000000"),
 				},
-				"ERGO": map[string]*big.Int{
+				"ERG": map[string]*big.Int{
 					"ETH":  new(big.Int).SetUint64(39_049_076_512_513),
 					"BTC":  new(big.Int).SetUint64(241_000_423_000_312),
 					"USDC": new(big.Int).SetUint64(132_042_004_041_420_314),

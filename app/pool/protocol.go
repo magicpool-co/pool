@@ -17,7 +17,7 @@ type ProtocolHandler func(*stratum.Conn, *rpc.Request) error
 
 func (p *Pool) routeRequest(req *rpc.Request) ProtocolHandler {
 	switch p.chain {
-	case "AE", "ERGO", "FIRO", "FLUX", "KAS", "NEXA", "RVN":
+	case "AE", "ERG", "FIRO", "FLUX", "KAS", "NEXA", "RVN":
 		switch req.Method {
 		case "mining.subscribe":
 			return p.subscribe

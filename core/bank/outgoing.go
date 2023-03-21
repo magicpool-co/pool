@@ -115,8 +115,8 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 			}
 
 			// if the remainder is non-zero, add a remainder output
-			// (except for ERGO, since wallet is managed by the node)
-			if remainder.Cmp(common.Big0) > 0 && node.Chain() != "ERGO" {
+			// (except for ERG, since wallet is managed by the node)
+			if remainder.Cmp(common.Big0) > 0 && node.Chain() != "ERG" {
 				remainderOutput := &types.TxOutput{
 					Address:  node.Address(),
 					Value:    remainder,

@@ -85,9 +85,11 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 	// payout chains, we also check for the prefix of the native chain and add it back to
 	// the active address if it matches (this works even for kas, which has a different prefix
 	// than the internal chain name, kaspa vs. kas).
-	if prefix := p.node.GetAddressPrefix(); prefix != "" && strings.ToLower(chain) == strings.ToLower(prefix) {
+	if prefix := p.node.GetAddressPrefix(); prefix != "" && strings.ToUpper(prefix) == chain {
 		address = prefix + ":" + address
 		chain = p.node.Chain()
+	} else if chain == "ERGO" {
+		chain = "ERG"
 	}
 
 	validChain, validAddress := p.validateAddress(chain, address)

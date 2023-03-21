@@ -23,7 +23,7 @@ func getBlockExplorerURL(chain, hash string, height uint64) (string, error) {
 		explorerURL = "https://www.confluxscan.io/block/" + hash
 	case "CTXC":
 		explorerURL = "https://cerebro.cortexlabs.ai/#/block/" + heightStr
-	case "ERGO":
+	case "ERG":
 		explorerURL = "https://explorer.ergoplatform.com/en/blocks/" + hash
 	case "ETC":
 		explorerURL = "https://blockscout.com/etc/mainnet/block/" + heightStr

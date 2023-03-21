@@ -8,7 +8,7 @@ import (
 	"github.com/magicpool-co/pool/internal/node/mining/ae"
 	"github.com/magicpool-co/pool/internal/node/mining/cfx"
 	"github.com/magicpool-co/pool/internal/node/mining/ctxc"
-	"github.com/magicpool-co/pool/internal/node/mining/ergo"
+	"github.com/magicpool-co/pool/internal/node/mining/erg"
 	"github.com/magicpool-co/pool/internal/node/mining/etc"
 	"github.com/magicpool-co/pool/internal/node/mining/firo"
 	"github.com/magicpool-co/pool/internal/node/mining/flux"
@@ -34,8 +34,8 @@ func GetMiningNode(mainnet bool, chain, privKey string, urls []string, logger *l
 		return cfx.New(mainnet, urls, privKey, logger, tunnel)
 	case "CTXC":
 		return ctxc.New(mainnet, urls, privKey, logger, tunnel)
-	case "ERGO":
-		return ergo.New(mainnet, urls, privKey, logger, tunnel)
+	case "ERG":
+		return erg.New(mainnet, urls, privKey, logger, tunnel)
 	case "ETC":
 		return etc.New(etc.ETC, mainnet, urls, privKey, logger, tunnel)
 	case "ETHW":

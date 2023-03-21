@@ -14,7 +14,7 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 	walletBalance, err := node.GetBalance()
 	if err != nil {
 		return err
-	} else if chain == "ERGO" {
+	} else if chain == "ERG" {
 		// subtract the 1 ERG that is sitting as excess in the wallet
 		walletBalance.Sub(walletBalance, new(big.Int).SetUint64(1_000_000_000))
 	} else if chain == "KAS" {
@@ -28,8 +28,8 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 	}
 
 	// add immature round sum to UTXOs since they're only added at the point of maturation
-	// (ERGO is excluded since blocks are not shown in the wallet balance until they're mature)
-	if chain != "ERGO" {
+	// (ERG is excluded since blocks are not shown in the wallet balance until they're mature)
+	if chain != "ERG" {
 		immatureRoundSum, err := pooldb.GetSumImmatureRoundValueByChain(pooldbClient.Reader(), chain)
 		if err != nil {
 			return err
@@ -60,8 +60,8 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 	sumMinerBalance := new(big.Int).Add(inputBalance, outputBalance)
 
 	// add unspent round sum to sum miner balance since they're only added at the point
-	// of maturation (ERGO is excluded the immature round sum is excluded for UTXOs)
-	if chain != "ERGO" {
+	// of maturation (ERG is excluded the immature round sum is excluded for UTXOs)
+	if chain != "ERG" {
 		unspentRoundSum, err := pooldb.GetSumUnspentRoundValueByChain(pooldbClient.Reader(), chain)
 		if err != nil {
 			return err

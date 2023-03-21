@@ -11,7 +11,7 @@ var (
 	DefaultInputThresholds = map[string]*big.Int{
 		"CFX":  common.MustParseBigInt("2000000000000000000000"),  // 2,000 CFX
 		"CTXC": common.MustParseBigInt("500000000000000000000"),   // 500 CTXC
-		"ERGO": new(big.Int).SetUint64(10_000_000_000),            // 10 ERGO
+		"ERG":  new(big.Int).SetUint64(10_000_000_000),            // 10 ERG
 		"ETC":  new(big.Int).SetUint64(3_000_000_000_000_000_000), // 3 ETC
 		"FIRO": new(big.Int).SetUint64(10_000_000_000),            // 100 FIRO
 		"FLUX": new(big.Int).SetUint64(30_000_000_000),            // 300 FLUX

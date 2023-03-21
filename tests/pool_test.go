@@ -215,10 +215,10 @@ func (suite *PoolSuite) TestPool() {
 			},
 		},
 		{
-			chain: "ERGO",
+			chain: "ERG",
 			priv:  "",
 			opts: &pool.Options{
-				Chain:                "ERGO",
+				Chain:                "ERG",
 				WindowSize:           100000,
 				ExtraNonceSize:       2,
 				JobListSize:          5,

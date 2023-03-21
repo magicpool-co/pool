@@ -32,7 +32,7 @@ func NewContext(logger *log.Logger, metricsClient *metrics.Client, pooldbClient,
 	statsChains := []string{
 		"CFX",
 		"CTXC",
-		"ERGO",
+		"ERG",
 		"ETC",
 		"FIRO",
 		"FLUX",

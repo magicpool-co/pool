@@ -40,7 +40,7 @@ func main() {
 
 	var handshakeReqs []*rpc.Request
 	switch chain {
-	case "ERGO", "FIRO", "FLUX", "RVN":
+	case "ERG", "FIRO", "FLUX", "RVN":
 		handshakeReqs = btcStratumHandshake
 	case "CFX":
 		handshakeReqs = cfxStratumHandshake

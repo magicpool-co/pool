@@ -1,4 +1,4 @@
-package ergo
+package erg
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/goccy/go-json"
 
-	"github.com/magicpool-co/pool/internal/node/mining/ergo/mock"
+	"github.com/magicpool-co/pool/internal/node/mining/erg/mock"
 )
 
 func (node Node) getAddressFromErgoTree(ergoTree string) (string, error) {

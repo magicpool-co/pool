@@ -253,7 +253,7 @@ func (c *Client) ProcessPrices(chain string) error {
 		idx, err = getBinanceNativeAllExceptETH("CFX", startTime, endTime)
 	case "CTXC":
 		idx, err = getBinanceNativeAllExceptETH("CTXC", startTime, endTime)
-	case "ERGO":
+	case "ERG":
 		idx, err = getKucoinNativeAllExceptETH("ERG", startTime, endTime)
 		if err == kucoin.ErrTooManyRequests {
 			return nil

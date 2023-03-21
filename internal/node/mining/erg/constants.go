@@ -1,4 +1,4 @@
-package ergo
+package erg
 
 import (
 	"bytes"
@@ -22,7 +22,7 @@ func (node Node) Name() string {
 }
 
 func (node Node) Chain() string {
-	return "ERGO"
+	return "ERG"
 }
 
 func (node Node) Address() string {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/magicpool-co/pool/internal/node/mining/cfx"
 	"github.com/magicpool-co/pool/internal/node/mining/ctxc"
-	"github.com/magicpool-co/pool/internal/node/mining/ergo"
+	"github.com/magicpool-co/pool/internal/node/mining/erg"
 	"github.com/magicpool-co/pool/internal/node/mining/etc"
 	"github.com/magicpool-co/pool/internal/node/mining/firo"
 	"github.com/magicpool-co/pool/internal/node/mining/flux"
@@ -18,7 +18,7 @@ import (
 
 func validateMiningChain(chain string) bool {
 	switch strings.ToUpper(chain) {
-	case "CFX", "CTXC", "ERGO", "ETC", "ETHW", "FIRO", "FLUX", "KAS", "NEXA", "RVN":
+	case "CFX", "CTXC", "ERG", "ETC", "ETHW", "FIRO", "FLUX", "KAS", "NEXA", "RVN":
 		return true
 	default:
 		return false
@@ -48,6 +48,8 @@ func parseMiner(miner string) (string, string, error) {
 	case "cfx":
 		parts[0] = "CFX"
 		parts[1] = miner
+	case "ergo":
+		parts[0] = "ERG"
 	case "kaspa":
 		parts[0] = "KAS"
 		parts[1] = miner
@@ -71,8 +73,8 @@ func ValidateAddress(chain, address string) bool {
 		return cfx.ValidateAddress(address)
 	case "CTXC":
 		return ctxc.ValidateAddress(address)
-	case "ERGO":
-		return ergo.ValidateAddress(address)
+	case "ERG":
+		return erg.ValidateAddress(address)
 	case "ETC", "ETHW":
 		return etc.ValidateAddress(address)
 	case "BSC", "ETH", "USDC":

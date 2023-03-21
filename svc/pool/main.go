@@ -32,8 +32,8 @@ var defaultOptions = map[string]*pool.Options{
 		JobListAgeLimit: 7,
 		PollingPeriod:   time.Millisecond * 100,
 	},
-	"ERGO": &pool.Options{
-		Chain:                "ERGO",
+	"ERG": &pool.Options{
+		Chain:                "ERG",
 		WindowSize:           100000,
 		ExtraNonceSize:       2,
 		JobListSize:          5,

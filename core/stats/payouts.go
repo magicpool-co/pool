@@ -20,7 +20,7 @@ func getTxExplorerURL(chain, hash string) (string, error) {
 		explorerURL = "https://www.confluxscan.io/tx/" + hash
 	case "CTXC":
 		explorerURL = "https://cerebro.cortexlabs.ai/#/tx/" + hash
-	case "ERGO":
+	case "ERG":
 		explorerURL = "https://explorer.ergoplatform.com/en/transactions/" + hash
 	case "ETC":
 		explorerURL = "https://blockscout.com/etc/mainnet/tx/" + hash

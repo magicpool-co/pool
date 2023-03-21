@@ -23,7 +23,7 @@ var (
 	inputThresholds = map[string]*big.Int{
 		"CFX":  common.MustParseBigInt("2000000000000000000000000"), // 2,000,000 CFX
 		"CTXC": common.MustParseBigInt("5000000000000000000000000"), // 5,000,000 CTXC
-		"ERGO": new(big.Int).SetUint64(100_000_000_000),             // 100 ERGO
+		"ERG":  new(big.Int).SetUint64(100_000_000_000),             // 100 ERG
 		"ETC":  common.MustParseBigInt("25000000000000000000"),      // 25 ETC
 		"KAS":  new(big.Int).SetUint64(1_000_000_000_000),           // 10,000 KAS
 		"FIRO": new(big.Int).SetUint64(10_000_000_000),              // 100 FIRO
@@ -35,7 +35,7 @@ var (
 	exchangeChainMaps = map[string]types.ExchangeID{
 		"CFX":  types.KucoinID,
 		"CTXC": types.MEXCGlobalID,
-		"ERGO": types.KucoinID,
+		"ERG":  types.KucoinID,
 		"ETC":  types.KucoinID,
 		"KAS":  types.MEXCGlobalID,
 		"FIRO": types.MEXCGlobalID,
