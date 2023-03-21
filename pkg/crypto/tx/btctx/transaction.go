@@ -9,7 +9,7 @@ import (
 	"github.com/magicpool-co/pool/pkg/crypto/wire"
 )
 
-type transaction struct {
+type Transaction struct {
 	PrefixP2PKH    []byte
 	PrefixP2SH     []byte
 	SegwitEnabled  bool
@@ -21,8 +21,8 @@ type transaction struct {
 	Outputs        []*output
 }
 
-func NewTransaction(version, lockTime uint32, prefixP2PKH, prefixP2SH []byte, segwitEnabled bool) *transaction {
-	tx := &transaction{
+func NewTransaction(version, lockTime uint32, prefixP2PKH, prefixP2SH []byte, segwitEnabled bool) *Transaction {
+	tx := &Transaction{
 		PrefixP2PKH:   prefixP2PKH,
 		PrefixP2SH:    prefixP2SH,
 		SegwitEnabled: segwitEnabled,
@@ -33,15 +33,15 @@ func NewTransaction(version, lockTime uint32, prefixP2PKH, prefixP2SH []byte, se
 	return tx
 }
 
-func (tx *transaction) SetVersionMask(versionMask uint32) {
+func (tx *Transaction) SetVersionMask(versionMask uint32) {
 	tx.Version = tx.Version | versionMask
 }
 
-func (tx *transaction) SetVersionGroupID(versionGroupID uint32) {
+func (tx *Transaction) SetVersionGroupID(versionGroupID uint32) {
 	tx.VersionGroupID = &versionGroupID
 }
 
-func (tx *transaction) SetExpiryHeight(expiryHeight uint32) {
+func (tx *Transaction) SetExpiryHeight(expiryHeight uint32) {
 	tx.ExpiryHeight = &expiryHeight
 }
 
@@ -88,7 +88,7 @@ func (out *output) Serialize(buf *bytes.Buffer, order binary.ByteOrder) error {
 	return nil
 }
 
-func (tx *transaction) AddInput(hash string, index, sequence uint32, script []byte) error {
+func (tx *Transaction) AddInput(hash string, index, sequence uint32, script []byte) error {
 	hashBytes, err := hex.DecodeString(hash)
 	if err != nil {
 		return err
@@ -106,7 +106,7 @@ func (tx *transaction) AddInput(hash string, index, sequence uint32, script []by
 	return nil
 }
 
-func (tx *transaction) AddOutput(script []byte, value uint64) {
+func (tx *Transaction) AddOutput(script []byte, value uint64) {
 	out := &output{
 		Script: script,
 		Value:  value,
@@ -115,7 +115,7 @@ func (tx *transaction) AddOutput(script []byte, value uint64) {
 	tx.Outputs = append(tx.Outputs, out)
 }
 
-func (tx *transaction) hasWitnesses() bool {
+func (tx *Transaction) hasWitnesses() bool {
 	for _, inp := range tx.Inputs {
 		if len(inp.Witness) != 0 {
 			return true
@@ -125,12 +125,12 @@ func (tx *transaction) hasWitnesses() bool {
 	return false
 }
 
-func (tx *transaction) shallowCopy() *transaction {
+func (tx *Transaction) ShallowCopy() *Transaction {
 	// As an additional memory optimization, use contiguous backing arrays
 	// for the copied inputs and outputs and point the final slice of
 	// pointers into the contiguous arrays.  This avoids a lot of small
 	// allocations.
-	txCopy := &transaction{
+	txCopy := &Transaction{
 		PrefixP2PKH:    tx.PrefixP2PKH,
 		PrefixP2SH:     tx.PrefixP2SH,
 		SegwitEnabled:  tx.SegwitEnabled,
@@ -157,7 +157,7 @@ func (tx *transaction) shallowCopy() *transaction {
 	return txCopy
 }
 
-func (tx *transaction) Serialize(extraPayload []byte) ([]byte, error) {
+func (tx *Transaction) Serialize(extraPayload []byte) ([]byte, error) {
 	var order = binary.LittleEndian
 	var buf bytes.Buffer
 
@@ -241,8 +241,8 @@ func (tx *transaction) Serialize(extraPayload []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (tx *transaction) CalculateScriptSig(index uint32, script []byte) ([]byte, error) {
-	txCopy := tx.shallowCopy()
+func (tx *Transaction) CalculateScriptSig(index uint32, script []byte) ([]byte, error) {
+	txCopy := tx.ShallowCopy()
 	for i := range txCopy.Inputs {
 		txCopy.Inputs[i].Script = nil
 		if uint32(i) == index {

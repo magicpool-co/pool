@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/magicpool-co/pool/pkg/common"
+	"github.com/magicpool-co/pool/pkg/crypto/tx/nexatx"
 	"github.com/magicpool-co/pool/types"
 )
 
@@ -81,7 +82,9 @@ func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 }
 
 func ValidateAddress(address string) bool {
-	return true
+	_, err := nexatx.AddressToScript(address, mainnetPrefix)
+
+	return err == nil
 }
 
 func (node Node) ValidateAddress(address string) bool {

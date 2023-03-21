@@ -47,14 +47,14 @@ func EncodeOpCode(opCode int) []byte {
 	return b
 }
 
-func compileP2PK(serializedPubKey []byte) []byte {
+func CompileP2PK(serializedPubKey []byte) []byte {
 	return bytes.Join([][]byte{
 		EncodeScriptData(serializedPubKey),
 		EncodeOpCode(OP_CHECKSIG),
 	}, nil)
 }
 
-func compileP2PKH(pubKeyHash []byte) []byte {
+func CompileP2PKH(pubKeyHash []byte) []byte {
 	return bytes.Join([][]byte{
 		EncodeOpCode(OP_DUP),
 		EncodeOpCode(OP_HASH160),
@@ -64,7 +64,7 @@ func compileP2PKH(pubKeyHash []byte) []byte {
 	}, nil)
 }
 
-func compileP2SH(scriptHash []byte) []byte {
+func CompileP2SH(scriptHash []byte) []byte {
 	return bytes.Join([][]byte{
 		EncodeOpCode(OP_HASH160),
 		EncodeScriptData(scriptHash),
@@ -72,28 +72,28 @@ func compileP2SH(scriptHash []byte) []byte {
 	}, nil)
 }
 
-func compileP2WPKH(pubKeyHash []byte) []byte {
+func CompileP2WPKH(pubKeyHash []byte) []byte {
 	return bytes.Join([][]byte{
 		EncodeOpCode(OP_0),
 		EncodeScriptData(pubKeyHash),
 	}, nil)
 }
 
-func compileP2WSH(scriptHash []byte) []byte {
+func CompileP2WSH(scriptHash []byte) []byte {
 	return bytes.Join([][]byte{
 		EncodeOpCode(OP_0),
 		EncodeScriptData(scriptHash),
 	}, nil)
 }
 
-func compileP2TR(scriptHash []byte) []byte {
+func CompileP2TR(scriptHash []byte) []byte {
 	return bytes.Join([][]byte{
 		EncodeOpCode(OP_1),
 		EncodeScriptData(scriptHash),
 	}, nil)
 }
 
-func compileCoinbaseScript(blockHeight int32, extraNonce uint64) []byte {
+func CompileCoinbaseScript(blockHeight int32, extraNonce uint64) []byte {
 	buf := make([]byte, 16)
 	binary.LittleEndian.PutUint64(buf[:8], uint64(blockHeight))
 	binary.LittleEndian.PutUint64(buf[8:], extraNonce)
@@ -165,13 +165,13 @@ func AddressToScript(addr string, p2pkhPrefix, p2shPrefix []byte, segwit bool) (
 
 			switch len(witnessProg) {
 			case 20:
-				return compileP2WPKH(witnessProg), nil
+				return CompileP2WPKH(witnessProg), nil
 			case 32:
 				if witnessVer == 1 {
-					return compileP2TR(witnessProg), nil
+					return CompileP2TR(witnessProg), nil
 				}
 
-				return compileP2WSH(witnessProg), nil
+				return CompileP2WSH(witnessProg), nil
 			default:
 				return nil, fmt.Errorf("unsupported witness prog len %d", len(witnessProg))
 			}
@@ -198,7 +198,7 @@ func AddressToScript(addr string, p2pkhPrefix, p2shPrefix []byte, segwit bool) (
 			pubKeyBytes = pubKey.SerializeUncompressed()
 		}
 
-		return compileP2PK(pubKeyBytes), nil
+		return CompileP2PK(pubKeyBytes), nil
 	}
 
 	// verify pubKeyHash is valid ripemd160
@@ -208,9 +208,9 @@ func AddressToScript(addr string, p2pkhPrefix, p2shPrefix []byte, segwit bool) (
 	}
 
 	if p2pkhPrefix != nil && bytes.Compare(prefix, p2pkhPrefix) == 0 {
-		return compileP2PKH(pubKeyHash), nil
+		return CompileP2PKH(pubKeyHash), nil
 	} else if p2shPrefix != nil && bytes.Compare(prefix, p2shPrefix) == 0 {
-		return compileP2SH(pubKeyHash), nil
+		return CompileP2SH(pubKeyHash), nil
 	}
 
 	return nil, fmt.Errorf("unknown address type %s", addr)

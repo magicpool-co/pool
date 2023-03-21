@@ -12,14 +12,14 @@ import (
 )
 
 var (
-	baseTxBTC = &transaction{
+	baseTxBTC = &Transaction{
 		PrefixP2PKH:   []byte{0x00},
 		PrefixP2SH:    []byte{0x05},
 		SegwitEnabled: true,
 		Version:       0x1,
 	}
 
-	baseTxRVN = &transaction{
+	baseTxRVN = &Transaction{
 		PrefixP2PKH: []byte{0x3c},
 		PrefixP2SH:  []byte{0x7a},
 		Version:     0x1,
@@ -29,7 +29,7 @@ var (
 func TestGenerateTx(t *testing.T) {
 	tests := []struct {
 		priv       string
-		baseTx     *transaction
+		baseTx     *Transaction
 		inputs     []*types.TxInput
 		outputs    []*types.TxOutput
 		feePerByte uint64
