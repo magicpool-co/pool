@@ -14,12 +14,13 @@ const (
 	scriptHashAddrID = 0x08
 	templateAddrID   = 0x98
 
-	diffFactor = 4294967296
+	diffFactor  = 4294967296
+	shareFactor = 0.2
 )
 
 var (
 	maxDiffBig   = common.MustParseBigHex("100000000000000000000000000000000000000000000000000000000")
-	shareDiffBig = common.MustParseBigHex("500000000000000000000000000000000000000000000000000000000") // 0.2
+	shareDiffBig = common.MustParseBigHex("500000000000000000000000000000000000000000000000000000000") // 0.2 (shareFactor)
 	shareDiff    = new(types.Difficulty).SetFromBig(shareDiffBig, maxDiffBig)
 	units        = new(types.Number).SetFromValue(1e8)
 )
@@ -57,7 +58,7 @@ func (node Node) GetShareDifficulty() *types.Difficulty {
 }
 
 func (node Node) GetAdjustedShareDifficulty() float64 {
-	return float64(shareDiff.Value()) * diffFactor
+	return diffFactor * shareFactor
 }
 
 func (node Node) GetMaxDifficulty() *big.Int {
