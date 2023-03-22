@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hako/durafmt"
+
 	"github.com/magicpool-co/pool/internal/tsdb"
 	"github.com/magicpool-co/pool/pkg/common"
 )
@@ -87,9 +89,14 @@ func newNumberFromBigIntPtr(value *big.Int, chain string) (*Number, error) {
 }
 
 func newNumberFromDuration(value time.Duration) Number {
+	duration, err := durafmt.ParseStringShort(value.String())
+	if err != nil {
+		return Number{}
+	}
+
 	n := Number{
 		Value:     float64(value),
-		Formatted: value.String(),
+		Formatted: duration.String(),
 	}
 
 	return n

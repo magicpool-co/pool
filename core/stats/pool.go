@@ -55,7 +55,7 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 			profitUsd, profitBtc = dbBlock.AvgProfitability, dbBlock.AvgProfitabilityBTC
 
 			if blockTime > 0 && hashrate > 0 && networkHashrate > 0 {
-				ttf = time.Duration(blockTime * (networkHashrate / hashrate))
+				ttf = time.Duration(blockTime * (networkHashrate / hashrate) * float64(time.Second))
 			}
 		}
 
@@ -75,7 +75,7 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 		stats[i] = &PoolSummary{
 			Name:               node.Name(),
 			Symbol:             chain,
-			Fee:                newNumberFromFloat64(0.01, "%", false),
+			Fee:                newNumberFromFloat64WithPrecision(0.01, 2, "%", false),
 			Miners:             miners,
 			Workers:            workers,
 			Hashrate:           newNumberFromFloat64(hashrate, "H/s", true),
@@ -85,7 +85,7 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 			ProfitBTC:          newNumberFromFloat64WithPrecision(profitBtc, 32, " BTC/H/s", false),
 			NetworkDifficulty:  newNumberFromFloat64(networkDifficulty, "", true),
 			NetworkHashrate:    newNumberFromFloat64(networkHashrate, "H/s", true),
-			NetworkBlockReward: newNumberFromFloat64(blockReward, chain, true),
+			NetworkBlockReward: newNumberFromFloat64(blockReward, chain, false),
 		}
 	}
 
