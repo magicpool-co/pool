@@ -225,7 +225,7 @@ func (c *Client) GetDepositAddress(chain string) (string, error) {
 		}
 	}
 
-	if obj.Chain != chain {
+	if unformatChain(obj.Chain) != chain {
 		return "", fmt.Errorf("deposit address chain mismatch: have %s, want %s", obj.Chain, chain)
 	} else if obj.Address == "" {
 		return "", fmt.Errorf("deposit address empty for chain %s", chain)
