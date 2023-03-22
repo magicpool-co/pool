@@ -95,7 +95,7 @@ func newNumberFromDuration(value time.Duration) Number {
 	}
 
 	n := Number{
-		Value:     float64(value),
+		Value:     float64(value / time.Second),
 		Formatted: duration.String(),
 	}
 
