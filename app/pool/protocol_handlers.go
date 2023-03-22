@@ -257,8 +257,10 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 				return
 			}
 
-			shareDiff := p.node.GetShareDifficulty().Value()
-			if shareDiff == 0 {
+			shareDiff := float64(p.node.GetShareDifficulty().Value())
+			if p.chain == "NEXA" {
+				shareDiff = 0.2
+			} else if shareDiff == 0 {
 				shareDiff = 1
 			}
 
@@ -267,7 +269,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 				roundDiff = 1
 			}
 
-			minedDiff := shareDiff * (round.AcceptedShares + 1)
+			minedDiff := shareDiff * float64(round.AcceptedShares+1)
 			round.Luck = 100 * (float64(roundDiff) / float64(minedDiff))
 			round.MinerID = c.GetMinerID()
 			roundID, err := pooldb.InsertRound(p.db.Writer(), round)
