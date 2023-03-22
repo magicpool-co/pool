@@ -260,7 +260,12 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 
 func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.StratumWork, error) {
 	if len(data) != 4 {
-		return nil, fmt.Errorf("incorrect work array length")
+		dataRaw := make([]string, len(data))
+		for i, d := range data {
+			dataRaw[i] = string(d)
+		}
+
+		return nil, fmt.Errorf("incorrect work array length: %v", dataRaw)
 	}
 
 	var worker, jobID string
