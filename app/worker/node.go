@@ -163,7 +163,7 @@ func (j *NodeInstanceChangeJob) Run() {
 		return
 	}
 
-	for _, region := range []string{"eu-west-1", "eu-central-1", "us-west-2"} {
+	for _, region := range []string{"eu-west-1", "eu-central-1", "us-east-1", "us-west-2"} {
 		client, err := aws.NewSession(region, "")
 		if err != nil {
 			j.logger.Error(err)
