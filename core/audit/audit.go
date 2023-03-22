@@ -19,7 +19,7 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 		walletBalance.Sub(walletBalance, new(big.Int).SetUint64(1_000_000_000))
 	} else if chain == "KAS" {
 		// add the extra KAS for blocks we missed
-		walletBalance.Sub(walletBalance, new(big.Int).SetUint64(114362086903))
+		walletBalance.Sub(walletBalance, new(big.Int).SetUint64(114382086903))
 	}
 
 	utxoBalance, err := pooldb.GetSumUnspentUTXOValueByChain(pooldbClient.Reader(), chain)
