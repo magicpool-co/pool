@@ -19,7 +19,7 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 		dbSharesIdx[dbShare.ChainID] = dbShare
 	}
 
-	dbBlocks, err := tsdb.GetBlocksProfitabilityLast(c.tsdb.Reader(), int(types.Period15m))
+	dbBlocks, err := tsdb.GetBlocksWithProfitabilityLast(c.tsdb.Reader(), int(types.Period15m))
 	if err != nil {
 		return nil, err
 	}
@@ -47,9 +47,16 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 			hashrate = dbShare.Hashrate
 		}
 
-		var profitUsd, profitBtc float64
+		var networkDifficulty, networkHashrate, blockReward, blockTime, profitUsd, profitBtc float64
+		var ttf time.Duration
 		if dbBlock, ok := dbBlocksIdx[chain]; ok {
+			networkDifficulty, networkHashrate = dbBlock.Difficulty, dbBlock.Hashrate
+			blockReward, blockTime = dbBlock.Value, dbBlock.BlockTime
 			profitUsd, profitBtc = dbBlock.AvgProfitability, dbBlock.AvgProfitabilityBTC
+
+			if blockTime > 0 && hashrate > 0 && networkHashrate > 0 {
+				ttf = time.Duration(blockTime * (networkHashrate / hashrate))
+			}
 		}
 
 		luck, err := pooldb.GetRoundLuckByChain(c.pooldb.Reader(), chain, time.Hour*24*30)
@@ -66,14 +73,19 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 		luck *= 100
 
 		stats[i] = &PoolSummary{
-			Name:      node.Name(),
-			Symbol:    chain,
-			Miners:    miners,
-			Workers:   workers,
-			Hashrate:  newNumberFromFloat64(hashrate, "H/s", true),
-			Luck:      newNumberFromFloat64(luck, "%", false),
-			ProfitUSD: newNumberFromFloat64WithPrecision(profitUsd, 32, " $/H/s", false),
-			ProfitBTC: newNumberFromFloat64WithPrecision(profitBtc, 32, " BTC/H/s", false),
+			Name:               node.Name(),
+			Symbol:             chain,
+			Fee:                newNumberFromFloat64(0.01, "%", false),
+			Miners:             miners,
+			Workers:            workers,
+			Hashrate:           newNumberFromFloat64(hashrate, "H/s", true),
+			Luck:               newNumberFromFloat64(luck, "%", false),
+			TTF:                newNumberFromDuration(ttf),
+			ProfitUSD:          newNumberFromFloat64WithPrecision(profitUsd, 32, " $/H/s", false),
+			ProfitBTC:          newNumberFromFloat64WithPrecision(profitBtc, 32, " BTC/H/s", false),
+			NetworkDifficulty:  newNumberFromFloat64(networkDifficulty, "", true),
+			NetworkHashrate:    newNumberFromFloat64(networkHashrate, "H/s", true),
+			NetworkBlockReward: newNumberFromFloat64(blockReward, chain, true),
 		}
 	}
 

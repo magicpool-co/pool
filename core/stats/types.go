@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/magicpool-co/pool/internal/tsdb"
 	"github.com/magicpool-co/pool/pkg/common"
@@ -85,17 +86,31 @@ func newNumberFromBigIntPtr(value *big.Int, chain string) (*Number, error) {
 	return &n, nil
 }
 
+func newNumberFromDuration(value time.Duration) Number {
+	n := Number{
+		Value:     float64(value),
+		Formatted: value.String(),
+	}
+
+	return n
+}
+
 /* pool */
 
 type PoolSummary struct {
-	Name      string `json:"name"`
-	Symbol    string `json:"symbol"`
-	Miners    uint64 `json:"miners"`
-	Workers   uint64 `json:"workers"`
-	Hashrate  Number `json:"hashrate"`
-	Luck      Number `json:"luck"`
-	ProfitUSD Number `json:"profitUsd"`
-	ProfitBTC Number `json:"profitBtc"`
+	Name               string `json:"name"`
+	Symbol             string `json:"symbol"`
+	Fee                Number `json:"fee"`
+	Miners             uint64 `json:"miners"`
+	Workers            uint64 `json:"workers"`
+	Hashrate           Number `json:"hashrate"`
+	Luck               Number `json:"luck"`
+	TTF                Number `json:"ttf"`
+	ProfitUSD          Number `json:"profitUsd"`
+	ProfitBTC          Number `json:"profitBtc"`
+	NetworkDifficulty  Number `json:"networkDifficulty"`
+	NetworkHashrate    Number `json:"networkHashrate"`
+	NetworkBlockReward Number `json:"networkBlockReward"`
 }
 
 /* dashboard */
