@@ -238,6 +238,9 @@ func (p *Pool) startMinerStatsPusher() {
 		case <-p.ctx.Done():
 			return
 		case <-ticker.C:
+			// force interval addition
+			p.getCurrentInterval(true)
+
 			// copy and replace last share and latency index
 			p.minerStatsMu.Lock()
 
