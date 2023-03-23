@@ -56,9 +56,10 @@ type Pool struct {
 	intervalMu   sync.Mutex
 	intervalDone uint32
 
-	minerStatsMu   sync.Mutex
-	lastShareIndex map[string]int64
-	latencyIndex   map[string]int64
+	minerStatsMu      sync.Mutex
+	lastShareIndex    map[string]int64
+	latencyValueIndex map[string]int64
+	latencyCountIndex map[string]int64
 
 	db       *dbcl.Client
 	redis    *redis.Client
@@ -90,8 +91,9 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 
 		jobManager: newJobManager(ctx, node, logger, opt.JobListSize, opt.JobListAgeLimit),
 
-		lastShareIndex: make(map[string]int64),
-		latencyIndex:   make(map[string]int64),
+		lastShareIndex:    make(map[string]int64),
+		latencyValueIndex: make(map[string]int64),
+		latencyCountIndex: make(map[string]int64),
 
 		db:       dbClient,
 		redis:    redisClient,
@@ -242,8 +244,8 @@ func (p *Pool) startMinerStatsPusher() {
 			lastShareIndex := p.lastShareIndex
 			p.lastShareIndex = make(map[string]int64)
 
-			latencyIndex := p.latencyIndex
-			p.latencyIndex = make(map[string]int64)
+			latencyValueIndex, latencyCountIndex := p.latencyValueIndex, p.latencyCountIndex
+			p.latencyValueIndex, p.latencyCountIndex = make(map[string]int64), make(map[string]int64)
 
 			p.minerStatsMu.Unlock()
 
@@ -253,8 +255,18 @@ func (p *Pool) startMinerStatsPusher() {
 				p.logger.Error(err)
 			}
 
+			for k, value := range latencyValueIndex {
+				if value == 0 {
+					delete(latencyValueIndex, k)
+				} else if count, ok := latencyCountIndex[k]; !ok || count == 0 {
+					delete(latencyValueIndex, k)
+				}
+
+				latencyValueIndex[k] /= latencyCountIndex[k]
+			}
+
 			// process set ip address in bulk
-			err = p.redis.SetMinerLatenciesBulk(p.chain, latencyIndex)
+			err = p.redis.SetMinerLatenciesBulk(p.chain, latencyValueIndex)
 			if err != nil {
 				p.logger.Error(err)
 			}

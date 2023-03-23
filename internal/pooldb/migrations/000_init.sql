@@ -137,6 +137,7 @@ CREATE TABLE ip_addresses (
 	active			bool			NOT NULL,
 	expired			bool			NOT NULL,
 	last_share		datetime		NOT NULL,
+	rtt				float,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,

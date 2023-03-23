@@ -83,9 +83,10 @@ type IPAddress struct {
 	WorkerID  uint64 `db:"worker_id"`
 	IPAddress string `db:"ip_address"`
 
-	Active    bool      `db:"active"`
-	Expired   bool      `db:"expired"`
-	LastShare time.Time `db:"last_share"`
+	Active        bool      `db:"active"`
+	Expired       bool      `db:"expired"`
+	LastShare     time.Time `db:"last_share"`
+	RoundTripTime *float64  `db:"rtt"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`

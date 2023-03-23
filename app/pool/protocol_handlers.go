@@ -336,12 +336,15 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 
 			// need to replace ":" with "|" for IPv6 compatibility
 			ip := strings.ReplaceAll(c.GetIP(), ":", "|")
-
+			id := c.GetCompoundID() + ":" + ip
 			latency, _ := c.GetLatency()
 
 			p.minerStatsMu.Lock()
-			p.lastShareIndex[c.GetCompoundID()+":"+ip] = submitTime.Unix()
-			p.latencyIndex[c.GetCompoundID()+":"+ip] = int64(latency)
+			p.lastShareIndex[id] = submitTime.Unix()
+			if latency > 0 {
+				p.latencyValueIndex[id] += int64(latency)
+				p.latencyCountIndex[id]++
+			}
 			p.minerStatsMu.Unlock()
 		case types.RejectedShare:
 			err := p.redis.AddRejectedShare(p.chain, interval, c.GetCompoundID())
