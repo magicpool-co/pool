@@ -9,6 +9,15 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
+func chainIncludesImmature(chain string) bool {
+	switch chain {
+	case "ERG", "NEXA":
+		return false
+	default:
+		return true
+	}
+}
+
 func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 	chain := node.Chain()
 	walletBalance, err := node.GetBalance()
@@ -28,8 +37,8 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 	}
 
 	// add immature round sum to UTXOs since they're only added at the point of maturation
-	// (ERG is excluded since blocks are not shown in the wallet balance until they're mature)
-	if chain != "ERG" && chain != "NEXA" {
+	// (if the chain shows blocks in the wallet balance before they're mature)
+	if chainIncludesImmature(chain) {
 		immatureRoundSum, err := pooldb.GetSumImmatureRoundValueByChain(pooldbClient.Reader(), chain)
 		if err != nil {
 			return err
@@ -60,8 +69,8 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 	sumMinerBalance := new(big.Int).Add(inputBalance, outputBalance)
 
 	// add unspent round sum to sum miner balance since they're only added at the point
-	// of maturation (ERG is excluded the immature round sum is excluded for UTXOs)
-	if chain != "ERG" {
+	// of maturation (if the immature round sum is included beforehand too)
+	if chainIncludesImmature(chain) {
 		unspentRoundSum, err := pooldb.GetSumUnspentRoundValueByChain(pooldbClient.Reader(), chain)
 		if err != nil {
 			return err
