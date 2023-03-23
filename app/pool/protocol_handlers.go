@@ -341,7 +341,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 
 			p.minerStatsMu.Lock()
 			p.lastShareIndex[c.GetCompoundID()+":"+ip] = submitTime.Unix()
-			p.lastShareIndex[c.GetCompoundID()+":"+ip] = int64(latency)
+			p.latencyIndex[c.GetCompoundID()+":"+ip] = int64(latency)
 			p.minerStatsMu.Unlock()
 		case types.RejectedShare:
 			err := p.redis.AddRejectedShare(p.chain, interval, c.GetCompoundID())
