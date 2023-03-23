@@ -74,7 +74,7 @@ func (j *MinerJob) Run() {
 
 			var rtt *float64
 			if rawRtt, ok := rttIdx[compoundID]; ok {
-				rtt = types.Float64Ptr(rawRtt)
+				rtt = types.Float64Ptr(rawRtt / 1000)
 			}
 
 			address := &pooldb.IPAddress{
