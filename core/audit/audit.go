@@ -29,7 +29,7 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 
 	// add immature round sum to UTXOs since they're only added at the point of maturation
 	// (ERG is excluded since blocks are not shown in the wallet balance until they're mature)
-	if chain != "ERG" {
+	if chain != "ERG" && chain != "NEXA" {
 		immatureRoundSum, err := pooldb.GetSumImmatureRoundValueByChain(pooldbClient.Reader(), chain)
 		if err != nil {
 			return err
