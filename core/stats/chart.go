@@ -276,7 +276,6 @@ func sumShares(items []*tsdb.Share) []*tsdb.Share {
 			idx[timestamp].InvalidShares += item.InvalidShares
 			idx[timestamp].Hashrate += item.Hashrate
 			idx[timestamp].AvgHashrate += item.AvgHashrate
-			idx[timestamp].ReportedHashrate += item.ReportedHashrate
 		}
 	}
 
@@ -321,8 +320,6 @@ func sumSharesSingle(metric types.ShareMetric, items []*tsdb.Share) ([]*tsdb.Sha
 					compoundIdx[timestamp][chain].Hashrate += item.Hashrate
 				case types.ShareAverageHashrate:
 					compoundIdx[timestamp][chain].AvgHashrate += item.AvgHashrate
-				case types.ShareReportedHashrate:
-					compoundIdx[timestamp][chain].ReportedHashrate += item.ReportedHashrate
 				default:
 					return nil, fmt.Errorf("unknown metric type")
 				}
@@ -357,15 +354,14 @@ func getShareChart(items []*tsdb.Share, period types.PeriodType) *ShareChart {
 
 	index := period.GenerateRange(common.NormalizeDate(endTime, period.Rollup(), true))
 	chart := &ShareChart{
-		Timestamp:        make([]int64, 0),
-		Miners:           make([]uint64, 0),
-		Workers:          make([]uint64, 0),
-		AcceptedShares:   make([]uint64, 0),
-		RejectedShares:   make([]uint64, 0),
-		InvalidShares:    make([]uint64, 0),
-		Hashrate:         make([]float64, 0),
-		AvgHashrate:      make([]float64, 0),
-		ReportedHashrate: make([]float64, 0),
+		Timestamp:      make([]int64, 0),
+		Miners:         make([]uint64, 0),
+		Workers:        make([]uint64, 0),
+		AcceptedShares: make([]uint64, 0),
+		RejectedShares: make([]uint64, 0),
+		InvalidShares:  make([]uint64, 0),
+		Hashrate:       make([]float64, 0),
+		AvgHashrate:    make([]float64, 0),
 	}
 
 	var firstTime, lastTime time.Time
@@ -467,8 +463,6 @@ func getShareChartSingle(metric types.ShareMetric, items []*tsdb.Share, period t
 				value = item.Hashrate
 			case types.ShareAverageHashrate:
 				value = item.AvgHashrate
-			case types.ShareReportedHashrate:
-				value = item.ReportedHashrate
 			default:
 				return nil, fmt.Errorf("unknown metric type")
 			}

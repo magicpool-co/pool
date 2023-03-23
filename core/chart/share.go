@@ -78,10 +78,6 @@ func (c *Client) rollupShares(node types.MiningNode, interval string) error {
 	if err != nil {
 		return err
 	}
-	reported, err := c.redis.GetIntervalReportedHashrates(node.Chain(), interval)
-	if err != nil {
-		return err
-	}
 	globalAvg, minerAvg, workerAvg, err := getInitialShareAverages(c.tsdb.Reader(), endTime, node.Chain(), sharePeriod)
 	if err != nil {
 		return err
@@ -106,9 +102,6 @@ func (c *Client) rollupShares(node types.MiningNode, interval string) error {
 		uniqueIDs[compoundID] = true
 	}
 	for compoundID := range invalid {
-		uniqueIDs[compoundID] = true
-	}
-	for compoundID := range reported {
 		uniqueIDs[compoundID] = true
 	}
 	delete(uniqueIDs, "")
@@ -138,7 +131,6 @@ func (c *Client) rollupShares(node types.MiningNode, interval string) error {
 		minerSharesIdx[minerID].AcceptedShares += accepted[compoundID]
 		minerSharesIdx[minerID].RejectedShares += rejected[compoundID]
 		minerSharesIdx[minerID].InvalidShares += invalid[compoundID]
-		minerSharesIdx[minerID].ReportedHashrate += reported[compoundID]
 
 		workerID, err := strconv.ParseUint(parts[1], 10, 64)
 		if err != nil {
@@ -162,7 +154,6 @@ func (c *Client) rollupShares(node types.MiningNode, interval string) error {
 		workerSharesIdx[workerID].AcceptedShares += accepted[compoundID]
 		workerSharesIdx[workerID].RejectedShares += rejected[compoundID]
 		workerSharesIdx[workerID].InvalidShares += invalid[compoundID]
-		workerSharesIdx[workerID].ReportedHashrate += reported[compoundID]
 	}
 
 	// make sure not to insert when there is nothing to insert
@@ -177,7 +168,6 @@ func (c *Client) rollupShares(node types.MiningNode, interval string) error {
 			globalShare.RejectedShares += minerShare.RejectedShares
 			globalShare.InvalidShares += minerShare.InvalidShares
 			globalShare.Hashrate += minerShare.Hashrate
-			globalShare.ReportedHashrate += minerShare.ReportedHashrate
 		}
 
 		workerShares := make([]*tsdb.Share, 0)
@@ -210,7 +200,6 @@ func (c *Client) rollupShares(node types.MiningNode, interval string) error {
 				share.Pending = true
 				share.Hashrate *= float64(share.Count)
 				share.AvgHashrate = 0
-				share.ReportedHashrate *= float64(share.Count)
 			}
 		}
 
@@ -268,7 +257,6 @@ func finalizeShare(share *tsdb.Share) {
 	share.AvgHashrate = 0
 	if share.Count > 0 {
 		share.Hashrate /= float64(share.Count)
-		share.ReportedHashrate /= float64(share.Count)
 	}
 }
 

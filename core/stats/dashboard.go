@@ -28,9 +28,8 @@ func processHashrateInfo(shares []*tsdb.Share) map[string]*HashrateInfo {
 		}
 
 		idx[share.ChainID] = &HashrateInfo{
-			Hashrate:         newNumberFromFloat64(share.Hashrate, units, true),
-			AvgHashrate:      newNumberFromFloat64(share.AvgHashrate, units, true),
-			ReportedHashrate: newNumberFromFloat64(share.ReportedHashrate, units, true),
+			Hashrate:    newNumberFromFloat64(share.Hashrate, units, true),
+			AvgHashrate: newNumberFromFloat64(share.AvgHashrate, units, true),
 		}
 	}
 

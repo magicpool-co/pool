@@ -123,9 +123,8 @@ type PoolSummary struct {
 /* dashboard */
 
 type HashrateInfo struct {
-	Hashrate         Number `json:"hashrate"`
-	AvgHashrate      Number `json:"avgHashrate"`
-	ReportedHashrate Number `json:"reportedHashrate"`
+	Hashrate    Number `json:"hashrate"`
+	AvgHashrate Number `json:"avgHashrate"`
 }
 
 type ShareInfo struct {
@@ -319,15 +318,14 @@ func (chart *RoundChart) AddPoint(round *tsdb.Round) {
 /* share chart */
 
 type ShareChart struct {
-	Timestamp        []int64   `json:"timestamp"`
-	Miners           []uint64  `json:"miners"`
-	Workers          []uint64  `json:"workers"`
-	AcceptedShares   []uint64  `json:"acceptedShares"`
-	RejectedShares   []uint64  `json:"rejectedShares"`
-	InvalidShares    []uint64  `json:"invalidShares"`
-	Hashrate         []float64 `json:"hashrate"`
-	AvgHashrate      []float64 `json:"avgHashrate"`
-	ReportedHashrate []float64 `json:"reportedHashrate"`
+	Timestamp      []int64   `json:"timestamp"`
+	Miners         []uint64  `json:"miners"`
+	Workers        []uint64  `json:"workers"`
+	AcceptedShares []uint64  `json:"acceptedShares"`
+	RejectedShares []uint64  `json:"rejectedShares"`
+	InvalidShares  []uint64  `json:"invalidShares"`
+	Hashrate       []float64 `json:"hashrate"`
+	AvgHashrate    []float64 `json:"avgHashrate"`
 }
 
 func (chart *ShareChart) Len() int {
@@ -343,7 +341,6 @@ func (chart *ShareChart) Swap(i, j int) {
 	chart.InvalidShares[i], chart.InvalidShares[j] = chart.InvalidShares[j], chart.InvalidShares[i]
 	chart.Hashrate[i], chart.Hashrate[j] = chart.Hashrate[j], chart.Hashrate[i]
 	chart.AvgHashrate[i], chart.AvgHashrate[j] = chart.AvgHashrate[j], chart.AvgHashrate[i]
-	chart.ReportedHashrate[i], chart.ReportedHashrate[j] = chart.ReportedHashrate[j], chart.ReportedHashrate[i]
 }
 
 func (chart *ShareChart) Less(i, j int) bool {
@@ -359,5 +356,4 @@ func (chart *ShareChart) AddPoint(share *tsdb.Share) {
 	chart.InvalidShares = append(chart.InvalidShares, share.InvalidShares)
 	chart.Hashrate = append(chart.Hashrate, common.SafeRoundedFloat(share.Hashrate, 3))
 	chart.AvgHashrate = append(chart.AvgHashrate, common.SafeRoundedFloat(share.AvgHashrate, 3))
-	chart.ReportedHashrate = append(chart.ReportedHashrate, common.SafeRoundedFloat(share.ReportedHashrate, 3))
 }

@@ -194,9 +194,8 @@ func ParseNetworkMetric(raw string) (NetworkMetric, error) {
 type ShareMetric string
 
 const (
-	ShareHashrate         ShareMetric = "hashrate"
-	ShareAverageHashrate  ShareMetric = "avg_hashrate"
-	ShareReportedHashrate ShareMetric = "reported_hashrate"
+	ShareHashrate        ShareMetric = "hashrate"
+	ShareAverageHashrate ShareMetric = "avg_hashrate"
 )
 
 func ParseShareMetric(raw string) (ShareMetric, error) {
@@ -205,8 +204,6 @@ func ParseShareMetric(raw string) (ShareMetric, error) {
 		return ShareHashrate, nil
 	case "avgHashrate":
 		return ShareAverageHashrate, nil
-	case "reportedHashrate":
-		return ShareReportedHashrate, nil
 	default:
 		return "", fmt.Errorf("unknown metric type")
 	}
