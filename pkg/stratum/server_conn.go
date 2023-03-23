@@ -53,6 +53,10 @@ func (c *Conn) SetSubscribed(subscribed bool) { c.subscribed = subscribed }
 func (c *Conn) SetAuthorized(authorized bool) { c.authorized = authorized }
 func (c *Conn) SetClientType(clientType int)  { c.clientType = clientType }
 
+func (c *Conn) GetLatency() (time.Duration, error) {
+	return getLatency(c.conn)
+}
+
 func (c *Conn) Write(msg interface{}) error {
 	data, err := json.Marshal(msg)
 	if err != nil {

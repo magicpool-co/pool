@@ -60,7 +60,7 @@ jobs:
         app: [pool]
         region: [us-east-1, us-west-2, eu-central-1]
         # chain: [erg, etc, kas, nexa]
-        chain: [nexa]
+        chain: [etc]
         include:
           - region: eu-west-1
             app: worker

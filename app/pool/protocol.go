@@ -115,23 +115,10 @@ func (p *Pool) subscribeExtraNonce(c *stratum.Conn, req *rpc.Request) error {
 
 func (p *Pool) submitHashrate(c *stratum.Conn, req *rpc.Request) error {
 	var res interface{}
-	if len(req.Params) != 2 {
-		res = errInvalidRequest(req.ID)
+	if p.forceErrorOnResponse {
+		res = rpc.NewResponseForcedFromJSON(req.ID, common.JsonTrue)
 	} else {
-		// store reported hashrate locally in a mutex protected map to
-		// avoid an unnecessary of Redis calls, periodically push (in server.Serve)
-		var rawHashrate string
-		if err := json.Unmarshal(req.Params[0], &rawHashrate); err == nil {
-			p.reportedMu.Lock()
-			p.reportedIndex[c.GetCompoundID()] = rawHashrate
-			p.reportedMu.Unlock()
-		}
-
-		if p.forceErrorOnResponse {
-			res = rpc.NewResponseForcedFromJSON(req.ID, common.JsonTrue)
-		} else {
-			res = rpc.NewResponseFromJSON(req.ID, common.JsonTrue)
-		}
+		res = rpc.NewResponseFromJSON(req.ID, common.JsonTrue)
 	}
 
 	return c.Write(res)

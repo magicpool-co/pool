@@ -3,7 +3,6 @@ package pool
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -57,11 +56,9 @@ type Pool struct {
 	intervalMu   sync.Mutex
 	intervalDone uint32
 
-	reportedMu    sync.Mutex
-	reportedIndex map[string]string
-
-	lastShareMu    sync.Mutex
+	minerStatsMu   sync.Mutex
 	lastShareIndex map[string]int64
+	latencyIndex   map[string]int64
 
 	db       *dbcl.Client
 	redis    *redis.Client
@@ -93,8 +90,8 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 
 		jobManager: newJobManager(ctx, node, logger, opt.JobListSize, opt.JobListAgeLimit),
 
-		reportedIndex:  make(map[string]string),
 		lastShareIndex: make(map[string]int64),
+		latencyIndex:   make(map[string]int64),
 
 		db:       dbClient,
 		redis:    redisClient,
@@ -230,7 +227,7 @@ func (p *Pool) startShareIndexClearer() {
 	}
 }
 
-func (p *Pool) startReportedHashratePusher() {
+func (p *Pool) startMinerStatsPusher() {
 	defer p.recoverPanic()
 
 	ticker := time.NewTicker(time.Minute)
@@ -239,49 +236,25 @@ func (p *Pool) startReportedHashratePusher() {
 		case <-p.ctx.Done():
 			return
 		case <-ticker.C:
-			interval := p.getCurrentInterval(true)
+			// copy and replace last share and latency index
+			p.minerStatsMu.Lock()
 
-			// copy and replace reported index
-			p.reportedMu.Lock()
-			reportedRaw := p.reportedIndex
-			p.reportedIndex = make(map[string]string)
-			p.reportedMu.Unlock()
-
-			// process raw reported index into float index
-			reported := make(map[string]float64)
-			for id, rawHashrate := range reportedRaw {
-				hashrate, err := common.HexToBig(rawHashrate)
-				if err == nil {
-					reported[id], _ = new(big.Float).SetInt(hashrate).Float64()
-				}
-			}
-
-			// process set miner reported in bulk
-			err := p.redis.SetIntervalReportedHashrateBatch(p.chain, interval, reported)
-			if err != nil {
-				p.logger.Error(err)
-			}
-		}
-	}
-}
-
-func (p *Pool) startIPAddressPusher() {
-	defer p.recoverPanic()
-
-	ticker := time.NewTicker(time.Minute)
-	for {
-		select {
-		case <-p.ctx.Done():
-			return
-		case <-ticker.C:
-			// copy and replace last share index
-			p.lastShareMu.Lock()
 			lastShareIndex := p.lastShareIndex
 			p.lastShareIndex = make(map[string]int64)
-			p.lastShareMu.Unlock()
+
+			latencyIndex := p.latencyIndex
+			p.latencyIndex = make(map[string]int64)
+
+			p.minerStatsMu.Unlock()
 
 			// process set ip address in bulk
 			err := p.redis.SetMinerIPAddressesBulk(p.chain, lastShareIndex)
+			if err != nil {
+				p.logger.Error(err)
+			}
+
+			// process set ip address in bulk
+			err = p.redis.SetMinerLatenciesBulk(p.chain, latencyIndex)
 			if err != nil {
 				p.logger.Error(err)
 			}
@@ -352,8 +325,7 @@ func (p *Pool) Serve() {
 	go p.startPingHosts()
 	go p.startJobNotify()
 	go p.startShareIndexClearer()
-	go p.startReportedHashratePusher()
-	go p.startIPAddressPusher()
+	go p.startMinerStatsPusher()
 	go p.startStratum()
 
 	if p.metrics != nil {

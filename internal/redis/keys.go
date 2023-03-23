@@ -29,6 +29,10 @@ func (c *Client) getMinerIPAddressesKey(chain string) string {
 	return c.getKey("pool", "mnrs", strings.ToLower(chain), "ips")
 }
 
+func (c *Client) getMinerLatenciesKey(chain string) string {
+	return c.getKey("pool", "mnrs", strings.ToLower(chain), "ltncs")
+}
+
 func (c *Client) getTopMinersKey(chain string) string {
 	return c.getKey("pool", "mnrs", strings.ToLower(chain), "top")
 }

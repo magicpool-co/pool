@@ -23,8 +23,21 @@ func (c *Client) SetMinerIPAddressesBulk(chain string, values map[string]int64) 
 	return c.baseZAddBatch(c.getMinerIPAddressesKey(chain), members)
 }
 
+func (c *Client) SetMinerLatenciesBulk(chain string, values map[string]int64) error {
+	members := make([]*redis.Z, 0)
+	for k, v := range values {
+		members = append(members, &redis.Z{Member: k, Score: float64(v)})
+	}
+
+	return c.baseZAddBatch(c.getMinerLatenciesKey(chain), members)
+}
+
 func (c *Client) DeleteMinerIPAddresses(chain string) error {
 	return c.baseDel(c.getMinerIPAddressesKey(chain))
+}
+
+func (c *Client) DeleteMinerLatencies(chain string) error {
+	return c.baseDel(c.getMinerLatenciesKey(chain))
 }
 
 func (c *Client) SetWorkerID(minerID uint64, worker string, workerID uint64) error {
