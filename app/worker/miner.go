@@ -43,6 +43,11 @@ func (j *MinerJob) Run() {
 			j.logger.Error(fmt.Errorf("ip: fetch: %s: %v", node.Chain(), err))
 		}
 
+		rttIdx, err := j.redis.GetMinerLatencies(node.Chain())
+		if err != nil {
+			j.logger.Error(fmt.Errorf("ip: fetch: %s: %v", node.Chain(), err))
+		}
+
 		// process the index into a slice of addresses
 		addresses := make([]*pooldb.IPAddress, 0)
 		for compoundID, timestamp := range ipAddressIdx {
@@ -67,15 +72,21 @@ func (j *MinerJob) Run() {
 			// need to replace "|" with ":" for IPv6 compatibility
 			ipAddress := strings.ReplaceAll(parts[2], "|", ":")
 
+			var rtt *float64
+			if rawRtt, ok := rttIdx[compoundID]; ok {
+				rtt = types.Float64Ptr(rawRtt)
+			}
+
 			address := &pooldb.IPAddress{
 				MinerID:   minerID,
 				WorkerID:  workerID,
 				ChainID:   node.Chain(),
 				IPAddress: ipAddress,
 
-				Active:    true,
-				Expired:   false,
-				LastShare: time.Unix(int64(timestamp), 0),
+				Active:        true,
+				Expired:       false,
+				LastShare:     time.Unix(int64(timestamp), 0),
+				RoundTripTime: rtt,
 			}
 			addresses = append(addresses, address)
 		}
@@ -88,7 +99,9 @@ func (j *MinerJob) Run() {
 		} else if err := pooldb.UpdateIPAddressesSetExpired(j.pooldb.Writer(), time.Hour*24); err != nil {
 			j.logger.Error(fmt.Errorf("ip: update: %s: %v", node.Chain(), err))
 		} else if err := j.redis.DeleteMinerIPAddresses(node.Chain()); err != nil {
-			j.logger.Error(fmt.Errorf("ip: delete: %s: %v", node.Chain(), err))
+			j.logger.Error(fmt.Errorf("ip: delete ips: %s: %v", node.Chain(), err))
+		} else if err := j.redis.DeleteMinerLatencies(node.Chain()); err != nil {
+			j.logger.Error(fmt.Errorf("ip: delete latencies: %s: %v", node.Chain(), err))
 		}
 	}
 }

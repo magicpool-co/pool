@@ -55,8 +55,8 @@ func UpdateWorker(q dbcl.Querier, obj *Worker, updateCols []string) error {
 
 func InsertIPAddresses(q dbcl.Querier, objects ...*IPAddress) error {
 	const table = "ip_addresses"
-	insertCols := []string{"miner_id", "worker_id", "chain_id", "ip_address", "active", "expired", "last_share"}
-	updateCols := []string{"active", "expired", "last_share"}
+	insertCols := []string{"miner_id", "worker_id", "chain_id", "ip_address", "active", "expired", "last_share", "rtt"}
+	updateCols := []string{"active", "expired", "last_share", "rtt"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
