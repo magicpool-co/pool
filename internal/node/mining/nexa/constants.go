@@ -67,7 +67,7 @@ func (node Node) GetMaxDifficulty() *big.Int {
 }
 
 func (node Node) GetImmatureDepth() uint64 {
-	return 50
+	return 25
 }
 
 func (node Node) GetMatureDepth() uint64 {
