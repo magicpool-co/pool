@@ -496,11 +496,34 @@ func GetRounds(q dbcl.Querier, page, size uint64) ([]*Round, error) {
 	return output, err
 }
 
+func GetRoundsByChain(q dbcl.Querier, chain string, page, size uint64) ([]*Round, error) {
+	const query = `SELECT rounds.*, CONCAT(miners.chain_id, ":", miners.address) miner
+	FROM rounds
+	JOIN miners ON rounds.miner_id = miners.id
+	WHERE rounds.chain_id = ?
+	ORDER BY created_at DESC
+	LIMIT ? OFFSET ?`
+
+	output := []*Round{}
+	err := q.Select(&output, query, chain, size, page*size)
+
+	return output, err
+}
+
 func GetRoundsCount(q dbcl.Querier) (uint64, error) {
 	const query = `SELECT count(id)
 	FROM rounds`
 
 	return dbcl.GetUint64(q, query)
+}
+
+func GetRoundsByChainCount(q dbcl.Querier, chain string) (uint64, error) {
+	const query = `SELECT count(id)
+	FROM rounds
+	WHERE
+		chain_id = ?`
+
+	return dbcl.GetUint64(q, query, chain)
 }
 
 func GetRoundsByMiners(q dbcl.Querier, minerIDs []uint64, page, size uint64) ([]*Round, error) {

@@ -597,6 +597,7 @@ type roundArgs struct {
 	page  string
 	size  string
 	miner string
+	chain string
 }
 
 func (ctx *Context) getRounds(args roundArgs) http.Handler {
@@ -617,6 +618,13 @@ func (ctx *Context) getRounds(args roundArgs) http.Handler {
 			}
 
 			rounds, count, err = ctx.stats.GetMinerRounds(minerIDs, page, size)
+		} else if args.chain != "" {
+			if !validateMiningChain(args.chain) {
+				ctx.writeErrorResponse(w, errChainNotFound)
+				return
+			}
+
+			rounds, count, err = ctx.stats.GetGlobalRoundsByChain(args.chain, page, size)
 		} else {
 			rounds, count, err = ctx.stats.GetGlobalRounds(page, size)
 		}

@@ -163,9 +163,19 @@ func (suite *PooldbReadsSuite) TestReadRound() {
 		suite.T().Errorf("failed: GetRounds: %v", err)
 	}
 
+	_, err = pooldb.GetRoundsByChain(pooldbClient.Reader(), "ETH", 0, 10)
+	if err != nil {
+		suite.T().Errorf("failed: GetRoundsByChain: %v", err)
+	}
+
 	_, err = pooldb.GetRoundsCount(pooldbClient.Reader())
 	if err != nil {
 		suite.T().Errorf("failed: GetRoundsCount: %v", err)
+	}
+
+	_, err = pooldb.GetRoundsByChainCount(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetRoundsByChainCount: %v", err)
 	}
 
 	_, err = pooldb.GetRoundsByMiners(pooldbClient.Reader(), []uint64{0, 1}, 0, 10)

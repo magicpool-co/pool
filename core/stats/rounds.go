@@ -134,6 +134,28 @@ func (c *Client) GetGlobalRounds(page, size uint64) ([]*Round, uint64, error) {
 	return rounds, count, nil
 }
 
+func (c *Client) GetGlobalRoundsByChain(chain string, page, size uint64) ([]*Round, uint64, error) {
+	count, err := pooldb.GetRoundsByChainCount(c.pooldb.Reader(), chain)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	dbRounds, err := pooldb.GetRoundsByChain(c.pooldb.Reader(), chain, page, size)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	rounds := make([]*Round, len(dbRounds))
+	for i, dbRound := range dbRounds {
+		rounds[i], err = newRound(dbRound)
+		if err != nil {
+			return nil, 0, err
+		}
+	}
+
+	return rounds, count, nil
+}
+
 func (c *Client) GetMinerRounds(minerIDs []uint64, page, size uint64) ([]*Round, uint64, error) {
 	if len(minerIDs) == 0 {
 		return nil, 0, nil

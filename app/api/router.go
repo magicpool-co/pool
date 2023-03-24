@@ -110,8 +110,9 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	case rtr.match(path, "/global/rounds"):
 		method = "GET"
+		chain := r.URL.Query().Get("chain")
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
-		handler = rtr.ctx.getRounds(roundArgs{page: page, size: size})
+		handler = rtr.ctx.getRounds(roundArgs{chain: chain, page: page, size: size})
 
 	case rtr.match(path, "/global/payouts"):
 		method = "GET"
