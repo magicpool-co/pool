@@ -11,7 +11,7 @@ import (
 
 func chainIncludesImmature(chain string) bool {
 	switch chain {
-	case "ERG", "NEXA":
+	case "ERG":
 		return false
 	default:
 		return true

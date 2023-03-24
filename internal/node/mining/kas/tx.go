@@ -2,12 +2,12 @@ package kas
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"net/http"
 	"time"
 
+	"github.com/goccy/go-json"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/magicpool-co/pool/internal/node/mining/kas/protowire"
