@@ -23,7 +23,7 @@ var (
 	maxDiffBig   = common.MustParseBigHex("100000000000000000000000000000000000000000000000000000000")
 	shareDiffBig = common.MustParseBigHex("500000000000000000000000000000000000000000000000000000000") // 0.2 (shareFactor)
 	shareDiff    = new(types.Difficulty).SetFromBig(shareDiffBig, maxDiffBig)
-	units        = new(types.Number).SetFromValue(1e8)
+	units        = new(types.Number).SetFromValue(1e2)
 )
 
 func (node Node) Name() string {
