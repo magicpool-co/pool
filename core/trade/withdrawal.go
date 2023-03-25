@@ -119,6 +119,7 @@ func (c *Client) ConfirmWithdrawals(batchID uint64, exchange types.Exchange) err
 	completedAll := true
 	for _, withdrawal := range withdrawals {
 		if withdrawal.Confirmed {
+			completedAll = false
 			continue
 		} else if !withdrawal.DepositFees.Valid {
 			return fmt.Errorf("no deposit fees for withdrawal %d", withdrawal.ID)
