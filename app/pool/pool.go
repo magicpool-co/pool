@@ -303,7 +303,7 @@ func (p *Pool) startStratum() {
 		select {
 		case <-p.ctx.Done():
 			return
-		case connID := <-connectCh:
+		case <-connectCh:
 			if p.metrics != nil {
 				p.metrics.IncrementGauge("clients_active", p.chain)
 				p.metrics.IncrementCounter("client_connects", p.chain)
