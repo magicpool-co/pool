@@ -11,6 +11,7 @@ import (
 
 	"github.com/goccy/go-json"
 
+	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 )
 
@@ -25,6 +26,7 @@ type Message struct {
 
 type Server struct {
 	ctx      context.Context
+	logger   *log.Logger
 	addr     *net.TCPAddr
 	listener net.Listener
 	wg       sync.WaitGroup
@@ -33,16 +35,17 @@ type Server struct {
 	conns    map[uint64]*Conn
 }
 
-func NewServer(ctx context.Context, port int) (*Server, error) {
+func NewServer(ctx context.Context, port int, logger *log.Logger) (*Server, error) {
 	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return nil, err
 	}
 
 	server := &Server{
-		ctx:   ctx,
-		addr:  addr,
-		conns: make(map[uint64]*Conn),
+		ctx:    ctx,
+		logger: logger,
+		addr:   addr,
+		conns:  make(map[uint64]*Conn),
 	}
 
 	return server, nil
@@ -154,7 +157,9 @@ func (s *Server) Start(connTimeout time.Duration) (chan Message, chan uint64, ch
 				scanner := c.NewScanner()
 				for scanner.Scan() {
 					var req *rpc.Request
-					if err := json.Unmarshal(scanner.Bytes(), &req); err == nil {
+					msg := scanner.Bytes()
+					s.logger.Debug("recieved stratum request: " + string(msg))
+					if err := json.Unmarshal(msg, &req); err == nil {
 						messageCh <- Message{Conn: c, Req: req}
 					}
 				}

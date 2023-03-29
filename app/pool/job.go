@@ -175,6 +175,8 @@ func (m *JobManager) update(job *types.StratumJob) (bool, error) {
 			return cleanJobs, err
 		}
 
+		m.logger.Debug("broadcasting stratum job: " + string(data))
+
 		for _, ch := range clientSubscriptions {
 			select {
 			case <-ch:
@@ -240,7 +242,7 @@ func (m *JobManager) AddConn(c *stratum.Conn) {
 				return
 			}
 
-			err := c.WriteRaw(job)
+			err := c.Write(job)
 			if err != nil {
 				return
 			}

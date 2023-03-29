@@ -89,7 +89,7 @@ func (p *Pool) subscribe(c *stratum.Conn, req *rpc.Request) error {
 	}
 
 	for _, msg := range subResponses {
-		err = c.Write(msg)
+		err = p.writeToConn(c, msg)
 		if err != nil {
 			return err
 		}
@@ -110,7 +110,7 @@ func (p *Pool) subscribeExtraNonce(c *stratum.Conn, req *rpc.Request) error {
 		res = rpc.NewResponseFromJSON(req.ID, common.JsonTrue)
 	}
 
-	return c.Write(res)
+	return p.writeToConn(c, res)
 }
 
 func (p *Pool) submitHashrate(c *stratum.Conn, req *rpc.Request) error {
@@ -121,7 +121,7 @@ func (p *Pool) submitHashrate(c *stratum.Conn, req *rpc.Request) error {
 		res = rpc.NewResponseFromJSON(req.ID, common.JsonTrue)
 	}
 
-	return c.Write(res)
+	return p.writeToConn(c, res)
 }
 
 func (p *Pool) getWork(c *stratum.Conn, req *rpc.Request) error {
@@ -135,13 +135,13 @@ func (p *Pool) getWork(c *stratum.Conn, req *rpc.Request) error {
 		return err
 	}
 
-	return c.Write(res)
+	return p.writeToConn(c, res)
 }
 
 func (p *Pool) login(c *stratum.Conn, req *rpc.Request) error {
 	msgs := p.handleLogin(c, req)
 	for _, msg := range msgs {
-		err := c.Write(msg)
+		err := p.writeToConn(c, msg)
 		if err != nil {
 			return err
 		}
@@ -167,5 +167,5 @@ func (p *Pool) submit(c *stratum.Conn, req *rpc.Request) error {
 		return err
 	}
 
-	return c.Write(res)
+	return p.writeToConn(c, res)
 }

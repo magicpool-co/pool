@@ -6,8 +6,6 @@ import (
 	"net"
 	"sync"
 	"time"
-
-	"github.com/goccy/go-json"
 )
 
 type Conn struct {
@@ -57,16 +55,7 @@ func (c *Conn) GetLatency() (time.Duration, error) {
 	return getLatency(c.conn)
 }
 
-func (c *Conn) Write(msg interface{}) error {
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return err
-	}
-
-	return c.WriteRaw(data)
-}
-
-func (c *Conn) WriteRaw(data []byte) error {
+func (c *Conn) Write(data []byte) error {
 	_, err := c.conn.Write(append(data, '\n'))
 	if err != nil {
 		return err

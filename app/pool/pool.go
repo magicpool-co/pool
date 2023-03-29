@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/goccy/go-json"
+
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/metrics"
 	"github.com/magicpool-co/pool/internal/redis"
@@ -70,7 +72,7 @@ type Pool struct {
 
 func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client, logger *log.Logger, telegramClient *telegram.Client, metricsClient *metrics.Client, opt *Options) (*Pool, error) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	server, err := stratum.NewServer(ctx, opt.StratumPort)
+	server, err := stratum.NewServer(ctx, opt.StratumPort, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +111,17 @@ func (p *Pool) recoverPanic() {
 	if r := recover(); r != nil {
 		p.logger.Panic(r, string(debug.Stack()))
 	}
+}
+
+func (p *Pool) writeToConn(c *stratum.Conn, msg interface{}) error {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	p.logger.Debug("sending stratum response: " + string(data))
+
+	return c.Write(data)
 }
 
 func (p *Pool) getCurrentInterval(reset bool) string {
