@@ -304,14 +304,12 @@ func (p *Pool) startStratum() {
 		case <-p.ctx.Done():
 			return
 		case connID := <-connectCh:
-			p.logger.Debug(fmt.Sprintf("conn %d connected", connID))
 			if p.metrics != nil {
 				p.metrics.IncrementGauge("clients_active", p.chain)
 				p.metrics.IncrementCounter("client_connects", p.chain)
 			}
 		case connID := <-disconnectCh:
 			go p.jobManager.RemoveConn(connID)
-			p.logger.Debug(fmt.Sprintf("conn %d disconnected", connID))
 			if p.metrics != nil {
 				p.metrics.DecrementGauge("clients_active", p.chain)
 				p.metrics.IncrementCounter("client_disconnects", p.chain)
