@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -22,6 +23,17 @@ import (
 	"github.com/magicpool-co/pool/types"
 
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+)
+
+const (
+	standardMinerClientID = 0
+	bzMinerClientID       = 1
+	wildRigClientID       = 2
+)
+
+var (
+	isBzminer = regexp.MustCompile(".*BzMiner.*")
+	isWildRig = regexp.MustCompile(".*WildRig.*")
 )
 
 func (node Node) GetBlockExplorerURL(round *pooldb.Round) string {
@@ -259,7 +271,9 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 }
 
 func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.StratumWork, error) {
-	if len(data) != 4 {
+	switch len(data) {
+	case 4, 5:
+	default:
 		dataRaw := make([]string, len(data))
 		for i, d := range data {
 			dataRaw[i] = string(d)
@@ -276,16 +290,30 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 	}
 
 	var nonce, timestamp string
-	if err := json.Unmarshal(data[2], &nonce); err != nil || len(nonce) != 32 {
-		return nil, fmt.Errorf("invalid nonce parameter")
-	} else if err := json.Unmarshal(data[3], &timestamp); err != nil {
-		return nil, fmt.Errorf("invalid timestamp parameter")
+	switch len(data) {
+	case 4: // standard
+		if err := json.Unmarshal(data[2], &nonce); err != nil {
+			return nil, fmt.Errorf("invalid nonce parameter")
+		} else if err := json.Unmarshal(data[3], &timestamp); err != nil {
+			return nil, fmt.Errorf("invalid timestamp parameter")
+		}
+	case 5: // wildrig
+		var extraNonce2 string
+		if err := json.Unmarshal(data[2], &extraNonce2); err != nil {
+			return nil, fmt.Errorf("invalid extraNonce2 parameter")
+		} else if err := json.Unmarshal(data[3], &timestamp); err != nil {
+			return nil, fmt.Errorf("invalid timestamp parameter")
+		} else if err := json.Unmarshal(data[4], &nonce); err != nil {
+			return nil, fmt.Errorf("invalid nonce parameter")
+		}
+		nonce = extraNonce2 + nonce
 	}
 
 	nonceBytes, err := hex.DecodeString(nonce)
 	if err != nil {
 		return nil, fmt.Errorf("invalid nonce parameter: %v", err)
 	}
+
 	nonceVal := new(types.Number).SetFromBytes(nonceBytes)
 
 	work := &types.StratumWork{
@@ -298,26 +326,48 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 }
 
 func (node Node) MarshalJob(id interface{}, job *types.StratumJob, cleanJobs bool, clientType int) (interface{}, error) {
-	timestamp := make([]byte, 8)
-	binary.BigEndian.PutUint64(timestamp, uint64(job.Timestamp.Unix()))
+	var result []interface{}
+	switch clientType {
+	case standardMinerClientID, bzMinerClientID:
+		timestamp := make([]byte, 8)
+		binary.BigEndian.PutUint64(timestamp, uint64(job.Timestamp.Unix()))
 
-	result := []interface{}{
-		job.ID,
-		job.Header.Hex(),
-		job.Data, // raw bits
-		hex.EncodeToString(timestamp),
-		cleanJobs,
+		result = []interface{}{
+			job.ID,
+			job.Header.Hex(),
+			job.Data, // raw bits
+			hex.EncodeToString(timestamp),
+			cleanJobs,
+		}
+	case wildRigClientID:
+		result = []interface{}{
+			job.ID,
+			hex.EncodeToString(crypto.ReverseBytes(job.Header.Bytes())),
+			job.Height.Value(),
+			job.Data, // raw bits
+		}
 	}
 
 	return rpc.NewRequestWithID(id, "mining.notify", result...)
 }
 
 func (node Node) GetClientType(minerClient string) int {
-	return 0
+	if isBzminer.MatchString(minerClient) {
+		return bzMinerClientID
+	} else if isWildRig.MatchString(minerClient) {
+		return wildRigClientID
+	}
+
+	return standardMinerClientID
 }
 
 func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) ([]interface{}, error) {
-	res, err := rpc.NewResponse(id, []interface{}{clientID, extraNonce, 8})
+	var subscriptions = []interface{}{
+		[]interface{}{"mining.set_difficulty", "b4b6693b72a50c7116db18d6497cac52"},
+		[]interface{}{"mining.notify", "ae6812eb4cd7735a302a8a9dd95cf71f"},
+	}
+
+	res, err := rpc.NewResponse(id, []interface{}{subscriptions, extraNonce, 4})
 	if err != nil {
 		return nil, err
 	}

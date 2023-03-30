@@ -81,7 +81,7 @@ var defaultOptions = map[string]*pool.Options{
 	"NEXA": &pool.Options{
 		Chain:          "NEXA",
 		WindowSize:     150000,
-		ExtraNonceSize: 8,
+		ExtraNonceSize: 4,
 		JobListSize:    5,
 		PollingPeriod:  time.Second,
 	},

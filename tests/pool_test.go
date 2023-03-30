@@ -482,20 +482,57 @@ func (suite *PoolSuite) TestPool() {
 				rpc.MustNewRequest("mining.submit",
 					"nexa:qzrpqsursz4dprxly2zfrvh8qgu64zvfe55dqxj2gy.worker",
 					"1",
-					"ffffffffffffffff28545a77947d0d00",
-					"0000000064155638",
+					"ffffffffa60c1c760017f000",
+					"000000006425fe9e",
 				),
 				// test duplicate share
 				rpc.MustNewRequest("mining.submit",
 					"nexa:qzrpqsursz4dprxly2zfrvh8qgu64zvfe55dqxj2gy.worker",
 					"1",
-					"ffffffffffffffff28545a77947d0d00",
+					"ffffffffa60c1c760017f000",
 					"0000000064155638",
 				),
 			},
 			responses: [][]byte{
 				common.MustMarshalJSON(true),
 				common.MustMarshalJSON(false),
+			},
+		},
+		{
+			chain: "NEXA", // wildrig testing
+			priv:  "9476ca4050e719e3fb958be7ee64016d751e22d0063cca6b13880284c5bb42ad",
+			opts: &pool.Options{
+				Chain:          "NEXA",
+				WindowSize:     100000,
+				ExtraNonceSize: 8,
+				JobListSize:    5,
+				PollingPeriod:  time.Millisecond * 100,
+			},
+			handshake: []*rpc.Request{
+				rpc.MustNewRequest("mining.subscribe", "WildRig/0.36.6L beta"),
+				rpc.MustNewRequest("mining.authorize",
+					"nexa:qzrpqsursz4dprxly2zfrvh8qgu64zvfe55dqxj2gy.worker",
+					"x",
+				),
+			},
+			requests: []*rpc.Request{
+				// a submission consists of:
+				// 	- worker id
+				//	- job id
+				// 	- extraNonce1
+				//  - timestamp (?, unused anyways)
+				//	- extraNonce2
+				// test duplicate share
+				rpc.MustNewRequest("mining.submit",
+					"nexa:qzrpqsursz4dprxly2zfrvh8qgu64zvfe55dqxj2gy.worker",
+					"1",
+					"ffffffff",
+					"0c6f67a3",
+					"3be1a62200000000",
+				),
+			},
+			responses: [][]byte{
+				common.MustMarshalJSON(true),
 			},
 		},
 		{
