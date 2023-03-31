@@ -24,11 +24,11 @@ var (
 		"CFX":  common.MustParseBigInt("2000000000000000000000000"), // 2,000,000 CFX
 		"CTXC": common.MustParseBigInt("5000000000000000000000000"), // 5,000,000 CTXC
 		"ERG":  new(big.Int).SetUint64(100_000_000_000),             // 100 ERG
-		"ETC":  common.MustParseBigInt("25000000000000000000"),      // 25 ETC
-		"KAS":  new(big.Int).SetUint64(1_000_000_000_000),           // 10,000 KAS
+		"ETC":  common.MustParseBigInt("10000000000000000000"),      // 10 ETC
+		"KAS":  new(big.Int).SetUint64(500_000_000_000),             // 5,000 KAS
 		"FIRO": new(big.Int).SetUint64(10_000_000_000),              // 100 FIRO
-		"FLUX": new(big.Int).SetUint64(30_000_000_000),              // 300 FLUX
-		"NEXA": new(big.Int).SetUint64(1_000_000_000_000_000),       // 10,000,000 NEXA
+		"FLUX": new(big.Int).SetUint64(25_000_000_000),              // 250 FLUX
+		"NEXA": new(big.Int).SetUint64(1_000_000_000),               // 10,000,000 NEXA
 		"RVN":  new(big.Int).SetUint64(500_000_000_000),             // 5,000 RVN
 	}
 
