@@ -106,7 +106,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		return "", "", err
 	}
 	tx := hex.EncodeToString(rawTx)
-	txid := nexatx.CalculateTxID(tx)
+	txid := nexatx.CalculateTxIdem(tx)
 
 	return txid, tx, nil
 }

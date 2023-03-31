@@ -114,9 +114,7 @@ type BlockchainInfo struct {
 type Transaction struct {
 	Data          string `json:"data"`
 	TxID          string `json:"txid"`
-	Hash          string `json:"hash"`
-	SigOps        int    `json:"sigops"`
-	Weight        int    `json:"weight"`
+	TxIdem        string `json:"txidem"`
 	Height        int64  `json:"height"`
 	Confirmations int64  `json:"confirmations"`
 	Inputs        []struct {

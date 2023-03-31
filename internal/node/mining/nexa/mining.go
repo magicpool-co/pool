@@ -134,7 +134,7 @@ func (node Node) getRewardsFromTX(tx *Transaction) (string, uint64, error) {
 	var txid string
 	var amount uint64
 	if len(tx.Inputs) == 0 {
-		txid = tx.TxID
+		txid = tx.TxIdem
 		for _, out := range tx.Outputs {
 			valBig, err := common.StringDecimalToBigint(out.Value.String(), node.GetUnits().Big())
 			if err != nil {
