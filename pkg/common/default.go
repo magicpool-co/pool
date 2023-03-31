@@ -29,7 +29,9 @@ func GetDefaultUnitScale(val float64) (string, float64) {
 func GetDefaultUnits(chain string) (*big.Int, error) {
 	var units uint64
 	switch strings.ToUpper(chain) {
-	case "BTC", "FIRO", "FLUX", "KAS", "NEXA", "RVN":
+	case "NEXA":
+		units = 1e2
+	case "BTC", "FIRO", "FLUX", "KAS", "RVN":
 		units = 1e8
 	case "CFX", "CTXC", "ETC", "ETH":
 		units = 1e18

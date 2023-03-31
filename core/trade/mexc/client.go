@@ -92,7 +92,7 @@ func (c *Client) do(method, path string, payload map[string]string, target inter
 
 	res, err := c.doTimeoutRequest(req)
 	if err != nil {
-		return fmt.Errorf("z: %v", err)
+		return err
 	}
 
 	defer res.Body.Close()
