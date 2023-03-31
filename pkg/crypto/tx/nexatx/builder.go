@@ -19,45 +19,45 @@ func privKeyToAddress(privKey *secp256k1.PrivateKey, prefix string) (string, err
 	return bech32.EncodeBCH(charset, prefix, pubKeyAddrID, pubKeyHash)
 }
 
-func GenerateRawTx(baseTx *btctx.Transaction, inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64) (*btctx.Transaction, error) {
+func GenerateRawTx(baseTx *Transaction, inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64) (*Transaction, error) {
 	tx := baseTx.ShallowCopy()
-
 	err := txCommon.DistributeFees(inputs, outputs, fee, true)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, inp := range inputs {
-		err := tx.AddInput(inp.Hash, inp.Index, 0xFFFFFFFF, nil)
+		err := tx.AddInput(inp.Hash, inp.Index, 0xFFFFFFFF, nil, inp.Value.Uint64())
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	for _, out := range outputs {
-		outputScript, err := AddressToScript(out.Address, string(tx.PrefixP2PKH))
+		outputVersion, outputScript, err := AddressToScript(out.Address, baseTx.Prefix)
 		if err != nil {
 			return nil, err
 		}
-		tx.AddOutput(outputScript, out.Value.Uint64())
+
+		tx.AddOutput(outputVersion, outputScript, out.Value.Uint64())
 	}
 
 	return tx, nil
 }
 
-func GenerateSignedTx(privKey *secp256k1.PrivateKey, baseTx *btctx.Transaction, inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64) (*btctx.Transaction, error) {
+func GenerateSignedTx(privKey *secp256k1.PrivateKey, baseTx *Transaction, inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64) (*Transaction, error) {
 	rawTx, err := GenerateRawTx(baseTx, inputs, outputs, fee)
 	if err != nil {
 		return nil, err
 	}
 	signedTx := baseTx.ShallowCopy()
 
-	address, err := privKeyToAddress(privKey, string(signedTx.PrefixP2PKH))
+	address, err := privKeyToAddress(privKey, signedTx.Prefix)
 	if err != nil {
 		return nil, err
 	}
 
-	inputScript, err := AddressToScript(address, string(signedTx.PrefixP2PKH))
+	_, inputScript, err := AddressToScript(address, signedTx.Prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -69,34 +69,34 @@ func GenerateSignedTx(privKey *secp256k1.PrivateKey, baseTx *btctx.Transaction, 
 		}
 
 		inputSig := crypto.SchnorrSignBCH(privKey, inputHash).Serialize()
-		inputSig = append(inputSig, SIGHASH_ALL)
-		scriptSig := generateScriptSig(inputSig)
+		scriptSig := btctx.GenerateScriptSig(inputSig, privKey.PubKey().SerializeUncompressed())
 
-		err = signedTx.AddInput(inp.Hash, inp.Index, 0xFFFFFFFF, scriptSig)
+		err = signedTx.AddInput(inp.Hash, inp.Index, 0xFFFFFFFF, scriptSig, inp.Value.Uint64())
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	for _, out := range outputs {
-		outputScript, err := AddressToScript(out.Address, string(signedTx.PrefixP2PKH))
+		outputVersion, outputScript, err := AddressToScript(out.Address, signedTx.Prefix)
 		if err != nil {
 			return nil, err
 		}
-		signedTx.AddOutput(outputScript, out.Value.Uint64())
+
+		signedTx.AddOutput(outputVersion, outputScript, out.Value.Uint64())
 	}
 
 	return signedTx, nil
 }
 
-func GenerateTx(privKey *secp256k1.PrivateKey, baseTx *btctx.Transaction, inputs []*types.TxInput, outputs []*types.TxOutput, feePerByte uint64) ([]byte, error) {
+func GenerateTx(privKey *secp256k1.PrivateKey, baseTx *Transaction, inputs []*types.TxInput, outputs []*types.TxOutput, feePerByte uint64) ([]byte, error) {
 	// generate the tx once to calculate the fee based off of its size
 	initialTx, err := GenerateSignedTx(privKey, baseTx, inputs, outputs, 0)
 	if err != nil {
 		return nil, err
 	}
 
-	initialTxSerialized, err := initialTx.Serialize(nil)
+	initialTxSerialized, err := initialTx.Serialize(true)
 	if err != nil {
 		return nil, err
 	} else if len(initialTxSerialized) > 50000 { // non-standard limit is actually 100000
@@ -109,7 +109,7 @@ func GenerateTx(privKey *secp256k1.PrivateKey, baseTx *btctx.Transaction, inputs
 		return nil, err
 	}
 
-	finalTxSerialized, err := finalTx.Serialize(nil)
+	finalTxSerialized, err := finalTx.Serialize(true)
 	if err != nil {
 		return nil, err
 	}
@@ -117,13 +117,42 @@ func GenerateTx(privKey *secp256k1.PrivateKey, baseTx *btctx.Transaction, inputs
 	return finalTxSerialized, nil
 }
 
-func CalculateTxID(tx string) string {
-	txBytes, err := hex.DecodeString(tx)
+func CalculateTxIdem(rawTx string) string {
+	txBytes, err := hex.DecodeString(rawTx)
 	if err != nil {
 		return ""
 	}
 
-	txid := crypto.ReverseBytes(crypto.Sha256d(txBytes))
+	tx := new(Transaction)
+	err = tx.Deserialize(txBytes)
+	if err != nil {
+		return ""
+	}
 
-	return hex.EncodeToString(txid)
+	txIdem, err := tx.CalculateTxIdem()
+	if err != nil {
+		return ""
+	}
+
+	return hex.EncodeToString(crypto.ReverseBytes(txIdem))
+}
+
+func CalculateTxID(rawTx string) string {
+	txBytes, err := hex.DecodeString(rawTx)
+	if err != nil {
+		return ""
+	}
+
+	tx := new(Transaction)
+	err = tx.Deserialize(txBytes)
+	if err != nil {
+		return ""
+	}
+
+	txid, err := tx.CalculateTxID()
+	if err != nil {
+		return ""
+	}
+
+	return hex.EncodeToString(crypto.ReverseBytes(txid))
 }

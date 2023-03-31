@@ -101,7 +101,7 @@ func CompileCoinbaseScript(blockHeight int32, extraNonce uint64) []byte {
 	return buf
 }
 
-func generateScriptSig(sig []byte, pub []byte) []byte {
+func GenerateScriptSig(sig []byte, pub []byte) []byte {
 	return bytes.Join([][]byte{
 		EncodeScriptData(sig),
 		EncodeScriptData(pub),

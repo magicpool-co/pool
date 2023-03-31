@@ -231,10 +231,10 @@ func (node Node) sendRawTransaction(tx string) (string, error) {
 		}
 	}
 
-	var txid string
-	if err := json.Unmarshal(res.Result, &txid); err != nil {
+	var txIdem string
+	if err := json.Unmarshal(res.Result, &txIdem); err != nil {
 		return "", err
 	}
 
-	return txid, nil
+	return txIdem, nil
 }

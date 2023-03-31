@@ -216,7 +216,7 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *ty
 func nexapow(headerCommitment, nonce []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	var order = binary.BigEndian
-	if err := wire.WriteBytes(&buf, order, crypto.ReverseBytes(headerCommitment)); err != nil {
+	if err := wire.WriteElement(&buf, order, crypto.ReverseBytes(headerCommitment)); err != nil {
 		return nil, err
 	} else if err := wire.WriteVarBytes(&buf, order, nonce); err != nil {
 		return nil, err

@@ -23,7 +23,6 @@ func privKeyToAddress(privKey *secp256k1.PrivateKey, prefixP2PKH []byte) string 
 
 func GenerateRawTx(baseTx *Transaction, inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64) (*Transaction, error) {
 	tx := baseTx.ShallowCopy()
-
 	err := txCommon.DistributeFees(inputs, outputs, fee, true)
 	if err != nil {
 		return nil, err
@@ -68,7 +67,7 @@ func GenerateSignedTx(privKey *secp256k1.PrivateKey, baseTx *Transaction, inputs
 
 		inputSig := secp256k1signer.Sign(privKey, inputHash).Serialize()
 		inputSig = append(inputSig, SIGHASH_ALL)
-		scriptSig := generateScriptSig(inputSig, privKey.PubKey().SerializeUncompressed())
+		scriptSig := GenerateScriptSig(inputSig, privKey.PubKey().SerializeUncompressed())
 
 		err = signedTx.AddInput(inp.Hash, inp.Index, 0xFFFFFFFF, scriptSig)
 		if err != nil {

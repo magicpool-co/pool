@@ -1,7 +1,6 @@
 package nexatx
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/magicpool-co/pool/pkg/crypto/bech32"
@@ -20,40 +19,37 @@ const (
 	templateSize   = 24
 
 	// tx flags
-	SIGHASH_ALL = 0x1
+	SIGHASH_ALL = 0x0
 )
 
-func generateScriptSig(sig []byte) []byte {
-	return bytes.Join([][]byte{
-		btctx.EncodeScriptData(sig),
-	}, nil)
-}
-
-func AddressToScript(addr string, addrPrefix string) ([]byte, error) {
+func AddressToScript(addr string, addrPrefix string) (uint8, []byte, error) {
 	prefix, version, decoded, err := bech32.DecodeBCH(charset, addr)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	} else if prefix != addrPrefix {
-		return nil, fmt.Errorf("prefix mismtach")
+		return 0, nil, fmt.Errorf("prefix mismtach")
 	}
 
+	var scriptVersion uint8
 	var script []byte
 	switch version {
 	case pubKeyAddrID:
 		if len(decoded) != pubKeySize {
-			return nil, fmt.Errorf("length mismatch")
+			return 0, nil, fmt.Errorf("length mismatch")
 		}
+		scriptVersion = 0
 		script = btctx.CompileP2PKH(decoded)
 	case templateAddrID:
 		if len(decoded) == 0 || int(decoded[0]) != len(decoded)-1 {
-			return nil, fmt.Errorf("length mismatch")
+			return 0, nil, fmt.Errorf("length mismatch")
 		}
 		// @TODO: we should run this through a script engine to
 		// double check it is valid script
+		scriptVersion = 1
 		script = decoded[1:]
 	default:
-		return nil, fmt.Errorf("unknown address version")
+		return 0, nil, fmt.Errorf("unknown address version")
 	}
 
-	return script, nil
+	return scriptVersion, script, nil
 }

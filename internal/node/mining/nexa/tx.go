@@ -10,7 +10,6 @@ import (
 
 	"github.com/goccy/go-json"
 
-	"github.com/magicpool-co/pool/pkg/crypto/tx/btctx"
 	"github.com/magicpool-co/pool/pkg/crypto/tx/nexatx"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 	"github.com/magicpool-co/pool/types"
@@ -99,15 +98,15 @@ func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 }
 
 func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, string, error) {
-	const feeRate = 1
+	const feeRate = 5
 
-	baseTx := btctx.NewTransaction(0, 0, []byte(node.prefix), nil, false)
+	baseTx := nexatx.NewTransaction(0, 0, node.prefix)
 	rawTx, err := nexatx.GenerateTx(node.privKey, baseTx, inputs, outputs, feeRate)
 	if err != nil {
 		return "", "", err
 	}
 	tx := hex.EncodeToString(rawTx)
-	txid := btctx.CalculateTxID(tx)
+	txid := nexatx.CalculateTxID(tx)
 
 	return txid, tx, nil
 }

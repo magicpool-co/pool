@@ -82,7 +82,7 @@ func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 }
 
 func ValidateAddress(address string) bool {
-	_, err := nexatx.AddressToScript(address, mainnetPrefix)
+	_, _, err := nexatx.AddressToScript(address, mainnetPrefix)
 
 	return err == nil
 }

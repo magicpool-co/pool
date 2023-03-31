@@ -11,11 +11,6 @@ import (
 	"math"
 )
 
-const (
-	// MaxVarIntPayload is the maximum payload size for a variable length integer.
-	MaxVarIntPayload = 9
-)
-
 // writeElement writes the little endian representation of element to w.
 func WriteElement(w io.Writer, order binary.ByteOrder, element interface{}) error {
 	// Attempt to write the element based on the concrete type via fast
@@ -177,13 +172,6 @@ func WriteVarHexString(w io.Writer, order binary.ByteOrder, str string) error {
 	}
 
 	return WriteVarBytes(w, order, data)
-}
-
-// WriteBytes writes a byte slice.
-func WriteBytes(w io.Writer, order binary.ByteOrder, bytes []byte) error {
-	_, err := w.Write(bytes)
-
-	return err
 }
 
 // WritePrefixedBytes serializes a variable length byte array to w as an int
