@@ -441,6 +441,11 @@ func (suite *PooldbWritesSuite) TestWriteBalanceInput() {
 		if err != nil {
 			suite.T().Errorf("failed on %d: update: %v", i, err)
 		}
+
+		err = pooldb.UpdateBalanceInputsSetMatureByRound(pooldbClient.Writer(), 0)
+		if err != nil {
+			suite.T().Errorf("failed on %d: UpdateBalanceInputsSetMatureByRound: %v", i, err)
+		}
 	}
 }
 
@@ -479,6 +484,11 @@ func (suite *PooldbWritesSuite) TestWriteBalanceOutput() {
 		err = pooldb.UpdateBalanceOutput(pooldbClient.Writer(), tt.output, cols)
 		if err != nil {
 			suite.T().Errorf("failed on %d: update: %v", i, err)
+		}
+
+		err = pooldb.UpdateBalanceOutputsSetMatureByRound(pooldbClient.Writer(), 0)
+		if err != nil {
+			suite.T().Errorf("failed on %d: UpdateBalanceOutputsSetMatureByRound: %v", i, err)
 		}
 	}
 }

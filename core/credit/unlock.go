@@ -34,6 +34,12 @@ func matureRound(node types.MiningNode, pooldbClient *dbcl.Client, round *pooldb
 		}
 	}
 
+	if err := pooldb.UpdateBalanceInputsSetMatureByRound(tx, round.ID); err != nil {
+		return err
+	} else if err := pooldb.UpdateBalanceOutputsSetMatureByRound(tx, round.ID); err != nil {
+		return err
+	}
+
 	return tx.SafeCommit()
 }
 

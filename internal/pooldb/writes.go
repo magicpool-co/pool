@@ -268,7 +268,7 @@ func InsertBalanceInputs(q dbcl.Querier, objects ...*BalanceInput) error {
 	const table = "balance_inputs"
 	cols := []string{
 		"round_id", "chain_id", "miner_id", "out_chain_id",
-		"balance_output_id", "batch_id", "value", "pool_fees", "pending",
+		"balance_output_id", "batch_id", "value", "pool_fees", "mature", "pending",
 	}
 
 	rawObjects := make([]interface{}, len(objects))
@@ -286,11 +286,22 @@ func UpdateBalanceInput(q dbcl.Querier, obj *BalanceInput, updateCols []string) 
 	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
 }
 
+func UpdateBalanceInputsSetMatureByRound(q dbcl.Querier, roundID uint64) error {
+	const query = `UPDATE balance_inputs
+	SET mature = TRUE
+	WHERE
+		round_id = ?;`
+
+	_, err := q.Exec(query, roundID)
+
+	return err
+}
+
 func InsertBalanceOutput(q dbcl.Querier, obj *BalanceOutput) (uint64, error) {
 	const table = "balance_outputs"
 	cols := []string{
 		"chain_id", "miner_id", "in_batch_id", "in_deposit_id", "in_payout_id",
-		"out_payout_id", "value", "pool_fees", "exchange_fees", "spent",
+		"out_payout_id", "value", "pool_fees", "exchange_fees", "mature", "spent",
 	}
 
 	return dbcl.ExecInsert(q, table, cols, obj)
@@ -300,7 +311,7 @@ func InsertBalanceOutputs(q dbcl.Querier, objects ...*BalanceOutput) error {
 	const table = "balance_outputs"
 	cols := []string{
 		"chain_id", "miner_id", "in_batch_id", "in_deposit_id", "in_payout_id",
-		"out_payout_id", "value", "pool_fees", "exchange_fees", "spent",
+		"out_payout_id", "value", "pool_fees", "exchange_fees", "mature", "spent",
 	}
 
 	rawObjects := make([]interface{}, len(objects))
@@ -316,6 +327,22 @@ func UpdateBalanceOutput(q dbcl.Querier, obj *BalanceOutput, updateCols []string
 	whereCols := []string{"id"}
 
 	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
+}
+
+func UpdateBalanceOutputsSetMatureByRound(q dbcl.Querier, roundID uint64) error {
+	const query = `UPDATE balance_outputs
+	SET mature = TRUE
+	WHERE
+		id IN (
+			SELECT DISTINCT balance_output_id
+			FROM balance_inputs
+			WHERE
+				round_id = ?
+		);`
+
+	_, err := q.Exec(query, roundID)
+
+	return err
 }
 
 /* payouts */

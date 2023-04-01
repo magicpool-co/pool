@@ -116,6 +116,33 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
 		return nil, err
 	}
 
+	// fetch immature balances for all minerIDs
+	immatureBalances, err := pooldb.GetImmatureBalanceInputSumsByMiners(c.pooldb.Reader(), minerIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// sum immature balances by chain
+	immatureBalanceBig := make(map[string]*big.Int)
+	for _, balance := range immatureBalances {
+		if !balance.Value.Valid {
+			continue
+		} else if _, ok := immatureBalanceBig[balance.ChainID]; !ok {
+			immatureBalanceBig[balance.ChainID] = new(big.Int)
+		}
+		immatureBalanceBig[balance.ChainID].Add(immatureBalanceBig[balance.ChainID], balance.Value.BigInt)
+	}
+
+	// convert immature balances to number type
+	immatureBalance := make(map[string]Number)
+	for chain, balance := range immatureBalanceBig {
+		var err error
+		immatureBalance[chain], err = newNumberFromBigInt(balance, chain)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// fetch pending balances for all minerIDs
 	pendingBalances, err := pooldb.GetPendingBalanceInputSumsByMiners(c.pooldb.Reader(), minerIDs)
 	if err != nil {
@@ -175,6 +202,7 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
 		InactiveWorkers: newNumberFromUint64Ptr(inactiveWorkers),
 		HashrateInfo:    processHashrateInfo(lastShares),
 		ShareInfo:       processShareInfo(sumShares),
+		ImmatureBalance: immatureBalance,
 		PendingBalance:  pendingBalance,
 		UnpaidBalance:   unpaidBalance,
 	}

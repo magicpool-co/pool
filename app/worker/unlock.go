@@ -39,43 +39,20 @@ func (j *BlockUnlockJob) Run() {
 			j.logger.Error(fmt.Errorf("unlock: %s: %v", node.Chain(), err))
 			continue
 		}
-	}
-}
 
-type BlockCreditJob struct {
-	locker *redislock.Client
-	logger *log.Logger
-	pooldb *dbcl.Client
-	nodes  []types.MiningNode
-}
-
-func (j *BlockCreditJob) Run() {
-	defer j.logger.RecoverPanic()
-
-	ctx := context.Background()
-	lock, err := j.locker.Obtain(ctx, "cron:blkcredit", time.Minute*5, nil)
-	if err != nil {
-		if err != redislock.ErrNotObtained {
-			j.logger.Error(err)
-		}
-		return
-	}
-	defer lock.Release(ctx)
-
-	for _, node := range j.nodes {
-		rounds, err := pooldb.GetMatureUnspentRounds(j.pooldb.Reader(), node.Chain())
+		rounds, err := pooldb.GetUnspentRounds(j.pooldb.Reader(), node.Chain())
 		if err != nil {
-			j.logger.Error(fmt.Errorf("credit: fetch rounds: %s: %v", node.Chain(), err))
+			j.logger.Error(fmt.Errorf("unlock: fetch unspent ounds: %s: %v", node.Chain(), err))
 			continue
 		}
 
 		for _, round := range rounds {
 			shares, err := pooldb.GetSharesByRound(j.pooldb.Reader(), round.ID)
 			if err != nil {
-				j.logger.Error(fmt.Errorf("credit: fetch shares: %s: %v", node.Chain(), err))
+				j.logger.Error(fmt.Errorf("unlock: fetch shares: %s: %v", node.Chain(), err))
 				break
 			} else if err := credit.CreditRound(j.pooldb, round, shares); err != nil {
-				j.logger.Error(fmt.Errorf("credit: %s: %v", node.Chain(), err))
+				j.logger.Error(fmt.Errorf("unlock: credit: %s: %v", node.Chain(), err))
 				break
 			}
 		}

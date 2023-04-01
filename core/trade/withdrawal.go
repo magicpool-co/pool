@@ -349,6 +349,7 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 						Value:        dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
 						PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: poolFeeIdx[minerID][withdrawal.ChainID]},
 						ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: minerProportionalFees[minerID]},
+						Mature:       true,
 					}
 				}
 				balanceOutputIdx[minerID].Value.BigInt.Add(balanceOutputIdx[minerID].Value.BigInt, value)

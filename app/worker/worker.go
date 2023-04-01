@@ -118,13 +118,6 @@ func (w *Worker) Start() {
 		nodes:  w.miningNodes,
 	})
 
-	w.cron.AddJob("* * * * *", &BlockCreditJob{
-		locker: locker,
-		logger: w.logger,
-		pooldb: w.pooldb,
-		nodes:  w.miningNodes,
-	})
-
 	w.cron.AddJob("*/5 * * * *", &AuditJob{
 		locker: locker,
 		logger: w.logger,
