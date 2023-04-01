@@ -179,13 +179,13 @@ func (c *Client) ConfirmTradeStage(batchID uint64, exchange types.Exchange, stag
 	switch stage {
 	case 1:
 		tradeStageStatus = TradesCompleteStageOne
-		tradeStageIncompleteStatus = TradesActiveStageOne
+		tradeStageIncompleteStatus = TradesInactive
 	case 2:
 		tradeStageStatus = TradesCompleteStageTwo
-		tradeStageIncompleteStatus = TradesActiveStageTwo
+		tradeStageIncompleteStatus = TradesCompleteStageOne
 	case 3:
 		tradeStageStatus = TradesCompleteStageThree
-		tradeStageIncompleteStatus = TradesActiveStageThree
+		tradeStageIncompleteStatus = TradesCompleteStageTwo
 	default:
 		return fmt.Errorf("unsupported trade stage %d", stage)
 	}
@@ -257,14 +257,14 @@ func (c *Client) ConfirmTradeStage(batchID uint64, exchange types.Exchange, stag
 				tradeValue := dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)}
 				newTradeValue := trade.Value
 				if parsedTrade != nil {
-					partialValue, err := common.StringDecimalToBigint(parsedTrade.Value, fromUnits)
+					filledValue, err := common.StringDecimalToBigint(parsedTrade.Value, fromUnits)
 					if err != nil {
 						return err
 					}
 
-					tradeValueBig := new(big.Int).Sub(trade.Value.BigInt, partialValue)
-					tradeValue = dbcl.NullBigInt{Valid: true, BigInt: tradeValueBig}
-					newTradeValue = dbcl.NullBigInt{Valid: true, BigInt: partialValue}
+					remainingValueBig := new(big.Int).Sub(trade.Value.BigInt, filledValue)
+					tradeValue = dbcl.NullBigInt{Valid: true, BigInt: filledValue}
+					newTradeValue = dbcl.NullBigInt{Valid: true, BigInt: remainingValueBig}
 				}
 
 				// modify the old trade value, make the new trade, and update/insert them.
@@ -429,7 +429,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, exchange types.Exchange, stag
 		trade.Slippage = types.Float64Ptr(slippage)
 		trade.Confirmed = true
 
-		cols := []string{"proceeds", "trade_fees", "cumulative_deposit_fees",
+		cols := []string{"value", "proceeds", "trade_fees", "cumulative_deposit_fees",
 			"cumulative_trade_fees", "fill_price", "cumulative_fill_price",
 			"slippage", "confirmed"}
 		err = pooldb.UpdateExchangeTrade(c.pooldb.Writer(), trade, cols)
