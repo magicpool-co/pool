@@ -68,6 +68,10 @@ func newNumberFromBigInt(value *big.Int, chain string) (Number, error) {
 
 	decimals := 4
 	switch chain {
+	case "NEXA":
+		decimals = 1
+	case "KAS":
+		decimals = 2
 	case "BTC":
 		decimals = 6
 	}

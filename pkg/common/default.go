@@ -146,11 +146,11 @@ func GetDefaultPayoutBounds(chain string) (*PayoutBounds, error) {
 		}
 	case "NEXA":
 		bounds = &PayoutBounds{
-			Min:       MustParseBigInt("10000000000000"),
-			Default:   MustParseBigInt("100000000000000"),
-			Max:       MustParseBigInt("1000000000000000000"),
+			Min:       MustParseBigInt("1000000"),
+			Default:   MustParseBigInt("100000000"),
+			Max:       MustParseBigInt("100000000000"),
 			Precision: 1,
-			Units:     8,
+			Units:     2,
 		}
 	case "RVN":
 		bounds = &PayoutBounds{
