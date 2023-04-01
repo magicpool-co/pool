@@ -82,10 +82,17 @@ func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 	}
 
 	var height uint64
+	if tx.BlockHash != "" {
+		block, err := node.getBlock(tx.BlockHash)
+		if err != nil {
+			return nil, err
+		}
+		height = block.Height
+	}
+
 	var confirmed bool
-	if tx.Height > 0 && tx.Confirmations > 0 {
+	if height > 0 && tx.Confirmations > 0 {
 		confirmed = true
-		height = uint64(tx.Height)
 	}
 
 	res := &types.TxResponse{

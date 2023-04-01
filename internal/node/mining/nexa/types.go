@@ -115,7 +115,7 @@ type Transaction struct {
 	Data          string `json:"data"`
 	TxID          string `json:"txid"`
 	TxIdem        string `json:"txidem"`
-	Height        int64  `json:"height"`
+	BlockHash     string `json:"blockhash"`
 	Confirmations int64  `json:"confirmations"`
 	Inputs        []struct {
 		Coinbase string `json:"coinbase"`
