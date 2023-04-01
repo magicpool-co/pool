@@ -167,6 +167,7 @@ type Dashboard struct {
 	InactiveWorkers *Number                  `json:"inactiveWorkers,omitempty"`
 	HashrateInfo    map[string]*HashrateInfo `json:"hashrateInfo"`
 	ShareInfo       map[string]*ShareInfo    `json:"shareInfo"`
+	ImmatureBalance map[string]Number        `json:"immatureBalance"`
 	PendingBalance  map[string]Number        `json:"pendingBalance"`
 	UnpaidBalance   map[string]Number        `json:"unpaidBalance"`
 }

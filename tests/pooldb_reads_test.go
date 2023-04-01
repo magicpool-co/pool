@@ -208,9 +208,9 @@ func (suite *PooldbReadsSuite) TestReadRound() {
 		suite.T().Errorf("failed: GetImmatureRoundsByChain: %v", err)
 	}
 
-	_, err = pooldb.GetMatureUnspentRounds(pooldbClient.Reader(), "ETH")
+	_, err = pooldb.GetUnspentRounds(pooldbClient.Reader(), "ETH")
 	if err != nil {
-		suite.T().Errorf("failed: GetMatureUnspentRounds: %v", err)
+		suite.T().Errorf("failed: GetUnspentRounds: %v", err)
 	}
 
 	_, err = pooldb.GetSumImmatureRoundValueByChain(pooldbClient.Reader(), "ETH")
@@ -362,6 +362,11 @@ func (suite *PooldbReadsSuite) TestReadBalanceInput() {
 	_, err = pooldb.GetBalanceInputsByBatch(pooldbClient.Reader(), 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetBalanceInputsByBatch: %v", err)
+	}
+
+	_, err = pooldb.GetImmatureBalanceInputSumsByMiners(pooldbClient.Reader(), []uint64{0, 1})
+	if err != nil {
+		suite.T().Errorf("failed: GetImmatureBalanceInputSumsByMiners: %v", err)
 	}
 
 	_, err = pooldb.GetPendingBalanceInputSumByChain(pooldbClient.Reader(), "ETH")

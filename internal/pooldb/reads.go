@@ -559,6 +559,7 @@ func GetRoundsByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64, error) {
 	const rawQuery = `SELECT count(rounds.id)
 	FROM rounds
 	JOIN shares ON rounds.id = shares.round_id
+	JOIN balance_inputs ON rounds.id = balance_inputs.round_id AND balance_inputs.miner_id = shares.miner_id
 	WHERE
 		shares.miner_id IN (?);`
 
@@ -642,13 +643,11 @@ func GetImmatureRoundsByChain(q dbcl.Querier, chain string, height uint64) ([]*R
 	return output, err
 }
 
-func GetMatureUnspentRounds(q dbcl.Querier, chain string) ([]*Round, error) {
+func GetUnspentRounds(q dbcl.Querier, chain string) ([]*Round, error) {
 	const query = `SELECT *
 	FROM rounds
 	WHERE
 		pending IS FALSE
-	AND
-		mature IS TRUE
 	AND
 		spent IS FALSE
 	AND
@@ -941,7 +940,7 @@ func GetExchangeTradeByPathAndStage(q dbcl.Querier, batchID uint64, path, stage 
 	    SUM(exchange_trades.cumulative_trade_fees) AS cumulative_trade_fees,
 	    SUM(order_price * proceeds) / SUM(proceeds) as order_price,
 	    SUM(fill_price * proceeds) / SUM(proceeds) as fill_price,
-	    SUM(cumulative_fill_price) as cumulative_fill_price,
+	    SUM(cumulative_fill_price * proceeds) / SUM(proceeds) as cumulative_fill_price,
 	    SUM(slippage * proceeds) / SUM(proceeds) as slippage,
 	    MIN(initiated) as initiated,
 	    MIN(confirmed) as confirmed,
@@ -1028,6 +1027,8 @@ func GetPendingBalanceInputsWithoutBatch(q dbcl.Querier) ([]*BalanceInput, error
 	WHERE
 		pending = TRUE
 	AND
+		mature = TRUE
+	AND
 		batch_id IS NULL;`
 
 	output := []*BalanceInput{}
@@ -1048,13 +1049,42 @@ func GetBalanceInputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceInput, e
 	return output, err
 }
 
+func GetImmatureBalanceInputSumsByMiners(q dbcl.Querier, minerIDs []uint64) ([]*BalanceInput, error) {
+	const rawQuery = `SELECT 
+		chain_id,
+		sum(value) value
+	FROM balance_inputs
+	WHERE
+		miner_id IN (?)
+	AND
+		mature = FALSE
+	GROUP BY chain_id;`
+
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	output := []*BalanceInput{}
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
+
+	return output, err
+}
+
 func GetPendingBalanceInputSumByChain(q dbcl.Querier, chain string) (*big.Int, error) {
 	const query = `SELECT sum(value)
 	FROM balance_inputs
 	WHERE
 		chain_id = ?
 	AND
-		pending = TRUE;`
+		pending = TRUE
+	AND
+		mature = TRUE;`
 
 	return dbcl.GetBigInt(q, query, chain)
 }
@@ -1066,6 +1096,8 @@ func GetPendingBalanceInputSumWithoutBatchByChain(q dbcl.Querier, chain string) 
 		chain_id = ?
 	AND
 		pending = TRUE
+	AND
+		mature = TRUE
 	AND
 		batch_id IS NULL;`
 
@@ -1081,6 +1113,8 @@ func GetPendingBalanceInputSumsByMiners(q dbcl.Querier, minerIDs []uint64) ([]*B
 		miner_id IN (?)
 	AND
 		pending = TRUE
+	AND
+		mature = TRUE
 	GROUP BY chain_id;`
 
 	if len(minerIDs) == 0 {
@@ -1132,6 +1166,8 @@ func GetUnpaidBalanceOutputsByMiner(q dbcl.Querier, minerID uint64, chain string
 	AND
 		chain_id = ?
 	AND
+		mature = TRUE
+	AND
 		out_payout_id IS NULL;`
 
 	output := []*BalanceOutput{}
@@ -1146,7 +1182,9 @@ func GetUnpaidBalanceOutputSumByChain(q dbcl.Querier, chain string) (*big.Int, e
 	WHERE
 		chain_id = ?
 	AND
-		spent = FALSE`
+		mature = TRUE
+	AND
+		spent = FALSE;`
 
 	return dbcl.GetBigInt(q, query, chain)
 }
@@ -1158,6 +1196,8 @@ func GetUnpaidBalanceOutputSumByMiner(q dbcl.Querier, minerID uint64, chain stri
 		miner_id = ?
 	AND
 		chain_id = ?
+	AND
+		mature = TRUE
 	AND
 		out_payout_id IS NULL;`
 
@@ -1171,6 +1211,8 @@ func GetUnpaidBalanceOutputSumsByMiners(q dbcl.Querier, minerIDs []uint64) ([]*B
 	FROM balance_outputs
 	WHERE
 		miner_id IN (?)
+	AND
+		mature = TRUE
 	AND
 		out_payout_id IS NULL
 	GROUP BY chain_id;`
@@ -1199,6 +1241,8 @@ func GetUnpaidMinerIDsAbovePayoutThreshold(q dbcl.Querier, chain, threshold stri
 		FROM balance_outputs
 		WHERE
 			chain_id = ?
+		AND
+			mature = TRUE
 		AND
 			out_payout_id IS NULL
 		GROUP BY miner_id

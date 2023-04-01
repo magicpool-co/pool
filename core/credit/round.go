@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/magicpool-co/pool/core/trade/kucoin"
 	"github.com/magicpool-co/pool/internal/accounting"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
@@ -74,52 +73,6 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 			poolFee = new(big.Int)
 		}
 
-		// if the miner's chain is USDC, do proper fee balance handling to verify they
-		// have enough fee balance to execute a payout (even if a payout is far away)
-		var feeBalanceInput *pooldb.BalanceInput
-		switch miner.ChainID {
-		case "USDC":
-			// fetch the miner's current ETH balance
-			ethBalance, err := pooldb.GetUnpaidBalanceOutputSumByMiner(pooldbClient.Reader(), miner.ID, "ETH")
-			if err != nil {
-				return err
-			}
-
-			// @TODO: we should probably just pass this into credit round instead of retrieving it
-			// calculate the ETH path, fetch the price, and safely retrieve it
-			usdcPath := map[string]map[string]*big.Int{round.ChainID: map[string]*big.Int{"ETH": new(big.Int)}}
-			prices, err := kucoin.New("", "", "").GetPrices(usdcPath)
-			if err != nil {
-				return err
-			} else if _, ok := prices[round.ChainID]; !ok {
-				return fmt.Errorf("no prices found for %s", round.ChainID)
-			} else if _, ok := prices[round.ChainID]["ETH"]; !ok {
-				return fmt.Errorf("no prices found for %s->%s", round.ChainID, "ETH")
-			}
-			price := prices[round.ChainID]["ETH"]
-
-			// calculate the USDC fee balance that needs to be switched,
-			// based off of the miner's current fee balance
-			feeBalanceValue, feeBalancePoolFee, err := accounting.ProcessFeeBalance(round.ChainID,
-				miner.ChainID, value, poolFee, ethBalance, price)
-			if err != nil {
-				return err
-			} else if feeBalanceValue.Cmp(common.Big0) > 0 {
-				value.Sub(value, feeBalanceValue)
-				poolFee.Sub(poolFee, feeBalancePoolFee)
-				feeBalanceInput = &pooldb.BalanceInput{
-					RoundID: round.ID,
-					ChainID: round.ChainID,
-					MinerID: miner.ID,
-
-					OutChainID: "ETH",
-					Value:      dbcl.NullBigInt{Valid: true, BigInt: feeBalanceValue},
-					PoolFees:   dbcl.NullBigInt{Valid: true, BigInt: feeBalancePoolFee},
-					Pending:    true,
-				}
-			}
-		}
-
 		// add the balance input only of the new value is positive and non-zero
 		if value.Cmp(common.Big0) > 0 {
 			balanceInput := &pooldb.BalanceInput{
@@ -130,6 +83,7 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 				OutChainID: miner.ChainID,
 				Value:      dbcl.NullBigInt{Valid: true, BigInt: value},
 				PoolFees:   dbcl.NullBigInt{Valid: true, BigInt: poolFee},
+				Mature:     round.Mature,
 				Pending:    round.ChainID != miner.ChainID,
 			}
 
@@ -139,11 +93,6 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 				completedInputs = append(completedInputs, balanceInput)
 			}
 
-		}
-
-		// add the fee balance input if exists
-		if feeBalanceInput != nil {
-			pendingInputs = append(pendingInputs, feeBalanceInput)
 		}
 
 		delete(compoundIdx, miner.ID)
@@ -174,6 +123,7 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 			Value:        completedInput.Value,
 			PoolFees:     completedInput.PoolFees,
 			ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+			Mature:       round.Mature,
 		}
 
 		outputID, err := pooldb.InsertBalanceOutput(tx, completedOutput)
