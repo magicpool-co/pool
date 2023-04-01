@@ -901,14 +901,22 @@ func GetUnregisteredExchangeDepositsByChain(q dbcl.Querier, chain string) ([]*Ex
 }
 
 func GetExchangeTradesByStage(q dbcl.Querier, batchID uint64, stage int) ([]*ExchangeTrade, error) {
-	const query = `SELECT *
+	const query = `WITH cte AS (
+	    SELECT
+	        id,
+	        ROW_NUMBER() OVER (
+	            PARTITION BY path_id
+	            ORDER BY step_id DESC
+	        ) AS rn
+	    FROM exchange_trades
+	    WHERE
+	        batch_id = ?
+	    AND
+	        stage_id = ?
+	) SELECT exchange_trades.*
 	FROM exchange_trades
-	WHERE
-		batch_id = ?
-	AND
-		stage_id = ?
-	ORDER BY step_id DESC
-	LIMIT 1;`
+	JOIN cte on cte.id = exchange_trades.id
+	WHERE cte.rn = 1;`
 
 	output := []*ExchangeTrade{}
 	err := q.Select(&output, query, batchID, stage)
