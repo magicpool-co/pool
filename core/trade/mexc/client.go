@@ -53,7 +53,7 @@ func (c *Client) doTimeoutRequest(req *http.Request) (*http.Response, error) {
 
 func (c *Client) do(method, path string, payload map[string]string, target interface{}, legacy, authNeeded bool) error {
 	switch method {
-	case "GET", "POST":
+	case "GET", "POST", "DELETE":
 	default:
 		return fmt.Errorf("unknown http method")
 	}
