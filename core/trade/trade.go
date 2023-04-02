@@ -361,7 +361,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, exchange types.Exchange, stag
 			}
 		} else {
 			if !trade.CumulativeDepositFees.Valid {
-				return fmt.Errorf("no cumulative deposit fees for trade %d", trade.ID)
+				trade.CumulativeDepositFees = dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)}
 			}
 
 			if fillPrice > 0 {
