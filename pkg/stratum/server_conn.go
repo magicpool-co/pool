@@ -78,7 +78,7 @@ func (c *Conn) GetClientType() int            { return int(atomic.LoadInt32(&(c.
 
 func (c *Conn) resetCompoundID() {
 	minerID := strconv.FormatUint(atomic.LoadUint64(&(c.minerID)), 10)
-	workerID := strconv.FormatUint(atomic.LoadUint64(&(c.minerID)), 10)
+	workerID := strconv.FormatUint(atomic.LoadUint64(&(c.workerID)), 10)
 	c.compoundID.Store(minerID + ":" + workerID)
 }
 
