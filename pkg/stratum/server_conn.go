@@ -2,9 +2,9 @@ package stratum
 
 import (
 	"bufio"
-	"fmt"
 	"net"
-	"sync"
+	"strconv"
+	"sync/atomic"
 	"time"
 )
 
@@ -12,44 +12,92 @@ type Conn struct {
 	id     uint64
 	ip     string
 	conn   net.Conn
-	mu     sync.Mutex
 	quit   chan struct{}
-	closed bool
+	closed uint32
 
 	minerID              uint64
 	workerID             uint64
-	compoundID           string
-	username             string
-	extraNonce           string
-	extraNonceSubscribed bool
-	subscribed           bool
-	authorized           bool
-	clientType           int
+	compoundID           *atomic.Value
+	username             *atomic.Value
+	extraNonce           *atomic.Value
+	extraNonceSubscribed uint32
+	subscribed           uint32
+	authorized           uint32
+	clientType           int32
+}
+
+func storeBool(ptr *uint32, val bool) {
+	var num uint32
+	if val {
+		num = 1
+	}
+
+	atomic.StoreUint32(ptr, num)
+}
+
+func loadBool(ptr *uint32) bool {
+	return atomic.LoadUint32(ptr) != 0
+}
+
+func loadString(val *atomic.Value) string {
+	raw := val.Load()
+	str, ok := raw.(string)
+	if ok {
+		return str
+	}
+
+	return ""
+}
+
+func NewConn(id uint64, ip string, rawConn net.Conn) *Conn {
+	conn := &Conn{
+		id:   id,
+		ip:   ip,
+		conn: rawConn,
+		quit: make(chan struct{}),
+
+		compoundID: new(atomic.Value),
+		username:   new(atomic.Value),
+		extraNonce: new(atomic.Value),
+	}
+
+	return conn
 }
 
 func (c *Conn) GetID() uint64                 { return c.id }
 func (c *Conn) GetIP() string                 { return c.ip }
-func (c *Conn) GetMinerID() uint64            { return c.minerID }
-func (c *Conn) GetWorkerID() uint64           { return c.workerID }
-func (c *Conn) GetCompoundID() string         { return c.compoundID }
-func (c *Conn) GetUsername() string           { return c.username }
-func (c *Conn) GetExtraNonce() string         { return c.extraNonce }
-func (c *Conn) GetExtraNonceSubscribed() bool { return c.extraNonceSubscribed }
-func (c *Conn) GetSubscribed() bool           { return c.subscribed }
-func (c *Conn) GetAuthorized() bool           { return c.authorized }
-func (c *Conn) GetClientType() int            { return c.clientType }
+func (c *Conn) GetMinerID() uint64            { return atomic.LoadUint64(&(c.minerID)) }
+func (c *Conn) GetWorkerID() uint64           { return atomic.LoadUint64(&(c.workerID)) }
+func (c *Conn) GetCompoundID() string         { return loadString(c.compoundID) }
+func (c *Conn) GetUsername() string           { return loadString(c.username) }
+func (c *Conn) GetExtraNonce() string         { return loadString(c.extraNonce) }
+func (c *Conn) GetExtraNonceSubscribed() bool { return loadBool(&(c.extraNonceSubscribed)) }
+func (c *Conn) GetSubscribed() bool           { return loadBool(&(c.subscribed)) }
+func (c *Conn) GetAuthorized() bool           { return loadBool(&(c.authorized)) }
+func (c *Conn) GetClientType() int            { return int(atomic.LoadInt32(&(c.clientType))) }
 
-func (c *Conn) resetCompoundID()                { c.compoundID = fmt.Sprintf("%d:%d", c.minerID, c.workerID) }
-func (c *Conn) SetMinerID(minerID uint64)       { c.minerID = minerID; c.resetCompoundID() }
-func (c *Conn) SetWorkerID(workerID uint64)     { c.workerID = workerID; c.resetCompoundID() }
-func (c *Conn) SetUsername(username string)     { c.username = username }
-func (c *Conn) SetExtraNonce(extraNonce string) { c.extraNonce = extraNonce }
-func (c *Conn) SetExtraNonceSubscribed(extraNonceSubscribed bool) {
-	c.extraNonceSubscribed = extraNonceSubscribed
+func (c *Conn) resetCompoundID() {
+	minerID := strconv.FormatUint(atomic.LoadUint64(&(c.minerID)), 10)
+	workerID := strconv.FormatUint(atomic.LoadUint64(&(c.minerID)), 10)
+	c.compoundID.Store(minerID + ":" + workerID)
 }
-func (c *Conn) SetSubscribed(subscribed bool) { c.subscribed = subscribed }
-func (c *Conn) SetAuthorized(authorized bool) { c.authorized = authorized }
-func (c *Conn) SetClientType(clientType int)  { c.clientType = clientType }
+
+func (c *Conn) SetMinerID(minerID uint64) {
+	atomic.StoreUint64(&(c.minerID), minerID)
+	c.resetCompoundID()
+}
+func (c *Conn) SetWorkerID(workerID uint64) {
+	atomic.StoreUint64(&(c.workerID), workerID)
+	c.resetCompoundID()
+}
+func (c *Conn) SetUsername(username string)     { c.username.Store(username) }
+func (c *Conn) SetExtraNonce(extraNonce string) { c.extraNonce.Store(extraNonce) }
+func (c *Conn) SetExtraNonceSubscribed(extraNonceSubscribed bool) {
+	storeBool(&(c.extraNonceSubscribed), extraNonceSubscribed)
+}
+func (c *Conn) SetSubscribed(subscribed bool) { storeBool(&(c.subscribed), subscribed) }
+func (c *Conn) SetAuthorized(authorized bool) { storeBool(&(c.authorized), authorized) }
+func (c *Conn) SetClientType(clientType int)  { atomic.StoreInt32(&(c.clientType), int32(clientType)) }
 
 func (c *Conn) GetLatency() (time.Duration, error) {
 	return getLatency(c.conn)
@@ -77,11 +125,7 @@ func (c *Conn) Close() {
 }
 
 func (c *Conn) SoftClose() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if !c.closed {
-		c.closed = true
+	if atomic.CompareAndSwapUint32(&(c.closed), 0, 1) {
 		close(c.quit)
 	}
 }

@@ -622,9 +622,10 @@ func (suite *PoolSuite) TestPool() {
 
 			// have to wait for server to start to properly instantiate port
 			// since it's unknown (it's as zero and go chooses it)
-			time.Sleep(time.Millisecond * 250)
+			time.Sleep(time.Millisecond * 100)
 			client := stratum.NewClient(ctx, fmt.Sprintf("localhost:%d", server.Port()), time.Second*5, time.Second)
 			reqCh, resCh, errCh := client.Start(tt.handshake)
+			time.Sleep(time.Millisecond * 100)
 
 			var ready, started, completed bool
 			for {

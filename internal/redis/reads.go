@@ -2,7 +2,6 @@ package redis
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -92,7 +91,7 @@ func (c *Client) GetRoundShareCounts(chain string) (uint64, uint64, uint64, erro
 
 	_, err := pipe.Exec(ctx)
 	if err != nil && err != redis.Nil {
-		return 0, 0, 0, fmt.Errorf("z: %v", err)
+		return 0, 0, 0, err
 	}
 
 	var acceptedStr, rejectedStr, invalidStr string

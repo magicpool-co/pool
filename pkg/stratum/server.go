@@ -69,12 +69,7 @@ func (s *Server) newConn(rawConn net.Conn) *Conn {
 		ip = addr.IP.String()
 	}
 
-	conn := &Conn{
-		id:   s.counter,
-		ip:   ip,
-		conn: rawConn,
-		quit: make(chan struct{}),
-	}
+	conn := NewConn(s.counter, ip, rawConn)
 	s.conns[conn.id] = conn
 
 	return conn

@@ -151,9 +151,13 @@ func (p *Pool) login(c *stratum.Conn, req *rpc.Request) error {
 }
 
 func (p *Pool) submit(c *stratum.Conn, req *rpc.Request) error {
-	validShare, err := p.handleSubmit(c, req)
-	if err != nil {
-		p.logger.Error(err)
+	var validShare bool
+	var err error
+	if c.GetAuthorized() {
+		validShare, err = p.handleSubmit(c, req)
+		if err != nil {
+			p.logger.Error(err)
+		}
 	}
 
 	var res interface{}

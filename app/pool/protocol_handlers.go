@@ -137,6 +137,12 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		}
 	}
 
+	c.SetUsername(username)
+	c.SetMinerID(minerID)
+	c.SetSubscribed(true)
+	c.SetAuthorized(true)
+	c.SetReadDeadline(time.Time{})
+
 	var workerID uint64
 	if workerName != "" {
 		workerID, err = p.redis.GetWorkerID(minerID, workerName)
@@ -172,13 +178,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 			}
 		}
 	}
-
-	c.SetUsername(username)
-	c.SetMinerID(minerID)
 	c.SetWorkerID(workerID)
-	c.SetSubscribed(true)
-	c.SetAuthorized(true)
-	c.SetReadDeadline(time.Time{})
 
 	var msgs []interface{}
 	if p.forceErrorOnResponse {
