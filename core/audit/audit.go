@@ -68,10 +68,10 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 
 	sumMinerBalance := new(big.Int).Add(inputBalance, outputBalance)
 
-	// add unspent round sum to sum miner balance since they're only added at the point
+	// add immature round sum to sum miner balance since they're only added at the point
 	// of maturation (if the immature round sum is included beforehand too)
 	if chainIncludesImmature(chain) {
-		unspentRoundSum, err := pooldb.GetSumUnspentRoundValueByChain(pooldbClient.Reader(), chain)
+		unspentRoundSum, err := pooldb.GetSumImmatureRoundValueByChain(pooldbClient.Reader(), chain)
 		if err != nil {
 			return err
 		}
