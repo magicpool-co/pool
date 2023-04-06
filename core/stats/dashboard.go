@@ -104,6 +104,12 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
 		return nil, err
 	}
 
+	// fetch last profitabilities
+	lastProfits, err := tsdb.GetBlocksProfitabilityLast(c.tsdb.Reader(), int(types.Period4h))
+	if err != nil {
+		return nil, err
+	}
+
 	// fetch sum active workers
 	activeWorkers, err := pooldb.GetActiveWorkersByMinersCount(c.pooldb.Reader(), minerIDs)
 	if err != nil {
@@ -121,6 +127,10 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// calculate hashrate and share info
+	hashrateInfo := processHashrateInfo(lastShares)
+	shareInfo := processShareInfo(sumShares)
 
 	// sum immature balances by chain
 	immatureBalanceBig := make(map[string]*big.Int)
@@ -197,14 +207,40 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
 		}
 	}
 
+	// convert profitabilities into index
+	profitIndex := make(map[string]*tsdb.Block)
+	for _, block := range lastProfits {
+		profitIndex[block.ChainID] = block
+	}
+
+	// calculate projected earnings
+	projectedEarningsNative := make(map[string]Number)
+	projectedEarningsUSD := make(map[string]Number)
+	projectedEarningsBTC := make(map[string]Number)
+	projectedEarningsETH := make(map[string]Number)
+	for chain, hashrateValue := range hashrateInfo {
+		block, ok := profitIndex[chain]
+		if ok {
+			hashrate := hashrateValue.AvgHashrate.Value
+			projectedEarningsNative[chain] = newNumberFromFloat64ByChain(hashrate*block.AvgProfitability, chain)
+			projectedEarningsUSD[chain] = newNumberFromFloat64ByChain(hashrate*block.AvgProfitabilityUSD, "USD")
+			projectedEarningsBTC[chain] = newNumberFromFloat64ByChain(hashrate*block.AvgProfitabilityBTC, "BTC")
+			projectedEarningsETH[chain] = newNumberFromFloat64ByChain(hashrate*block.AvgProfitabilityETH, "ETH")
+		}
+	}
+
 	dashboard := &Dashboard{
-		ActiveWorkers:   newNumberFromUint64Ptr(activeWorkers),
-		InactiveWorkers: newNumberFromUint64Ptr(inactiveWorkers),
-		HashrateInfo:    processHashrateInfo(lastShares),
-		ShareInfo:       processShareInfo(sumShares),
-		ImmatureBalance: immatureBalance,
-		PendingBalance:  pendingBalance,
-		UnpaidBalance:   unpaidBalance,
+		ActiveWorkers:           newNumberFromUint64Ptr(activeWorkers),
+		InactiveWorkers:         newNumberFromUint64Ptr(inactiveWorkers),
+		HashrateInfo:            hashrateInfo,
+		ShareInfo:               shareInfo,
+		ImmatureBalance:         immatureBalance,
+		PendingBalance:          pendingBalance,
+		UnpaidBalance:           unpaidBalance,
+		ProjectedEarningsNative: projectedEarningsNative,
+		ProjectedEarningsUSD:    projectedEarningsUSD,
+		ProjectedEarningsBTC:    projectedEarningsBTC,
+		ProjectedEarningsETH:    projectedEarningsETH,
 	}
 
 	return dashboard, nil

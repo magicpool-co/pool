@@ -30,9 +30,14 @@ type Block struct {
 	AvgProfitability float64 `db:"avg_profitability"`
 
 	// columns not present in the table,
-	// only helpful for summary query
+	// only helpful for summary query and miner
+	// profitability estimates
+	ProfitabilityUSD    float64 `db:"profitability_usd"`
+	AvgProfitabilityUSD float64 `db:"avg_profitability_usd"`
 	ProfitabilityBTC    float64 `db:"profitability_btc"`
 	AvgProfitabilityBTC float64 `db:"avg_profitability_btc"`
+	ProfitabilityETH    float64 `db:"profitability_eth"`
+	AvgProfitabilityETH float64 `db:"avg_profitability_eth"`
 
 	Pending    bool      `db:"pending"`
 	Count      uint64    `db:"count"`

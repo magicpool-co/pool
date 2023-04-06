@@ -14,6 +14,19 @@ import (
 
 /* helpers */
 
+func decimalsForChain(chain string) int {
+	switch chain {
+	case "NEXA":
+		return 1
+	case "KAS", "USD", "USDT", "BUSD":
+		return 2
+	case "BTC":
+		return 6
+	}
+
+	return 4
+}
+
 type Number struct {
 	Value     float64 `json:"value"`
 	Formatted string  `json:"formatted"`
@@ -53,6 +66,11 @@ func newNumberFromFloat64(value float64, units string, scaleUnits bool) Number {
 	return newNumberFromFloat64WithPrecision(value, 1, units, scaleUnits)
 }
 
+func newNumberFromFloat64ByChain(value float64, chain string) Number {
+	decimals := decimalsForChain(chain)
+	return newNumberFromFloat64WithPrecision(value, decimals, chain, false)
+}
+
 func newNumberFromFloat64Ptr(value float64, units string, scaleUnits bool) *Number {
 	n := newNumberFromFloat64(value, units, scaleUnits)
 	return &n
@@ -65,16 +83,7 @@ func newNumberFromBigInt(value *big.Int, chain string) (Number, error) {
 		return Number{}, err
 	}
 	valueFloat := common.BigIntToFloat64(value, units)
-
-	decimals := 4
-	switch chain {
-	case "NEXA":
-		decimals = 1
-	case "KAS":
-		decimals = 2
-	case "BTC":
-		decimals = 6
-	}
+	decimals := decimalsForChain(chain)
 
 	n := Number{
 		Value:     valueFloat,
@@ -166,14 +175,18 @@ type WorkerList struct {
 }
 
 type Dashboard struct {
-	Miners          *Number                  `json:"miners,omitempty"`
-	ActiveWorkers   *Number                  `json:"activeWorkers,omitempty"`
-	InactiveWorkers *Number                  `json:"inactiveWorkers,omitempty"`
-	HashrateInfo    map[string]*HashrateInfo `json:"hashrateInfo"`
-	ShareInfo       map[string]*ShareInfo    `json:"shareInfo"`
-	ImmatureBalance map[string]Number        `json:"immatureBalance"`
-	PendingBalance  map[string]Number        `json:"pendingBalance"`
-	UnpaidBalance   map[string]Number        `json:"unpaidBalance"`
+	Miners                  *Number                  `json:"miners,omitempty"`
+	ActiveWorkers           *Number                  `json:"activeWorkers,omitempty"`
+	InactiveWorkers         *Number                  `json:"inactiveWorkers,omitempty"`
+	HashrateInfo            map[string]*HashrateInfo `json:"hashrateInfo"`
+	ShareInfo               map[string]*ShareInfo    `json:"shareInfo"`
+	ImmatureBalance         map[string]Number        `json:"immatureBalance"`
+	PendingBalance          map[string]Number        `json:"pendingBalance"`
+	UnpaidBalance           map[string]Number        `json:"unpaidBalance"`
+	ProjectedEarningsNative map[string]Number        `json:"projectedEarningsNative"`
+	ProjectedEarningsUSD    map[string]Number        `json:"projectedEarningsUsd"`
+	ProjectedEarningsBTC    map[string]Number        `json:"projectedEarningsBtc"`
+	ProjectedEarningsETH    map[string]Number        `json:"projectedEarningsEth"`
 }
 
 /* rounds */

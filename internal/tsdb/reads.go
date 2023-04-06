@@ -95,6 +95,37 @@ func GetBlocksProfitability(q dbcl.Querier, period int) ([]*Block, error) {
 	return output, err
 }
 
+func GetBlocksProfitabilityLast(q dbcl.Querier, period int) ([]*Block, error) {
+	const query = `WITH cte AS (
+	    SELECT
+	        blocks.chain_id,
+	        blocks.avg_profitability,
+	        blocks.avg_profitability * prices.price_usd avg_profitability_usd,
+	        blocks.avg_profitability * prices.price_btc avg_profitability_btc,
+	        blocks.avg_profitability * prices.price_eth avg_profitability_eth,
+	        ROW_NUMBER() OVER (PARTITION BY blocks.chain_id ORDER BY blocks.end_time DESC) rn
+	    FROM blocks
+	    JOIN prices ON blocks.end_time = prices.timestamp AND blocks.chain_id = prices.chain_id
+	    WHERE
+	            period = ?
+	      AND
+	            pending = FALSE
+	) SELECT
+	      chain_id,
+	      avg_profitability,
+	      avg_profitability_usd,
+	      avg_profitability_btc,
+	      avg_profitability_eth
+	FROM cte
+	WHERE
+	    rn = 1`
+
+	output := []*Block{}
+	err := q.Select(&output, query, period)
+
+	return output, err
+}
+
 func GetBlocksWithProfitabilityLast(q dbcl.Querier, period int) ([]*Block, error) {
 	const query = `WITH block_times AS (
 	    SELECT chain_id, MAX(end_time) AS end_time
