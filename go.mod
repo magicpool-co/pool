@@ -7,7 +7,7 @@ require (
 	github.com/aeternity/rlp-go v0.0.0-20190813143754-207301e28aeb
 	github.com/aws/aws-sdk-go v1.44.103
 	github.com/brianium/mnemonic v0.0.0-20180124190051-72af92c51f88
-	github.com/bsm/redislock v0.7.2
+	github.com/bsm/redislock v0.9.2
 	github.com/btcsuite/btcd/btcutil v1.1.0
 	github.com/dchest/blake2b v1.0.0
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1
@@ -24,8 +24,9 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/zerolog v1.28.0
 	github.com/sencha-dev/powkit v0.4.3
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	golang.org/x/crypto v0.1.0
+	golang.org/x/sys v0.5.0
 	golang.org/x/text v0.7.0
 	google.golang.org/grpc v1.38.0
 	google.golang.org/protobuf v1.28.1
@@ -54,9 +55,9 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.39.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
+	github.com/redis/go-redis/v9 v9.0.2 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	golang.org/x/net v0.4.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
 	google.golang.org/genproto v0.0.0-20210604141403-392c879c8b08 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
