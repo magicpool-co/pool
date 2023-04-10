@@ -25,8 +25,9 @@ require (
 	github.com/rs/zerolog v1.28.0
 	github.com/sencha-dev/powkit v0.4.3
 	github.com/stretchr/testify v1.8.0
-	golang.org/x/crypto v0.1.0
-	golang.org/x/text v0.7.0
+	golang.org/x/crypto v0.8.0
+	golang.org/x/sys v0.7.0
+	golang.org/x/text v0.9.0
 	google.golang.org/grpc v1.38.0
 	google.golang.org/protobuf v1.28.1
 )
@@ -55,8 +56,7 @@ require (
 	github.com/prometheus/common v0.39.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	golang.org/x/net v0.4.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/net v0.9.0 // indirect
 	google.golang.org/genproto v0.0.0-20210604141403-392c879c8b08 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
