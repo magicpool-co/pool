@@ -10,7 +10,7 @@ require (
 	github.com/bsm/redislock v0.7.2
 	github.com/btcsuite/btcd/btcutil v1.1.0
 	github.com/dchest/blake2b v1.0.0
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0
 	github.com/ethereum/go-ethereum v1.11.4
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-redis/redis_rate/v9 v9.1.2
@@ -26,6 +26,7 @@ require (
 	github.com/sencha-dev/powkit v0.4.3
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/crypto v0.1.0
+	golang.org/x/sys v0.5.0
 	golang.org/x/text v0.7.0
 	google.golang.org/grpc v1.38.0
 	google.golang.org/protobuf v1.28.1
@@ -37,7 +38,7 @@ require (
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/decred/dcrd/crypto/blake256 v1.0.0 // indirect
+	github.com/decred/dcrd/crypto/blake256 v1.0.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
@@ -56,7 +57,6 @@ require (
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	golang.org/x/net v0.4.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
 	google.golang.org/genproto v0.0.0-20210604141403-392c879c8b08 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
