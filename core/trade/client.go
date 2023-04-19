@@ -115,7 +115,7 @@ func New(pooldbClient *dbcl.Client, redisClient *redis.Client, nodes []types.Pay
 	return client
 }
 
-func (c *Client) updateBatchStatus(batchID uint64, status Status) error {
+func (c *Client) updateBatchStatus(q dbcl.Querier, batchID uint64, status Status) error {
 	var completedAt *time.Time
 	if status == BatchComplete {
 		completedAt = types.TimePtr(time.Now())
@@ -128,7 +128,7 @@ func (c *Client) updateBatchStatus(batchID uint64, status Status) error {
 	}
 	cols := []string{"status", "completed_at"}
 
-	return pooldb.UpdateExchangeBatch(c.pooldb.Writer(), batch, cols)
+	return pooldb.UpdateExchangeBatch(q, batch, cols)
 }
 
 /* core methods */

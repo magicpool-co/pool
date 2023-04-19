@@ -110,7 +110,7 @@ func (c *Client) InitiateTrades(batchID uint64, exchange types.Exchange) error {
 		return err
 	}
 
-	return c.updateBatchStatus(batchID, TradesInactive)
+	return c.updateBatchStatus(c.pooldb.Writer(), batchID, TradesInactive)
 }
 
 func (c *Client) InitiateTradeStage(batchID uint64, exchange types.Exchange, stage int) error {
@@ -171,7 +171,7 @@ func (c *Client) InitiateTradeStage(batchID uint64, exchange types.Exchange, sta
 		c.telegram.NotifyInitiateTrade(trade.ID, trade.PathID, trade.StageID, trade.Market, direction.String(), floatValue)
 	}
 
-	return c.updateBatchStatus(batchID, tradeStageStatus)
+	return c.updateBatchStatus(c.pooldb.Writer(), batchID, tradeStageStatus)
 }
 
 func (c *Client) confirmTrade(batchID uint64, exchange types.Exchange, stage int, trade *pooldb.ExchangeTrade) (bool, error) {
@@ -285,7 +285,7 @@ func (c *Client) confirmTrade(batchID uint64, exchange types.Exchange, stage int
 		}
 
 		// flip back to the previous stage to kick off the newly created trade.
-		err = c.updateBatchStatus(batchID, tradeStageIncompleteStatus)
+		err = c.updateBatchStatus(tx, batchID, tradeStageIncompleteStatus)
 		if err != nil {
 			return completedTrade, err
 		}
@@ -465,7 +465,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, exchange types.Exchange, stag
 	}
 
 	if completedAll {
-		return c.updateBatchStatus(batchID, tradeStageStatus)
+		return c.updateBatchStatus(c.pooldb.Writer(), batchID, tradeStageStatus)
 	}
 
 	return nil

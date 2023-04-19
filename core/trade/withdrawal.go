@@ -105,7 +105,7 @@ func (c *Client) InitiateWithdrawals(batchID uint64, exchange types.Exchange) er
 		c.telegram.NotifyInitiateWithdrawal(withdrawalID, chain, floatValue)
 	}
 
-	return c.updateBatchStatus(batchID, WithdrawalsActive)
+	return c.updateBatchStatus(c.pooldb.Writer(), batchID, WithdrawalsActive)
 }
 
 func (c *Client) ConfirmWithdrawals(batchID uint64, exchange types.Exchange) error {
@@ -189,7 +189,7 @@ func (c *Client) ConfirmWithdrawals(batchID uint64, exchange types.Exchange) err
 	}
 
 	if completedAll {
-		return c.updateBatchStatus(batchID, WithdrawalsComplete)
+		return c.updateBatchStatus(c.pooldb.Writer(), batchID, WithdrawalsComplete)
 	}
 
 	return nil
@@ -427,6 +427,11 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 		}
 	}
 
+	err = c.updateBatchStatus(tx, batchID, BatchComplete)
+	if err != nil {
+		return err
+	}
+
 	err = tx.SafeCommit()
 	if err != nil {
 		return err
@@ -434,5 +439,5 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 
 	c.telegram.NotifyFinalizeExchangeBatch(batchID)
 
-	return c.updateBatchStatus(batchID, BatchComplete)
+	return nil
 }

@@ -115,7 +115,7 @@ func (c *Client) InitiateDeposits(batchID uint64, exchange types.Exchange) error
 	}
 
 	if initiatedAll {
-		return c.updateBatchStatus(batchID, DepositsActive)
+		return c.updateBatchStatus(c.pooldb.Writer(), batchID, DepositsActive)
 	}
 
 	return nil
@@ -154,7 +154,7 @@ func (c *Client) RegisterDeposits(batchID uint64, exchange types.Exchange) error
 	}
 
 	if registeredAll {
-		return c.updateBatchStatus(batchID, DepositsRegistered)
+		return c.updateBatchStatus(c.pooldb.Writer(), batchID, DepositsRegistered)
 	}
 
 	return nil
@@ -220,7 +220,7 @@ func (c *Client) ConfirmDeposits(batchID uint64, exchange types.Exchange) error 
 	}
 
 	if confirmedAll {
-		return c.updateBatchStatus(batchID, DepositsComplete)
+		return c.updateBatchStatus(c.pooldb.Writer(), batchID, DepositsComplete)
 	}
 
 	return nil
