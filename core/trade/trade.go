@@ -232,10 +232,10 @@ func (c *Client) confirmTrade(batchID uint64, exchange types.Exchange, stage int
 
 		// otherwise cancel it, refetch the trade, then make a new trade
 		// to finish out the rest of the order
-		err = exchange.CancelTradeByID(trade.Market, tradeID)
-		if err != nil {
-			return completedTrade, err
-		}
+		exchange.CancelTradeByID(trade.Market, tradeID)
+		// if err != nil {
+		// 	return completedTrade, err
+		// }
 
 		time.Sleep(time.Second)
 
