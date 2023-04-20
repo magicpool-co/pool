@@ -183,10 +183,10 @@ type Dashboard struct {
 	ImmatureBalance         map[string]Number        `json:"immatureBalance"`
 	PendingBalance          map[string]Number        `json:"pendingBalance"`
 	UnpaidBalance           map[string]Number        `json:"unpaidBalance"`
-	ProjectedEarningsNative map[string]Number        `json:"projectedEarningsNative"`
-	ProjectedEarningsUSD    map[string]Number        `json:"projectedEarningsUsd"`
-	ProjectedEarningsBTC    map[string]Number        `json:"projectedEarningsBtc"`
-	ProjectedEarningsETH    map[string]Number        `json:"projectedEarningsEth"`
+	ProjectedEarningsNative map[string]float64       `json:"projectedEarningsNative"`
+	ProjectedEarningsUSD    map[string]float64       `json:"projectedEarningsUsd"`
+	ProjectedEarningsBTC    map[string]float64       `json:"projectedEarningsBtc"`
+	ProjectedEarningsETH    map[string]float64       `json:"projectedEarningsEth"`
 }
 
 /* rounds */

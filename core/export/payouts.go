@@ -78,7 +78,7 @@ func generatePayoutRow(payout *stats.Payout, inputChains []string) []string {
 
 func exportPayouts(payouts []*stats.Payout) ([]string, [][]string, error) {
 	sort.Slice(payouts, func(i, j int) bool {
-		return payouts[i].Timestamp < payouts[j].Timestamp
+		return payouts[i].Timestamp > payouts[j].Timestamp
 	})
 
 	inputChainIdx := make(map[string]bool)

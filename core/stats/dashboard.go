@@ -214,18 +214,18 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
 	}
 
 	// calculate projected earnings
-	projectedEarningsNative := make(map[string]Number)
-	projectedEarningsUSD := make(map[string]Number)
-	projectedEarningsBTC := make(map[string]Number)
-	projectedEarningsETH := make(map[string]Number)
+	projectedEarningsNative := make(map[string]float64)
+	projectedEarningsUSD := make(map[string]float64)
+	projectedEarningsBTC := make(map[string]float64)
+	projectedEarningsETH := make(map[string]float64)
 	for chain, hashrateValue := range hashrateInfo {
 		block, ok := profitIndex[chain]
 		if ok {
 			hashrate := hashrateValue.AvgHashrate.Value
-			projectedEarningsNative[chain] = newNumberFromFloat64ByChain(hashrate*block.AvgProfitability, chain)
-			projectedEarningsUSD[chain] = newNumberFromFloat64ByChain(hashrate*block.AvgProfitabilityUSD, "USD")
-			projectedEarningsBTC[chain] = newNumberFromFloat64ByChain(hashrate*block.AvgProfitabilityBTC, "BTC")
-			projectedEarningsETH[chain] = newNumberFromFloat64ByChain(hashrate*block.AvgProfitabilityETH, "ETH")
+			projectedEarningsNative[chain] = hashrate * block.AvgProfitability
+			projectedEarningsUSD[chain] = hashrate * block.AvgProfitabilityUSD
+			projectedEarningsBTC[chain] = hashrate * block.AvgProfitabilityBTC
+			projectedEarningsETH[chain] = hashrate * block.AvgProfitabilityETH
 		}
 	}
 
