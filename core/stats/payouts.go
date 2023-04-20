@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
+	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 )
 
@@ -45,7 +46,7 @@ func getTxExplorerURL(chain, hash string) (string, error) {
 	return explorerURL, err
 }
 
-func newPayout(dbPayout *pooldb.Payout) (*Payout, error) {
+func newPayout(dbPayout *pooldb.Payout, dbBalanceInputSums []*pooldb.BalanceInput) (*Payout, error) {
 	if !dbPayout.Value.Valid {
 		return nil, fmt.Errorf("no value for payout %d", dbPayout.ID)
 	} else if !dbPayout.PoolFees.Valid {
@@ -60,6 +61,32 @@ func newPayout(dbPayout *pooldb.Payout) (*Payout, error) {
 	totalFees.Add(totalFees, dbPayout.PoolFees.BigInt)
 	totalFees.Add(totalFees, dbPayout.ExchangeFees.BigInt)
 	totalFees.Add(totalFees, dbPayout.TxFees.BigInt)
+
+	// aggregate balance input sums into an index
+	var err error
+	inputIdxFormatted := make(map[string]Number)
+	for _, dbBalanceInputSum := range dbBalanceInputSums {
+		chainID := dbBalanceInputSum.ChainID
+		value := dbBalanceInputSum.Value.BigInt
+		if !dbBalanceInputSum.Value.Valid || value.Cmp(common.Big0) == 0 {
+			continue
+		}
+
+		inputIdxFormatted[chainID], err = newNumberFromBigInt(value, chainID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// handle the native payout case to avoid extra db calls when we
+	// can just calculate the number from value + tx fees
+	if len(inputIdxFormatted) == 0 {
+		inputValue := new(big.Int).Add(dbPayout.Value.BigInt, dbPayout.TxFees.BigInt)
+		inputIdxFormatted[dbPayout.ChainID], err = newNumberFromBigInt(inputValue, dbPayout.ChainID)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	valueFormatted, err := newNumberFromBigInt(dbPayout.Value.BigInt, dbPayout.ChainID)
 	if err != nil {
@@ -97,6 +124,7 @@ func newPayout(dbPayout *pooldb.Payout) (*Payout, error) {
 		TxID:         dbPayout.TxID,
 		ExplorerURL:  explorerURL,
 		Confirmed:    dbPayout.Confirmed,
+		Inputs:       inputIdxFormatted,
 		Value:        valueFormatted,
 		PoolFees:     poolFeesFormatted,
 		ExchangeFees: exchangeFeesFormatted,
@@ -121,7 +149,7 @@ func (c *Client) GetGlobalPayouts(page, size uint64) ([]*Payout, uint64, error) 
 
 	payouts := make([]*Payout, len(dbPayouts))
 	for i, dbPayout := range dbPayouts {
-		payouts[i], err = newPayout(dbPayout)
+		payouts[i], err = newPayout(dbPayout, nil)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -145,9 +173,33 @@ func (c *Client) GetMinerPayouts(minerIDs []uint64, page, size uint64) ([]*Payou
 		return nil, 0, err
 	}
 
+	switchPayoutIDs := make([]uint64, 0)
+	for _, dbPayout := range dbPayouts {
+		if dbPayout.ChainID == "BTC" || dbPayout.ChainID == "ETH" {
+			switchPayoutIDs = append(switchPayoutIDs, dbPayout.ID)
+		}
+	}
+
+	balanceInputSums, err := pooldb.GetPayoutBalanceInputSums(c.pooldb.Reader(), switchPayoutIDs)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	balanceInputSumIdx := make(map[uint64][]*pooldb.BalanceInput)
+	for _, balanceInputSum := range balanceInputSums {
+		payoutID := balanceInputSum.PayoutID
+		if payoutID == 0 {
+			continue
+		} else if _, ok := balanceInputSumIdx[payoutID]; !ok {
+			balanceInputSumIdx[payoutID] = make([]*pooldb.BalanceInput, 0)
+		}
+
+		balanceInputSumIdx[payoutID] = append(balanceInputSumIdx[payoutID], balanceInputSum)
+	}
+
 	payouts := make([]*Payout, len(dbPayouts))
 	for i, dbPayout := range dbPayouts {
-		payouts[i], err = newPayout(dbPayout)
+		payouts[i], err = newPayout(dbPayout, balanceInputSumIdx[dbPayout.ID])
 		if err != nil {
 			return nil, 0, err
 		}

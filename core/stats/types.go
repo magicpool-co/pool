@@ -212,17 +212,18 @@ type Round struct {
 /* payouts */
 
 type Payout struct {
-	Chain        string `json:"chain"`
-	Address      string `json:"address"`
-	TxID         string `json:"txid"`
-	ExplorerURL  string `json:"explorerUrl"`
-	Confirmed    bool   `json:"confirmed"`
-	Value        Number `json:"value"`
-	PoolFees     Number `json:"poolFees"`
-	ExchangeFees Number `json:"exchangeFees"`
-	TxFees       Number `json:"txFees"`
-	TotalFees    Number `json:"totalFees"`
-	Timestamp    int64  `json:"timestamp"`
+	Chain        string            `json:"chain"`
+	Address      string            `json:"address"`
+	TxID         string            `json:"txid"`
+	ExplorerURL  string            `json:"explorerUrl"`
+	Confirmed    bool              `json:"confirmed"`
+	Inputs       map[string]Number `json:"inputs"`
+	Value        Number            `json:"value"`
+	PoolFees     Number            `json:"poolFees"`
+	ExchangeFees Number            `json:"exchangeFees"`
+	TxFees       Number            `json:"txFees"`
+	TotalFees    Number            `json:"totalFees"`
+	Timestamp    int64             `json:"timestamp"`
 }
 
 /* global chart */

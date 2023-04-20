@@ -4,8 +4,8 @@ TEST_REDIS=magicpool_pool_test_redis
 reset-test-containers:
 	docker kill $(TEST_MYSQL) $(TEST_REDIS) || true
 	docker rm -f $(TEST_MYSQL) $(TEST_REDIS) || true
-	docker run --rm --name $(TEST_MYSQL) -p 3544:3306 -e MYSQL_ROOT_PASSWORD=secret -e MYSQL_DATABASE=pooldb -d mysql:8.0
-	docker run --rm --name $(TEST_REDIS) -p 3545:6379 -d redis:6-alpine
+	docker run --rm --name $(TEST_MYSQL) -p 3644:3306 -e MYSQL_ROOT_PASSWORD=secret -e MYSQL_DATABASE=pooldb -d mysql:8.0
+	docker run --rm --name $(TEST_REDIS) -p 3645:6379 -d redis:6-alpine
 
 fmt:
 	go fmt ./... ./tests

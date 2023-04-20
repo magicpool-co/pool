@@ -292,6 +292,10 @@ type BalanceInput struct {
 	BalanceOutputID *uint64 `db:"balance_output_id"`
 	BatchID         *uint64 `db:"batch_id"`
 
+	// column not present in table, helpful for balance input
+	// sum query for each payout
+	PayoutID uint64 `db:"payout_id"`
+
 	Value    dbcl.NullBigInt `db:"value"`
 	PoolFees dbcl.NullBigInt `db:"pool_fees"`
 	Mature   bool            `db:"mature"`

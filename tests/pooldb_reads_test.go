@@ -456,4 +456,9 @@ func (suite *PooldbReadsSuite) TestReadPayout() {
 	if err != nil {
 		suite.T().Errorf("failed: GetPayoutsByMinersCount: %v", err)
 	}
+
+	_, err = pooldb.GetPayoutBalanceInputSums(pooldbClient.Reader(), []uint64{0, 1})
+	if err != nil {
+		suite.T().Errorf("failed: GetPayoutBalanceInputSums: %v", err)
+	}
 }
