@@ -163,6 +163,11 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		page, size := r.URL.Query().Get("page"), r.URL.Query().Get("size")
 		handler = rtr.ctx.getPayouts(payoutArgs{page: page, size: size, miner: miner})
 
+	case rtr.match(path, "/miner/+/payouts/export", &miner):
+		method = "GET"
+		exportType := r.URL.Query().Get("type")
+		handler = rtr.ctx.getPayoutsExport(payoutExportArgs{exportType: exportType, miner: miner})
+
 	case rtr.match(path, "/miner/+/workers", &miner):
 		method = "GET"
 		handler = rtr.ctx.getWorkers(workersArgs{miner: miner})

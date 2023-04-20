@@ -207,3 +207,8 @@ func (c *Client) GetMinerPayouts(minerIDs []uint64, page, size uint64) ([]*Payou
 
 	return payouts, count, nil
 }
+
+func (c *Client) GetAllMinerPayouts(minerIDs uint64) ([]*Payout, error) {
+	payouts, _, err := c.GetMinerPayouts([]uint64{minerIDs}, 0, 99999999999)
+	return payouts, err
+}

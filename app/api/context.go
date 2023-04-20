@@ -8,6 +8,7 @@ import (
 
 	"github.com/goccy/go-json"
 
+	"github.com/magicpool-co/pool/core/export"
 	"github.com/magicpool-co/pool/core/stats"
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/metrics"
@@ -81,6 +82,12 @@ func (ctx *Context) writeOkResponse(w http.ResponseWriter, body interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	json.NewEncoder(w).Encode(res)
+}
+
+func (ctx *Context) writeCSVResponse(w http.ResponseWriter, body []byte) {
+	w.Header().Set("Content-Type", "text/csv")
+	w.WriteHeader(200)
+	w.Write(body)
 }
 
 func (ctx *Context) parsePageSize(rawPage, rawSize string) (uint64, uint64, error) {
@@ -590,6 +597,43 @@ func (ctx *Context) getPayouts(args payoutArgs) http.Handler {
 		}
 
 		ctx.writeOkResponse(w, paginatedResponse{Page: page, Size: size, Results: count, Items: items})
+	})
+}
+
+type payoutExportArgs struct {
+	exportType string
+	miner      string
+}
+
+func (ctx *Context) getPayoutsExport(args payoutExportArgs) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if args.exportType != "csv" || args.miner == "" {
+			ctx.writeErrorResponse(w, errInvalidParameters)
+			return
+		}
+
+		minerIDs, err := ctx.getMinerIDs(args.miner)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		} else if len(minerIDs) != 1 {
+			ctx.writeErrorResponse(w, errInvalidParameters)
+			return
+		}
+
+		payouts, err := ctx.stats.GetAllMinerPayouts(minerIDs[0])
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		exported, err := export.ExportPayoutsAsCSV(payouts)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		ctx.writeCSVResponse(w, exported)
 	})
 }
 
