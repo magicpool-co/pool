@@ -14,12 +14,12 @@ import (
 
 const (
 	mysqlHost = "localhost"
-	mysqlPort = "3544"
+	mysqlPort = "3644"
 	mysqlUser = "root"
 	mysqlPass = "secret"
 
 	redisHost = "localhost"
-	redisPort = "3545"
+	redisPort = "3645"
 	redisDB   = "0"
 )
 
