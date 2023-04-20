@@ -50,7 +50,7 @@ type Miner struct {
 	ID        uint64          `db:"id"`
 	ChainID   string          `db:"chain_id"`
 	Address   string          `db:"address"`
-	Email     *string         `json:"email"`
+	Email     *string         `db:"email"`
 	Threshold dbcl.NullBigInt `db:"threshold"`
 
 	Active                     bool `db:"active"`
