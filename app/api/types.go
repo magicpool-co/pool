@@ -10,6 +10,7 @@ var (
 	errInvalidJSONBody     = newHttpError(400, "InvalidJSONBody", "Invalid JSON body")
 	errBodyTooLarge        = newHttpError(400, "BodyTooLarge", "Body too large")
 	errTooManyMiners       = newHttpError(400, "TooManyMiners", "Too many miners requested")
+	errInvalidEmail        = newHttpError(400, "InvalidEmail", "Invalid email address")
 	errInvalidThreshold    = newHttpError(400, "InvalidThreshold", "Invalid payout threshold")
 	errThresholdTooSmall   = newHttpError(400, "ThresholdTooSmall", "Threshold too small")
 	errThresholdTooBig     = newHttpError(400, "ThresholdTooBig", "Threshold too big")

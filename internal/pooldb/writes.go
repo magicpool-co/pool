@@ -27,7 +27,8 @@ func UpdateNode(q dbcl.Querier, obj *Node, updateCols []string) error {
 
 func InsertMiner(q dbcl.Querier, obj *Miner) (uint64, error) {
 	const table = "miners"
-	cols := []string{"chain_id", "address", "threshold", "active"}
+	cols := []string{"chain_id", "address", "email", "threshold",
+		"active", "enabled_worker_notifications", "enabled_payout_notifications"}
 
 	return dbcl.ExecInsert(q, table, cols, obj)
 }

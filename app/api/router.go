@@ -172,22 +172,22 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		method = "GET"
 		handler = rtr.ctx.getWorkers(workersArgs{miner: miner})
 
-	case rtr.match(path, "/miner/+/threshold", &miner):
+	case rtr.match(path, "/miner/+/settings", &miner):
 		switch r.Method {
 		case "GET":
 			method = "GET"
-			handler = rtr.ctx.getThreshold(thresholdArgs{miner: miner})
+			handler = rtr.ctx.getMinerSettings(minerSettingsArgs{miner: miner})
 		case "POST":
 			method = "POST"
 
-			args := updateThresholdArgs{miner: miner}
+			args := updateMinerSettingsArgs{miner: miner}
 			err := decodeJSONBody(w, r, &args)
 			if err != nil {
 				rtr.ctx.writeErrorResponse(w, errInvalidJSONBody)
 				return
 			}
 
-			handler = rtr.ctx.updateThreshold(args)
+			handler = rtr.ctx.updateMinerSettings(args)
 		}
 	case rtr.match(path, "/worker/+/+", &miner, &worker):
 		method = "GET"

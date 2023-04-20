@@ -50,8 +50,12 @@ type Miner struct {
 	ID        uint64          `db:"id"`
 	ChainID   string          `db:"chain_id"`
 	Address   string          `db:"address"`
+	Email     *string         `json:"email"`
 	Threshold dbcl.NullBigInt `db:"threshold"`
-	Active    bool            `db:"active"`
+
+	Active                     bool `db:"active"`
+	EnabledWorkerNotifications bool `db:"enabled_worker_notifications"`
+	EnabledPayoutNotifications bool `db:"enabled_payout_notifications"`
 
 	RecipientFeePercent *uint64 `db:"recipient_fee_percent"`
 

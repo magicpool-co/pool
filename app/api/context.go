@@ -3,6 +3,7 @@ package api
 import (
 	"math/big"
 	"net/http"
+	"net/mail"
 	"strconv"
 	"strings"
 
@@ -29,7 +30,13 @@ type Context struct {
 	nodes   []types.MiningNode
 }
 
-func NewContext(logger *log.Logger, metricsClient *metrics.Client, pooldbClient, tsdbClient *dbcl.Client, redisClient *redis.Client, nodes []types.MiningNode) *Context {
+func NewContext(
+	logger *log.Logger,
+	metricsClient *metrics.Client,
+	pooldbClient, tsdbClient *dbcl.Client,
+	redisClient *redis.Client,
+	nodes []types.MiningNode,
+) *Context {
 	statsChains := []string{
 		"CFX",
 		"CTXC",
@@ -165,7 +172,7 @@ func (ctx *Context) getWorkerID(minerID uint64, worker string) (uint64, error) {
 	return workerID, nil
 }
 
-func (ctx *Context) getThresholdIPAddress(minerID uint64) (*pooldb.IPAddress, error) {
+func (ctx *Context) getMinerIPAddress(minerID uint64) (*pooldb.IPAddress, error) {
 	lastIP, err := pooldb.GetOldestActiveIPAddress(ctx.pooldb.Reader(), minerID)
 	if err != nil {
 		return nil, err
@@ -718,11 +725,11 @@ func (ctx *Context) getThresholdBounds(args thresholdBoundsArgs) http.Handler {
 	})
 }
 
-type thresholdArgs struct {
+type minerSettingsArgs struct {
 	miner string
 }
 
-func (ctx *Context) getThreshold(args thresholdArgs) http.Handler {
+func (ctx *Context) getMinerSettings(args minerSettingsArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		minerID, err := ctx.getMinerID(args.miner)
 		if err != nil {
@@ -731,7 +738,7 @@ func (ctx *Context) getThreshold(args thresholdArgs) http.Handler {
 		}
 
 		var ipHint, workerName *string
-		lastIP, err := ctx.getThresholdIPAddress(minerID)
+		lastIP, err := ctx.getMinerIPAddress(minerID)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
@@ -766,6 +773,19 @@ func (ctx *Context) getThreshold(args thresholdArgs) http.Handler {
 			return
 		}
 
+		var obscuredEmail *string
+		if miner.Email != nil {
+			parts := strings.Split(types.StringValue(miner.Email), "@")
+			if len(parts) == 2 {
+				if len(parts[0]) <= 3 {
+					parts[0] = "***"
+				} else {
+					parts[0] = "***" + parts[0][3:]
+				}
+				obscuredEmail = types.StringPtr(parts[0] + "@" + parts[1])
+			}
+		}
+
 		var threshold float64
 		if miner.Threshold.Valid {
 			threshold = common.BigIntToFloat64(miner.Threshold.BigInt, units)
@@ -780,23 +800,29 @@ func (ctx *Context) getThreshold(args thresholdArgs) http.Handler {
 		}
 
 		data := map[string]interface{}{
-			"chain":     miner.ChainID,
-			"worker":    workerName,
-			"threshold": threshold,
-			"ipHint":    ipHint,
+			"chain":                      miner.ChainID,
+			"worker":                     workerName,
+			"email":                      obscuredEmail,
+			"threshold":                  threshold,
+			"enabledWorkerNotifications": miner.EnabledWorkerNotifications,
+			"enabledPayoutNotifications": miner.EnabledPayoutNotifications,
+			"ipHint":                     ipHint,
 		}
 
 		ctx.writeOkResponse(w, data)
 	})
 }
 
-type updateThresholdArgs struct {
-	miner     string
-	IP        string `json:"ip"`
-	Threshold string `json:"threshold"`
+type updateMinerSettingsArgs struct {
+	miner                     string
+	IP                        string  `json:"ip"`
+	Email                     *string `json:"email"`
+	EnableWorkerNotifications *bool   `json:"enableWorkerNotifications"`
+	EnablePayoutNotifications *bool   `json:"enablePayoutNotifications"`
+	Threshold                 *string `json:"threshold"`
 }
 
-func (ctx *Context) updateThreshold(args updateThresholdArgs) http.Handler {
+func (ctx *Context) updateMinerSettings(args updateMinerSettingsArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		minerID, err := ctx.getMinerID(args.miner)
 		if err != nil {
@@ -804,7 +830,7 @@ func (ctx *Context) updateThreshold(args updateThresholdArgs) http.Handler {
 			return
 		}
 
-		ip, err := ctx.getThresholdIPAddress(minerID)
+		ip, err := ctx.getMinerIPAddress(minerID)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
@@ -819,39 +845,63 @@ func (ctx *Context) updateThreshold(args updateThresholdArgs) http.Handler {
 			return
 		}
 
-		units, err := common.GetDefaultUnits(miner.ChainID)
-		if err != nil {
-			ctx.writeErrorResponse(w, err)
-			return
+		if args.Email != nil {
+			_, err := mail.ParseAddress(types.StringValue(args.Email))
+			if err != nil {
+				ctx.writeErrorResponse(w, errInvalidEmail)
+				return
+			}
+
+			miner.Email = args.Email
+
+			if args.EnableWorkerNotifications != nil {
+				miner.EnabledWorkerNotifications = types.BoolValue(args.EnableWorkerNotifications)
+			}
+
+			if args.EnablePayoutNotifications != nil {
+				miner.EnabledPayoutNotifications = types.BoolValue(args.EnablePayoutNotifications)
+			}
 		}
 
-		if len(strings.Split(args.Threshold, ".")) == 1 {
-			args.Threshold += ".0"
+		if args.Threshold != nil {
+			units, err := common.GetDefaultUnits(miner.ChainID)
+			if err != nil {
+				ctx.writeErrorResponse(w, err)
+				return
+			}
+
+			rawThreshold := types.StringValue(args.Threshold)
+			if len(strings.Split(rawThreshold, ".")) == 1 {
+				rawThreshold += ".0"
+			}
+
+			threshold, err := common.StringDecimalToBigint(rawThreshold, units)
+			if err != nil {
+				ctx.writeErrorResponse(w, errInvalidThreshold)
+				return
+			}
+
+			payoutBound, err := common.GetDefaultPayoutBounds(miner.ChainID)
+			if err != nil {
+				ctx.writeErrorResponse(w, err)
+				return
+			} else if threshold.Cmp(payoutBound.Min) < 0 {
+				ctx.writeErrorResponse(w, errThresholdTooSmall)
+				return
+			} else if threshold.Cmp(payoutBound.Max) > 0 {
+				ctx.writeErrorResponse(w, errThresholdTooBig)
+				return
+			} else if new(big.Int).Mod(threshold, payoutBound.PrecisionMask()).Cmp(common.Big0) > 0 {
+				ctx.writeErrorResponse(w, errThresholdTooPrecise)
+				return
+			}
+
+			miner.Threshold = dbcl.NullBigInt{Valid: true, BigInt: threshold}
 		}
 
-		threshold, err := common.StringDecimalToBigint(args.Threshold, units)
-		if err != nil {
-			ctx.writeErrorResponse(w, errInvalidThreshold)
-			return
-		}
-
-		payoutBound, err := common.GetDefaultPayoutBounds(miner.ChainID)
-		if err != nil {
-			ctx.writeErrorResponse(w, err)
-			return
-		} else if threshold.Cmp(payoutBound.Min) < 0 {
-			ctx.writeErrorResponse(w, errThresholdTooSmall)
-			return
-		} else if threshold.Cmp(payoutBound.Max) > 0 {
-			ctx.writeErrorResponse(w, errThresholdTooBig)
-			return
-		} else if new(big.Int).Mod(threshold, payoutBound.PrecisionMask()).Cmp(common.Big0) > 0 {
-			ctx.writeErrorResponse(w, errThresholdTooPrecise)
-			return
-		}
-
-		miner.Threshold = dbcl.NullBigInt{Valid: true, BigInt: threshold}
-		err = pooldb.UpdateMiner(ctx.pooldb.Writer(), miner, []string{"threshold"})
+		cols := []string{"email", "threshold",
+			"enabled_worker_notifications", "enabled_payout_notifications"}
+		err = pooldb.UpdateMiner(ctx.pooldb.Writer(), miner, cols)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
