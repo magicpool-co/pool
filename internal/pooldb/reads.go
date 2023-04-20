@@ -1359,3 +1359,30 @@ func GetPayoutsByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64, error) 
 
 	return dbcl.GetUint64(q, query, args...)
 }
+
+func GetPayoutBalanceInputSums(q dbcl.Querier, payoutIDs []uint64) ([]*BalanceInput, error) {
+	const rawQuery = `SELECT
+	    balance_inputs.chain_id,
+	    balance_outputs.out_payout_id AS payout_id,
+	    sum(balance_inputs.value) AS value
+	FROM balance_inputs
+	JOIN balance_outputs ON balance_inputs.balance_output_id = balance_outputs.id
+	WHERE
+	    balance_outputs.out_payout_id IN (?)
+	GROUP BY balance_inputs.chain_id, balance_outputs.out_payout_id`
+
+	if len(payoutIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, payoutIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	output := []*BalanceInput{}
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
+
+	return output, err
+}
