@@ -12,7 +12,12 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
-func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txType types.TransactionType, txOutputList ...[]*types.TxOutput) ([]*pooldb.Transaction, error) {
+func (c *Client) PrepareOutgoingTxs(
+	q dbcl.Querier,
+	node types.PayoutNode,
+	txType types.TransactionType,
+	txOutputList ...[]*types.TxOutput,
+) ([]*pooldb.Transaction, error) {
 	txs := make([]*pooldb.Transaction, len(txOutputList))
 
 	// distributed lock to avoid race conditions
@@ -32,16 +37,16 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 		return nil, nil
 	}
 
-	inputUTXOs, err := pooldb.GetUnspentUTXOsByChain(q, node.Chain())
+	allInputUTXOs, err := pooldb.GetUnspentUTXOsByChain(q, node.Chain())
 	if err != nil {
 		return nil, err
-	} else if len(inputUTXOs) == 0 {
+	} else if len(allInputUTXOs) == 0 {
 		return nil, nil
 	}
 
 	// calculate total spendable value
 	totalInputUTXOSum := new(big.Int)
-	for _, inputUTXO := range inputUTXOs {
+	for _, inputUTXO := range allInputUTXOs {
 		if !inputUTXO.Value.Valid {
 			return nil, fmt.Errorf("no value for utxo %d", inputUTXO.ID)
 		}
@@ -62,6 +67,12 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 	}
 
 	for i, txOutputs := range txOutputList {
+		// copy utxos to new list
+		inputUTXOs := make([]*pooldb.UTXO, len(allInputUTXOs))
+		for j, utxo := range allInputUTXOs {
+			inputUTXOs[j] = utxo
+		}
+
 		// calculate total spendable value
 		inputUTXOSum := new(big.Int)
 		for _, inputUTXO := range inputUTXOs {
@@ -89,6 +100,9 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 		var inputs []*types.TxInput
 		switch node.GetAccountingType() {
 		case types.AccountStructure:
+			// spend all utxos since theyre artificial anyways
+			allInputUTXOs = []*pooldb.UTXO{}
+
 			count, err := pooldb.GetUnspentTransactionCount(q, node.Chain())
 			if err != nil {
 				return nil, err
@@ -104,6 +118,19 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 				},
 			}
 		case types.UTXOStructure:
+			// prune utxos to only use enough to cover the balance
+			for i := len(inputUTXOs) - 1; i > 0; i-- {
+				utxo := inputUTXOs[i]
+				if remainder.Cmp(utxo.Value.BigInt) < 0 {
+					break
+				}
+
+				inputUTXOs = inputUTXOs[:i]
+				remainder.Sub(remainder, utxo.Value.BigInt)
+			}
+
+			allInputUTXOs = allInputUTXOs[len(inputUTXOs):]
+
 			// convert pooldb.UTXO to types.TxInput as txInputs
 			inputs = make([]*types.TxInput, len(inputUTXOs))
 			for i, inputUTXO := range inputUTXOs {
@@ -162,7 +189,6 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 			}
 		}
 
-		inputUTXOs = []*pooldb.UTXO{}
 		if remainder.Cmp(common.Big0) > 0 {
 			remainderUTXO := &pooldb.UTXO{
 				ChainID: node.Chain(),
@@ -171,8 +197,8 @@ func (c *Client) PrepareOutgoingTxs(q dbcl.Querier, node types.PayoutNode, txTyp
 				Value:   txs[i].Remainder,
 				Active:  false,
 			}
-			inputUTXOs = []*pooldb.UTXO{remainderUTXO}
 
+			allInputUTXOs = append(allInputUTXOs, remainderUTXO)
 			remainderUTXO.ID, err = pooldb.InsertUTXO(q, remainderUTXO)
 			if err != nil {
 				return nil, err

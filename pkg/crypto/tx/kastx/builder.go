@@ -14,6 +14,14 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
+const (
+	defaultMassPerTxByte           = 1
+	defaultMassPerScriptPubKeyByte = 10
+	defaultMassPerSigOp            = 1000
+
+	MaximumTxMass = 100000
+)
+
 func privKeyToAddress(privKey *secp256k1.PrivateKey, prefix string) (string, error) {
 	const addressCharset = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 	pubKeyBytes := privKey.PubKey().SerializeCompressed()
@@ -92,30 +100,43 @@ func signTx(privKey *secp256k1.PrivateKey, tx *protowire.RpcTransaction, inputs 
 	return tx, nil
 }
 
-func GenerateTx(privKey *secp256k1.PrivateKey, inputs []*types.TxInput, outputs []*types.TxOutput, prefix string, feePerInput uint64) ([]byte, error) {
+func GenerateTx(
+	privKey *secp256k1.PrivateKey,
+	inputs []*types.TxInput,
+	outputs []*types.TxOutput,
+	prefix string,
+	feePerInput uint64,
+) ([]byte, uint64, error) {
 	if len(inputs) == 0 {
-		return nil, fmt.Errorf("need at least one input")
+		return nil, 0, fmt.Errorf("need at least one input")
 	} else if len(outputs) == 0 {
-		return nil, fmt.Errorf("need at least one output")
+		return nil, 0, fmt.Errorf("need at least one output")
 	}
 
 	fee := feePerInput * uint64(len(inputs))
 	err := txCommon.DistributeFees(inputs, outputs, fee, true)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	unsignedTx, err := generateUnsignedTx(inputs, outputs, prefix)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	signedTx, err := signTx(privKey, unsignedTx, inputs, prefix)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return proto.Marshal(signedTx)
+	txHex, err := proto.Marshal(signedTx)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	txMass := CalculateTxMass(signedTx, txHex)
+
+	return txHex, txMass, nil
 }
 
 func CalculateTxID(txHex string) string {
@@ -136,4 +157,29 @@ func CalculateTxID(txHex string) string {
 	}
 
 	return hex.EncodeToString(txid)
+}
+
+func CalculateTxMass(tx *protowire.RpcTransaction, txHex []byte) uint64 {
+	// calculate mass for size
+	size := uint64(len(txHex))
+	fmt.Println(size, len(tx.Inputs), len(tx.Outputs))
+	massForSize := size * defaultMassPerTxByte
+
+	// calculate mass for scriptPubKey
+	var totalScriptPubKeySize uint64
+	for _, output := range tx.Outputs {
+		totalScriptPubKeySize += 2
+		totalScriptPubKeySize += uint64(len(output.ScriptPublicKey.ScriptPublicKey) / 2)
+	}
+	massForScriptPubKey := totalScriptPubKeySize * defaultMassPerScriptPubKeyByte
+
+	// calculate mass for SigOps
+	var totalSigOpCount uint64
+	for _, input := range tx.Inputs {
+		totalSigOpCount += uint64(input.SigOpCount)
+	}
+	massForSigOps := totalSigOpCount * defaultMassPerSigOp
+
+	// Sum all components of mass
+	return massForSize + massForScriptPubKey + massForSigOps
 }

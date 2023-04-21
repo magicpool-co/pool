@@ -20,6 +20,7 @@ func TestGenerateTx(t *testing.T) {
 		outputs     []*types.TxOutput
 		tx          []byte
 		txid        string
+		txMass      uint64
 	}{
 		{
 			priv:        "2c1436e4956d088f14ab2869e1a4a177a578dbc109e86aca29b73b65a6f707f3",
@@ -118,7 +119,8 @@ func TestGenerateTx(t *testing.T) {
 				0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
 				0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
 			},
-			txid: "27f9f94a63b9daf75b15a16521209786da947078efcdc5eced6d8a2dc8a19d58",
+			txid:   "27f9f94a63b9daf75b15a16521209786da947078efcdc5eced6d8a2dc8a19d58",
+			txMass: 5010,
 		},
 		{
 			priv:        "405f4400fd2e245e76979f86a0828d468ebb950a9be0c3e077833ae7a928b52e",
@@ -234,7 +236,8 @@ func TestGenerateTx(t *testing.T) {
 				0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
 				0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
 			},
-			txid: "c56e80eff72d812a1c3858e7f63b30b8784a70e607f88ab243516452522b8d3f",
+			txid:   "c56e80eff72d812a1c3858e7f63b30b8784a70e607f88ab243516452522b8d3f",
+			txMass: 6545,
 		},
 	}
 
@@ -246,13 +249,15 @@ func TestGenerateTx(t *testing.T) {
 		}
 		priv := secp256k1.PrivKeyFromBytes(privBytes)
 
-		tx, err := GenerateTx(priv, tt.inputs, tt.outputs, tt.prefix, tt.feePerInput)
+		tx, txMass, err := GenerateTx(priv, tt.inputs, tt.outputs, tt.prefix, tt.feePerInput)
 		if err != nil {
 			t.Errorf("failed on %d: %v", i, err)
 		} else if bytes.Compare(tx, tt.tx) != 0 {
 			t.Errorf("failed on %d: tx mismatch: have %x, want %x", i, tx, tt.tx)
 		} else if txid := CalculateTxID(hex.EncodeToString(tx)); txid != tt.txid {
 			t.Errorf("failed on %d: txid mismatch: have %s, want %s", i, txid, tt.txid)
+		} else if txMass != tt.txMass {
+			t.Errorf("failed on %d: tx mass mismatch: have %d, want %d", i, txMass, tt.txMass)
 		}
 	}
 }

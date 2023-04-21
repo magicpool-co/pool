@@ -80,9 +80,11 @@ func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, string, error) {
 	const feePerInput uint64 = 10000
 
-	txBytes, err := kastx.GenerateTx(node.privKey, inputs, outputs, node.prefix, feePerInput)
+	txBytes, txMass, err := kastx.GenerateTx(node.privKey, inputs, outputs, node.prefix, feePerInput)
 	if err != nil {
 		return "", "", err
+	} else if txMass >= kastx.MaximumTxMass {
+		return "", "", fmt.Errorf("transaction mass greater than maximum")
 	}
 
 	txHex := hex.EncodeToString(txBytes)
