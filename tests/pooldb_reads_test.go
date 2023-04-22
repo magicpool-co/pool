@@ -265,6 +265,11 @@ func (suite *PooldbReadsSuite) TestReadTransaction() {
 		suite.T().Errorf("failed: GetTransaction: %v", err)
 	}
 
+	_, err = pooldb.GetTransactionByTxID(pooldbClient.Reader(), "")
+	if err != nil {
+		suite.T().Errorf("failed: GetTransactionByTxID: %v", err)
+	}
+
 	_, err = pooldb.GetUnspentTransactions(pooldbClient.Reader(), "ETC")
 	if err != nil {
 		suite.T().Errorf("failed: GetUnspentTransactions: %v", err)

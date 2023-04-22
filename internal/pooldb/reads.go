@@ -776,6 +776,23 @@ func GetTransaction(q dbcl.Querier, id uint64) (*Transaction, error) {
 	return output, nil
 }
 
+func GetTransactionByTxID(q dbcl.Querier, txid string) (*Transaction, error) {
+	const query = `SELECT *
+	FROM transactions
+	WHERE
+		txid = ?;`
+
+	output := new(Transaction)
+	err := q.Get(output, query, txid)
+	if err != nil && err != sql.ErrNoRows {
+		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return output, nil
+}
+
 func GetUnspentTransactions(q dbcl.Querier, chainID string) ([]*Transaction, error) {
 	const query = `SELECT *
 	FROM transactions

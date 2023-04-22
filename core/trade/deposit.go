@@ -152,7 +152,15 @@ func (c *Client) InitiateDeposits(batchID uint64, exchange types.Exchange) error
 			depositValueIdx[deposit.ChainID] = new(big.Int)
 		}
 
+		tx, err := pooldb.GetTransactionByTxID(c.pooldb.Reader(), deposit.DepositTxID)
+		if err != nil {
+			return err
+		} else if !tx.Fee.Valid {
+			return fmt.Errorf("no fee for tx %d", tx.ID)
+		}
+
 		depositValueIdx[deposit.ChainID].Add(depositValueIdx[deposit.ChainID], deposit.Value.BigInt)
+		depositValueIdx[deposit.ChainID].Add(depositValueIdx[deposit.ChainID], tx.Fee.BigInt)
 	}
 
 	initiatedAll := true
