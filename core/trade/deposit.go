@@ -148,7 +148,7 @@ func (c *Client) InitiateDeposits(batchID uint64, exchange types.Exchange) error
 	for _, deposit := range deposits {
 		if !deposit.Value.Valid {
 			continue
-		} else if _, ok := depositValueIdx[deposit.ChainID]; ok {
+		} else if _, ok := depositValueIdx[deposit.ChainID]; !ok {
 			depositValueIdx[deposit.ChainID] = new(big.Int)
 		}
 
