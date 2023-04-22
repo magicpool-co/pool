@@ -249,7 +249,10 @@ func (c *Client) spendTx(node types.PayoutNode, tx *pooldb.Transaction) error {
 		for _, deposit := range deposits {
 			if !deposit.Value.Valid {
 				return fmt.Errorf("no value for deposit %d", deposit.ID)
+			} else if deposit.DepositTxID != tx.TxID {
+				continue
 			}
+
 			depositSum.Add(depositSum, deposit.Value.BigInt)
 		}
 

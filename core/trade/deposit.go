@@ -34,7 +34,7 @@ func (c *Client) executeAndMaybeSplitDeposit(
 		for i := 0; i < split; i++ {
 			outputs[i] = &types.TxOutput{
 				Address:  output.Address,
-				Value:    splitValue,
+				Value:    new(big.Int).Set(splitValue),
 				SplitFee: true,
 			}
 
@@ -169,6 +169,8 @@ func (c *Client) InitiateDeposits(batchID uint64, exchange types.Exchange) error
 			if depositedValue.Cmp(value) >= 0 {
 				continue
 			}
+
+			txOutputIdx[chain].Value.Sub(txOutputIdx[chain].Value, depositedValue)
 		}
 
 		err := c.executeAndMaybeSplitDeposit(batchID, chain, txOutputIdx[chain], 1)
