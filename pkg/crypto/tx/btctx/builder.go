@@ -2,7 +2,6 @@ package btctx
 
 import (
 	"encoding/hex"
-	"fmt"
 
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
 	secp256k1signer "github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
@@ -97,7 +96,7 @@ func GenerateTx(privKey *secp256k1.PrivateKey, baseTx *Transaction, inputs []*ty
 	if err != nil {
 		return nil, err
 	} else if len(initialTxSerialized) > 50000 { // non-standard limit is actually 100000
-		return nil, fmt.Errorf("transaction is non-standard with size of %d", len(initialTxSerialized))
+		return nil, txCommon.ErrTxTooBig
 	}
 
 	fee := uint64(len(initialTxSerialized)) * feePerByte

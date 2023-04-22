@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/magicpool-co/pool/internal/node/mining/kas/protowire"
+	txCommon "github.com/magicpool-co/pool/pkg/crypto/tx"
 	"github.com/magicpool-co/pool/pkg/crypto/tx/kastx"
 	"github.com/magicpool-co/pool/types"
 )
@@ -84,7 +85,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	if err != nil {
 		return "", "", err
 	} else if txMass >= kastx.MaximumTxMass {
-		return "", "", fmt.Errorf("transaction mass greater than maximum")
+		return "", "", txCommon.ErrTxTooBig
 	}
 
 	txHex := hex.EncodeToString(txBytes)

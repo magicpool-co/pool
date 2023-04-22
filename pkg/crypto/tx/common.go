@@ -12,6 +12,7 @@ var (
 	ErrInputOutputAmountMismatch = fmt.Errorf("input and output sum mismatch")
 	ErrNegativeFeeRemainder      = fmt.Errorf("negative fee remainder")
 	ErrFeesNotDistributed        = fmt.Errorf("fees could not be distributed")
+	ErrTxTooBig                  = fmt.Errorf("tx too big")
 )
 
 func DistributeFees(inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64, strict bool) error {

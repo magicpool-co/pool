@@ -220,7 +220,7 @@ CREATE TABLE transactions (
 	type 			tinyint(1) 		UNSIGNED NOT NULL,
 
 	txid			varchar(100)	NOT NULL,
-	tx_hex			text			NOT NULL,
+	tx_hex			mediumtext		NOT NULL,
 	height			bigint,
 	value			decimal(25,0)	NOT NULL,
 	fee				decimal(25,0)	NOT NULL,

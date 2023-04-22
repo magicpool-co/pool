@@ -6,9 +6,89 @@ import (
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
+	txCommon "github.com/magicpool-co/pool/pkg/crypto/tx"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
+
+func (c *Client) executeAndMaybeSplitDeposit(
+	batchID uint64,
+	chain string,
+	output *types.TxOutput,
+	split int,
+) error {
+	dbTx, err := c.pooldb.Begin()
+	if err != nil {
+		return err
+	}
+	defer dbTx.SafeRollback()
+
+	var outputs []*types.TxOutput
+	if split > 1 {
+		splitCount := new(big.Int).SetUint64(uint64(split))
+		splitValue := new(big.Int).Div(output.Value, splitCount)
+		sum := new(big.Int).Mul(splitValue, splitCount)
+		remainder := sum.Sub(output.Value, sum)
+
+		outputs = make([]*types.TxOutput, split)
+		for i := 0; i < split; i++ {
+			outputs[i] = &types.TxOutput{
+				Address:  output.Address,
+				Value:    splitValue,
+				SplitFee: true,
+			}
+
+			if i == 0 {
+				outputs[i].Value.Add(outputs[i].Value, remainder)
+			}
+		}
+	} else {
+		outputs = []*types.TxOutput{output}
+	}
+
+	outputList := make([][]*types.TxOutput, len(outputs))
+	for i, splitOutput := range outputs {
+		outputList[i] = []*types.TxOutput{splitOutput}
+	}
+
+	txs, err := c.bank.PrepareOutgoingTxs(dbTx, c.nodes[chain], types.DepositTx, outputList...)
+	if err != nil {
+		if err == txCommon.ErrTxTooBig {
+			if split > 5 {
+				return fmt.Errorf("past split limit of 5")
+			}
+
+			return c.executeAndMaybeSplitDeposit(batchID, chain, output, split+1)
+		}
+
+		return err
+	} else if len(txs) == 0 {
+		return fmt.Errorf("no txs for deposit preparation")
+	}
+
+	for i, tx := range txs {
+		splitValue := outputList[i][0].Value
+		deposit := &pooldb.ExchangeDeposit{
+			BatchID:   batchID,
+			ChainID:   chain,
+			NetworkID: chain,
+
+			DepositTxID: tx.TxID,
+
+			Value: dbcl.NullBigInt{Valid: true, BigInt: splitValue},
+		}
+
+		depositID, err := pooldb.InsertExchangeDeposit(c.pooldb.Writer(), deposit)
+		if err != nil {
+			return err
+		}
+
+		floatValue := common.BigIntToFloat64(splitValue, c.nodes[chain].GetUnits().Big())
+		c.telegram.NotifyInitiateDeposit(depositID, chain, floatValue)
+	}
+
+	return dbTx.SafeCommit()
+}
 
 func (c *Client) InitiateDeposits(batchID uint64, exchange types.Exchange) error {
 	exchangeInputs, err := pooldb.GetExchangeInputs(c.pooldb.Reader(), batchID)
@@ -30,7 +110,7 @@ func (c *Client) InitiateDeposits(batchID uint64, exchange types.Exchange) error
 	}
 
 	// validate each proposed deposit, create the tx outputs
-	txOutputIdx := make(map[string][]*types.TxOutput, len(values))
+	txOutputIdx := make(map[string]*types.TxOutput, len(values))
 	for chain, value := range values {
 		if value.Cmp(common.Big0) <= 0 {
 			return fmt.Errorf("no value for %s", chain)
@@ -52,12 +132,10 @@ func (c *Client) InitiateDeposits(batchID uint64, exchange types.Exchange) error
 			return err
 		}
 
-		txOutputIdx[chain] = []*types.TxOutput{
-			&types.TxOutput{
-				Address:  address,
-				Value:    value,
-				SplitFee: true,
-			},
+		txOutputIdx[chain] = &types.TxOutput{
+			Address:  address,
+			Value:    value,
+			SplitFee: true,
 		}
 	}
 
@@ -66,52 +144,29 @@ func (c *Client) InitiateDeposits(batchID uint64, exchange types.Exchange) error
 		return err
 	}
 
+	depositValueIdx := make(map[string]*big.Int)
 	for _, deposit := range deposits {
-		delete(values, deposit.ChainID)
+		if !deposit.Value.Valid {
+			continue
+		} else if _, ok := depositValueIdx[deposit.ChainID]; ok {
+			depositValueIdx[deposit.ChainID] = new(big.Int)
+		}
+
+		depositValueIdx[deposit.ChainID].Add(depositValueIdx[deposit.ChainID], deposit.Value.BigInt)
 	}
 
 	initiatedAll := true
 	for chain, value := range values {
-		dbTx, err := c.pooldb.Begin()
+		if depositedValue, ok := depositValueIdx[chain]; ok {
+			if depositedValue.Cmp(value) >= 0 {
+				continue
+			}
+		}
+
+		err := c.executeAndMaybeSplitDeposit(batchID, chain, txOutputIdx[chain], 1)
 		if err != nil {
 			return err
 		}
-
-		txs, err := c.bank.PrepareOutgoingTxs(dbTx, c.nodes[chain], types.DepositTx, txOutputIdx[chain])
-		if err != nil {
-			dbTx.SafeRollback()
-			return err
-		} else if len(txs) != 1 {
-			dbTx.SafeRollback()
-			return fmt.Errorf("no txs for deposit preparation")
-		} else if txs[0] == nil {
-			dbTx.SafeRollback()
-			continue
-		}
-		tx := txs[0]
-
-		deposit := &pooldb.ExchangeDeposit{
-			BatchID:   batchID,
-			ChainID:   chain,
-			NetworkID: chain,
-
-			DepositTxID: tx.TxID,
-
-			Value: dbcl.NullBigInt{Valid: true, BigInt: value},
-		}
-
-		depositID, err := pooldb.InsertExchangeDeposit(c.pooldb.Writer(), deposit)
-		if err != nil {
-			dbTx.SafeRollback()
-			return err
-		}
-
-		if err := dbTx.SafeCommit(); err != nil {
-			return err
-		}
-
-		floatValue := common.BigIntToFloat64(value, c.nodes[chain].GetUnits().Big())
-		c.telegram.NotifyInitiateDeposit(depositID, chain, floatValue)
 	}
 
 	if initiatedAll {
