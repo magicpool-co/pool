@@ -845,6 +845,7 @@ func (ctx *Context) updateMinerSettings(args updateMinerSettingsArgs) http.Handl
 			return
 		}
 
+		hasEmail := miner.Email != nil
 		if args.Email != nil {
 			_, err := mail.ParseAddress(types.StringValue(args.Email))
 			if err != nil {
@@ -853,7 +854,10 @@ func (ctx *Context) updateMinerSettings(args updateMinerSettingsArgs) http.Handl
 			}
 
 			miner.Email = args.Email
+			hasEmail = true
+		}
 
+		if hasEmail {
 			if args.EnableWorkerNotifications != nil {
 				miner.EnabledWorkerNotifications = types.BoolValue(args.EnableWorkerNotifications)
 			}
