@@ -79,11 +79,6 @@ func (suite *RedisReadsSuite) TestGetIntervals() {
 	if err != nil {
 		suite.T().Errorf("failed: GetIntervalInvalidShares: %v", err)
 	}
-
-	_, err = redisClient.GetIntervalReportedHashrates("", "")
-	if err != nil {
-		suite.T().Errorf("failed: GetIntervalReportedHashrates: %v", err)
-	}
 }
 
 func (suite *RedisReadsSuite) TestGetCharts() {

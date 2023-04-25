@@ -83,10 +83,6 @@ func (c *Client) getIntervalInvalidSharesKey(chain, interval string) string {
 	return c.getKey("pool", strings.ToLower(chain), "ish", interval)
 }
 
-func (c *Client) getIntervalReportedHashratesKey(chain, interval string) string {
-	return c.getKey("pool", strings.ToLower(chain), "rhr", interval)
-}
-
 /* chart */
 
 func (c *Client) getChartSharesLastTimeKey(chain string) string {

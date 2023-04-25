@@ -135,10 +135,6 @@ func (c *Client) GetIntervalInvalidShares(chain, interval string) (map[string]ui
 	return c.baseZRangeWithScoresUint64(c.getIntervalInvalidSharesKey(chain, interval))
 }
 
-func (c *Client) GetIntervalReportedHashrates(chain, interval string) (map[string]float64, error) {
-	return c.baseZRangeWithScores(c.getIntervalReportedHashratesKey(chain, interval))
-}
-
 /* chart */
 
 func (c *Client) GetChartSharesLastTime(chain string) (time.Time, error) {

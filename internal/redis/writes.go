@@ -132,11 +132,10 @@ func (c *Client) DeleteInterval(chain, interval string) error {
 	ctx := context.Background()
 	pipe := c.writeClient.Pipeline()
 
-	// remove miner reported hashrate, accepted, rejected, and last shares
+	// remove miner accepted, rejected, and last shares
 	pipe.Del(ctx, c.getIntervalAcceptedSharesKey(chain, interval))
 	pipe.Del(ctx, c.getIntervalRejectedSharesKey(chain, interval))
 	pipe.Del(ctx, c.getIntervalInvalidSharesKey(chain, interval))
-	pipe.Del(ctx, c.getIntervalReportedHashratesKey(chain, interval))
 
 	// remove interval from the set
 	pipe.SRem(ctx, c.getIntervalsKey(chain), interval)
@@ -144,15 +143,6 @@ func (c *Client) DeleteInterval(chain, interval string) error {
 	_, err := pipe.Exec(ctx)
 
 	return err
-}
-
-func (c *Client) SetIntervalReportedHashrateBatch(chain, interval string, values map[string]float64) error {
-	members := make([]*redis.Z, 0)
-	for k, v := range values {
-		members = append(members, &redis.Z{Member: k, Score: v})
-	}
-
-	return c.baseZAddBatch(c.getIntervalReportedHashratesKey(chain, interval), members)
 }
 
 /* charts */

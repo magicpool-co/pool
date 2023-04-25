@@ -103,11 +103,6 @@ func (suite *RedisWritesSuite) TestWriteIntervals() {
 	if err != nil {
 		suite.T().Errorf("failed: DeleteInterval: %v", err)
 	}
-
-	err = redisClient.SetIntervalReportedHashrateBatch("", "", map[string]float64{"test": 3})
-	if err != nil {
-		suite.T().Errorf("failed: SetIntervalReportedHashrateBatch: %v", err)
-	}
 }
 
 func (suite *RedisWritesSuite) TestWriteCharts() {
