@@ -29,6 +29,12 @@ var sql003minerEmailUp string
 //go:embed migrations/003_miner_email.down.sql
 var sql003minerEmailDown string
 
+//go:embed migrations/004_miner_notify.sql
+var sql004minerNotifyUp string
+
+//go:embed migrations/004_miner_notify.down.sql
+var sql004minerNotifyDown string
+
 func getMigrationVersions() (map[string]string, error) {
 	migrations := map[string]string{
 		"000_init.sql":                  sql000initUp,
@@ -39,6 +45,8 @@ func getMigrationVersions() (map[string]string, error) {
 		"002_immature_balance.down.sql": sql002immatureBalanceDown,
 		"003_miner_email.sql":           sql003minerEmailUp,
 		"003_miner_email.down.sql":      sql003minerEmailDown,
+		"004_miner_notify.sql":          sql004minerNotifyUp,
+		"004_miner_notify.down.sql":     sql004minerNotifyDown,
 	}
 
 	for k, v := range migrations {

@@ -39,7 +39,7 @@ func UpdateMiner(q dbcl.Querier, obj *Miner, updateCols []string) error {
 
 func InsertWorker(q dbcl.Querier, obj *Worker) (uint64, error) {
 	const table = "workers"
-	cols := []string{"miner_id", "name", "active"}
+	cols := []string{"miner_id", "name", "active", "notified"}
 
 	return dbcl.ExecInsert(q, table, cols, obj)
 }

@@ -235,3 +235,9 @@ func (t *Client) NotifyTransactionSent(id uint64, chain, txid, explorerURL strin
 
 	return t.sendMessage(msg, t.InfoChatID)
 }
+
+func (t *Client) NotifyWorkerDown(minerID uint64, workerName string, lastShare int64) error {
+	msg := fmt.Sprintf("worker %s for miner %d \\(last share %d\\)", workerName, minerID, lastShare)
+
+	return t.sendMessage(msg, t.InfoChatID)
+}

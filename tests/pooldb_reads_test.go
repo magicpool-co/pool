@@ -124,6 +124,11 @@ func (suite *PooldbReadsSuite) TestReadWorker() {
 	if err != nil {
 		suite.T().Errorf("failed: GetInactiveWorkersByMinersCount: %v", err)
 	}
+
+	_, err = pooldb.GetWorkersWithLastShares(pooldbClient.Reader(), []uint64{0, 1})
+	if err != nil {
+		suite.T().Errorf("failed: GetWorkersWithLastShares: %v", err)
+	}
 }
 
 func (suite *PooldbReadsSuite) TestReadIPAddress() {

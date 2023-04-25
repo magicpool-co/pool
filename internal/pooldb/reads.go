@@ -240,8 +240,7 @@ func GetMinersWithLastShares(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error
 		SELECT
 			miner_id,
 			MAX(last_share) last_share
-		FROM
-			ip_addresses
+		FROM ip_addresses
 		GROUP BY miner_id
 	) SELECT
 		miners.id,
@@ -275,8 +274,7 @@ func GetActiveMiners(q dbcl.Querier, minerIDs []uint64) ([]*Miner, error) {
 		SELECT
 			miner_id,
 			MAX(last_share) last_share
-		FROM
-			ip_addresses
+		FROM ip_addresses
 		WHERE
 			active = TRUE
 		AND
@@ -386,6 +384,39 @@ func GetInactiveWorkersByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64,
 	query = q.Rebind(query)
 
 	return dbcl.GetUint64(q, query, args...)
+}
+
+func GetWorkersWithLastShares(q dbcl.Querier, workerIDs []uint64) ([]*Worker, error) {
+	const rawQuery = `SELECT
+		workers.id,
+		workers.miner_id,
+		workers.name,
+		MAX(ip_addresses.active) active,
+		workers.notified,
+		MIN(workers.created_at) created_at,
+		MAX(ip_addresses.last_share) last_share
+	FROM workers
+	JOIN ip_addresses ON workers.id = ip_addresses.worker_id
+	WHERE
+		workers.id IN (?)
+	AND
+		ip_addresses.expired = FALSE
+	GROUP BY workers.id;`
+
+	if len(workerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, workerIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	output := []*Worker{}
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
+
+	return output, err
 }
 
 func GetOldestActiveIPAddress(q dbcl.Querier, minerID uint64) (*IPAddress, error) {

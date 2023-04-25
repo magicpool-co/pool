@@ -71,7 +71,9 @@ type Worker struct {
 	ID      uint64 `db:"id"`
 	MinerID uint64 `db:"miner_id"`
 	Name    string `db:"name"`
-	Active  bool   `db:"active"`
+
+	Active   bool `db:"active"`
+	Notified bool `db:"notified"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
