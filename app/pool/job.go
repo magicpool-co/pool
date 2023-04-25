@@ -202,7 +202,7 @@ func (m *JobManager) update(job *types.StratumJob) (bool, error) {
 }
 
 func (m *JobManager) isExpiredHeight(height uint64) bool {
-	indexDepth := 50
+	indexDepth := 10
 	if m.jobList.ageLimit > 0 {
 		indexDepth = m.jobList.ageLimit
 	}
