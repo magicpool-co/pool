@@ -70,6 +70,10 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		workerName = req.Worker
 	}
 
+	if workerName == "" {
+		workerName = "default"
+	}
+
 	// address formatting is chain:address
 	addressChain := args[0]
 	partial := strings.Split(addressChain, ":")
@@ -144,38 +148,36 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 	c.SetReadDeadline(time.Time{})
 
 	var workerID uint64
-	if workerName != "" {
-		workerID, err = p.redis.GetWorkerID(minerID, workerName)
+	workerID, err = p.redis.GetWorkerID(minerID, workerName)
+	if err != nil || workerID == 0 {
+		if err != nil {
+			p.logger.Error(err)
+		}
+
+		// check the writer db directly
+		workerID, err = pooldb.GetWorkerID(p.db.Writer(), minerID, workerName)
 		if err != nil || workerID == 0 {
 			if err != nil {
 				p.logger.Error(err)
 			}
 
-			// check the writer db directly
-			workerID, err = pooldb.GetWorkerID(p.db.Writer(), minerID, workerName)
-			if err != nil || workerID == 0 {
-				if err != nil {
-					p.logger.Error(err)
-				}
-
-				worker := &pooldb.Worker{
-					MinerID: minerID,
-					Name:    workerName,
-					Active:  false,
-				}
-
-				// attempt to insert the workerID
-				workerID, err = pooldb.InsertWorker(p.db.Writer(), worker)
-				if err != nil {
-					p.logger.Error(err)
-					return nil
-				}
+			worker := &pooldb.Worker{
+				MinerID: minerID,
+				Name:    workerName,
+				Active:  false,
 			}
 
-			// set the workerID in redis
-			if err := p.redis.SetWorkerID(minerID, workerName, workerID); err != nil {
+			// attempt to insert the workerID
+			workerID, err = pooldb.InsertWorker(p.db.Writer(), worker)
+			if err != nil {
 				p.logger.Error(err)
+				return nil
 			}
+		}
+
+		// set the workerID in redis
+		if err := p.redis.SetWorkerID(minerID, workerName, workerID); err != nil {
+			p.logger.Error(err)
 		}
 	}
 	c.SetWorkerID(workerID)
