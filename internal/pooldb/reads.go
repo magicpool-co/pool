@@ -1085,6 +1085,26 @@ func GetPendingBalanceInputsWithoutBatch(q dbcl.Querier) ([]*BalanceInput, error
 	return output, err
 }
 
+func GetPendingBalanceInputsSumWithoutBatch(q dbcl.Querier) ([]*BalanceInput, error) {
+	const query = `SELECT
+		chain_id,
+		out_chain_id,
+		SUM(value) as value
+	FROM balance_inputs
+	WHERE
+		pending = TRUE
+	AND
+		mature = TRUE
+	AND
+		batch_id IS NULL
+	GROUP BY chain_id, out_chain_id;`
+
+	output := []*BalanceInput{}
+	err := q.Select(&output, query)
+
+	return output, err
+}
+
 func GetBalanceInputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceInput, error) {
 	const query = `SELECT *
 	FROM balance_inputs

@@ -369,6 +369,11 @@ func (suite *PooldbReadsSuite) TestReadBalanceInput() {
 		suite.T().Errorf("failed: GetPendingBalanceInputsWithoutBatch: %v", err)
 	}
 
+	_, err = pooldb.GetPendingBalanceInputsSumWithoutBatch(pooldbClient.Reader())
+	if err != nil {
+		suite.T().Errorf("failed: GetPendingBalanceInputsSumWithoutBatch: %v", err)
+	}
+
 	_, err = pooldb.GetBalanceInputsByBatch(pooldbClient.Reader(), 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetBalanceInputsByBatch: %v", err)

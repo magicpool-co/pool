@@ -144,19 +144,11 @@ func (c *Client) CheckForNewBatches() error {
 	return nil
 }
 
-func (c *Client) checkForNewBatch(exchange types.Exchange) error {
-	activeBatches, err := pooldb.GetActiveExchangeBatches(c.pooldb.Reader())
-	if err != nil {
-		return err
-	} else if len(activeBatches) > 0 {
-		return nil
-	}
-
-	balanceInputs, err := pooldb.GetPendingBalanceInputsWithoutBatch(c.pooldb.Reader())
-	if err != nil {
-		return err
-	}
-
+// a helper method to standardize the validation and calculation of output paths
+func (c *Client) calculateOutputPathsByBalanceInputs(
+	exchange types.Exchange,
+	balanceInputs []*pooldb.BalanceInput,
+) (map[string]map[string]*big.Int, error) {
 	// calculate the input paths from balance inputs, fetch the
 	// exchange's output thresholds and current prices. though input
 	// thresholds are global (since exchanges don't charge any deposit
@@ -164,7 +156,7 @@ func (c *Client) checkForNewBatch(exchange types.Exchange) error {
 	// are exchange specific since withdrawal fees can vary across exchanges.
 	inputPaths, err := balanceInputsToInputPaths(balanceInputs)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// check all input and output paths, remove the inputs/outputs that
@@ -179,7 +171,7 @@ func (c *Client) checkForNewBatch(exchange types.Exchange) error {
 		// check for deposits being enabled on the input chains
 		depositsEnabled, _, err := exchange.GetWalletStatus(inChainID)
 		if err != nil {
-			return err
+			return nil, err
 		} else if !depositsEnabled {
 			delete(inputPaths, inChainID)
 			continue
@@ -189,7 +181,7 @@ func (c *Client) checkForNewBatch(exchange types.Exchange) error {
 			// check for withdrawals being enabled on the output chains
 			_, withdrawalsEnabled, err := exchange.GetWalletStatus(outChainID)
 			if err != nil {
-				return err
+				return nil, err
 			} else if !withdrawalsEnabled {
 				delete(inputPaths[inChainID], outChainID)
 			}
@@ -199,7 +191,7 @@ func (c *Client) checkForNewBatch(exchange types.Exchange) error {
 	outputThresholds := exchange.GetOutputThresholds()
 	prices, err := exchange.GetPrices(inputPaths)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// calculate the paths that meet the given thresholds, based off
@@ -207,8 +199,41 @@ func (c *Client) checkForNewBatch(exchange types.Exchange) error {
 	// the final price of each trade is only know at runtime, cumulative output
 	// values are estimated through the current prices - see the exchange accountant
 	// for more details on this process).
-	outputPaths, err := accounting.CalculateExchangePaths(inputPaths, inputThresholds,
-		outputThresholds, prices)
+	return accounting.CalculateExchangePaths(inputPaths, inputThresholds, outputThresholds, prices)
+}
+
+func (c *Client) checkForNewBatch(exchange types.Exchange) error {
+	activeBatches, err := pooldb.GetActiveExchangeBatches(c.pooldb.Reader())
+	if err != nil {
+		return err
+	} else if len(activeBatches) > 0 {
+		return nil
+	}
+
+	// first sum all balance inputs as a preliminary check to avoid database I/O.
+	// since it is just the sum, the same check has to be run again with all pending
+	// balance inputs, but this is a way to avoid having to receive thousands of balance
+	// inputs from the database every 5 minutes.
+	balanceInputSums, err := pooldb.GetPendingBalanceInputsSumWithoutBatch(c.pooldb.Reader())
+	if err != nil {
+		return err
+	}
+
+	outputPaths, err := c.calculateOutputPathsByBalanceInputs(exchange, balanceInputSums)
+	if err != nil {
+		return err
+	} else if len(outputPaths) == 0 {
+		return nil
+	}
+
+	// since at least some exchange paths are passing the thresholds, re-run the
+	// check with all of the balance inputs this time.
+	balanceInputs, err := pooldb.GetPendingBalanceInputsWithoutBatch(c.pooldb.Reader())
+	if err != nil {
+		return err
+	}
+
+	outputPaths, err = c.calculateOutputPathsByBalanceInputs(exchange, balanceInputs)
 	if err != nil {
 		return err
 	} else if len(outputPaths) == 0 {
