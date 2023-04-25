@@ -305,7 +305,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		if hash == nil {
 			p.logger.Error(fmt.Errorf("no hash returned for an accepted share"))
 		} else {
-			isUnique, err := p.redis.AddUniqueShare(p.chain, job.Height.Value(), hash.Hex())
+			isUnique, err := p.redis.AddUniqueShare(p.chain, job.ID, hash.Hex())
 			if err != nil {
 				return false, err
 			} else if !isUnique {

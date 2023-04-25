@@ -130,12 +130,11 @@ func (suite *TsdbReadsSuite) TestReadRounds() {
 	if err != nil {
 		suite.T().Errorf("failed: GetRoundsAverageProfitabilitySlow: %v", err)
 	}
-
 }
 
 func (suite *TsdbReadsSuite) TestReadShares() {
 	var err error
-	metrics := []string{"hashrate", "avg_hashrate", "reported_hashrate"}
+	metrics := []string{"hashrate", "avg_hashrate"}
 
 	_, err = tsdb.GetGlobalShares(tsdbClient.Reader(), "ETH", 1)
 	if err != nil {

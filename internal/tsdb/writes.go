@@ -207,7 +207,7 @@ func InsertFinalRounds(q dbcl.Querier, objects ...*Round) error {
 func InsertGlobalShares(q dbcl.Querier, objects ...*Share) error {
 	const table = "global_shares"
 	cols := []string{"chain_id", "miners", "workers", "accepted_shares", "rejected_shares", "invalid_shares",
-		"hashrate", "avg_hashrate", "reported_hashrate", "pending", "count", "period", "start_time", "end_time"}
+		"hashrate", "avg_hashrate", "pending", "count", "period", "start_time", "end_time"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
@@ -220,9 +220,9 @@ func InsertGlobalShares(q dbcl.Querier, objects ...*Share) error {
 func InsertPartialGlobalShares(q dbcl.Querier, objects ...*Share) error {
 	const table = "global_shares"
 	insertCols := []string{"chain_id", "miners", "workers", "accepted_shares", "rejected_shares", "invalid_shares",
-		"hashrate", "avg_hashrate", "reported_hashrate", "pending", "count", "period", "start_time", "end_time"}
+		"hashrate", "avg_hashrate", "pending", "count", "period", "start_time", "end_time"}
 	updateCols := []string{"miners", "workers", "accepted_shares", "invalid_shares", "rejected_shares", "hashrate",
-		"avg_hashrate", "reported_hashrate", "count"}
+		"avg_hashrate", "count"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
@@ -235,8 +235,8 @@ func InsertPartialGlobalShares(q dbcl.Querier, objects ...*Share) error {
 func InsertFinalGlobalShares(q dbcl.Querier, objects ...*Share) error {
 	const table = "global_shares"
 	insertCols := []string{"chain_id", "miners", "workers", "accepted_shares", "rejected_shares", "invalid_shares",
-		"hashrate", "avg_hashrate", "reported_hashrate", "pending", "count", "period", "start_time", "end_time"}
-	updateCols := []string{"hashrate", "avg_hashrate", "reported_hashrate", "pending"}
+		"hashrate", "avg_hashrate", "pending", "count", "period", "start_time", "end_time"}
+	updateCols := []string{"hashrate", "avg_hashrate", "pending"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
@@ -249,7 +249,7 @@ func InsertFinalGlobalShares(q dbcl.Querier, objects ...*Share) error {
 func InsertMinerShares(q dbcl.Querier, objects ...*Share) error {
 	const table = "miner_shares"
 	cols := []string{"chain_id", "miner_id", "workers", "accepted_shares", "rejected_shares", "invalid_shares",
-		"hashrate", "avg_hashrate", "reported_hashrate", "pending", "count", "period", "start_time", "end_time"}
+		"hashrate", "avg_hashrate", "pending", "count", "period", "start_time", "end_time"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
@@ -265,8 +265,8 @@ func InsertMinerShares(q dbcl.Querier, objects ...*Share) error {
 func InsertPartialMinerShares(q dbcl.Querier, objects ...*Share) error {
 	const table = "miner_shares"
 	insertCols := []string{"chain_id", "miner_id", "workers", "accepted_shares", "rejected_shares", "invalid_shares",
-		"hashrate", "avg_hashrate", "reported_hashrate", "pending", "count", "period", "start_time", "end_time"}
-	updateCols := []string{"workers", "accepted_shares", "rejected_shares", "hashrate", "reported_hashrate", "count"}
+		"hashrate", "avg_hashrate", "pending", "count", "period", "start_time", "end_time"}
+	updateCols := []string{"workers", "accepted_shares", "rejected_shares", "hashrate", "count"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
@@ -279,8 +279,8 @@ func InsertPartialMinerShares(q dbcl.Querier, objects ...*Share) error {
 func InsertFinalMinerShares(q dbcl.Querier, objects ...*Share) error {
 	const table = "miner_shares"
 	insertCols := []string{"chain_id", "miner_id", "workers", "accepted_shares", "rejected_shares", "invalid_shares",
-		"hashrate", "avg_hashrate", "reported_hashrate", "pending", "count", "period", "start_time", "end_time"}
-	updateCols := []string{"hashrate", "avg_hashrate", "reported_hashrate", "pending"}
+		"hashrate", "avg_hashrate", "pending", "count", "period", "start_time", "end_time"}
+	updateCols := []string{"hashrate", "avg_hashrate", "pending"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
@@ -293,7 +293,7 @@ func InsertFinalMinerShares(q dbcl.Querier, objects ...*Share) error {
 func InsertWorkerShares(q dbcl.Querier, objects ...*Share) error {
 	const table = "worker_shares"
 	cols := []string{"chain_id", "worker_id", "accepted_shares", "rejected_shares", "invalid_shares",
-		"hashrate", "avg_hashrate", "reported_hashrate", "pending", "count", "period", "start_time", "end_time"}
+		"hashrate", "avg_hashrate", "pending", "count", "period", "start_time", "end_time"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
@@ -309,8 +309,8 @@ func InsertWorkerShares(q dbcl.Querier, objects ...*Share) error {
 func InsertPartialWorkerShares(q dbcl.Querier, objects ...*Share) error {
 	const table = "worker_shares"
 	insertCols := []string{"chain_id", "worker_id", "accepted_shares", "rejected_shares", "invalid_shares",
-		"hashrate", "avg_hashrate", "reported_hashrate", "pending", "count", "period", "start_time", "end_time"}
-	updateCols := []string{"accepted_shares", "rejected_shares", "hashrate", "reported_hashrate", "count"}
+		"hashrate", "avg_hashrate", "pending", "count", "period", "start_time", "end_time"}
+	updateCols := []string{"accepted_shares", "rejected_shares", "hashrate", "count"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
@@ -323,8 +323,8 @@ func InsertPartialWorkerShares(q dbcl.Querier, objects ...*Share) error {
 func InsertFinalWorkerShares(q dbcl.Querier, objects ...*Share) error {
 	const table = "worker_shares"
 	insertCols := []string{"chain_id", "worker_id", "accepted_shares", "rejected_shares", "invalid_shares",
-		"hashrate", "avg_hashrate", "reported_hashrate", "pending", "count", "period", "start_time", "end_time"}
-	updateCols := []string{"hashrate", "avg_hashrate", "reported_hashrate", "pending"}
+		"hashrate", "avg_hashrate", "pending", "count", "period", "start_time", "end_time"}
+	updateCols := []string{"hashrate", "avg_hashrate", "pending"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {

@@ -212,7 +212,7 @@ func GetGlobalSharesSingleMetric(q dbcl.Querier, metric string, period int) ([]*
 
 func GetPendingGlobalSharesByEndTime(q dbcl.Querier, timestamp time.Time, chain string, period int) ([]*Share, error) {
 	const query = `SELECT
-		chain_id, hashrate, reported_hashrate, count, period, start_time, end_time
+		chain_id, hashrate, count, period, start_time, end_time
 	FROM global_shares
 	WHERE
 		end_time = ?
@@ -285,7 +285,7 @@ func GetMinerSharesSingleMetric(q dbcl.Querier, minerIDs []uint64, metric string
 
 func GetPendingMinerSharesByEndTime(q dbcl.Querier, timestamp time.Time, chain string, period int) ([]*Share, error) {
 	const query = `SELECT
-		chain_id, miner_id, hashrate, reported_hashrate, count, period, start_time, end_time
+		chain_id, miner_id, hashrate, count, period, start_time, end_time
 	FROM miner_shares
 	WHERE
 		end_time = ?
@@ -307,8 +307,7 @@ func GetMinerSharesByEndTime(q dbcl.Querier, timestamp time.Time, minerIDs []uin
 		miner_id,
 		chain_id,
 		hashrate,
-		avg_hashrate,
-		reported_hashrate
+		avg_hashrate
 	FROM miner_shares
     WHERE
 		end_time = ?
@@ -371,7 +370,7 @@ func GetWorkerSharesSingleMetric(q dbcl.Querier, workerID uint64, metric string,
 
 func GetPendingWorkerSharesByEndTime(q dbcl.Querier, timestamp time.Time, chain string, period int) ([]*Share, error) {
 	const query = `SELECT
-		chain_id, worker_id, hashrate, reported_hashrate, count, period, start_time, end_time
+		chain_id, worker_id, hashrate, count, period, start_time, end_time
 	FROM worker_shares
 	WHERE
 		end_time = ?
@@ -393,8 +392,7 @@ func GetWorkerSharesAllChainsByEndTime(q dbcl.Querier, timestamp time.Time, work
 		worker_id,
 		chain_id,
 		hashrate,
-		avg_hashrate,
-		reported_hashrate
+		avg_hashrate
 	FROM worker_shares
     WHERE
 		end_time = ?
@@ -865,8 +863,7 @@ func GetGlobalSharesLast(q dbcl.Querier, period int) ([]*Share, error) {
 		miners,
 		workers,
 		hashrate,
-		avg_hashrate,
-		reported_hashrate
+		avg_hashrate
 	FROM global_shares
 	WHERE
 		end_time = (
@@ -919,8 +916,7 @@ func GetMinersSharesLast(q dbcl.Querier, minerIDs []uint64, period int) ([]*Shar
 	const rawQuery = `SELECT
 		chain_id,
 		IFNULL(SUM(hashrate), 0) hashrate,
-		IFNULL(SUM(avg_hashrate), 0) avg_hashrate,
-		IFNULL(SUM(reported_hashrate), 0) reported_hashrate
+		IFNULL(SUM(avg_hashrate), 0) avg_hashrate
 	FROM miner_shares
 	WHERE
 		end_time = (
@@ -989,8 +985,7 @@ func GetWorkerSharesLast(q dbcl.Querier, workerID uint64, period int) ([]*Share,
 	const query = `SELECT
 		chain_id,
 		hashrate,
-		avg_hashrate,
-		reported_hashrate
+		avg_hashrate
 	FROM worker_shares
     WHERE
 		end_time = (
