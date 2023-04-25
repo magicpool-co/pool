@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+
+	"github.com/magicpool-co/pool/internal/tsdb"
 )
 
 /* miner */
@@ -168,4 +170,42 @@ func (c *Client) SetChartBlocksLastTime(chain string, timestamp time.Time) error
 func (c *Client) SetChartRoundsLastTime(chain string, timestamp time.Time) error {
 	encoded := strconv.FormatInt(timestamp.UTC().Unix(), 10)
 	return c.baseSet(c.getChartRoundsLastTimeKey(chain), encoded)
+}
+
+/* cached stats */
+
+func (c *Client) SetCachedGlobalLastShares(shares []*tsdb.Share, exp time.Duration) error {
+	encoded, err := encode(shares)
+	if err != nil {
+		return err
+	}
+
+	return c.baseSetExp(c.getCachedGlobalLastSharesKey(), encoded, exp)
+}
+
+func (c *Client) SetCachedGlobalLastProfits(blocks []*tsdb.Block, exp time.Duration) error {
+	encoded, err := encode(blocks)
+	if err != nil {
+		return err
+	}
+
+	return c.baseSetExp(c.getCachedGlobalLastProfitsKey(), encoded, exp)
+}
+
+func (c *Client) SetCachedLuckByChain(chain string, luck float64, exp time.Duration) error {
+	encoded := strconv.FormatFloat(luck, 'f', 8, 64)
+
+	return c.baseSetExp(c.getCachedLuckByChainKey(chain), encoded, exp)
+}
+
+func (c *Client) SetCachedMinersByChain(chain string, miners int64, exp time.Duration) error {
+	encoded := strconv.FormatInt(miners, 10)
+
+	return c.baseSetExp(c.getCachedMinersByChainKey(chain), encoded, exp)
+}
+
+func (c *Client) SetCachedWorkersByChain(chain string, workers int64, exp time.Duration) error {
+	encoded := strconv.FormatInt(workers, 10)
+
+	return c.baseSetExp(c.getCachedWorkersByChainKey(chain), encoded, exp)
 }

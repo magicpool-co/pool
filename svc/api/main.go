@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/magicpool-co/pool/app/api"
 	"github.com/magicpool-co/pool/internal/log"
@@ -55,7 +56,14 @@ func newAPI(secrets map[string]string, port int) (*http.Server, *log.Logger, err
 		}
 	}
 
-	ctx := api.NewContext(logger, nil, pooldbClient, tsdbClient, redisClient, nodes)
+	var cacheEnabled bool
+	if rawCacheEnabled, ok := secrets["REDIS_CACHE_ENABLED"]; ok {
+		if strings.ToLower(rawCacheEnabled) == "true" {
+			cacheEnabled = true
+		}
+	}
+
+	ctx := api.NewContext(logger, nil, pooldbClient, tsdbClient, redisClient, nodes, cacheEnabled)
 	server := api.New(ctx, port)
 
 	return server, logger, nil

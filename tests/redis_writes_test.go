@@ -6,13 +6,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/suite"
+
+	"github.com/magicpool-co/pool/internal/tsdb"
 )
 
 type RedisWritesSuite struct {
 	suite.Suite
 }
 
-func (suite *RedisReadsSuite) TestWriteMiners() {
+func (suite *RedisWritesSuite) TestWriteMiners() {
 	var err error
 
 	err = redisClient.SetMinerID("", 0)
@@ -51,7 +53,7 @@ func (suite *RedisReadsSuite) TestWriteMiners() {
 	}
 }
 
-func (suite *RedisReadsSuite) TestWriteShareIndexes() {
+func (suite *RedisWritesSuite) TestWriteShareIndexes() {
 	var err error
 
 	err = redisClient.AddShareIndexHeight("", 0)
@@ -70,7 +72,7 @@ func (suite *RedisReadsSuite) TestWriteShareIndexes() {
 	}
 }
 
-func (suite *RedisReadsSuite) TestWriteRounds() {
+func (suite *RedisWritesSuite) TestWriteRounds() {
 	var err error
 
 	err = redisClient.AddAcceptedShare("", "", "", 1)
@@ -89,7 +91,7 @@ func (suite *RedisReadsSuite) TestWriteRounds() {
 	}
 }
 
-func (suite *RedisReadsSuite) TestWriteIntervals() {
+func (suite *RedisWritesSuite) TestWriteIntervals() {
 	var err error
 
 	err = redisClient.AddInterval("", "")
@@ -108,7 +110,7 @@ func (suite *RedisReadsSuite) TestWriteIntervals() {
 	}
 }
 
-func (suite *RedisReadsSuite) TestWriteCharts() {
+func (suite *RedisWritesSuite) TestWriteCharts() {
 	var err error
 
 	err = redisClient.SetChartSharesLastTime("", time.Now())
@@ -124,5 +126,34 @@ func (suite *RedisReadsSuite) TestWriteCharts() {
 	err = redisClient.SetChartRoundsLastTime("", time.Now())
 	if err != nil {
 		suite.T().Errorf("failed: SetChartRoundsLastTime: %v", err)
+	}
+}
+
+func (suite *RedisWritesSuite) TestWriteCachedStats() {
+	var err error
+
+	err = redisClient.SetCachedGlobalLastShares([]*tsdb.Share{&tsdb.Share{}}, 1)
+	if err != nil {
+		suite.T().Errorf("failed: SetCachedGlobalLastShares: %v", err)
+	}
+
+	err = redisClient.SetCachedGlobalLastProfits([]*tsdb.Block{&tsdb.Block{}}, 1)
+	if err != nil {
+		suite.T().Errorf("failed: SetCachedGlobalLastProfits: %v", err)
+	}
+
+	err = redisClient.SetCachedLuckByChain("ETH", 0.1, 1)
+	if err != nil {
+		suite.T().Errorf("failed: SetCachedLuckByChain: %v", err)
+	}
+
+	err = redisClient.SetCachedMinersByChain("ETH", 9, 1)
+	if err != nil {
+		suite.T().Errorf("failed: SetCachedMinersByChain: %v", err)
+	}
+
+	err = redisClient.SetCachedWorkersByChain("ETH", 9, 1)
+	if err != nil {
+		suite.T().Errorf("failed: SetCachedWorkersByChain: %v", err)
 	}
 }

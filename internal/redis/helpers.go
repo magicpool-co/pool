@@ -1,7 +1,9 @@
 package redis
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 	"fmt"
 	"strconv"
 	"time"
@@ -9,7 +11,49 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
+/* encoding */
+
+func encode(v interface{}) (string, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(v)
+	if err != nil {
+		return "", err
+	}
+
+	return string(buf.Bytes()), nil
+}
+
+func decode(val string, v interface{}) error {
+	buf := bytes.NewBuffer([]byte(val))
+	enc := gob.NewDecoder(buf)
+
+	return enc.Decode(v)
+}
+
 /* reads */
+
+func (c *Client) baseGet(key string) (string, error) {
+	value, err := c.readClient.Get(context.Background(), key).Result()
+	if err == redis.Nil {
+		return "", nil
+	} else if err != nil {
+		return "", err
+	}
+
+	return value, nil
+}
+
+func (c *Client) baseGetInt64(key string) (int64, error) {
+	value, err := c.readClient.Get(context.Background(), key).Result()
+	if err == redis.Nil {
+		return -1, nil
+	} else if err != nil {
+		return 0, err
+	}
+
+	return strconv.ParseInt(value, 10, 64)
+}
 
 func (c *Client) baseGetUint64(key string) (uint64, error) {
 	value, err := c.readClient.Get(context.Background(), key).Result()
@@ -20,6 +64,17 @@ func (c *Client) baseGetUint64(key string) (uint64, error) {
 	}
 
 	return strconv.ParseUint(value, 10, 64)
+}
+
+func (c *Client) baseGetFloat64(key string) (float64, error) {
+	value, err := c.readClient.Get(context.Background(), key).Result()
+	if err == redis.Nil {
+		return 0, nil
+	} else if err != nil {
+		return 0, err
+	}
+
+	return strconv.ParseFloat(value, 64)
 }
 
 func (c *Client) baseGetTime(key string) (time.Time, error) {
@@ -93,6 +148,10 @@ func (c *Client) baseZRangeWithScoresUint64(key string) (map[string]uint64, erro
 
 func (c *Client) baseSet(key, value string) error {
 	return c.writeClient.Set(context.Background(), key, value, 0).Err()
+}
+
+func (c *Client) baseSetExp(key, value string, expiration time.Duration) error {
+	return c.writeClient.Set(context.Background(), key, value, expiration).Err()
 }
 
 func (c *Client) baseDel(key string) error {

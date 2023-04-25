@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+
+	"github.com/magicpool-co/pool/internal/tsdb"
 )
 
 /* miners */
@@ -149,4 +151,52 @@ func (c *Client) GetChartBlocksLastTime(chain string) (time.Time, error) {
 
 func (c *Client) GetChartRoundsLastTime(chain string) (time.Time, error) {
 	return c.baseGetTime(c.getChartRoundsLastTimeKey(chain))
+}
+
+/* cached stats */
+
+func (c *Client) GetCachedGlobalLastShares() ([]*tsdb.Share, error) {
+	encoded, err := c.baseGet(c.getCachedGlobalLastSharesKey())
+	if err != nil {
+		return nil, err
+	} else if len(encoded) == 0 {
+		return nil, nil
+	}
+
+	var shares []*tsdb.Share
+	err = decode(encoded, &shares)
+	if err != nil {
+		return nil, err
+	}
+
+	return shares, nil
+}
+
+func (c *Client) GetCachedGlobalLastProfits() ([]*tsdb.Block, error) {
+	encoded, err := c.baseGet(c.getCachedGlobalLastProfitsKey())
+	if err != nil {
+		return nil, err
+	} else if len(encoded) == 0 {
+		return nil, nil
+	}
+
+	var blocks []*tsdb.Block
+	err = decode(encoded, &blocks)
+	if err != nil {
+		return nil, err
+	}
+
+	return blocks, nil
+}
+
+func (c *Client) GetCachedLuckByChain(chain string) (float64, error) {
+	return c.baseGetFloat64(c.getCachedLuckByChainKey(chain))
+}
+
+func (c *Client) GetCachedMinersByChain(chain string) (int64, error) {
+	return c.baseGetInt64(c.getCachedMinersByChainKey(chain))
+}
+
+func (c *Client) GetCachedWorkersByChain(chain string) (int64, error) {
+	return c.baseGetInt64(c.getCachedWorkersByChainKey(chain))
 }

@@ -100,3 +100,25 @@ func (c *Client) getChartBlocksLastTimeKey(chain string) string {
 func (c *Client) getChartRoundsLastTimeKey(chain string) string {
 	return c.getKey("chrt", "rnd", strings.ToLower(chain))
 }
+
+/* cached stats */
+
+func (c *Client) getCachedGlobalLastSharesKey() string {
+	return c.getKey("cache", "shrs")
+}
+
+func (c *Client) getCachedGlobalLastProfitsKey() string {
+	return c.getKey("cache", "prfts")
+}
+
+func (c *Client) getCachedLuckByChainKey(chain string) string {
+	return c.getKey("cache", "luck", strings.ToLower(chain))
+}
+
+func (c *Client) getCachedMinersByChainKey(chain string) string {
+	return c.getKey("cache", "mnrs", strings.ToLower(chain))
+}
+
+func (c *Client) getCachedWorkersByChainKey(chain string) string {
+	return c.getKey("cache", "wrkrs", strings.ToLower(chain))
+}

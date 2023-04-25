@@ -104,3 +104,32 @@ func (suite *RedisReadsSuite) TestGetCharts() {
 		suite.T().Errorf("failed: GetChartRoundsLastTime: %v", err)
 	}
 }
+
+func (suite *RedisReadsSuite) TestWriteCachedStats() {
+	var err error
+
+	_, err = redisClient.GetCachedGlobalLastShares()
+	if err != nil {
+		suite.T().Errorf("failed: GetCachedGlobalLastShares: %v", err)
+	}
+
+	_, err = redisClient.GetCachedGlobalLastProfits()
+	if err != nil {
+		suite.T().Errorf("failed: GetCachedGlobalLastProfits: %v", err)
+	}
+
+	_, err = redisClient.GetCachedLuckByChain("ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetCachedLuckByChain: %v", err)
+	}
+
+	_, err = redisClient.GetCachedMinersByChain("ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetCachedMinersByChain: %v", err)
+	}
+
+	_, err = redisClient.GetCachedWorkersByChain("ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetCachedWorkersByChain: %v", err)
+	}
+}

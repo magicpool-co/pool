@@ -3,13 +3,12 @@ package stats
 import (
 	"time"
 
-	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/tsdb"
 	"github.com/magicpool-co/pool/types"
 )
 
 func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error) {
-	dbShares, err := tsdb.GetGlobalSharesLast(c.tsdb.Reader(), int(types.Period15m))
+	dbShares, err := c.getGlobalSharesLast()
 	if err != nil {
 		return nil, err
 	}
@@ -19,7 +18,7 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 		dbSharesIdx[dbShare.ChainID] = dbShare
 	}
 
-	dbBlocks, err := tsdb.GetBlocksWithProfitabilityLast(c.tsdb.Reader(), int(types.Period15m))
+	dbBlocks, err := c.getBlocksWithProfitabilityLast()
 	if err != nil {
 		return nil, err
 	}
@@ -32,12 +31,12 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 	stats := make([]*PoolSummary, len(nodes))
 	for i, node := range nodes {
 		chain := node.Chain()
-		miners, err := pooldb.GetActiveMinersCount(c.pooldb.Reader(), chain)
+		miners, err := c.getActiveMinersCount(chain)
 		if err != nil {
 			return nil, err
 		}
 
-		workers, err := pooldb.GetActiveWorkersCount(c.pooldb.Reader(), chain)
+		workers, err := c.getActiveWorkersCount(chain)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +58,7 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 			}
 		}
 
-		luck, err := pooldb.GetRoundLuckByChain(c.pooldb.Reader(), chain, time.Hour*24*30)
+		luck, err := c.getRoundLuckByChain(chain)
 		if err != nil {
 			return nil, err
 		}

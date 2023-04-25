@@ -36,6 +36,7 @@ func NewContext(
 	pooldbClient, tsdbClient *dbcl.Client,
 	redisClient *redis.Client,
 	nodes []types.MiningNode,
+	cacheEnabled bool,
 ) *Context {
 	statsChains := []string{
 		"CFX",
@@ -55,7 +56,7 @@ func NewContext(
 		pooldb:  pooldbClient,
 		tsdb:    tsdbClient,
 		redis:   redisClient,
-		stats:   stats.New(pooldbClient, tsdbClient, redisClient, statsChains),
+		stats:   stats.New(pooldbClient, tsdbClient, redisClient, statsChains, cacheEnabled),
 		nodes:   nodes,
 	}
 
