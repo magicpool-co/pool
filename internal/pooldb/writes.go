@@ -1,9 +1,6 @@
 package pooldb
 
 import (
-	"fmt"
-	"time"
-
 	"github.com/magicpool-co/pool/pkg/dbcl"
 )
 
@@ -65,28 +62,6 @@ func InsertIPAddresses(q dbcl.Querier, objects ...*IPAddress) error {
 	}
 
 	return dbcl.ExecBulkInsertUpdateOverwrite(q, table, insertCols, updateCols, rawObjects)
-}
-
-func UpdateIPAddressesSetInactive(q dbcl.Querier, duration time.Duration) error {
-	var query = fmt.Sprintf(`UPDATE ip_addresses
-	SET active = FALSE
-	WHERE
-		last_share < DATE_SUB(CURRENT_TIMESTAMP, %s);`, dbcl.ConvertDurationToInterval(duration))
-
-	_, err := q.Exec(query)
-
-	return err
-}
-
-func UpdateIPAddressesSetExpired(q dbcl.Querier, duration time.Duration) error {
-	var query = fmt.Sprintf(`UPDATE ip_addresses
-	SET expired = TRUE
-	WHERE
-		last_share < DATE_SUB(CURRENT_TIMESTAMP, %s);`, dbcl.ConvertDurationToInterval(duration))
-
-	_, err := q.Exec(query)
-
-	return err
 }
 
 func InsertRound(q dbcl.Querier, obj *Round) (uint64, error) {

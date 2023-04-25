@@ -25,6 +25,20 @@ func (c *Client) GetMinerLatencies(chain string) (map[string]float64, error) {
 	return c.baseZRangeWithScores(c.getMinerLatenciesKey(chain))
 }
 
+func (c *Client) GetMinerIPAddressesInactive(chain string) (map[string]bool, error) {
+	values, err := c.baseSMembers(c.getMinerIPAddressesInactiveKey(chain))
+	if err != nil {
+		return nil, err
+	}
+
+	idx := make(map[string]bool)
+	for _, value := range values {
+		idx[value] = true
+	}
+
+	return idx, nil
+}
+
 func (c *Client) GetWorkerID(minerID uint64, worker string) (uint64, error) {
 	return c.baseGetUint64(c.getWorkersKey(minerID, worker))
 }

@@ -40,16 +40,24 @@ func (j *MinerJob) Run() {
 	for _, node := range j.nodes {
 		ipAddressIdx, err := j.redis.GetMinerIPAddresses(node.Chain())
 		if err != nil {
-			j.logger.Error(fmt.Errorf("ip: fetch: %s: %v", node.Chain(), err))
+			j.logger.Error(fmt.Errorf("ip: fetch ips: %s: %v", node.Chain(), err))
+		}
+
+		inactiveIpAddressIdx, err := j.redis.GetMinerIPAddressesInactive(node.Chain())
+		if err != nil {
+			j.logger.Error(fmt.Errorf("ip: fetch inactive ips: %s: %v", node.Chain(), err))
 		}
 
 		rttIdx, err := j.redis.GetMinerLatencies(node.Chain())
 		if err != nil {
-			j.logger.Error(fmt.Errorf("ip: fetch: %s: %v", node.Chain(), err))
+			j.logger.Error(fmt.Errorf("ip: fetch latencies: %s: %v", node.Chain(), err))
 		}
 
 		// process the index into a slice of addresses
 		addresses := make([]*pooldb.IPAddress, 0)
+		addToInactiveIPs := make([]string, 0)
+		removeFromActiveIPs := make([]string, 0)
+		removeFromInactiveIPs := make([]string, 0)
 		for compoundID, timestamp := range ipAddressIdx {
 			parts := strings.Split(compoundID, ":")
 			if len(parts) != 3 {
@@ -77,31 +85,52 @@ func (j *MinerJob) Run() {
 				rtt = types.Float64Ptr(rawRtt / 1000)
 			}
 
-			address := &pooldb.IPAddress{
+			lastShare := time.Unix(int64(timestamp), 0)
+			timeSinceLastShare := time.Now().Sub(lastShare)
+			active := timeSinceLastShare < time.Hour
+			expired := timeSinceLastShare > time.Hour*24
+
+			// check to see if the worker is already marked as inactive
+			if _, ok := inactiveIpAddressIdx[compoundID]; ok {
+				if !active && !expired {
+					// if the worker is still inactive but not expired, do nothing
+					continue
+				} else if expired {
+					// if the worker is newly expired, remove it from the active ips
+					removeFromActiveIPs = append(removeFromActiveIPs, compoundID)
+				}
+
+				// the state must have changed (since its no longer inactive but not expired),
+				// so we can remove it from the inactive IPs
+				removeFromInactiveIPs = append(removeFromInactiveIPs, compoundID)
+			} else if !active {
+				// the worker is inactive, but not yet added to
+				// the inactive worker list, so we add it
+				addToInactiveIPs = append(addToInactiveIPs, compoundID)
+			}
+
+			addresses = append(addresses, &pooldb.IPAddress{
 				MinerID:   minerID,
 				WorkerID:  workerID,
 				ChainID:   node.Chain(),
 				IPAddress: ipAddress,
 
-				Active:        true,
-				Expired:       false,
-				LastShare:     time.Unix(int64(timestamp), 0),
+				Active:        active,
+				Expired:       expired,
+				LastShare:     lastShare,
 				RoundTripTime: rtt,
-			}
-			addresses = append(addresses, address)
+			})
 		}
 
 		// insert the ip addresses, set old addresses to inactive or expired, clear the redis sorted set
 		if err := pooldb.InsertIPAddresses(j.pooldb.Writer(), addresses...); err != nil {
 			j.logger.Error(fmt.Errorf("ip: insert: %s: %v", node.Chain(), err))
-		} else if err := pooldb.UpdateIPAddressesSetInactive(j.pooldb.Writer(), time.Hour); err != nil {
-			j.logger.Error(fmt.Errorf("ip: update: %s: %v", node.Chain(), err))
-		} else if err := pooldb.UpdateIPAddressesSetExpired(j.pooldb.Writer(), time.Hour*24); err != nil {
-			j.logger.Error(fmt.Errorf("ip: update: %s: %v", node.Chain(), err))
-		} else if err := j.redis.DeleteMinerIPAddresses(node.Chain()); err != nil {
-			j.logger.Error(fmt.Errorf("ip: delete ips: %s: %v", node.Chain(), err))
-		} else if err := j.redis.DeleteMinerLatencies(node.Chain()); err != nil {
-			j.logger.Error(fmt.Errorf("ip: delete latencies: %s: %v", node.Chain(), err))
+		} else if err := j.redis.AddMinerIPAddressesInactive(node.Chain(), addToInactiveIPs); err != nil {
+			j.logger.Error(fmt.Errorf("ip: add inactive: %s: %v", node.Chain(), err))
+		} else if err := j.redis.RemoveMinerIPAddressesInactive(node.Chain(), removeFromInactiveIPs); err != nil {
+			j.logger.Error(fmt.Errorf("ip: remove inactive: %s: %v", node.Chain(), err))
+		} else if err := j.redis.RemoveMinerIPAddresses(node.Chain(), removeFromActiveIPs); err != nil {
+			j.logger.Error(fmt.Errorf("ip: remove active: %s: %v", node.Chain(), err))
 		}
 	}
 }

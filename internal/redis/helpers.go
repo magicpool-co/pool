@@ -163,6 +163,32 @@ func (c *Client) baseSAdd(key, value string) (bool, error) {
 	return res == 1, err
 }
 
+func (c *Client) baseSAddMany(key string, values ...string) error {
+	if len(values) == 0 {
+		return nil
+	}
+
+	members := make([]interface{}, len(values))
+	for i, value := range values {
+		members[i] = value
+	}
+
+	return c.writeClient.SAdd(context.Background(), key, members...).Err()
+}
+
+func (c *Client) baseSRemMany(key string, values ...string) error {
+	if len(values) == 0 {
+		return nil
+	}
+
+	members := make([]interface{}, len(values))
+	for i, value := range values {
+		members[i] = value
+	}
+
+	return c.writeClient.SRem(context.Background(), key, members...).Err()
+}
+
 func (c *Client) baseResetList(key string, values []interface{}) error {
 	ctx := context.Background()
 	pipe := c.writeClient.Pipeline()

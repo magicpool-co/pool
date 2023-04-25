@@ -34,12 +34,36 @@ func (c *Client) SetMinerLatenciesBulk(chain string, values map[string]int64) er
 	return c.baseZAddBatch(c.getMinerLatenciesKey(chain), members)
 }
 
-func (c *Client) DeleteMinerIPAddresses(chain string) error {
-	return c.baseDel(c.getMinerIPAddressesKey(chain))
+func (c *Client) RemoveMinerIPAddresses(chain string, values []string) error {
+	if len(values) == 0 {
+		return nil
+	}
+
+	ctx := context.Background()
+	pipe := c.writeClient.Pipeline()
+
+	members := make([]interface{}, len(values))
+	for i, value := range values {
+		members[i] = value
+	}
+
+	// remove inactive ip addresses
+	pipe.ZRem(ctx, c.getMinerIPAddressesKey(chain), members...)
+
+	// remove inactive ip addresses from latencies
+	pipe.ZRem(ctx, c.getMinerLatenciesKey(chain), members...)
+
+	_, err := pipe.Exec(ctx)
+
+	return err
 }
 
-func (c *Client) DeleteMinerLatencies(chain string) error {
-	return c.baseDel(c.getMinerLatenciesKey(chain))
+func (c *Client) AddMinerIPAddressesInactive(chain string, values []string) error {
+	return c.baseSAddMany(c.getMinerIPAddressesInactiveKey(chain), values...)
+}
+
+func (c *Client) RemoveMinerIPAddressesInactive(chain string, values []string) error {
+	return c.baseSRemMany(c.getMinerIPAddressesInactiveKey(chain), values...)
 }
 
 func (c *Client) SetWorkerID(minerID uint64, worker string, workerID uint64) error {
