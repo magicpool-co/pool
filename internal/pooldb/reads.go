@@ -21,7 +21,7 @@ func GetNodeURLsByChain(q dbcl.Querier, chain string, mainnet bool) ([]string, e
 	AND
 		mainnet = ?
 	AND
-		enabled IS TRUE;`
+		enabled = TRUE;`
 
 	output := []string{}
 	err := q.Select(&output, query, chain, mainnet)
@@ -35,7 +35,7 @@ func GetEnabledNodes(q dbcl.Querier, mainnet bool) ([]*Node, error) {
 	WHERE
 		mainnet = ?
 	AND
-		enabled IS TRUE;`
+		enabled = TRUE;`
 
 	output := []*Node{}
 	err := q.Select(&output, query, mainnet)
@@ -49,9 +49,9 @@ func GetBackupNodes(q dbcl.Querier, mainnet bool) ([]*Node, error) {
 	WHERE
 		mainnet = ?
 	AND
-		backup IS TRUE
+		backup = TRUE
 	AND
-		enabled IS TRUE;`
+		enabled = TRUE;`
 
 	output := []*Node{}
 	err := q.Select(&output, query, mainnet)
@@ -65,9 +65,9 @@ func GetPendingBackupNodes(q dbcl.Querier, mainnet bool) ([]*Node, error) {
 	WHERE
 		mainnet = ?
 	AND
-		pending_backup IS TRUE
+		pending_backup = TRUE
 	AND
-		enabled IS TRUE;`
+		enabled = TRUE;`
 
 	output := []*Node{}
 	err := q.Select(&output, query, mainnet)
@@ -81,9 +81,9 @@ func GetPendingUpdateNodes(q dbcl.Querier, mainnet bool) ([]*Node, error) {
 	WHERE
 		mainnet = ?
 	AND
-		pending_update IS TRUE
+		pending_update = TRUE
 	AND
-		enabled IS TRUE;`
+		enabled = TRUE;`
 
 	output := []*Node{}
 	err := q.Select(&output, query, mainnet)
@@ -97,9 +97,9 @@ func GetPendingResizeNodes(q dbcl.Querier, mainnet bool) ([]*Node, error) {
 	WHERE
 		mainnet = ?
 	AND
-		pending_resize IS TRUE
+		pending_resize = TRUE
 	AND
-		enabled IS TRUE;`
+		enabled = TRUE;`
 
 	output := []*Node{}
 	err := q.Select(&output, query, mainnet)
@@ -329,9 +329,9 @@ func GetActiveWorkersCount(q dbcl.Querier, chain string) (uint64, error) {
 	AND
 		worker_id != 0
 	AND
-		active IS TRUE
+		active = TRUE
 	AND
-		expired IS FALSE;`
+		expired = FALSE;`
 
 	return dbcl.GetUint64(q, query, chain)
 }
@@ -344,9 +344,9 @@ func GetActiveWorkersByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64, e
 	AND
 		worker_id != 0
 	AND
-		active IS TRUE
+		active = TRUE
 	AND
-		expired IS FALSE;`
+		expired = FALSE;`
 
 	if len(minerIDs) == 0 {
 		return 0, nil
@@ -369,9 +369,9 @@ func GetInactiveWorkersByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64,
 	AND
 		worker_id != 0
 	AND
-		active IS FALSE
+		active = FALSE
 	AND
-		expired IS FALSE;`
+		expired = FALSE;`
 
 	if len(minerIDs) == 0 {
 		return 0, nil
@@ -425,9 +425,9 @@ func GetOldestActiveIPAddress(q dbcl.Querier, minerID uint64) (*IPAddress, error
 	WHERE
 		miner_id = ?
 	AND
-		active IS TRUE
+		active = TRUE
 	AND
-		expired IS FALSE
+		expired = FALSE
 	ORDER BY created_at
 	LIMIT 1;`
 
@@ -448,7 +448,7 @@ func GetNewestInactiveIPAddress(q dbcl.Querier, minerID uint64) (*IPAddress, err
 	WHERE
 		miner_id = ?
 	AND
-		active IS FALSE
+		active = FALSE
 	ORDER BY last_share DESC
 	LIMIT 1;`
 
@@ -509,7 +509,7 @@ func GetRoundMinTimestamp(q dbcl.Querier, chain string) (time.Time, error) {
 	WHERE
 		chain_id = ?
 	AND
-		pending IS FALSE;`
+		pending = FALSE;`
 
 	return dbcl.GetTime(q, query, chain)
 }
@@ -631,7 +631,7 @@ func GetPendingRoundsByChain(q dbcl.Querier, chain string, height uint64) ([]*Ro
 	AND
 		height < ?
 	AND
-		pending IS TRUE;`
+		pending = TRUE;`
 
 	output := []*Round{}
 	err := q.Select(&output, query, chain, height)
@@ -649,7 +649,7 @@ func GetPendingRoundCountBetweenTime(q dbcl.Querier, chain string, start, end ti
 	AND
 		created_at <= ?
 	AND
-		pending IS TRUE`
+		pending = TRUE`
 
 	return dbcl.GetUint64(q, query, chain, start, end)
 }
@@ -658,11 +658,11 @@ func GetImmatureRoundsByChain(q dbcl.Querier, chain string, height uint64) ([]*R
 	const query = `SELECT *
 	FROM rounds
 	WHERE
-		pending IS FALSE
+		pending = FALSE
 	AND
-		mature IS FALSE
+		mature = FALSE
 	AND
-		orphan IS FALSE
+		orphan = FALSE
 	AND
 		chain_id = ?
 	AND
@@ -678,11 +678,11 @@ func GetUnspentRounds(q dbcl.Querier, chain string) ([]*Round, error) {
 	const query = `SELECT *
 	FROM rounds
 	WHERE
-		pending IS FALSE
+		pending = FALSE
 	AND
-		spent IS FALSE
+		spent = FALSE
 	AND
-		orphan IS FALSE
+		orphan = FALSE
 	AND
 		chain_id = ?`
 
@@ -698,9 +698,9 @@ func GetSumImmatureRoundValueByChain(q dbcl.Querier, chain string) (*big.Int, er
 	WHERE
 		chain_id = ?
 	AND
-		mature IS FALSE
+		mature = FALSE
 	AND
-		orphan IS FALSE;`
+		orphan = FALSE;`
 
 	return dbcl.GetBigInt(q, query, chain)
 }
@@ -711,9 +711,9 @@ func GetSumUnspentRoundValueByChain(q dbcl.Querier, chain string) (*big.Int, err
 	WHERE
 		chain_id = ?
 	AND
-		spent IS FALSE
+		spent = FALSE
 	AND
-		orphan IS FALSE;`
+		orphan = FALSE;`
 
 	return dbcl.GetBigInt(q, query, chain)
 }

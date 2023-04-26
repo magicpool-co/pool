@@ -150,7 +150,8 @@ CREATE TABLE ip_addresses (
 	PRIMARY KEY (miner_id, worker_id, chain_id, ip_address),
 	INDEX idx_ip_addresses_chain_id (chain_id),
 	INDEX idx_ip_addresses_miner_id (miner_id),
-	INDEX idx_ip_addresses_last_share (last_share)
+	INDEX idx_ip_addresses_last_share (last_share),
+	INDEX idx_ip_addresses_active (active)
 );
 
 CREATE TABLE rounds (
