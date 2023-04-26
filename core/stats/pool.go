@@ -51,7 +51,7 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 		if dbBlock, ok := dbBlocksIdx[chain]; ok {
 			networkDifficulty, networkHashrate = dbBlock.Difficulty, dbBlock.Hashrate
 			blockReward, blockTime = dbBlock.Value, dbBlock.BlockTime
-			profitUsd, profitBtc = dbBlock.AvgProfitability, dbBlock.AvgProfitabilityBTC
+			profitUsd, profitBtc = dbBlock.AvgProfitabilityUSD, dbBlock.AvgProfitabilityBTC
 
 			if blockTime > 0 && hashrate > 0 && networkHashrate > 0 {
 				ttf = time.Duration(blockTime * (networkHashrate / hashrate) * float64(time.Second))
