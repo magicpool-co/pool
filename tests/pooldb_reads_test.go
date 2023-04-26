@@ -379,6 +379,11 @@ func (suite *PooldbReadsSuite) TestReadBalanceInput() {
 		suite.T().Errorf("failed: GetBalanceInputsByBatch: %v", err)
 	}
 
+	_, err = pooldb.GetBalanceInputsByRound(pooldbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetBalanceInputsByRound: %v", err)
+	}
+
 	_, err = pooldb.GetImmatureBalanceInputSumsByMiners(pooldbClient.Reader(), []uint64{0, 1})
 	if err != nil {
 		suite.T().Errorf("failed: GetImmatureBalanceInputSumsByMiners: %v", err)

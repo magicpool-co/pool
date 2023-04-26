@@ -361,6 +361,32 @@ func UpdateBalanceOutputsSetMatureByRound(q dbcl.Querier, roundID uint64) error 
 	return err
 }
 
+func InsertAddBalanceSums(q dbcl.Querier, objects ...*BalanceSum) error {
+	const table = "balance_sums"
+	insertCols := []string{"miner_id", "chain_id", "immature_value", "mature_value"}
+	updateCols := []string{"immature_value", "mature_value"}
+
+	rawObjects := make([]interface{}, len(objects))
+	for i, object := range objects {
+		rawObjects[i] = object
+	}
+
+	return dbcl.ExecBulkInsertUpdateAdd(q, table, insertCols, updateCols, rawObjects)
+}
+
+func InsertSubtractBalanceSums(q dbcl.Querier, objects ...*BalanceSum) error {
+	const table = "balance_sums"
+	insertCols := []string{"miner_id", "chain_id", "immature_value", "mature_value"}
+	updateCols := []string{"immature_value", "mature_value"}
+
+	rawObjects := make([]interface{}, len(objects))
+	for i, object := range objects {
+		rawObjects[i] = object
+	}
+
+	return dbcl.ExecBulkInsertUpdateSubtract(q, table, insertCols, updateCols, rawObjects)
+}
+
 /* payouts */
 
 func InsertPayout(q dbcl.Querier, obj *Payout) (uint64, error) {

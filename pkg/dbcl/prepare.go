@@ -20,7 +20,7 @@ func prepareNamedInsert(table string, columns []string) string {
 	return query
 }
 
-func prepareNamedInsertUpdateAdd(table string, insertCols, updateCols []string) string {
+func prepareNamedInsertUpdateWithOperator(table string, insertCols, updateCols []string, operator string) string {
 	names := make([]string, len(insertCols))
 	for i, col := range insertCols {
 		names[i] = ":" + col
@@ -32,7 +32,7 @@ func prepareNamedInsertUpdateAdd(table string, insertCols, updateCols []string) 
 
 	updateParts := make([]string, len(updateCols))
 	for i, col := range updateCols {
-		updateParts[i] = fmt.Sprintf("%s = %s + VALUES(%s)", col, col, col)
+		updateParts[i] = fmt.Sprintf("%s = %s %s VALUES(%s)", col, col, operator, col)
 	}
 	update := strings.Join(updateParts, ", ")
 

@@ -494,6 +494,37 @@ func (suite *PooldbWritesSuite) TestWriteBalanceOutput() {
 	}
 }
 
+func (suite *PooldbWritesSuite) TestWriteBalanceSum() {
+	tests := []struct {
+		output *pooldb.BalanceSum
+	}{
+		{
+			&pooldb.BalanceSum{
+				ChainID:     "ETC",
+				MatureValue: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(5)},
+			},
+		},
+	}
+
+	minerID, err := pooldb.InsertMiner(pooldbClient.Writer(), &pooldb.Miner{ChainID: "ETH", Address: "4"})
+	if err != nil {
+		suite.T().Errorf("failed on preliminary miner insert: %v", err)
+	}
+
+	for i, tt := range tests {
+		tt.output.MinerID = minerID
+		err = pooldb.InsertAddBalanceSums(pooldbClient.Writer(), tt.output, tt.output)
+		if err != nil {
+			suite.T().Errorf("failed on %d: insert add: %v", i, err)
+		}
+
+		err = pooldb.InsertSubtractBalanceSums(pooldbClient.Writer(), tt.output, tt.output)
+		if err != nil {
+			suite.T().Errorf("failed on %d: insert subtract: %v", i, err)
+		}
+	}
+}
+
 func (suite *PooldbWritesSuite) TestWritePayout() {
 	tests := []struct {
 		payout *pooldb.Payout
@@ -509,7 +540,7 @@ func (suite *PooldbWritesSuite) TestWritePayout() {
 		},
 	}
 
-	minerID, err := pooldb.InsertMiner(pooldbClient.Writer(), &pooldb.Miner{ChainID: "ETH", Address: "4"})
+	minerID, err := pooldb.InsertMiner(pooldbClient.Writer(), &pooldb.Miner{ChainID: "ETH", Address: "5"})
 	if err != nil {
 		suite.T().Errorf("failed on preliminary miner insert: %v", err)
 	}

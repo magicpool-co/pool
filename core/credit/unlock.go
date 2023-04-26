@@ -34,9 +34,39 @@ func matureRound(node types.MiningNode, pooldbClient *dbcl.Client, round *pooldb
 		}
 	}
 
+	// we can use only balance inputs, since the balance output sum will be identical
+	// to the balance input sum for the given round
+	balanceInputs, err := pooldb.GetBalanceInputsByRound(tx, round.ID)
+	if err != nil {
+		return err
+	}
+
+	// subtract the immature balance, add the mature balance
+	balanceSumsToAdd := make([]*pooldb.BalanceSum, len(balanceInputs))
+	balanceSumsToSubtract := make([]*pooldb.BalanceSum, len(balanceInputs))
+	for i, balanceInput := range balanceInputs {
+		balanceSumsToAdd[i] = &pooldb.BalanceSum{
+			MinerID: balanceInput.MinerID,
+			ChainID: balanceInput.ChainID,
+
+			MatureValue: balanceInput.Value,
+		}
+
+		balanceSumsToSubtract[i] = &pooldb.BalanceSum{
+			MinerID: balanceInput.MinerID,
+			ChainID: balanceInput.ChainID,
+
+			ImmatureValue: balanceInput.Value,
+		}
+	}
+
 	if err := pooldb.UpdateBalanceInputsSetMatureByRound(tx, round.ID); err != nil {
 		return err
 	} else if err := pooldb.UpdateBalanceOutputsSetMatureByRound(tx, round.ID); err != nil {
+		return err
+	} else if pooldb.InsertAddBalanceSums(tx, balanceSumsToAdd...); err != nil {
+		return err
+	} else if pooldb.InsertSubtractBalanceSums(tx, balanceSumsToSubtract...); err != nil {
 		return err
 	}
 

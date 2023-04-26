@@ -26,12 +26,11 @@ func ExecInsertNoID(q Querier, table string, cols []string, object interface{}) 
 	return err
 }
 
-func ExecBulkInsert(q Querier, table string, cols []string, objects []interface{}) error {
+func execBulkInsertFromQuery(q Querier, query string, objects []interface{}) error {
 	if len(objects) == 0 {
 		return nil
 	}
 
-	query := prepareNamedInsert(table, cols)
 	for i := 0; i <= len(objects)/batchSize; i++ {
 		startOffset := i * batchSize
 		endOffset := (i + 1) * batchSize
@@ -50,58 +49,30 @@ func ExecBulkInsert(q Querier, table string, cols []string, objects []interface{
 	}
 
 	return nil
+}
+
+func ExecBulkInsert(q Querier, table string, cols []string, objects []interface{}) error {
+	query := prepareNamedInsert(table, cols)
+
+	return execBulkInsertFromQuery(q, query, objects)
 }
 
 func ExecBulkInsertUpdateAdd(q Querier, table string, insertCols, updateCols []string, objects []interface{}) error {
-	if len(objects) == 0 {
-		return nil
-	}
+	query := prepareNamedInsertUpdateWithOperator(table, insertCols, updateCols, "+")
 
-	query := prepareNamedInsertUpdateAdd(table, insertCols, updateCols)
-	for i := 0; i <= len(objects)/batchSize; i++ {
-		startOffset := i * batchSize
-		endOffset := (i + 1) * batchSize
-		if endOffset >= len(objects) {
-			endOffset = len(objects)
-		}
+	return execBulkInsertFromQuery(q, query, objects)
+}
 
-		if startOffset >= endOffset {
-			continue
-		}
+func ExecBulkInsertUpdateSubtract(q Querier, table string, insertCols, updateCols []string, objects []interface{}) error {
+	query := prepareNamedInsertUpdateWithOperator(table, insertCols, updateCols, "-")
 
-		_, err := q.NamedExec(query, objects[startOffset:endOffset])
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return execBulkInsertFromQuery(q, query, objects)
 }
 
 func ExecBulkInsertUpdateOverwrite(q Querier, table string, insertCols, updateCols []string, objects []interface{}) error {
-	if len(objects) == 0 {
-		return nil
-	}
-
 	query := prepareNamedInsertUpdateOverwrite(table, insertCols, updateCols)
-	for i := 0; i <= len(objects)/batchSize; i++ {
-		startOffset := i * batchSize
-		endOffset := (i + 1) * batchSize
-		if endOffset >= len(objects) {
-			endOffset = len(objects)
-		}
 
-		if startOffset >= endOffset {
-			continue
-		}
-
-		_, err := q.NamedExec(query, objects[startOffset:endOffset])
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return execBulkInsertFromQuery(q, query, objects)
 }
 
 func ExecUpdate(q Querier, table string, updateCols, whereCols []string, updatedAt bool, obj interface{}) error {

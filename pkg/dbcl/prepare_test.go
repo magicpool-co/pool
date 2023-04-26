@@ -30,29 +30,39 @@ func TestPrepareNamedInsert(t *testing.T) {
 	}
 }
 
-func TestPrepareNamedInsertUpdateAdd(t *testing.T) {
+func TestPrepareNamedInsertUpdateWithOperator(t *testing.T) {
 	tests := []struct {
 		table      string
 		insertCols []string
 		updateCols []string
+		operator   string
 		query      string
 	}{
 		{
 			table:      "a",
 			insertCols: []string{"aa"},
 			updateCols: []string{"aa"},
+			operator:   "+",
 			query:      "INSERT INTO `a`(`aa`) VALUES (:aa) ON DUPLICATE KEY UPDATE aa = aa + VALUES(aa);",
+		},
+		{
+			table:      "a",
+			insertCols: []string{"aa"},
+			updateCols: []string{"aa"},
+			operator:   "-",
+			query:      "INSERT INTO `a`(`aa`) VALUES (:aa) ON DUPLICATE KEY UPDATE aa = aa - VALUES(aa);",
 		},
 		{
 			table:      "a",
 			insertCols: []string{"aa", "bb"},
 			updateCols: []string{"aa", "bb"},
+			operator:   "+",
 			query:      "INSERT INTO `a`(`aa`, `bb`) VALUES (:aa, :bb) ON DUPLICATE KEY UPDATE aa = aa + VALUES(aa), bb = bb + VALUES(bb);",
 		},
 	}
 
 	for i, tt := range tests {
-		query := prepareNamedInsertUpdateAdd(tt.table, tt.insertCols, tt.updateCols)
+		query := prepareNamedInsertUpdateWithOperator(tt.table, tt.insertCols, tt.updateCols, tt.operator)
 		if query != tt.query {
 			t.Errorf("failed on %d: have %s, want %s", i, query, tt.query)
 		}

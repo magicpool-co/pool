@@ -59,6 +59,7 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 	usedValue := new(big.Int)
 	pendingInputs := make([]*pooldb.BalanceInput, 0)
 	completedInputs := make([]*pooldb.BalanceInput, 0)
+	balanceSums := make([]*pooldb.BalanceSum, 0)
 	for minerID, value := range compoundValues {
 		miner, ok := compoundIdx[minerID]
 		if !ok {
@@ -93,6 +94,22 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 				completedInputs = append(completedInputs, balanceInput)
 			}
 
+			// add the balance sum for the input
+			var immatureValue, matureValue dbcl.NullBigInt
+			if round.Mature {
+				matureValue = balanceInput.Value
+			} else {
+				immatureValue = balanceInput.Value
+			}
+
+			balanceSum := &pooldb.BalanceSum{
+				MinerID: miner.ID,
+				ChainID: round.ChainID,
+
+				ImmatureValue: immatureValue,
+				MatureValue:   matureValue,
+			}
+			balanceSums = append(balanceSums, balanceSum)
 		}
 
 		delete(compoundIdx, miner.ID)
@@ -138,6 +155,8 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 	if err := pooldb.InsertBalanceInputs(tx, pendingInputs...); err != nil {
 		return err
 	} else if err := pooldb.InsertBalanceInputs(tx, completedInputs...); err != nil {
+		return err
+	} else if err := pooldb.InsertAddBalanceSums(tx, balanceSums...); err != nil {
 		return err
 	}
 

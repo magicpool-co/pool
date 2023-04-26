@@ -224,6 +224,118 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 	return dbTx.SafeCommit()
 }
 
+func (c *Client) finalizePayout(payout *pooldb.Payout) error {
+	if payout.TransactionID == nil {
+		return fmt.Errorf("no transaction id for payout %d", payout.ID)
+	}
+
+	tx, err := pooldb.GetTransaction(c.pooldb.Reader(), types.Uint64Value(payout.TransactionID))
+	if err != nil {
+		return err
+	} else if !tx.Spent || !tx.Confirmed {
+		if payout.Pending {
+			payout.Pending = false
+			err = pooldb.UpdatePayout(c.pooldb.Writer(), payout, []string{"pending"})
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	} else if !tx.Value.Valid {
+		return fmt.Errorf("no value for tx %s", tx.TxID)
+	} else if !tx.Fee.Valid {
+		return fmt.Errorf("no fee for tx %s", tx.TxID)
+	}
+
+	balanceOutputs, err := pooldb.GetBalanceOutputsByPayoutTransaction(c.pooldb.Reader(), tx.ID)
+	if err != nil {
+		return err
+	}
+
+	dbTx, err := c.pooldb.Begin()
+	if err != nil {
+		return err
+	}
+	defer dbTx.SafeRollback()
+
+	sumBalanceToSubtract := new(big.Int)
+	for _, balanceOutput := range balanceOutputs {
+		if !balanceOutput.Value.Valid {
+			return fmt.Errorf("no value for balance output %d", balanceOutput.ID)
+		}
+
+		balanceOutput.Spent = true
+		err := pooldb.UpdateBalanceOutput(dbTx, balanceOutput, []string{"spent"})
+		if err != nil {
+			return err
+		}
+
+		sumBalanceToSubtract.Add(sumBalanceToSubtract, balanceOutput.Value.BigInt)
+	}
+
+	// subtract sum value for balance outputs spent in the payout
+	err = pooldb.InsertSubtractBalanceSums(dbTx, &pooldb.BalanceSum{
+		MinerID: payout.MinerID,
+		ChainID: payout.ChainID,
+
+		MatureValue: dbcl.NullBigInt{Valid: true, BigInt: sumBalanceToSubtract},
+	})
+	if err != nil {
+		return err
+	}
+
+	if tx.FeeBalance.Valid && tx.FeeBalance.BigInt.Cmp(common.Big0) > 0 {
+		payout.FeeBalance = tx.FeeBalance
+		payout.TxFees.BigInt.Sub(payout.TxFees.BigInt, tx.FeeBalance.BigInt)
+
+		balanceOutput := &pooldb.BalanceOutput{
+			ChainID:    payout.ChainID,
+			MinerID:    payout.MinerID,
+			InPayoutID: types.Uint64Ptr(payout.ID),
+
+			Value:        payout.FeeBalance,
+			PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+			ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+			Mature:       true,
+		}
+
+		err = pooldb.InsertBalanceOutputs(dbTx, balanceOutput)
+		if err != nil {
+			return err
+		}
+
+		// add balance sum for fee balance
+		err = pooldb.InsertAddBalanceSums(dbTx, &pooldb.BalanceSum{
+			MinerID: payout.MinerID,
+			ChainID: payout.ChainID,
+
+			MatureValue: payout.FeeBalance,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	payout.Height = tx.Height
+	payout.Confirmed = true
+
+	cols := []string{"height", "tx_fees", "fee_balance", "confirmed"}
+	err = pooldb.UpdatePayout(dbTx, payout, cols)
+	if err != nil {
+		return err
+	}
+
+	err = dbTx.SafeCommit()
+	if err != nil {
+		return err
+	}
+
+	c.telegram.NotifyConfirmPayout(payout.ID)
+
+	return nil
+}
+
 func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 	payouts, err := pooldb.GetUnconfirmedPayouts(c.pooldb.Reader(), node.Chain())
 	if err != nil {
@@ -231,73 +343,10 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 	}
 
 	for _, payout := range payouts {
-		if payout.TransactionID == nil {
-			return fmt.Errorf("no transaction id for payout %d", payout.ID)
-		}
-
-		tx, err := pooldb.GetTransaction(c.pooldb.Reader(), types.Uint64Value(payout.TransactionID))
-		if err != nil {
-			return err
-		} else if !tx.Spent || !tx.Confirmed {
-			if payout.Pending {
-				payout.Pending = false
-				err = pooldb.UpdatePayout(c.pooldb.Writer(), payout, []string{"pending"})
-				if err != nil {
-					return err
-				}
-			}
-
-			continue
-		} else if !tx.Value.Valid {
-			return fmt.Errorf("no value for tx %s", tx.TxID)
-		} else if !tx.Fee.Valid {
-			return fmt.Errorf("no fee for tx %s", tx.TxID)
-		}
-
-		balanceOutputs, err := pooldb.GetBalanceOutputsByPayoutTransaction(c.pooldb.Reader(), tx.ID)
+		err = c.finalizePayout(payout)
 		if err != nil {
 			return err
 		}
-
-		for _, balanceOutput := range balanceOutputs {
-			balanceOutput.Spent = true
-			err := pooldb.UpdateBalanceOutput(c.pooldb.Writer(), balanceOutput, []string{"spent"})
-			if err != nil {
-				return err
-			}
-		}
-
-		if tx.FeeBalance.Valid && tx.FeeBalance.BigInt.Cmp(common.Big0) > 0 {
-			payout.FeeBalance = tx.FeeBalance
-			payout.TxFees.BigInt.Sub(payout.TxFees.BigInt, tx.FeeBalance.BigInt)
-
-			balanceOutput := &pooldb.BalanceOutput{
-				ChainID:    payout.ChainID,
-				MinerID:    payout.MinerID,
-				InPayoutID: types.Uint64Ptr(payout.ID),
-
-				Value:        payout.FeeBalance,
-				PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
-				ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
-				Mature:       true,
-			}
-
-			err = pooldb.InsertBalanceOutputs(c.pooldb.Writer(), balanceOutput)
-			if err != nil {
-				return err
-			}
-		}
-
-		payout.Height = tx.Height
-		payout.Confirmed = true
-
-		cols := []string{"height", "tx_fees", "fee_balance", "confirmed"}
-		err = pooldb.UpdatePayout(c.pooldb.Writer(), payout, cols)
-		if err != nil {
-			return err
-		}
-
-		c.telegram.NotifyConfirmPayout(payout.ID)
 	}
 
 	return nil

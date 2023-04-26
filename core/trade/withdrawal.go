@@ -386,7 +386,8 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 
 	// create an index for all balance output ids by miner and chain
 	balanceOutputIdx := make(map[uint64]map[string]uint64)
-	for _, balanceOutput := range balanceOutputs {
+	balanceSumsToAdd := make([]*pooldb.BalanceSum, len(balanceOutputs))
+	for i, balanceOutput := range balanceOutputs {
 		minerID := balanceOutput.MinerID
 		chainID := balanceOutput.ChainID
 
@@ -395,11 +396,19 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 		}
 
 		balanceOutputIdx[minerID][chainID] = balanceOutput.ID
+
+		// create a balance sum to add the new balance outputs
+		balanceSumsToAdd[i] = &pooldb.BalanceSum{
+			MinerID:     balanceOutput.MinerID,
+			ChainID:     balanceOutput.ChainID,
+			MatureValue: balanceOutput.Value,
+		}
 	}
 
 	// update every balance input to be marked as not pending and set
 	// with the corresponding balance output id
-	for _, balanceInput := range balanceInputs {
+	balanceSumsToSubtract := make([]*pooldb.BalanceSum, len(balanceInputs))
+	for i, balanceInput := range balanceInputs {
 		minerID := balanceInput.MinerID
 		chainID := balanceInput.OutChainID
 		if _, ok := balanceOutputIdx[minerID]; !ok {
@@ -416,6 +425,25 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 		if err != nil {
 			return err
 		}
+
+		// create a balance sum to add the used balance inputs
+		balanceSumsToSubtract[i] = &pooldb.BalanceSum{
+			MinerID:     minerID,
+			ChainID:     chainID,
+			MatureValue: balanceInput.Value,
+		}
+	}
+
+	// add the new balance sums
+	err = pooldb.InsertAddBalanceSums(tx, balanceSumsToAdd...)
+	if err != nil {
+		return err
+	}
+
+	// subtract the new balance sums
+	err = pooldb.InsertSubtractBalanceSums(tx, balanceSumsToSubtract...)
+	if err != nil {
+		return err
 	}
 
 	// mark all of the withdrawals as spent

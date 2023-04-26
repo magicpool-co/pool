@@ -330,6 +330,17 @@ type BalanceOutput struct {
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
+type BalanceSum struct {
+	ChainID string `db:"chain_id"`
+	MinerID uint64 `db:"miner_id"`
+
+	ImmatureValue dbcl.NullBigInt `db:"immature_value"`
+	MatureValue   dbcl.NullBigInt `db:"mature_value"`
+
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
 type Payout struct {
 	ID      uint64 `db:"id"`
 	ChainID string `db:"chain_id"`

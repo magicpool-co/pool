@@ -1119,6 +1119,18 @@ func GetBalanceInputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceInput, e
 	return output, err
 }
 
+func GetBalanceInputsByRound(q dbcl.Querier, roundID uint64) ([]*BalanceInput, error) {
+	const query = `SELECT *
+	FROM balance_inputs
+	WHERE
+		round_id = ?;`
+
+	output := []*BalanceInput{}
+	err := q.Select(&output, query, roundID)
+
+	return output, err
+}
+
 func GetImmatureBalanceInputSumsByMiners(q dbcl.Querier, minerIDs []uint64) ([]*BalanceInput, error) {
 	const rawQuery = `SELECT 
 		chain_id,
