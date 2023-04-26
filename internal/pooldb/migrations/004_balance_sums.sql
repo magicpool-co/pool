@@ -2,8 +2,8 @@ CREATE TABLE balance_sums (
 	miner_id		int				UNSIGNED NOT NULL,
 	chain_id		varchar(4)		NOT NULL,
 
-	immature_value	decimal(25,0),
-	mature_value	decimal(25,0),
+	immature_value	decimal(25,0)   DEFAULT 0,
+	mature_value	decimal(25,0)   DEFAULT 0,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
