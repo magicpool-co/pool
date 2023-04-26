@@ -96,6 +96,16 @@ func (suite *PooldbWritesSuite) TestWriteWorker() {
 		if err != nil {
 			suite.T().Errorf("failed on %d: update %v", i, err)
 		}
+
+		err = pooldb.UpdateWorkerSetActive(pooldbClient.Writer())
+		if err != nil {
+			suite.T().Errorf("failed on %d: UpdateWorkerSetActive: %v", i, err)
+		}
+
+		err = pooldb.UpdateWorkerSetInactive(pooldbClient.Writer(), []uint64{1, 2, 3})
+		if err != nil {
+			suite.T().Errorf("failed on %d: UpdateWorkerSetInactive: %v", i, err)
+		}
 	}
 }
 

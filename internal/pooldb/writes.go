@@ -1,6 +1,8 @@
 package pooldb
 
 import (
+	"github.com/jmoiron/sqlx"
+
 	"github.com/magicpool-co/pool/pkg/dbcl"
 )
 
@@ -49,6 +51,44 @@ func UpdateWorker(q dbcl.Querier, obj *Worker, updateCols []string) error {
 	whereCols := []string{"id"}
 
 	return dbcl.ExecUpdate(q, table, updateCols, whereCols, true, obj)
+}
+
+func UpdateWorkerSetActive(q dbcl.Querier) error {
+	const query = `UPDATE workers
+		JOIN ip_addresses ON workers.id = ip_addresses.worker_id
+		SET
+			workers.active = TRUE,
+			workers.notified = FALSE
+		WHERE
+			ip_addresses.active = TRUE
+		AND
+			workers.active = FALSE;`
+
+	_, err := q.Exec(query)
+
+	return err
+}
+
+func UpdateWorkerSetInactive(q dbcl.Querier, workerIDs []uint64) error {
+	const rawQuery = `UPDATE workers
+		SET
+			active = FALSE,
+			notified = FALSE
+		WHERE
+			id IN (?)`
+
+	if len(workerIDs) == 0 {
+		return nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, workerIDs)
+	if err != nil {
+		return err
+	}
+
+	_, err = q.Exec(query, args...)
+
+	return err
 }
 
 func InsertIPAddresses(q dbcl.Querier, objects ...*IPAddress) error {

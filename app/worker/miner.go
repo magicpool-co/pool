@@ -78,6 +78,7 @@ func (j *MinerJob) Run() {
 
 		// process the index into a slice of addresses
 		addresses := make([]*pooldb.IPAddress, 0)
+		inactiveWorkers := make([]uint64, 0)
 		addToInactiveIPs := make([]string, 0)
 		removeFromActiveIPs := make([]string, 0)
 		removeFromInactiveIPs := make([]string, 0)
@@ -115,6 +116,7 @@ func (j *MinerJob) Run() {
 				// the worker is inactive, but not yet added to
 				// the inactive worker list, so we add it
 				addToInactiveIPs = append(addToInactiveIPs, compoundID)
+				inactiveWorkers = append(inactiveWorkers, workerID)
 			}
 
 			addresses = append(addresses, &pooldb.IPAddress{
@@ -133,6 +135,8 @@ func (j *MinerJob) Run() {
 		// insert the ip addresses, set old addresses to inactive or expired, clear the redis sorted set
 		if err := pooldb.InsertIPAddresses(j.pooldb.Writer(), addresses...); err != nil {
 			j.logger.Error(fmt.Errorf("ip: insert: %s: %v", node.Chain(), err))
+		} else if err := pooldb.UpdateWorkerSetInactive(j.pooldb.Writer(), inactiveWorkers); err != nil {
+			j.logger.Error(fmt.Errorf("ip: set inactive: %s: %v", node.Chain(), err))
 		} else if err := j.redis.AddMinerIPAddressesInactive(node.Chain(), addToInactiveIPs); err != nil {
 			j.logger.Error(fmt.Errorf("ip: add inactive: %s: %v", node.Chain(), err))
 		} else if err := j.redis.RemoveMinerIPAddressesInactive(node.Chain(), removeFromInactiveIPs); err != nil {
@@ -243,5 +247,9 @@ func (j *MinerNotifyJob) Run() {
 
 			j.telegram.NotifyWorkerDown(minerID, worker.Name, worker.LastShare.Unix())
 		}
+	}
+
+	if err := pooldb.UpdateWorkerSetActive(j.pooldb.Writer()); err != nil {
+		j.logger.Error(fmt.Errorf("notify: set active: %v", err))
 	}
 }
