@@ -91,8 +91,12 @@ CREATE TABLE miners (
 	id				int         	UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	chain_id		varchar(4)		NOT NULL,
 	address			varchar(100)	NOT NULL,
-	active			bool			NOT NULL,
-	threshold 		decimal(25,0),
+	email 			VARCHAR(100),
+
+	active							bool			NOT NULL,
+	enabled_worker_notifications	bool 			NOT NULL,
+	enabled_payout_notifications	bool 			NOT NULL,
+	threshold 						decimal(25,0),
 
 	recipient_fee_percent 	int UNSIGNED,
 
@@ -107,16 +111,18 @@ CREATE TABLE miners (
 );
 
 INSERT INTO 
-	miners(chain_id, address, active, recipient_fee_percent) 
+	miners(chain_id, address, active, enabled_worker_notifications, enabled_payout_notifications, recipient_fee_percent) 
 VALUES 
-	("BTC", "bc1qf4aatnyyxldwhvnaa8fz5gsxq5ceu85lfgrpw6", true, 50),
-	("BTC", "16CRhKimYsAy9wXZRXfDdockHcNx3s2h2D", true, 50);
+	("BTC", "bc1qf4aatnyyxldwhvnaa8fz5gsxq5ceu85lfgrpw6", true, false, false, 50),
+	("BTC", "16CRhKimYsAy9wXZRXfDdockHcNx3s2h2D", true, false, false, 50);
 
 CREATE TABLE workers (
 	id				int         	UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	miner_id		int				UNSIGNED NOT NULL,
 	name			varchar(32)		NOT NULL,
+
 	active			bool			NOT NULL,
+	notified		bool			NOT NULL,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -249,7 +255,7 @@ CREATE TABLE utxos (
 	value			decimal(25,0)	NOT NULL,
 	txid			varchar(100)	NOT NULL,
 	idx				int				UNSIGNED NOT NULL,
-	active 			boolean 		NOT NULL,
+	active 			bool	 		NOT NULL,
 	spent			bool			NOT NULL,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -336,6 +342,9 @@ CREATE TABLE exchange_trades (
 	batch_id		bigint			UNSIGNED NOT NULL,
 	path_id			tinyint(1)		UNSIGNED NOT NULL,
 	stage_id		tinyint(1)		UNSIGNED NOT NULL,
+	step_id 		tinyint(1) 		UNSIGNED NOT NULL,
+	is_market_order	bool 			NOT NULL,
+	trade_strategy	tinyint(1) 		UNSIGNED NOT NULL,
 
 	exchange_trade_id	varchar(100),
 
@@ -452,7 +461,8 @@ CREATE TABLE balance_outputs (
 	value			decimal(25,0)	NOT NULL,
 	pool_fees		decimal(25,0)	NOT NULL,
 	exchange_fees	decimal(25,0)	NOT NULL,
-	spent			boolean			NOT NULL,
+	mature 			bool	 		NOT NULL,
+	spent			bool			NOT NULL,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -488,6 +498,7 @@ CREATE TABLE balance_inputs (
 	value			decimal(25,0)	NOT NULL,
 	pool_fees		decimal(25,0)	NOT NULL,
 	pending			bool			NOT NULL,
+	mature 			bool 			NOT NULL,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -510,5 +521,6 @@ CREATE TABLE balance_inputs (
 	INDEX idx_balance_inputs_miner_id (miner_id),
 	INDEX idx_balance_inputs_out_chain_id (out_chain_id),
 	INDEX idx_balance_inputs_balance_output_id (balance_output_id),
-	INDEX idx_balance_inputs_batch_id (batch_id)
+	INDEX idx_balance_inputs_batch_id (batch_id),
+	INDEX idx_balance_inputs_pending_mature_batch_id (pending, mature, batch_id)
 );
