@@ -105,7 +105,7 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
 	}
 
 	// fetch last profitabilities
-	lastProfits, err := tsdb.GetBlocksProfitabilityLast(c.tsdb.Reader(), int(types.Period4h))
+	lastProfits, err := c.getBlocksWithProfitabilityLast()
 	if err != nil {
 		return nil, err
 	}
