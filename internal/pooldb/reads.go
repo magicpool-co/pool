@@ -515,10 +515,12 @@ func GetRoundMinTimestamp(q dbcl.Querier, chain string) (time.Time, error) {
 }
 
 func GetRounds(q dbcl.Querier, page, size uint64) ([]*Round, error) {
-	const query = `SELECT rounds.*, CONCAT(miners.chain_id, ":", miners.address) miner
+	const query = `SELECT
+		rounds.*,
+		CONCAT(miners.chain_id, ":", miners.address) miner
 	FROM rounds
 	JOIN miners ON rounds.miner_id = miners.id
-	ORDER BY created_at DESC
+	ORDER BY rounds.created_at DESC
 	LIMIT ? OFFSET ?`
 
 	output := []*Round{}
@@ -528,11 +530,14 @@ func GetRounds(q dbcl.Querier, page, size uint64) ([]*Round, error) {
 }
 
 func GetRoundsByChain(q dbcl.Querier, chain string, page, size uint64) ([]*Round, error) {
-	const query = `SELECT rounds.*, CONCAT(miners.chain_id, ":", miners.address) miner
+	const query = `SELECT
+		rounds.*,
+		CONCAT(miners.chain_id, ":", miners.address) miner
 	FROM rounds
 	JOIN miners ON rounds.miner_id = miners.id
-	WHERE rounds.chain_id = ?
-	ORDER BY created_at DESC
+	WHERE
+		rounds.chain_id = ?
+	ORDER BY rounds.created_at DESC
 	LIMIT ? OFFSET ?`
 
 	output := []*Round{}
@@ -560,14 +565,12 @@ func GetRoundsByChainCount(q dbcl.Querier, chain string) (uint64, error) {
 func GetRoundsByMiners(q dbcl.Querier, minerIDs []uint64, page, size uint64) ([]*Round, error) {
 	const rawQuery = `SELECT 
 		rounds.*, 
-		shares.count miner_accepted_shares,
 		balance_inputs.value miner_value 
 	FROM rounds
-	JOIN shares ON rounds.id = shares.round_id
-	JOIN balance_inputs ON rounds.id = balance_inputs.round_id AND balance_inputs.miner_id = shares.miner_id
+	JOIN balance_inputs ON rounds.id = balance_inputs.round_id
 	WHERE
-		shares.miner_id IN (?)
-	ORDER BY created_at DESC
+		balance_inputs.miner_id IN (?)
+	ORDER BY rounds.created_at DESC
 	LIMIT ? OFFSET ?`
 
 	if len(minerIDs) == 0 {
@@ -589,10 +592,9 @@ func GetRoundsByMiners(q dbcl.Querier, minerIDs []uint64, page, size uint64) ([]
 func GetRoundsByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64, error) {
 	const rawQuery = `SELECT count(rounds.id)
 	FROM rounds
-	JOIN shares ON rounds.id = shares.round_id
-	JOIN balance_inputs ON rounds.id = balance_inputs.round_id AND balance_inputs.miner_id = shares.miner_id
+	JOIN balance_inputs ON rounds.id = balance_inputs.round_id
 	WHERE
-		shares.miner_id IN (?);`
+		balance_inputs.miner_id IN (?);`
 
 	if len(minerIDs) == 0 {
 		return 0, nil

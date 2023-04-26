@@ -123,10 +123,9 @@ type Round struct {
 	Difficulty     uint64  `db:"difficulty"`
 	Luck           float64 `db:"luck"`
 
-	// columns not present in the table, only helpful for
+	// column not present in the table, only helpful for
 	// a specific join query (GetRoundsByMiner)
-	MinerAcceptedShares uint64          `db:"miner_accepted_shares"`
-	MinerValue          dbcl.NullBigInt `db:"miner_value"`
+	MinerValue dbcl.NullBigInt `db:"miner_value"`
 
 	Pending bool `db:"pending"`
 	Uncle   bool `db:"uncle"`

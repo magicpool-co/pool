@@ -65,7 +65,7 @@ func newRound(dbRound *pooldb.Round) (*Round, error) {
 	}
 
 	var parsedMinerValue, parsedMinerPercentage *Number
-	if dbRound.MinerValue.Valid && dbRound.MinerAcceptedShares != 0 {
+	if dbRound.MinerValue.Valid {
 		parsedMinerValue, err = newNumberFromBigIntPtr(dbRound.MinerValue.BigInt, dbRound.ChainID)
 		if err != nil {
 			return nil, err
