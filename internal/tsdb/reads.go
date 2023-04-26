@@ -106,7 +106,7 @@ func GetBlocksWithProfitabilityLast(q dbcl.Querier, period int) ([]*Block, error
 	    FROM prices
 	    GROUP BY chain_id
 	), prices AS (
-	    SELECT prices.chain_id, price_usd, price_btc
+	    SELECT prices.chain_id, price_usd, price_btc, prices_eth
 	    FROM prices
 	    JOIN price_times ON prices.chain_id = price_times.chain_id AND prices.timestamp = price_times.timestamp
 	) SELECT
