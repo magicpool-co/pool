@@ -1,6 +1,8 @@
 package pooldb
 
 import (
+	"math/big"
+
 	"github.com/jmoiron/sqlx"
 
 	"github.com/magicpool-co/pool/pkg/dbcl"
@@ -368,6 +370,14 @@ func InsertAddBalanceSums(q dbcl.Querier, objects ...*BalanceSum) error {
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
+		if !object.ImmatureValue.Valid {
+			object.ImmatureValue = dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)}
+		}
+
+		if !object.MatureValue.Valid {
+			object.MatureValue = dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)}
+		}
+
 		rawObjects[i] = object
 	}
 
@@ -381,6 +391,14 @@ func InsertSubtractBalanceSums(q dbcl.Querier, objects ...*BalanceSum) error {
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
+		if !object.ImmatureValue.Valid {
+			object.ImmatureValue = dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)}
+		}
+
+		if !object.MatureValue.Valid {
+			object.MatureValue = dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)}
+		}
+
 		rawObjects[i] = object
 	}
 
