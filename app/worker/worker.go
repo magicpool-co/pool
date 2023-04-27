@@ -3,6 +3,7 @@ package worker
 import (
 	"github.com/robfig/cron/v3"
 
+	"github.com/magicpool-co/pool/core/mailer"
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/metrics"
 	"github.com/magicpool-co/pool/internal/redis"
@@ -24,15 +25,33 @@ type Worker struct {
 	redis       *redis.Client
 	exchanges   []types.Exchange
 	aws         *aws.Client
+	mailer      *mailer.Client
 	metrics     *metrics.Client
 	telegram    *telegram.Client
 }
 
-func NewWorker(env string, mainnet bool, logger *log.Logger, miningNodes []types.MiningNode, payoutNodes []types.PayoutNode, pooldbClient, tsdbClient *dbcl.Client, redisClient *redis.Client, awsClient *aws.Client, metricsClient *metrics.Client, exchanges []types.Exchange, telegramClient *telegram.Client) *Worker {
+func NewWorker(
+	env string,
+	mainnet bool,
+	logger *log.Logger,
+	miningNodes []types.MiningNode,
+	payoutNodes []types.PayoutNode,
+	pooldbClient, tsdbClient *dbcl.Client,
+	redisClient *redis.Client,
+	awsClient *aws.Client,
+	metricsClient *metrics.Client,
+	exchanges []types.Exchange,
+	telegramClient *telegram.Client,
+) (*Worker, error) {
 	cronClient := cron.New(
 		cron.WithParser(
 			cron.NewParser(
 				cron.SecondOptional | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)))
+
+	mailerClient, err := mailer.New(awsClient)
+	if err != nil {
+		return nil, err
+	}
 
 	worker := &Worker{
 		env:         env,
@@ -46,11 +65,12 @@ func NewWorker(env string, mainnet bool, logger *log.Logger, miningNodes []types
 		tsdb:        tsdbClient,
 		exchanges:   exchanges,
 		aws:         awsClient,
+		mailer:      mailerClient,
 		metrics:     metricsClient,
 		telegram:    telegramClient,
 	}
 
-	return worker
+	return worker, nil
 }
 
 func (w *Worker) Start() {
@@ -139,6 +159,7 @@ func (w *Worker) Start() {
 		redis:    w.redis,
 		pooldb:   w.pooldb,
 		nodes:    w.miningNodes,
+		mailer:   w.mailer,
 		telegram: w.telegram,
 	})
 

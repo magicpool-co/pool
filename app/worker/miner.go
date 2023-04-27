@@ -9,6 +9,7 @@ import (
 
 	"github.com/bsm/redislock"
 
+	"github.com/magicpool-co/pool/core/mailer"
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/redis"
@@ -153,7 +154,43 @@ type MinerNotifyJob struct {
 	pooldb   *dbcl.Client
 	redis    *redis.Client
 	nodes    []types.MiningNode
+	mailer   *mailer.Client
 	telegram *telegram.Client
+}
+
+func (j *MinerNotifyJob) notifyMiner(miner *pooldb.Miner, workers []*pooldb.Worker) error {
+	if miner.Email == nil {
+		return fmt.Errorf("no email for miner")
+	}
+
+	address := miner.Address
+	if parts := strings.Split(address, ":"); len(parts) == 0 {
+		address = strings.ToLower(miner.ChainID) + ":" + address
+	}
+
+	dbTx, err := j.pooldb.Begin()
+	if err != nil {
+		return err
+	}
+	defer dbTx.SafeRollback()
+
+	workerIdx := make(map[string]time.Time)
+	for _, worker := range workers {
+		workerIdx[worker.Name] = worker.LastShare
+
+		worker.Notified = true
+		err = pooldb.UpdateWorker(dbTx, worker, []string{"notified"})
+		if err != nil {
+			return err
+		}
+	}
+
+	err = dbTx.SafeCommit()
+	if err != nil {
+		return err
+	}
+
+	return j.mailer.SendEmailForWorkers("tug@sencha.dev", address, workerIdx)
 }
 
 func (j *MinerNotifyJob) Run() {
@@ -227,25 +264,21 @@ func (j *MinerNotifyJob) Run() {
 
 	minerIdx := make(map[uint64]*pooldb.Miner, 0)
 	for _, miner := range miners {
+		// if miner.EnabledWorkerNotifications && miner.Email != nil {
 		minerIdx[miner.ID] = miner
+		// }
 	}
 
 	for minerID, workers := range workersToNotify {
 		miner, ok := minerIdx[minerID]
 		if !ok || miner == nil {
-			j.logger.Error(fmt.Errorf("notify: miner not found: %d", minerID))
 			continue
 		}
 
-		for _, worker := range workers {
-			worker.Notified = true
-			err = pooldb.UpdateWorker(j.pooldb.Writer(), worker, []string{"notified"})
-			if err != nil {
-				j.logger.Error(fmt.Errorf("notify: update worker: %v", err))
-				continue
-			}
-
-			j.telegram.NotifyWorkerDown(minerID, worker.Name, worker.LastShare.Unix())
+		err := j.notifyMiner(miner, workers)
+		if err != nil {
+			j.logger.Error(fmt.Errorf("notify: notify miner: %v", err))
+			continue
 		}
 	}
 

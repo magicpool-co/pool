@@ -140,10 +140,10 @@ func newWorker(secrets map[string]string, mainnet bool, metricsClient *metrics.C
 		payoutNodes = append(payoutNodes, node)
 	}
 
-	workerClient := worker.NewWorker(secrets["ENVIRONMENT"], mainnet, logger, miningNodes, payoutNodes,
+	workerClient, err := worker.NewWorker(secrets["ENVIRONMENT"], mainnet, logger, miningNodes, payoutNodes,
 		pooldbClient, tsdbClient, redisClient, awsClient, metricsClient, exchanges, telegramClient)
 
-	return workerClient, logger, nil
+	return workerClient, logger, err
 }
 
 func main() {
