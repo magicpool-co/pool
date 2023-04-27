@@ -1332,7 +1332,10 @@ func GetUnpaidMinerIDsAbovePayoutThreshold(q dbcl.Querier, chain, threshold stri
 	SELECT DISTINCT miners.id
 	FROM cte
 	LEFT OUTER JOIN miners ON cte.miner_id = miners.id
-	WHERE value >= IFNULL(miners.threshold, ?);`
+	WHERE
+		value >= IFNULL(miners.threshold, ?)
+	AND
+		miners.recipient_fee_percent IS NULL;`
 
 	output := []uint64{}
 	err := q.Select(&output, query, chain, threshold)
