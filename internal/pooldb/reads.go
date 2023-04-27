@@ -1131,31 +1131,15 @@ func GetBalanceInputsByRound(q dbcl.Querier, roundID uint64) ([]*BalanceInput, e
 	return output, err
 }
 
-func GetImmatureBalanceInputSumsByMiners(q dbcl.Querier, minerIDs []uint64) ([]*BalanceInput, error) {
-	const rawQuery = `SELECT 
-		chain_id,
-		sum(value) value
+func GetImmatureBalanceInputSumByChain(q dbcl.Querier, chain string) (*big.Int, error) {
+	const query = `SELECT sum(value)
 	FROM balance_inputs
 	WHERE
-		miner_id IN (?)
+		chain_id = ?
 	AND
-		mature = FALSE
-	GROUP BY chain_id;`
+		mature = FALSE;`
 
-	if len(minerIDs) == 0 {
-		return nil, nil
-	}
-
-	query, args, err := sqlx.In(rawQuery, minerIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	output := []*BalanceInput{}
-	query = q.Rebind(query)
-	err = q.Select(&output, query, args...)
-
-	return output, err
+	return dbcl.GetBigInt(q, query, chain)
 }
 
 func GetPendingBalanceInputSumByChain(q dbcl.Querier, chain string) (*big.Int, error) {
@@ -1169,50 +1153,6 @@ func GetPendingBalanceInputSumByChain(q dbcl.Querier, chain string) (*big.Int, e
 		mature = TRUE;`
 
 	return dbcl.GetBigInt(q, query, chain)
-}
-
-func GetPendingBalanceInputSumWithoutBatchByChain(q dbcl.Querier, chain string) (*big.Int, error) {
-	const query = `SELECT sum(value)
-	FROM balance_inputs
-	WHERE
-		chain_id = ?
-	AND
-		pending = TRUE
-	AND
-		mature = TRUE
-	AND
-		batch_id IS NULL;`
-
-	return dbcl.GetBigInt(q, query, chain)
-}
-
-func GetPendingBalanceInputSumsByMiners(q dbcl.Querier, minerIDs []uint64) ([]*BalanceInput, error) {
-	const rawQuery = `SELECT 
-		chain_id,
-		sum(value) value
-	FROM balance_inputs
-	WHERE
-		miner_id IN (?)
-	AND
-		pending = TRUE
-	AND
-		mature = TRUE
-	GROUP BY chain_id;`
-
-	if len(minerIDs) == 0 {
-		return nil, nil
-	}
-
-	query, args, err := sqlx.In(rawQuery, minerIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	output := []*BalanceInput{}
-	query = q.Rebind(query)
-	err = q.Select(&output, query, args...)
-
-	return output, err
 }
 
 func GetBalanceOutputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceOutput, error) {
@@ -1283,50 +1223,6 @@ func GetUnpaidBalanceOutputSumByChain(q dbcl.Querier, chain string) (*big.Int, e
 	return dbcl.GetBigInt(q, query, chain)
 }
 
-func GetUnpaidBalanceOutputSumByMiner(q dbcl.Querier, minerID uint64, chain string) (*big.Int, error) {
-	const query = `SELECT sum(value)
-	FROM balance_outputs
-	WHERE
-		miner_id = ?
-	AND
-		chain_id = ?
-	AND
-		mature = TRUE
-	AND
-		out_payout_id IS NULL;`
-
-	return dbcl.GetBigInt(q, query, minerID, chain)
-}
-
-func GetUnpaidBalanceOutputSumsByMiners(q dbcl.Querier, minerIDs []uint64) ([]*BalanceOutput, error) {
-	const rawQuery = `SELECT 
-		chain_id,
-		sum(value) value
-	FROM balance_outputs
-	WHERE
-		miner_id IN (?)
-	AND
-		mature = TRUE
-	AND
-		out_payout_id IS NULL
-	GROUP BY chain_id;`
-
-	if len(minerIDs) == 0 {
-		return nil, nil
-	}
-
-	query, args, err := sqlx.In(rawQuery, minerIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	output := []*BalanceOutput{}
-	query = q.Rebind(query)
-	err = q.Select(&output, query, args...)
-
-	return output, err
-}
-
 func GetUnpaidMinerIDsAbovePayoutThreshold(q dbcl.Querier, chain, threshold string) ([]uint64, error) {
 	const query = `WITH cte as (
 		SELECT
@@ -1351,6 +1247,28 @@ func GetUnpaidMinerIDsAbovePayoutThreshold(q dbcl.Querier, chain, threshold stri
 
 	output := []uint64{}
 	err := q.Select(&output, query, chain, threshold)
+
+	return output, err
+}
+
+func GetBalanceSumsByMinerIDs(q dbcl.Querier, minerIDs []uint64) ([]*BalanceSum, error) {
+	const rawQuery = `SELECT *
+	FROM balance_sums
+	WHERE
+		miner_id IN (?);`
+
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	output := []*BalanceSum{}
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
 
 	return output, err
 }

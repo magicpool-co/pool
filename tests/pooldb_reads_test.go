@@ -384,24 +384,14 @@ func (suite *PooldbReadsSuite) TestReadBalanceInput() {
 		suite.T().Errorf("failed: GetBalanceInputsByRound: %v", err)
 	}
 
-	_, err = pooldb.GetImmatureBalanceInputSumsByMiners(pooldbClient.Reader(), []uint64{0, 1})
+	_, err = pooldb.GetImmatureBalanceInputSumByChain(pooldbClient.Reader(), "ETH")
 	if err != nil {
-		suite.T().Errorf("failed: GetImmatureBalanceInputSumsByMiners: %v", err)
+		suite.T().Errorf("failed: GetImmatureBalanceInputSumByChain: %v", err)
 	}
 
 	_, err = pooldb.GetPendingBalanceInputSumByChain(pooldbClient.Reader(), "ETH")
 	if err != nil {
 		suite.T().Errorf("failed: GetPendingBalanceInputSumByChain: %v", err)
-	}
-
-	_, err = pooldb.GetPendingBalanceInputSumWithoutBatchByChain(pooldbClient.Reader(), "ETH")
-	if err != nil {
-		suite.T().Errorf("failed: GetPendingBalanceInputSumWithoutBatchByChain: %v", err)
-	}
-
-	_, err = pooldb.GetPendingBalanceInputSumsByMiners(pooldbClient.Reader(), []uint64{0, 1})
-	if err != nil {
-		suite.T().Errorf("failed: GetPendingBalanceInputSumsByMiners: %v", err)
 	}
 }
 
@@ -433,19 +423,18 @@ func (suite *PooldbReadsSuite) TestReadBalanceOutput() {
 		suite.T().Errorf("failed: GetUnpaidBalanceOutputSumByChain: %v", err)
 	}
 
-	_, err = pooldb.GetUnpaidBalanceOutputSumByMiner(pooldbClient.Reader(), 1, "ETH")
-	if err != nil {
-		suite.T().Errorf("failed: GetUnpaidBalanceOutputSumByMiner: %v", err)
-	}
-
-	_, err = pooldb.GetUnpaidBalanceOutputSumsByMiners(pooldbClient.Reader(), []uint64{0, 1})
-	if err != nil {
-		suite.T().Errorf("failed: GetUnpaidBalanceOutputSumsByMiners: %v", err)
-	}
-
 	_, err = pooldb.GetUnpaidMinerIDsAbovePayoutThreshold(pooldbClient.Reader(), "ETH", "10")
 	if err != nil {
 		suite.T().Errorf("failed: GetUnpaidMinerIDsAbovePayoutThreshold: %v", err)
+	}
+}
+
+func (suite *PooldbReadsSuite) TestReadBalanceSum() {
+	var err error
+
+	_, err = pooldb.GetBalanceSumsByMinerIDs(pooldbClient.Reader(), []uint64{0, 1})
+	if err != nil {
+		suite.T().Errorf("failed: GetBalanceSumsByMinerIDs: %v", err)
 	}
 }
 

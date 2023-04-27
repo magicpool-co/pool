@@ -112,24 +112,25 @@ func (ctx *Context) parsePageSize(rawPage, rawSize string) (uint64, uint64, erro
 	return page, size, nil
 }
 
-func (ctx *Context) getMinerID(miner string) (uint64, error) {
-	minerIDs, err := ctx.getMinerIDs(miner)
+func (ctx *Context) getMinerID(miner string) (uint64, string, error) {
+	minerIDs, chains, err := ctx.getMinerIDs(miner)
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	} else if len(minerIDs) != 1 {
-		return 0, errMinerNotFound
+		return 0, "", errMinerNotFound
 	}
 
-	return minerIDs[0], nil
+	return minerIDs[0], chains[0], nil
 }
 
-func (ctx *Context) getMinerIDs(rawMiner string) ([]uint64, error) {
+func (ctx *Context) getMinerIDs(rawMiner string) ([]uint64, []string, error) {
 	miners := strings.Split(rawMiner, ",")
 	if len(miners) > 10 {
-		return nil, errTooManyMiners
+		return nil, nil, errTooManyMiners
 	}
 
 	minerIDs := make([]uint64, len(miners))
+	chains := make([]string, len(miners))
 	for i, miner := range miners {
 		var err error
 		minerIDs[i], err = ctx.redis.GetMinerID(miner)
@@ -138,21 +139,22 @@ func (ctx *Context) getMinerIDs(rawMiner string) ([]uint64, error) {
 				ctx.logger.Error(err)
 			}
 
-			chain, address, err := parseMiner(miner)
+			var address string
+			chains[i], address, err = parseMiner(miner)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
-			minerIDs[i], err = pooldb.GetMinerID(ctx.pooldb.Reader(), chain, address)
+			minerIDs[i], err = pooldb.GetMinerID(ctx.pooldb.Reader(), chains[i], address)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			} else if minerIDs[i] == 0 {
-				return nil, errMinerNotFound
+				return nil, nil, errMinerNotFound
 			}
 		}
 	}
 
-	return minerIDs, nil
+	return minerIDs, chains, nil
 }
 
 func (ctx *Context) getWorkerID(minerID uint64, worker string) (uint64, error) {
@@ -207,15 +209,11 @@ func (ctx *Context) getExists(args existsArgs) http.HandlerFunc {
 		if args.miner == "" {
 			exists = false
 		} else {
-			minerID, err := ctx.getMinerID(args.miner)
+			minerID, minerChain, err := ctx.getMinerID(args.miner)
 			if err != nil {
 				exists = false
-			} else {
-				miner, err := pooldb.GetMiner(ctx.pooldb.Reader(), minerID)
-				if err == nil && miner != nil {
-					chain = types.StringPtr(miner.ChainID)
-				}
 			}
+			chain = types.StringPtr(minerChain)
 
 			if exists && args.worker != "" {
 				_, err := ctx.getWorkerID(minerID, args.worker)
@@ -289,7 +287,7 @@ type workersArgs struct {
 
 func (ctx *Context) getWorkers(args workersArgs) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		minerID, err := ctx.getMinerID(args.miner)
+		minerID, _, err := ctx.getMinerID(args.miner)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
@@ -330,7 +328,7 @@ func (ctx *Context) getDashboard(args dashboardArgs) http.Handler {
 			ctx.writeErrorResponse(w, errInvalidParameters)
 			return
 		} else if args.worker != "" {
-			minerID, err := ctx.getMinerID(args.miner)
+			minerID, _, err := ctx.getMinerID(args.miner)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
@@ -344,13 +342,13 @@ func (ctx *Context) getDashboard(args dashboardArgs) http.Handler {
 
 			dashboard, err = ctx.stats.GetWorkerDashboard(workerID)
 		} else if args.miner != "" {
-			minerIDs, err := ctx.getMinerIDs(args.miner)
+			minerIDs, chains, err := ctx.getMinerIDs(args.miner)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
 			}
 
-			dashboard, err = ctx.stats.GetMinerDashboard(minerIDs)
+			dashboard, err = ctx.stats.GetMinerDashboard(minerIDs, chains)
 		} else {
 			dashboard, err = ctx.stats.GetGlobalDashboard()
 		}
@@ -472,7 +470,7 @@ func (ctx *Context) getShareChart(args shareChartArgs) http.Handler {
 			ctx.writeErrorResponse(w, errInvalidParameters)
 			return
 		} else if args.worker != "" {
-			minerID, err := ctx.getMinerID(args.miner)
+			minerID, _, err := ctx.getMinerID(args.miner)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
@@ -486,7 +484,7 @@ func (ctx *Context) getShareChart(args shareChartArgs) http.Handler {
 
 			data, err = ctx.stats.GetWorkerShareChart(workerID, chain, period)
 		} else if args.miner != "" {
-			minerIDs, err := ctx.getMinerIDs(args.miner)
+			minerIDs, _, err := ctx.getMinerIDs(args.miner)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
@@ -532,7 +530,7 @@ func (ctx *Context) getShareMetricChart(args shareMetricChartArgs) http.Handler 
 			ctx.writeErrorResponse(w, errInvalidParameters)
 			return
 		} else if args.worker != "" {
-			minerID, err := ctx.getMinerID(args.miner)
+			minerID, _, err := ctx.getMinerID(args.miner)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
@@ -546,7 +544,7 @@ func (ctx *Context) getShareMetricChart(args shareMetricChartArgs) http.Handler 
 
 			data, err = ctx.stats.GetWorkerShareSingleMetricChart(workerID, metric, period)
 		} else if args.miner != "" {
-			minerIDs, err := ctx.getMinerIDs(args.miner)
+			minerIDs, _, err := ctx.getMinerIDs(args.miner)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
@@ -583,7 +581,7 @@ func (ctx *Context) getPayouts(args payoutArgs) http.Handler {
 		var payouts []*stats.Payout
 		var count uint64
 		if args.miner != "" {
-			minerIDs, err := ctx.getMinerIDs(args.miner)
+			minerIDs, _, err := ctx.getMinerIDs(args.miner)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
@@ -620,7 +618,7 @@ func (ctx *Context) getPayoutsExport(args payoutExportArgs) http.Handler {
 			return
 		}
 
-		minerIDs, err := ctx.getMinerIDs(args.miner)
+		minerIDs, _, err := ctx.getMinerIDs(args.miner)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
@@ -663,7 +661,7 @@ func (ctx *Context) getRounds(args roundArgs) http.Handler {
 		var rounds []*stats.Round
 		var count uint64
 		if args.miner != "" {
-			minerIDs, err := ctx.getMinerIDs(args.miner)
+			minerIDs, _, err := ctx.getMinerIDs(args.miner)
 			if err != nil {
 				ctx.writeErrorResponse(w, err)
 				return
@@ -732,7 +730,7 @@ type minerSettingsArgs struct {
 
 func (ctx *Context) getMinerSettings(args minerSettingsArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		minerID, err := ctx.getMinerID(args.miner)
+		minerID, _, err := ctx.getMinerID(args.miner)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
@@ -825,7 +823,7 @@ type updateMinerSettingsArgs struct {
 
 func (ctx *Context) updateMinerSettings(args updateMinerSettingsArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		minerID, err := ctx.getMinerID(args.miner)
+		minerID, _, err := ctx.getMinerID(args.miner)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return

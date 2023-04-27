@@ -1,11 +1,14 @@
 package stats
 
 import (
+	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/tsdb"
+	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/types"
 )
 
@@ -91,7 +94,16 @@ func (c *Client) GetGlobalDashboard() (*Dashboard, error) {
 	return dashboard, nil
 }
 
-func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
+func (c *Client) GetMinerDashboard(minerIDs []uint64, chains []string) (*Dashboard, error) {
+	if len(minerIDs) != len(chains) {
+		return nil, fmt.Errorf("minerIDs and chains count mismatch")
+	}
+
+	minerChainIdx := make(map[uint64]string)
+	for i, minerID := range minerIDs {
+		minerChainIdx[minerID] = strings.ToUpper(chains[i])
+	}
+
 	// fetch last shares
 	lastShares, err := tsdb.GetMinersSharesLast(c.tsdb.Reader(), minerIDs, dashboardAggPeriod)
 	if err != nil {
@@ -122,90 +134,73 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
 		return nil, err
 	}
 
-	// fetch immature balances for all minerIDs
-	immatureBalances, err := pooldb.GetImmatureBalanceInputSumsByMiners(c.pooldb.Reader(), minerIDs)
+	// fetch balance sums
+	balanceSums, err := pooldb.GetBalanceSumsByMinerIDs(c.pooldb.Reader(), minerIDs)
 	if err != nil {
 		return nil, err
+	}
+
+	// calculate immature, pending, and unpaid balance sums
+	rawImmatureBalances := make(map[string]*big.Int)
+	rawPendingBalances := make(map[string]*big.Int)
+	rawUnpaidBalances := make(map[string]*big.Int)
+	for _, balanceSum := range balanceSums {
+		minerChain := minerChainIdx[balanceSum.MinerID]
+
+		// process balance sum immature balance
+		immature := balanceSum.ImmatureValue
+		if immature.Valid && immature.BigInt.Cmp(common.Big0) > 0 {
+			if _, ok := rawImmatureBalances[minerChain]; !ok {
+				rawImmatureBalances[minerChain] = new(big.Int)
+			}
+
+			rawImmatureBalances[minerChain].Add(rawImmatureBalances[minerChain], immature.BigInt)
+		}
+
+		// process balance sum mature balance
+		mature := balanceSum.MatureValue
+		if mature.Valid && mature.BigInt.Cmp(common.Big0) > 0 {
+			balanceIdxToUse := rawPendingBalances
+			if balanceSum.ChainID == minerChain {
+				balanceIdxToUse = rawUnpaidBalances
+			}
+
+			if _, ok := balanceIdxToUse[minerChain]; !ok {
+				balanceIdxToUse[minerChain] = new(big.Int)
+			}
+
+			balanceIdxToUse[minerChain].Add(balanceIdxToUse[minerChain], mature.BigInt)
+		}
+	}
+
+	// convert raw balances to processed balances
+	immatureBalances := make(map[string]Number, len(rawImmatureBalances))
+	for chain, balance := range rawImmatureBalances {
+		immatureBalances[chain], err = newNumberFromBigInt(balance, chain)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	pendingBalances := make(map[string]Number, len(rawPendingBalances))
+	for chain, balance := range rawPendingBalances {
+		pendingBalances[chain], err = newNumberFromBigInt(balance, chain)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	unpaidBalances := make(map[string]Number, len(rawUnpaidBalances))
+	for chain, balance := range rawUnpaidBalances {
+		unpaidBalances[chain], err = newNumberFromBigInt(balance, chain)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// calculate hashrate and share info
 	hashrateInfo := processHashrateInfo(lastShares)
 	shareInfo := processShareInfo(sumShares)
-
-	// sum immature balances by chain
-	immatureBalanceBig := make(map[string]*big.Int)
-	for _, balance := range immatureBalances {
-		if !balance.Value.Valid {
-			continue
-		} else if _, ok := immatureBalanceBig[balance.ChainID]; !ok {
-			immatureBalanceBig[balance.ChainID] = new(big.Int)
-		}
-		immatureBalanceBig[balance.ChainID].Add(immatureBalanceBig[balance.ChainID], balance.Value.BigInt)
-	}
-
-	// convert immature balances to number type
-	immatureBalance := make(map[string]Number)
-	for chain, balance := range immatureBalanceBig {
-		var err error
-		immatureBalance[chain], err = newNumberFromBigInt(balance, chain)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// fetch pending balances for all minerIDs
-	pendingBalances, err := pooldb.GetPendingBalanceInputSumsByMiners(c.pooldb.Reader(), minerIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	// sum pending balances by chain
-	pendingBalanceBig := make(map[string]*big.Int)
-	for _, balance := range pendingBalances {
-		if !balance.Value.Valid {
-			continue
-		} else if _, ok := pendingBalanceBig[balance.ChainID]; !ok {
-			pendingBalanceBig[balance.ChainID] = new(big.Int)
-		}
-		pendingBalanceBig[balance.ChainID].Add(pendingBalanceBig[balance.ChainID], balance.Value.BigInt)
-	}
-
-	// convert pending balances to number type
-	pendingBalance := make(map[string]Number)
-	for chain, balance := range pendingBalanceBig {
-		var err error
-		pendingBalance[chain], err = newNumberFromBigInt(balance, chain)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// fetch unpaid balances for all minerIDs
-	unpaidBalances, err := pooldb.GetUnpaidBalanceOutputSumsByMiners(c.pooldb.Reader(), minerIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	// sum unpaid balances by chain
-	unpaidBalanceBig := make(map[string]*big.Int)
-	for _, balance := range unpaidBalances {
-		if !balance.Value.Valid {
-			continue
-		} else if _, ok := unpaidBalanceBig[balance.ChainID]; !ok {
-			unpaidBalanceBig[balance.ChainID] = new(big.Int)
-		}
-		unpaidBalanceBig[balance.ChainID].Add(unpaidBalanceBig[balance.ChainID], balance.Value.BigInt)
-	}
-
-	// convert unpaid balances to number type
-	unpaidBalance := make(map[string]Number)
-	for chain, balance := range unpaidBalanceBig {
-		var err error
-		unpaidBalance[chain], err = newNumberFromBigInt(balance, chain)
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	// convert profitabilities into index
 	profitIndex := make(map[string]*tsdb.Block)
@@ -234,9 +229,9 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64) (*Dashboard, error) {
 		InactiveWorkers:         newNumberFromUint64Ptr(inactiveWorkers),
 		HashrateInfo:            hashrateInfo,
 		ShareInfo:               shareInfo,
-		ImmatureBalance:         immatureBalance,
-		PendingBalance:          pendingBalance,
-		UnpaidBalance:           unpaidBalance,
+		ImmatureBalance:         immatureBalances,
+		PendingBalance:          pendingBalances,
+		UnpaidBalance:           unpaidBalances,
 		ProjectedEarningsNative: projectedEarningsNative,
 		ProjectedEarningsUSD:    projectedEarningsUSD,
 		ProjectedEarningsBTC:    projectedEarningsBTC,

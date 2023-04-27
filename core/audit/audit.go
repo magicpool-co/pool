@@ -36,19 +36,30 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 		return err
 	}
 
+	immatureBalance, err := pooldb.GetImmatureBalanceInputSumByChain(pooldbClient.Reader(), chain)
+	if err != nil {
+		return err
+	}
+
+	pendingBalance, err := pooldb.GetPendingBalanceInputSumByChain(pooldbClient.Reader(), chain)
+	if err != nil {
+		return err
+	}
+
+	unpaidBalance, err := pooldb.GetUnpaidBalanceOutputSumByChain(pooldbClient.Reader(), chain)
+	if err != nil {
+		return err
+	}
+
 	// add immature round sum to UTXOs since they're only added at the point of maturation
 	// (if the chain shows blocks in the wallet balance before they're mature)
 	if chainIncludesImmature(chain) {
-		immatureRoundSum, err := pooldb.GetSumImmatureRoundValueByChain(pooldbClient.Reader(), chain)
-		if err != nil {
-			return err
-		}
-		utxoBalance.Add(utxoBalance, immatureRoundSum)
-
 		unconfirmedTxValue, err := pooldb.GetUnconfirmedTransactionSum(pooldbClient.Reader(), chain)
 		if err != nil {
 			return err
 		}
+
+		utxoBalance.Add(utxoBalance, immatureBalance)
 		utxoBalance.Add(utxoBalance, unconfirmedTxValue)
 	}
 
@@ -56,31 +67,17 @@ func CheckWallet(pooldbClient *dbcl.Client, node types.PayoutNode) error {
 		return fmt.Errorf("mismatch for utxo and wallet: have %s, want %s", utxoBalance, walletBalance)
 	}
 
-	inputBalance, err := pooldb.GetPendingBalanceInputSumWithoutBatchByChain(pooldbClient.Reader(), chain)
-	if err != nil {
-		return err
-	}
-
-	outputBalance, err := pooldb.GetUnpaidBalanceOutputSumByChain(pooldbClient.Reader(), chain)
-	if err != nil {
-		return err
-	}
-
-	sumMinerBalance := new(big.Int).Add(inputBalance, outputBalance)
+	sumMinerBalance := new(big.Int).Add(pendingBalance, unpaidBalance)
 
 	// add immature round sum to sum miner balance since they're only added at the point
 	// of maturation (if the immature round sum is included beforehand too)
 	if chainIncludesImmature(chain) {
-		unspentRoundSum, err := pooldb.GetSumImmatureRoundValueByChain(pooldbClient.Reader(), chain)
-		if err != nil {
-			return err
-		}
-		sumMinerBalance.Add(sumMinerBalance, unspentRoundSum)
-
 		unconfirmedPayoutValue, err := pooldb.GetUnconfirmedPayoutSum(pooldbClient.Reader(), chain)
 		if err != nil {
 			return err
 		}
+
+		sumMinerBalance.Add(sumMinerBalance, immatureBalance)
 		sumMinerBalance.Sub(sumMinerBalance, unconfirmedPayoutValue)
 	}
 
