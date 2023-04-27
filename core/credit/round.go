@@ -97,9 +97,9 @@ func CreditRound(pooldbClient *dbcl.Client, round *pooldb.Round, shares []*poold
 			// add the balance sum for the input
 			var immatureValue, matureValue dbcl.NullBigInt
 			if round.Mature {
-				matureValue = balanceInput.Value
+				matureValue = dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).Set(balanceInput.Value.BigInt)}
 			} else {
-				immatureValue = balanceInput.Value
+				immatureValue = dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).Set(balanceInput.Value.BigInt)}
 			}
 
 			balanceSum := &pooldb.BalanceSum{
