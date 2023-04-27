@@ -2,7 +2,6 @@ package credit
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/dbcl"
@@ -50,14 +49,14 @@ func matureRound(node types.MiningNode, pooldbClient *dbcl.Client, round *pooldb
 			MinerID: balanceInput.MinerID,
 			ChainID: balanceInput.ChainID,
 
-			MatureValue: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).Set(balanceInput.Value.BigInt)},
+			MatureValue: balanceInput.Value,
 		}
 
 		balanceSumsToSubtract[i] = &pooldb.BalanceSum{
 			MinerID: balanceInput.MinerID,
 			ChainID: balanceInput.ChainID,
 
-			ImmatureValue: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).Set(balanceInput.Value.BigInt)},
+			ImmatureValue: balanceInput.Value,
 		}
 	}
 

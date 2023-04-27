@@ -51,6 +51,8 @@ WITH cte AS (
     FROM balance_outputs
     WHERE
     	spent = FALSE
+    AND
+        mature = TRUE
     GROUP BY miner_id, chain_id
 ) SELECT
       miner_id,
