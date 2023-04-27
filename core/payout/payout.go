@@ -47,25 +47,25 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 		return err
 	}
 
-	minerIDs, err := pooldb.GetUnpaidMinerIDsAbovePayoutThreshold(dbTx, node.Chain(), payoutBound.Default.String())
+	miners, err := pooldb.GetMinersWithBalanceAboveThresholdByChain(dbTx, node.Chain(), payoutBound.Default.String())
 	if err != nil {
 		return err
-	} else if len(minerIDs) == 0 {
+	} else if len(miners) == 0 {
 		return nil
 	}
 
-	balanceOutputSums := make([]*pooldb.BalanceOutput, len(minerIDs))
-	balanceOutputIdx := make(map[uint64][]*pooldb.BalanceOutput, len(minerIDs))
-	for i, minerID := range minerIDs {
-		balanceOutputs, err := pooldb.GetUnpaidBalanceOutputsByMiner(dbTx, minerID, node.Chain())
+	balanceOutputSums := make([]*pooldb.BalanceOutput, len(miners))
+	balanceOutputIdx := make(map[uint64][]*pooldb.BalanceOutput, len(miners))
+	for i, miner := range miners {
+		balanceOutputs, err := pooldb.GetUnpaidBalanceOutputsByMiner(dbTx, miner.ID, node.Chain())
 		if err != nil {
 			return err
 		} else if len(balanceOutputs) == 0 {
-			return fmt.Errorf("no balance outputs found for miner %d", minerID)
+			return fmt.Errorf("no balance outputs found for miner %d", miner.ID)
 		}
 
 		valueSum, poolFeesSum, exchangeFeesSum := new(big.Int), new(big.Int), new(big.Int)
-		balanceOutputIdx[minerID] = make([]*pooldb.BalanceOutput, 0)
+		balanceOutputIdx[miner.ID] = make([]*pooldb.BalanceOutput, 0)
 		for _, balanceOutput := range balanceOutputs {
 			if !balanceOutput.Value.Valid {
 				return fmt.Errorf("no value for balance output %d", balanceOutput.ID)
@@ -78,11 +78,20 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			poolFeesSum.Add(poolFeesSum, balanceOutput.PoolFees.BigInt)
 			exchangeFeesSum.Add(exchangeFeesSum, balanceOutput.ExchangeFees.BigInt)
 
-			balanceOutputIdx[minerID] = append(balanceOutputIdx[minerID], balanceOutput)
+			balanceOutputIdx[miner.ID] = append(balanceOutputIdx[miner.ID], balanceOutput)
+		}
+
+		threshold := payoutBound.Default
+		if miner.Threshold.Valid && miner.Threshold.BigInt.Cmp(common.Big0) > 0 {
+			threshold = miner.Threshold.BigInt
+		}
+
+		if valueSum.Cmp(threshold) < 0 {
+			return fmt.Errorf("miner %d not actually above threshold: %s < %s", miner.ID, valueSum, threshold)
 		}
 
 		balanceOutputSums[i] = &pooldb.BalanceOutput{
-			MinerID: minerID,
+			MinerID: miner.ID,
 			ChainID: node.Chain(),
 
 			Value:        dbcl.NullBigInt{Valid: true, BigInt: valueSum},

@@ -1223,29 +1223,27 @@ func GetUnpaidBalanceOutputSumByChain(q dbcl.Querier, chain string) (*big.Int, e
 	return dbcl.GetBigInt(q, query, chain)
 }
 
-func GetUnpaidMinerIDsAbovePayoutThreshold(q dbcl.Querier, chain, threshold string) ([]uint64, error) {
-	const query = `WITH cte as (
-		SELECT
-			miner_id, 
-			sum(value) value
-		FROM balance_outputs
-		WHERE
-			chain_id = ?
-		AND
-			mature = TRUE
-		AND
-			out_payout_id IS NULL
-		GROUP BY miner_id
-	)
-	SELECT DISTINCT miners.id
-	FROM cte
-	LEFT OUTER JOIN miners ON cte.miner_id = miners.id
+func GetMinersWithBalanceAboveThresholdByChain(q dbcl.Querier, chain, threshold string) ([]*Miner, error) {
+	const query = `SELECT DISTINCT miners.*
+	FROM miners
+	JOIN balance_sums ON
+	        miners.id = balance_sums.miner_id
+	    AND
+	        miners.chain_id = balance_sums.chain_id
+	LEFT OUTER JOIN payouts on
+	        miners.id = payouts.miner_id
+	    AND
+	        payouts.confirmed = FALSE
 	WHERE
-		value >= IFNULL(miners.threshold, ?)
+		miners.chain_id = ?
 	AND
-		miners.recipient_fee_percent IS NULL;`
+	    balance_sums.mature_value >= IFNULL(miners.threshold, ?)
+	AND
+	    payouts.id IS NULL
+	AND
+	    miners.recipient_fee_percent IS NULL;`
 
-	output := []uint64{}
+	output := []*Miner{}
 	err := q.Select(&output, query, chain, threshold)
 
 	return output, err
