@@ -429,7 +429,7 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 		// create a balance sum to add the used balance inputs
 		balanceSumsToSubtract[i] = &pooldb.BalanceSum{
 			MinerID:     minerID,
-			ChainID:     chainID,
+			ChainID:     balanceInput.ChainID,
 			MatureValue: balanceInput.Value,
 		}
 	}
