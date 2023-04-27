@@ -65,7 +65,7 @@ func matureRound(node types.MiningNode, pooldbClient *dbcl.Client, round *pooldb
 		}
 
 		if balanceInput.BalanceOutputID != nil {
-			balanceOutputIDs[i] = types.Uint64Value(balanceInput.BalanceOutputID)
+			balanceOutputIDs = append(balanceOutputIDs, types.Uint64Value(balanceInput.BalanceOutputID))
 		}
 	}
 
