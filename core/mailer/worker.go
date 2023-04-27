@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/magicpool-co/pool/pkg/aws/ses"
@@ -51,7 +52,11 @@ func (c *Client) generateEmailForWorkers(miner string, workerIdx map[string]time
 }
 
 func (c *Client) SendEmailForWorkers(emailAddress, miner string, workerIdx map[string]time.Time) error {
-	subject := fmt.Sprintf("%d workers are down", len(workerIdx))
+	subject := "1 worker has gone down"
+	if len(workerIdx) > 1 {
+		subject = strconv.Itoa(len(workerIdx)) + " workers have gone down"
+	}
+
 	body, err := c.generateEmailForWorkers(miner, workerIdx)
 	if err != nil {
 		return err
