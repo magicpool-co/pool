@@ -42,7 +42,7 @@ func matureRound(node types.MiningNode, pooldbClient *dbcl.Client, round *pooldb
 	}
 
 	// subtract the immature balance, add the mature balance
-	balanceSumsToAdd := make([]*pooldb.BalanceSum, len(balanceInputs))
+	balanceSumsToAdd := make([]*pooldb.BalanceSum, 0)
 	balanceSumsToSubtract := make([]*pooldb.BalanceSum, len(balanceInputs))
 	for i, balanceInput := range balanceInputs {
 		// balanceSumsToAdd[i] = &pooldb.BalanceSum{
