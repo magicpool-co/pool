@@ -44,12 +44,17 @@ func matureRound(node types.MiningNode, pooldbClient *dbcl.Client, round *pooldb
 	// subtract the immature balance, add the mature balance
 	balanceSumsToAdd := make([]*pooldb.BalanceSum, len(balanceInputs))
 	balanceSumsToSubtract := make([]*pooldb.BalanceSum, len(balanceInputs))
+	balanceOutputIDs := make([]uint64, 0)
 	for i, balanceInput := range balanceInputs {
-		balanceSumsToAdd[i] = &pooldb.BalanceSum{
-			MinerID: balanceInput.MinerID,
-			ChainID: balanceInput.ChainID,
+		// if the round is marked as immature, this means it is an orphan, so
+		// we just want to subtract the balance inputs and ignore the rest
+		if round.Mature && !round.Orphan {
+			balanceSumsToAdd[i] = &pooldb.BalanceSum{
+				MinerID: balanceInput.MinerID,
+				ChainID: balanceInput.ChainID,
 
-			MatureValue: balanceInput.Value,
+				MatureValue: balanceInput.Value,
+			}
 		}
 
 		balanceSumsToSubtract[i] = &pooldb.BalanceSum{
@@ -58,13 +63,27 @@ func matureRound(node types.MiningNode, pooldbClient *dbcl.Client, round *pooldb
 
 			ImmatureValue: balanceInput.Value,
 		}
+
+		if balanceInput.BalanceOutputID != nil {
+			balanceOutputIDs[i] = types.Uint64Value(balanceInput.BalanceOutputID)
+		}
 	}
 
-	if err := pooldb.UpdateBalanceInputsSetMatureByRound(tx, round.ID); err != nil {
-		return err
-	} else if err := pooldb.UpdateBalanceOutputsSetMatureByRound(tx, round.ID); err != nil {
-		return err
-	} else if pooldb.InsertAddBalanceSums(tx, balanceSumsToAdd...); err != nil {
+	if round.Orphan {
+		if err := pooldb.DeleteBalanceInputsByRound(tx, round.ID); err != nil {
+			return err
+		} else if err := pooldb.DeleteBalanceOutputsByID(tx, balanceOutputIDs...); err != nil {
+			return err
+		}
+	} else if round.Mature {
+		if err := pooldb.UpdateBalanceInputsSetMatureByRound(tx, round.ID); err != nil {
+			return err
+		} else if err := pooldb.UpdateBalanceOutputsSetMatureByRound(tx, round.ID); err != nil {
+			return err
+		}
+	}
+
+	if pooldb.InsertAddBalanceSums(tx, balanceSumsToAdd...); err != nil {
 		return err
 	} else if pooldb.InsertSubtractBalanceSums(tx, balanceSumsToSubtract...); err != nil {
 		return err

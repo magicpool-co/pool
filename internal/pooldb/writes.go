@@ -315,6 +315,16 @@ func UpdateBalanceInputsSetMatureByRound(q dbcl.Querier, roundID uint64) error {
 	return err
 }
 
+func DeleteBalanceInputsByRound(q dbcl.Querier, roundID uint64) error {
+	const query = `DELETE FROM balance_inputs
+	WHERE
+		round_id = ?;`
+
+	_, err := q.Exec(query, roundID)
+
+	return err
+}
+
 func InsertBalanceOutput(q dbcl.Querier, obj *BalanceOutput) (uint64, error) {
 	const table = "balance_outputs"
 	cols := []string{
@@ -359,6 +369,25 @@ func UpdateBalanceOutputsSetMatureByRound(q dbcl.Querier, roundID uint64) error 
 		);`
 
 	_, err := q.Exec(query, roundID)
+
+	return err
+}
+
+func DeleteBalanceOutputsByID(q dbcl.Querier, ids ...uint64) error {
+	const rawQuery = `DELETE FROM balance_outputs
+		WHERE
+			id IN (?);`
+
+	if len(ids) == 0 {
+		return nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, ids)
+	if err != nil {
+		return err
+	}
+
+	_, err = q.Exec(query, args...)
 
 	return err
 }
