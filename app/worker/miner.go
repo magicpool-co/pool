@@ -159,9 +159,9 @@ type MinerNotifyJob struct {
 }
 
 func (j *MinerNotifyJob) notifyMiner(miner *pooldb.Miner, workers []*pooldb.Worker) error {
-	if miner.Email == nil {
-		return fmt.Errorf("no email for miner")
-	}
+	// if miner.Email == nil {
+	// 	return fmt.Errorf("no email for miner")
+	// }
 
 	address := miner.Address
 	if parts := strings.Split(address, ":"); len(parts) == 0 {
