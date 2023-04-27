@@ -8,7 +8,7 @@ import (
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/tsdb"
-	// "github.com/magicpool-co/pool/pkg/common"
+	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/types"
 )
 
@@ -151,14 +151,14 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64, chains []string) (*Dashboa
 		}
 
 		// // process balance sum immature balance
-		// immature := balanceSum.ImmatureValue
-		// if immature.Valid && immature.BigInt.Cmp(common.Big0) > 0 {
-		// 	if _, ok := rawImmatureBalances[minerChain]; !ok {
-		// 		rawImmatureBalances[minerChain] = new(big.Int)
-		// 	}
+		immature := balanceSum.ImmatureValue
+		if immature.Valid && immature.BigInt.Cmp(common.Big0) > 0 {
+			if _, ok := rawImmatureBalances[minerChain]; !ok {
+				rawImmatureBalances[minerChain] = new(big.Int)
+			}
 
-		// 	rawImmatureBalances[minerChain].Add(rawImmatureBalances[minerChain], immature.BigInt)
-		// }
+			rawImmatureBalances[minerChain].Add(rawImmatureBalances[minerChain], immature.BigInt)
+		}
 
 		// // process balance sum mature balance
 		// mature := balanceSum.MatureValue
