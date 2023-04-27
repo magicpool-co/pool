@@ -248,7 +248,7 @@ func (c *Client) finalizePayout(payout *pooldb.Payout) error {
 		return fmt.Errorf("no fee for tx %s", tx.TxID)
 	}
 
-	balanceOutputs, err := pooldb.GetBalanceOutputsByPayoutTransaction(c.pooldb.Reader(), tx.ID)
+	balanceOutputs, err := pooldb.GetBalanceOutputsByPayout(c.pooldb.Reader(), payout.ID)
 	if err != nil {
 		return err
 	}

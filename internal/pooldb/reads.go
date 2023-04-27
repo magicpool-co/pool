@@ -1240,6 +1240,18 @@ func GetBalanceOutputsByPayoutTransaction(q dbcl.Querier, transactionID uint64) 
 	return output, err
 }
 
+func GetBalanceOutputsByPayout(q dbcl.Querier, payoutID uint64) ([]*BalanceOutput, error) {
+	const query = `SELECT *
+	FROM balance_outputs
+	WHERE
+		out_payout_id = ?;`
+
+	output := []*BalanceOutput{}
+	err := q.Select(&output, query, payoutID)
+
+	return output, err
+}
+
 func GetUnpaidBalanceOutputsByMiner(q dbcl.Querier, minerID uint64, chain string) ([]*BalanceOutput, error) {
 	const query = `SELECT *
 	FROM balance_outputs
