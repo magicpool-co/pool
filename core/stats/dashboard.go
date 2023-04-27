@@ -8,7 +8,7 @@ import (
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/tsdb"
-	"github.com/magicpool-co/pool/pkg/common"
+	// "github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/types"
 )
 
