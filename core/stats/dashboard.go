@@ -135,43 +135,46 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64, chains []string) (*Dashboa
 	}
 
 	// fetch balance sums
-	balanceSums, err := pooldb.GetBalanceSumsByMinerIDs(c.pooldb.Reader(), minerIDs)
-	if err != nil {
-		return nil, err
-	}
+	// balanceSums, err := pooldb.GetBalanceSumsByMinerIDs(c.pooldb.Reader(), minerIDs)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// calculate immature, pending, and unpaid balance sums
 	rawImmatureBalances := make(map[string]*big.Int)
 	rawPendingBalances := make(map[string]*big.Int)
 	rawUnpaidBalances := make(map[string]*big.Int)
-	for _, balanceSum := range balanceSums {
-		minerChain := minerChainIdx[balanceSum.MinerID]
+	// for _, balanceSum := range balanceSums {
+	// 	minerChain, ok := minerChainIdx[balanceSum.MinerID]
+	// 	if !ok {
+	// 		continue
+	// 	}
 
-		// process balance sum immature balance
-		immature := balanceSum.ImmatureValue
-		if immature.Valid && immature.BigInt.Cmp(common.Big0) > 0 {
-			if _, ok := rawImmatureBalances[minerChain]; !ok {
-				rawImmatureBalances[minerChain] = new(big.Int)
-			}
+	// 	// process balance sum immature balance
+	// 	immature := balanceSum.ImmatureValue
+	// 	if immature.Valid && immature.BigInt.Cmp(common.Big0) > 0 {
+	// 		if _, ok := rawImmatureBalances[minerChain]; !ok {
+	// 			rawImmatureBalances[minerChain] = new(big.Int)
+	// 		}
 
-			rawImmatureBalances[minerChain].Add(rawImmatureBalances[minerChain], immature.BigInt)
-		}
+	// 		rawImmatureBalances[minerChain].Add(rawImmatureBalances[minerChain], immature.BigInt)
+	// 	}
 
-		// process balance sum mature balance
-		mature := balanceSum.MatureValue
-		if mature.Valid && mature.BigInt.Cmp(common.Big0) > 0 {
-			balanceIdxToUse := rawPendingBalances
-			if balanceSum.ChainID == minerChain {
-				balanceIdxToUse = rawUnpaidBalances
-			}
+	// 	// process balance sum mature balance
+	// 	mature := balanceSum.MatureValue
+	// 	if mature.Valid && mature.BigInt.Cmp(common.Big0) > 0 {
+	// 		balanceIdxToUse := rawPendingBalances
+	// 		if balanceSum.ChainID == minerChain {
+	// 			balanceIdxToUse = rawUnpaidBalances
+	// 		}
 
-			if _, ok := balanceIdxToUse[minerChain]; !ok {
-				balanceIdxToUse[minerChain] = new(big.Int)
-			}
+	// 		if _, ok := balanceIdxToUse[minerChain]; !ok {
+	// 			balanceIdxToUse[minerChain] = new(big.Int)
+	// 		}
 
-			balanceIdxToUse[minerChain].Add(balanceIdxToUse[minerChain], mature.BigInt)
-		}
-	}
+	// 		balanceIdxToUse[minerChain].Add(balanceIdxToUse[minerChain], mature.BigInt)
+	// 	}
+	// }
 
 	// convert raw balances to processed balances
 	immatureBalances := make(map[string]Number, len(rawImmatureBalances))
