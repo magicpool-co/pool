@@ -525,3 +525,24 @@ CREATE TABLE balance_inputs (
 	INDEX idx_balance_inputs_pending_mature_batch_id (pending, mature, batch_id),
 	INDEX idx_balance_inputs_chain_id_mature_pending (chain_id, mature, pending)
 );
+
+CREATE TABLE balance_sums (
+	miner_id		int				UNSIGNED NOT NULL,
+	chain_id		varchar(4)		NOT NULL,
+
+	immature_value	decimal(25,0)   DEFAULT 0,
+	mature_value	decimal(25,0)   DEFAULT 0,
+
+	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	CONSTRAINT fk_balance_sums_chain_id
+	FOREIGN KEY (chain_id)			REFERENCES	chains(id),
+	CONSTRAINT fk_balance_sums_miner_id
+	FOREIGN KEY (miner_id)			REFERENCES	miners(id),
+
+	PRIMARY KEY (miner_id, chain_id),
+	INDEX idx_balance_sums_chain_id (chain_id),
+	INDEX idx_balance_sums_miner_id (miner_id),
+	INDEX idx_balance_sums_miner_id_chain_id (miner_id, chain_id)
+);

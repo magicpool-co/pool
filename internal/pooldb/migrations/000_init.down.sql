@@ -1,3 +1,4 @@
+DROP TABLE balance_sums;
 DROP TABLE balance_inputs;
 DROP TABLE balance_outputs;
 DROP TABLE payouts;
