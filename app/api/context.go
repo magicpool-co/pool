@@ -132,17 +132,18 @@ func (ctx *Context) getMinerIDs(rawMiner string) ([]uint64, []string, error) {
 	minerIDs := make([]uint64, len(miners))
 	chains := make([]string, len(miners))
 	for i, miner := range miners {
+		var address string
 		var err error
+
+		chains[i], address, err = parseMiner(miner)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		minerIDs[i], err = ctx.redis.GetMinerID(miner)
 		if err != nil || minerIDs[i] == 0 {
 			if err != nil {
 				ctx.logger.Error(err)
-			}
-
-			var address string
-			chains[i], address, err = parseMiner(miner)
-			if err != nil {
-				return nil, nil, err
 			}
 
 			minerIDs[i], err = pooldb.GetMinerID(ctx.pooldb.Reader(), chains[i], address)
