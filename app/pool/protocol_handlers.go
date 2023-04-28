@@ -274,6 +274,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			minedDiff := shareDiff * float64(round.AcceptedShares+1)
 			round.Luck = 100 * (float64(roundDiff) / float64(minedDiff))
 			round.MinerID = c.GetMinerID()
+			round.WorkerID = types.Uint64Ptr(c.GetWorkerID())
 			roundID, err := pooldb.InsertRound(p.db.Writer(), round)
 			if err != nil {
 				p.logger.Error(err)

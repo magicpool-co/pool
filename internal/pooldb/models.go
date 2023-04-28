@@ -99,9 +99,10 @@ type IPAddress struct {
 }
 
 type Round struct {
-	ID      uint64 `db:"id"`
-	ChainID string `db:"chain_id"`
-	MinerID uint64 `db:"miner_id"`
+	ID       uint64  `db:"id"`
+	ChainID  string  `db:"chain_id"`
+	MinerID  uint64  `db:"miner_id"`
+	WorkerID *uint64 `db:"worker_id"`
 	// column not present in the table, only
 	// helpful for a specific join query (GetRounds)
 	Miner *string `db:"miner"`
