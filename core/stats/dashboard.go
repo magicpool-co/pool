@@ -146,10 +146,10 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64, chains []string) (*Dashboa
 	rawUnpaidBalances := make(map[string]*big.Int)
 	for _, balanceSum := range balanceSums {
 		chain := balanceSum.ChainID
-		minerChain, ok := minerChainIdx[balanceSum.MinerID]
-		if !ok || minerChain == "" {
-			return nil, fmt.Errorf("miner chain not found for id %d", balanceSum.MinerID)
-		}
+		// minerChain, ok := minerChainIdx[balanceSum.MinerID]
+		// if !ok || minerChain == "" {
+		// 	return nil, fmt.Errorf("miner chain not found for id %d", balanceSum.MinerID)
+		// }
 
 		// // process balance sum immature balance
 		immature := balanceSum.ImmatureValue

@@ -522,5 +522,6 @@ CREATE TABLE balance_inputs (
 	INDEX idx_balance_inputs_out_chain_id (out_chain_id),
 	INDEX idx_balance_inputs_balance_output_id (balance_output_id),
 	INDEX idx_balance_inputs_batch_id (batch_id),
-	INDEX idx_balance_inputs_pending_mature_batch_id (pending, mature, batch_id)
+	INDEX idx_balance_inputs_pending_mature_batch_id (pending, mature, batch_id),
+	INDEX idx_balance_inputs_chain_id_mature_pending (chain_id, mature, pending)
 );
