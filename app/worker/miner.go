@@ -159,12 +159,12 @@ type MinerNotifyJob struct {
 }
 
 func (j *MinerNotifyJob) notifyMiner(miner *pooldb.Miner, workers []*pooldb.Worker) error {
-	// if miner.Email == nil {
-	// 	return fmt.Errorf("no email for miner")
-	// }
+	if miner.Email == nil {
+		return fmt.Errorf("no email for miner")
+	}
 
 	address := miner.Address
-	if parts := strings.Split(address, ":"); len(parts) == 0 {
+	if parts := strings.Split(address, ":"); len(parts) == 1 {
 		address = strings.ToLower(miner.ChainID) + ":" + address
 	}
 
@@ -190,7 +190,7 @@ func (j *MinerNotifyJob) notifyMiner(miner *pooldb.Miner, workers []*pooldb.Work
 		return err
 	}
 
-	return j.mailer.SendEmailForWorkers("tug@sencha.dev", address, workerIdx)
+	return j.mailer.SendEmailForWorkers(types.StringValue(miner.Email), address, workerIdx)
 }
 
 func (j *MinerNotifyJob) Run() {
@@ -264,9 +264,9 @@ func (j *MinerNotifyJob) Run() {
 
 	minerIdx := make(map[uint64]*pooldb.Miner, 0)
 	for _, miner := range miners {
-		// if miner.EnabledWorkerNotifications && miner.Email != nil {
-		minerIdx[miner.ID] = miner
-		// }
+		if miner.EnabledWorkerNotifications && miner.Email != nil {
+			minerIdx[miner.ID] = miner
+		}
 	}
 
 	for minerID, workers := range workersToNotify {
