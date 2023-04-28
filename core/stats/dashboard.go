@@ -145,36 +145,37 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64, chains []string) (*Dashboa
 	rawPendingBalances := make(map[string]*big.Int)
 	rawUnpaidBalances := make(map[string]*big.Int)
 	for _, balanceSum := range balanceSums {
+		chain := balanceSum.ChainID
 		minerChain, ok := minerChainIdx[balanceSum.MinerID]
 		if !ok || minerChain == "" {
-			continue
+			return nil, fmt.Errorf("miner chain not found for id %d", balanceSum.MinerID)
 		}
 
 		// // process balance sum immature balance
 		immature := balanceSum.ImmatureValue
 		if immature.Valid && immature.BigInt.Cmp(common.Big0) > 0 {
-			if _, ok := rawImmatureBalances[minerChain]; !ok {
-				rawImmatureBalances[minerChain] = new(big.Int)
+			if _, ok := rawImmatureBalances[chain]; !ok {
+				rawImmatureBalances[chain] = new(big.Int)
 			}
 
-			rawImmatureBalances[minerChain].Add(rawImmatureBalances[minerChain], immature.BigInt)
+			rawImmatureBalances[chain].Add(rawImmatureBalances[chain], immature.BigInt)
 		}
 
 		// // process balance sum mature balance
 		// mature := balanceSum.MatureValue
 		// if mature.Valid && mature.BigInt.Cmp(common.Big0) > 0 {
-		// 	if balanceSum.ChainID == minerChain {
-		// 		if _, ok := rawUnpaidBalances[minerChain]; !ok {
-		// 			rawUnpaidBalances[minerChain] = new(big.Int)
+		// 	if balanceSum.ChainID == chain {
+		// 		if _, ok := rawUnpaidBalances[chain]; !ok {
+		// 			rawUnpaidBalances[chain] = new(big.Int)
 		// 		}
 
-		// 		rawUnpaidBalances[minerChain].Add(rawUnpaidBalances[minerChain], mature.BigInt)
+		// 		rawUnpaidBalances[chain].Add(rawUnpaidBalances[chain], mature.BigInt)
 		// 	} else {
-		// 		if _, ok := rawPendingBalances[minerChain]; !ok {
-		// 			rawPendingBalances[minerChain] = new(big.Int)
+		// 		if _, ok := rawPendingBalances[chain]; !ok {
+		// 			rawPendingBalances[chain] = new(big.Int)
 		// 		}
 
-		// 		rawPendingBalances[minerChain].Add(rawPendingBalances[minerChain], mature.BigInt)
+		// 		rawPendingBalances[chain].Add(rawPendingBalances[chain], mature.BigInt)
 		// 	}
 		// }
 	}
