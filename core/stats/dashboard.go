@@ -3,7 +3,6 @@ package stats
 import (
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
@@ -94,14 +93,10 @@ func (c *Client) GetGlobalDashboard() (*Dashboard, error) {
 	return dashboard, nil
 }
 
-func (c *Client) GetMinerDashboard(minerIDs []uint64, chains []string) (*Dashboard, error) {
-	if len(minerIDs) != len(chains) {
-		return nil, fmt.Errorf("minerIDs and chains count mismatch")
-	}
-
-	minerChainIdx := make(map[uint64]string)
-	for i, minerID := range minerIDs {
-		minerChainIdx[minerID] = strings.ToUpper(chains[i])
+func (c *Client) GetMinerDashboard(minerIdx map[uint64]string) (*Dashboard, error) {
+	minerIDs := make([]uint64, 0)
+	for minerID := range minerIdx {
+		minerIDs = append(minerIDs, minerID)
 	}
 
 	// fetch last shares
@@ -146,10 +141,10 @@ func (c *Client) GetMinerDashboard(minerIDs []uint64, chains []string) (*Dashboa
 	rawUnpaidBalances := make(map[string]*big.Int)
 	for _, balanceSum := range balanceSums {
 		chain := balanceSum.ChainID
-		// minerChain, ok := minerChainIdx[balanceSum.MinerID]
-		// if !ok || minerChain == "" {
-		// 	return nil, fmt.Errorf("miner chain not found for id %d", balanceSum.MinerID)
-		// }
+		_, ok := minerIdx[balanceSum.MinerID]
+		if !ok {
+			return nil, fmt.Errorf("miner chain not found for id %d", balanceSum.MinerID)
+		}
 
 		// // process balance sum immature balance
 		immature := balanceSum.ImmatureValue

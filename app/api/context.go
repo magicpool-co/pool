@@ -348,7 +348,12 @@ func (ctx *Context) getDashboard(args dashboardArgs) http.Handler {
 				return
 			}
 
-			dashboard, err = ctx.stats.GetMinerDashboard(minerIDs, chains)
+			minerIdx := make(map[uint64]string, len(minerIDs))
+			for i, minerID := range minerIDs {
+				minerIdx[minerID] = chains[i]
+			}
+
+			dashboard, err = ctx.stats.GetMinerDashboard(minerIdx)
 		} else {
 			dashboard, err = ctx.stats.GetGlobalDashboard()
 		}
