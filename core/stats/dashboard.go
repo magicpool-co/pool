@@ -141,7 +141,7 @@ func (c *Client) GetMinerDashboard(minerIdx map[uint64]string) (*Dashboard, erro
 	rawUnpaidBalances := make(map[string]*big.Int)
 	for _, balanceSum := range balanceSums {
 		chain := balanceSum.ChainID
-		_, ok := minerIdx[balanceSum.MinerID]
+		minerChain, ok := minerIdx[balanceSum.MinerID]
 		if !ok {
 			return nil, fmt.Errorf("miner chain not found for id %d", balanceSum.MinerID)
 		}
@@ -156,23 +156,23 @@ func (c *Client) GetMinerDashboard(minerIdx map[uint64]string) (*Dashboard, erro
 			rawImmatureBalances[chain].Add(rawImmatureBalances[chain], immature.BigInt)
 		}
 
-		// // process balance sum mature balance
-		// mature := balanceSum.MatureValue
-		// if mature.Valid && mature.BigInt.Cmp(common.Big0) > 0 {
-		// 	if balanceSum.ChainID == chain {
-		// 		if _, ok := rawUnpaidBalances[chain]; !ok {
-		// 			rawUnpaidBalances[chain] = new(big.Int)
-		// 		}
+		// process balance sum mature balance
+		mature := balanceSum.MatureValue
+		if mature.Valid && mature.BigInt.Cmp(common.Big0) > 0 {
+			if chain == minerChain {
+				if _, ok := rawUnpaidBalances[chain]; !ok {
+					rawUnpaidBalances[chain] = new(big.Int)
+				}
 
-		// 		rawUnpaidBalances[chain].Add(rawUnpaidBalances[chain], mature.BigInt)
-		// 	} else {
-		// 		if _, ok := rawPendingBalances[chain]; !ok {
-		// 			rawPendingBalances[chain] = new(big.Int)
-		// 		}
+				rawUnpaidBalances[chain].Add(rawUnpaidBalances[chain], mature.BigInt)
+			} else {
+				if _, ok := rawPendingBalances[chain]; !ok {
+					rawPendingBalances[chain] = new(big.Int)
+				}
 
-		// 		rawPendingBalances[chain].Add(rawPendingBalances[chain], mature.BigInt)
-		// 	}
-		// }
+				rawPendingBalances[chain].Add(rawPendingBalances[chain], mature.BigInt)
+			}
+		}
 	}
 
 	// convert raw balances to processed balances
