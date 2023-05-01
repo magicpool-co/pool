@@ -109,7 +109,7 @@ func InsertIPAddresses(q dbcl.Querier, objects ...*IPAddress) error {
 func InsertRound(q dbcl.Querier, obj *Round) (uint64, error) {
 	const table = "rounds"
 	cols := []string{
-		"chain_id", "miner_id", "worker_id", "height", "epoch_height", "uncle_height", "hash",
+		"chain_id", "miner_id", "height", "epoch_height", "uncle_height", "hash",
 		"nonce", "mix_digest", "coinbase_txid", "value", "difficulty", "luck",
 		"accepted_shares", "rejected_shares", "invalid_shares", "mature",
 		"pending", "uncle", "orphan", "spent",

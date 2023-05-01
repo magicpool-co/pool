@@ -164,7 +164,6 @@ CREATE TABLE rounds (
 	id				int				UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	chain_id		varchar(4)		NOT NULL,
 	miner_id		int				UNSIGNED NOT NULL,
-	worker_id		int				UNSIGNED,
 
 	height			bigint			UNSIGNED NOT NULL,
 	uncle_height	bigint			UNSIGNED,

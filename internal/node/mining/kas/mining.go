@@ -389,7 +389,7 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 	}
 
 	var nonce string
-	if err := json.Unmarshal(data[2], &nonce); err != nil || len(nonce) > 18 {
+	if err := json.Unmarshal(data[2], &nonce); err != nil || (len(nonce) != 16 && len(nonce) != 18) {
 		return nil, fmt.Errorf("invalid nonce parameter: %s, %v", data[2], err)
 	}
 

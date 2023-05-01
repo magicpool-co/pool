@@ -3,8 +3,11 @@ package payout
 import (
 	"fmt"
 	"math/big"
+	"strconv"
+	"strings"
 
 	"github.com/magicpool-co/pool/core/bank"
+	"github.com/magicpool-co/pool/core/mailer"
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/redis"
 	"github.com/magicpool-co/pool/internal/telegram"
@@ -22,14 +25,21 @@ type Client struct {
 	redis    *redis.Client
 	telegram *telegram.Client
 	bank     *bank.Client
+	mailer   *mailer.Client
 }
 
-func New(pooldbClient *dbcl.Client, redisClient *redis.Client, telegramClient *telegram.Client) *Client {
+func New(
+	pooldbClient *dbcl.Client,
+	redisClient *redis.Client,
+	telegramClient *telegram.Client,
+	mailerClient *mailer.Client,
+) *Client {
 	client := &Client{
 		pooldb:   pooldbClient,
 		redis:    redisClient,
 		telegram: telegramClient,
 		bank:     bank.New(pooldbClient, redisClient, telegramClient),
+		mailer:   mailerClient,
 	}
 
 	return client
@@ -233,7 +243,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 	return dbTx.SafeCommit()
 }
 
-func (c *Client) finalizePayout(payout *pooldb.Payout) error {
+func (c *Client) finalizePayout(node types.PayoutNode, payout *pooldb.Payout, miner, emailAddress string) error {
 	if payout.TransactionID == nil {
 		return fmt.Errorf("no transaction id for payout %d", payout.ID)
 	}
@@ -342,6 +352,32 @@ func (c *Client) finalizePayout(payout *pooldb.Payout) error {
 
 	c.telegram.NotifyConfirmPayout(payout.ID)
 
+	if c.mailer != nil && emailAddress != "" {
+		units, err := common.GetDefaultUnits(payout.ChainID)
+		if err != nil {
+			return err
+		}
+
+		decimals := 4
+		switch payout.ChainID {
+		case "NEXA":
+			decimals = 1
+		case "KAS", "USDC", "USDT":
+			decimals = 2
+		case "BTC":
+			decimals = 6
+		}
+
+		valueFloat := common.BigIntToFloat64(payout.Value.BigInt, units)
+		valueStr := strconv.FormatFloat(valueFloat, 'f', decimals, 64) + " " + payout.ChainID
+
+		explorerURL := node.GetTxExplorerURL(payout.TxID)
+		err = c.mailer.SendEmailForPayout(emailAddress, miner, payout.TxID, explorerURL, valueStr, payout.CreatedAt)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -351,8 +387,41 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 		return err
 	}
 
+	minerIDIdx := make(map[uint64]bool)
 	for _, payout := range payouts {
-		err = c.finalizePayout(payout)
+		minerIDIdx[payout.MinerID] = true
+	}
+
+	minerIDs := make([]uint64, 0)
+	for minerID := range minerIDIdx {
+		minerIDs = append(minerIDs, minerID)
+	}
+
+	miners, err := pooldb.GetMiners(c.pooldb.Reader(), minerIDs)
+	if err != nil {
+		return err
+	}
+
+	minerIdx := make(map[uint64]*pooldb.Miner, 0)
+	for _, miner := range miners {
+		minerIdx[miner.ID] = miner
+	}
+
+	for _, payout := range payouts {
+		var address, emailAddress string
+		if miner, ok := minerIdx[payout.MinerID]; ok {
+			// if miner.EnabledPayoutNotifications && miner.Email != nil {
+			address = miner.Address
+			if parts := strings.Split(address, ":"); len(parts) == 1 {
+				address = strings.ToLower(miner.ChainID) + ":" + address
+			}
+
+			emailAddress = "tug@sencha.dev"
+			// emailAddress = types.StringValue(miner.Email)
+			// }
+		}
+
+		err = c.finalizePayout(node, payout, address, emailAddress)
 		if err != nil {
 			return err
 		}

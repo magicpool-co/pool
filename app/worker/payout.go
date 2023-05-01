@@ -7,6 +7,7 @@ import (
 
 	"github.com/bsm/redislock"
 
+	"github.com/magicpool-co/pool/core/mailer"
 	"github.com/magicpool-co/pool/core/payout"
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/redis"
@@ -21,6 +22,7 @@ type PayoutJob struct {
 	pooldb   *dbcl.Client
 	redis    *redis.Client
 	nodes    []types.PayoutNode
+	mailer   *mailer.Client
 	telegram *telegram.Client
 }
 
@@ -37,7 +39,7 @@ func (j *PayoutJob) Run() {
 	}
 	defer lock.Release(ctx)
 
-	client := payout.New(j.pooldb, j.redis, j.telegram)
+	client := payout.New(j.pooldb, j.redis, j.telegram, j.mailer)
 
 	for _, node := range j.nodes {
 		if err := client.InitiatePayouts(node); err != nil {

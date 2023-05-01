@@ -179,6 +179,7 @@ func (w *Worker) Start() {
 		pooldb:   w.pooldb,
 		redis:    w.redis,
 		nodes:    w.payoutNodes,
+		mailer:   w.mailer,
 		telegram: w.telegram,
 	})
 
