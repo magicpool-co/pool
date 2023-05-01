@@ -352,7 +352,7 @@ func (c *Client) finalizePayout(node types.PayoutNode, payout *pooldb.Payout, mi
 
 	c.telegram.NotifyConfirmPayout(payout.ID)
 
-	if c.mailer != nil && emailAddress != "" {
+	if c.mailer != nil && miner != "" && emailAddress != "" {
 		units, err := common.GetDefaultUnits(payout.ChainID)
 		if err != nil {
 			return err
@@ -410,15 +410,14 @@ func (c *Client) FinalizePayouts(node types.PayoutNode) error {
 	for _, payout := range payouts {
 		var address, emailAddress string
 		if miner, ok := minerIdx[payout.MinerID]; ok {
-			// if miner.EnabledPayoutNotifications && miner.Email != nil {
-			address = miner.Address
-			if parts := strings.Split(address, ":"); len(parts) == 1 {
-				address = strings.ToLower(miner.ChainID) + ":" + address
-			}
+			if miner.EnabledPayoutNotifications && miner.Email != nil {
+				address = miner.Address
+				if parts := strings.Split(address, ":"); len(parts) == 1 {
+					address = strings.ToLower(miner.ChainID) + ":" + address
+				}
 
-			emailAddress = "tug@sencha.dev"
-			// emailAddress = types.StringValue(miner.Email)
-			// }
+				emailAddress = types.StringValue(miner.Email)
+			}
 		}
 
 		err = c.finalizePayout(node, payout, address, emailAddress)
