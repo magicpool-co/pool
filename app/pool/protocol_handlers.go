@@ -151,14 +151,14 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 	workerID, err = p.redis.GetWorkerID(minerID, workerName)
 	if err != nil || workerID == 0 {
 		if err != nil {
-			p.logger.Error(err)
+			p.logger.Error(err, c.GetCompoundID())
 		}
 
 		// check the writer db directly
 		workerID, err = pooldb.GetWorkerID(p.db.Writer(), minerID, workerName)
 		if err != nil || workerID == 0 {
 			if err != nil {
-				p.logger.Error(err)
+				p.logger.Error(err, c.GetCompoundID())
 			}
 
 			worker := &pooldb.Worker{
@@ -170,14 +170,14 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 			// attempt to insert the workerID
 			workerID, err = pooldb.InsertWorker(p.db.Writer(), worker)
 			if err != nil {
-				p.logger.Error(err)
+				p.logger.Error(err, c.GetCompoundID())
 				return nil
 			}
 		}
 
 		// set the workerID in redis
 		if err := p.redis.SetWorkerID(minerID, workerName, workerID); err != nil {
-			p.logger.Error(err)
+			p.logger.Error(err, c.GetCompoundID())
 		}
 	}
 	c.SetWorkerID(workerID)
@@ -191,7 +191,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 
 	authResponses, err := p.node.GetAuthorizeResponses()
 	if err != nil {
-		p.logger.Error(err)
+		p.logger.Error(err, c.GetCompoundID())
 		return msgs
 	}
 	msgs = append(msgs, authResponses...)
@@ -200,7 +200,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 	if job != nil {
 		msg, err := p.node.MarshalJob(0, job, true, c.GetClientType())
 		if err != nil {
-			p.logger.Error(err)
+			p.logger.Error(err, c.GetCompoundID())
 			return msgs
 		}
 		msgs = append(msgs, msg)
@@ -248,14 +248,14 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			p.logger.Info("found valid block")
 			sharesIdx, err := p.redis.GetRoundShares(p.chain)
 			if err != nil {
-				p.logger.Error(err)
+				p.logger.Error(err, c.GetCompoundID())
 				return
 			}
 
 			// number of accepted, rejected, and invalid shares since last block (not PPLNS share number)
 			round.AcceptedShares, round.RejectedShares, round.InvalidShares, err = p.redis.GetRoundShareCounts(p.chain)
 			if err != nil {
-				p.logger.Error(err)
+				p.logger.Error(err, c.GetCompoundID())
 				return
 			}
 
@@ -276,7 +276,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			round.MinerID = c.GetMinerID()
 			roundID, err := pooldb.InsertRound(p.db.Writer(), round)
 			if err != nil {
-				p.logger.Error(err)
+				p.logger.Error(err, c.GetCompoundID())
 				return
 			}
 
@@ -292,7 +292,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			}
 
 			if err := pooldb.InsertShares(p.db.Writer(), shares...); err != nil {
-				p.logger.Error(err)
+				p.logger.Error(err, c.GetCompoundID())
 				return
 			}
 
@@ -305,7 +305,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 
 	if shareStatus == types.AcceptedShare {
 		if hash == nil {
-			p.logger.Error(fmt.Errorf("no hash returned for an accepted share"))
+			p.logger.Error(fmt.Errorf("no hash returned for an accepted share"), c.GetCompoundID())
 		} else {
 			isUnique, err := p.redis.AddUniqueShare(p.chain, job.Height.Value(), hash.Hex())
 			if err != nil {
@@ -328,7 +328,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		case types.AcceptedShare:
 			err := p.redis.AddAcceptedShare(p.chain, interval, c.GetCompoundID(), p.windowSize)
 			if err != nil {
-				p.logger.Error(err)
+				p.logger.Error(err, c.GetCompoundID())
 				return
 			}
 
@@ -351,14 +351,14 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		case types.RejectedShare:
 			err := p.redis.AddRejectedShare(p.chain, interval, c.GetCompoundID())
 			if err != nil {
-				p.logger.Error(err)
+				p.logger.Error(err, c.GetCompoundID())
 			} else if p.metrics != nil {
 				p.metrics.IncrementCounter("rejected_shares_total", p.chain)
 			}
 		case types.InvalidShare:
 			err := p.redis.AddInvalidShare(p.chain, interval, c.GetCompoundID())
 			if err != nil {
-				p.logger.Error(err)
+				p.logger.Error(err, c.GetCompoundID())
 			} else if p.metrics != nil {
 				p.metrics.IncrementCounter("invalid_shares_total", p.chain)
 			}

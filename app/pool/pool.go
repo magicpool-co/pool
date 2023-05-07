@@ -77,6 +77,8 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 		return nil, err
 	}
 
+	logger.LabelKeys = []string{"miner"}
+
 	pool := &Pool{
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
@@ -343,7 +345,7 @@ func (p *Pool) startStratum() {
 						msg.Conn.Close()
 					}
 
-					p.logger.Error(err)
+					p.logger.Error(err, msg.Conn.GetCompoundID())
 				}
 			}()
 		case err := <-errCh:

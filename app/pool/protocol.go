@@ -156,7 +156,7 @@ func (p *Pool) submit(c *stratum.Conn, req *rpc.Request) error {
 	if c.GetAuthorized() {
 		validShare, err = p.handleSubmit(c, req)
 		if err != nil {
-			p.logger.Error(err)
+			p.logger.Error(err, c.GetCompoundID())
 		}
 	}
 
