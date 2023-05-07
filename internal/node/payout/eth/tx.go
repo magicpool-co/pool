@@ -240,7 +240,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		if err != nil {
 			return "", "", err
 		} else if gasLimit != 21000 {
-			gasLimit += 30000
+			gasLimit += 50000
 		}
 	}
 
