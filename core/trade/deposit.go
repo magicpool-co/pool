@@ -54,8 +54,8 @@ func (c *Client) executeAndMaybeSplitDeposit(
 	txs, err := c.bank.PrepareOutgoingTxs(dbTx, c.nodes[chain], types.DepositTx, outputList...)
 	if err != nil {
 		if err == txCommon.ErrTxTooBig {
-			if split > 5 {
-				return fmt.Errorf("past split limit of 5")
+			if split > 10 {
+				return fmt.Errorf("past split limit of 10")
 			}
 
 			return c.executeAndMaybeSplitDeposit(batchID, chain, output, split+1)
