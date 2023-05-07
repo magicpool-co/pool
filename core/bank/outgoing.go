@@ -156,7 +156,7 @@ func (c *Client) PrepareOutgoingTxs(
 		// create tx and insert it into the db
 		txid, txHex, err := node.CreateTx(inputs, txOutputs)
 		if err != nil {
-			return nil, fmt.Errorf("create: %v", err)
+			return nil, err
 		}
 
 		feeSum := new(big.Int)
