@@ -151,8 +151,8 @@ func (node Node) getBlockByNumber(height uint64) (*Block, error) {
 	return block, nil
 }
 
-func (node Node) sendEstimateGas(from, to string) (uint64, error) {
-	tx := map[string]interface{}{"from": from, "to": to}
+func (node Node) sendEstimateGas(from, to, value string) (uint64, error) {
+	tx := map[string]interface{}{"from": from, "to": to, "value": value}
 	res, err := node.rpcHost.ExecRPCFromArgs("eth_estimateGas", tx)
 	if err != nil {
 		return 0, err

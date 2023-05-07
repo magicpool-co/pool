@@ -236,7 +236,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 	} else {
 		toAddress = output.Address
 		value = new(big.Int).Set(input.Value)
-		gasLimit, err = node.sendEstimateGas(node.address, toAddress)
+		gasLimit, err = node.sendEstimateGas(node.address, toAddress, "0x"+value.Text(16))
 		if err != nil {
 			return "", "", err
 		} else if gasLimit != 21000 {
