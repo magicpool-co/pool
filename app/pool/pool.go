@@ -334,6 +334,15 @@ func (p *Pool) startStratum() {
 
 				err := handler(msg.Conn, msg.Req)
 				if err != nil {
+					if msg.Conn.GetLastErrorAt().Before(time.Now().Add(time.Minute * -5)) {
+						msg.Conn.SetLastErrorAt(time.Now())
+						msg.Conn.SetErrorCount(1)
+					} else if cnt := msg.Conn.GetErrorCount(); cnt < 5 {
+						msg.Conn.SetErrorCount(cnt + 1)
+					} else {
+						msg.Conn.Close()
+					}
+
 					p.logger.Error(err)
 				}
 			}()
