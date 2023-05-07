@@ -156,7 +156,7 @@ func (c *Client) PrepareOutgoingTxs(
 		// create tx and insert it into the db
 		txid, txHex, err := node.CreateTx(inputs, txOutputs)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("create: %v", err)
 		}
 
 		feeSum := new(big.Int)
@@ -283,7 +283,7 @@ func (c *Client) spendTx(node types.PayoutNode, tx *pooldb.Transaction) error {
 
 	txid, err := node.BroadcastTx(tx.TxHex)
 	if err != nil {
-		return err
+		return fmt.Errorf("broadcast: %v", err)
 	}
 
 	// spend input utxos
