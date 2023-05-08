@@ -289,6 +289,8 @@ func (c *Client) CreditWithdrawals(batchID uint64) error {
 	for _, withdrawal := range withdrawals {
 		if withdrawal.Spent {
 			continue
+		} else if !withdrawal.Confirmed {
+			return fmt.Errorf("unconfirmed withdrawal %d", withdrawal.ID)
 		} else if !withdrawal.Value.Valid {
 			return fmt.Errorf("no value for withdrawal %d", withdrawal.ID)
 		} else if !withdrawal.WithdrawalFees.Valid {
