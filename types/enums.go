@@ -196,6 +196,9 @@ type ShareMetric string
 const (
 	ShareHashrate        ShareMetric = "hashrate"
 	ShareAverageHashrate ShareMetric = "avg_hashrate"
+	ShareAcceptedCount   ShareMetric = "accepted_shares"
+	ShareRejectedCount   ShareMetric = "rejected_shares"
+	ShareRejectedRate    ShareMetric = "accepted_shares, rejected_shares"
 )
 
 func ParseShareMetric(raw string) (ShareMetric, error) {
@@ -204,6 +207,12 @@ func ParseShareMetric(raw string) (ShareMetric, error) {
 		return ShareHashrate, nil
 	case "avgHashrate":
 		return ShareAverageHashrate, nil
+	case "acceptedShares":
+		return ShareAcceptedCount, nil
+	case "rejectedShares":
+		return ShareRejectedCount, nil
+	case "rejectedShareRate":
+		return ShareRejectedRate, nil
 	default:
 		return "", fmt.Errorf("unknown metric type")
 	}

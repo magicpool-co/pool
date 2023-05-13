@@ -320,6 +320,9 @@ func sumSharesSingle(metric types.ShareMetric, items []*tsdb.Share) ([]*tsdb.Sha
 					compoundIdx[timestamp][chain].Hashrate += item.Hashrate
 				case types.ShareAverageHashrate:
 					compoundIdx[timestamp][chain].AvgHashrate += item.AvgHashrate
+				case types.ShareAcceptedCount, types.ShareRejectedCount, types.ShareRejectedRate:
+					compoundIdx[timestamp][chain].AcceptedShares += item.AcceptedShares
+					compoundIdx[timestamp][chain].RejectedShares += item.RejectedShares
 				default:
 					return nil, fmt.Errorf("unknown metric type")
 				}
@@ -463,6 +466,15 @@ func getShareChartSingle(metric types.ShareMetric, items []*tsdb.Share, period t
 				value = item.Hashrate
 			case types.ShareAverageHashrate:
 				value = item.AvgHashrate
+			case types.ShareAcceptedCount:
+				value = float64(item.AcceptedShares)
+			case types.ShareRejectedCount:
+				value = float64(item.RejectedShares)
+			case types.ShareRejectedRate:
+				if item.AcceptedShares > 0 {
+					denominator := float64(item.AcceptedShares + item.RejectedShares)
+					value = 100 * (float64(item.RejectedShares) / denominator)
+				}
 			default:
 				return nil, fmt.Errorf("unknown metric type")
 			}
