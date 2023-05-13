@@ -337,16 +337,23 @@ func GetActiveWorkersCount(q dbcl.Querier, chain string) (uint64, error) {
 }
 
 func GetActiveWorkersByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64, error) {
-	const rawQuery = `SELECT COUNT(DISTINCT worker_id)
-	FROM ip_addresses
+	const rawQuery = `WITH cte AS (
+	    SELECT
+	        worker_id,
+	        MAX(active) AS active
+	    FROM
+	        ip_addresses
+	    WHERE
+	        miner_id IN (?)
+	    AND
+	        worker_id != 0
+	    AND
+	        expired = FALSE
+	    GROUP BY worker_id
+	) SELECT COUNT(DISTINCT worker_id)
+	FROM cte
 	WHERE
-		miner_id IN (?)
-	AND
-		worker_id != 0
-	AND
-		active = TRUE
-	AND
-		expired = FALSE;`
+	    active = TRUE;`
 
 	if len(minerIDs) == 0 {
 		return 0, nil
@@ -362,16 +369,23 @@ func GetActiveWorkersByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64, e
 }
 
 func GetInactiveWorkersByMinersCount(q dbcl.Querier, minerIDs []uint64) (uint64, error) {
-	const rawQuery = `SELECT COUNT(DISTINCT worker_id)
-	FROM ip_addresses
+	const rawQuery = `WITH cte AS (
+	    SELECT
+	        worker_id,
+	        MAX(active) AS active
+	    FROM
+	        ip_addresses
+	    WHERE
+	        miner_id IN (?)
+	    AND
+	        worker_id != 0
+	    AND
+	        expired = FALSE
+	    GROUP BY worker_id
+	) SELECT COUNT(DISTINCT worker_id)
+	FROM cte
 	WHERE
-		miner_id IN (?)
-	AND
-		worker_id != 0
-	AND
-		active = FALSE
-	AND
-		expired = FALSE;`
+	    active = FALSE;`
 
 	if len(minerIDs) == 0 {
 		return 0, nil
