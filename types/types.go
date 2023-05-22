@@ -203,6 +203,7 @@ type Trade struct {
 
 	Completed bool
 	Active    bool
+	Cancelled bool
 }
 
 type Withdrawal struct {

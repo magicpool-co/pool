@@ -336,6 +336,11 @@ func (suite *PooldbReadsSuite) TestReadExchangeDeposit() {
 func (suite *PooldbReadsSuite) TestReadExchangeTrade() {
 	var err error
 
+	_, err = pooldb.GetExchangeTrades(pooldbClient.Reader(), 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetExchangeTrades: %v", err)
+	}
+
 	_, err = pooldb.GetExchangeTradesByStage(pooldbClient.Reader(), 1, 1)
 	if err != nil {
 		suite.T().Errorf("failed: GetExchangeTradesByStage: %v", err)

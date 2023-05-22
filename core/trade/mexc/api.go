@@ -594,7 +594,7 @@ func (c *Client) GetTradeByID(market, tradeID string, inputValue float64) (*type
 		return nil, err
 	}
 
-	var completed, active bool
+	var completed, active, cancelled bool
 	switch obj.Status {
 	case "NEW":
 		completed, active = false, true
@@ -604,6 +604,7 @@ func (c *Client) GetTradeByID(market, tradeID string, inputValue float64) (*type
 		completed, active = true, false
 	case "CANCELED", "CANCELLED", "PARTIALLY_CANCELED":
 		completed, active = false, false
+		cancelled = true
 	default:
 		return nil, fmt.Errorf("order has an unknown status %s", obj.Status)
 	}
@@ -671,6 +672,7 @@ func (c *Client) GetTradeByID(market, tradeID string, inputValue float64) (*type
 
 		Completed: completed,
 		Active:    active,
+		Cancelled: cancelled,
 	}
 
 	return parsedTrade, nil

@@ -92,7 +92,13 @@ type Client struct {
 	bank      *bank.Client
 }
 
-func New(pooldbClient *dbcl.Client, redisClient *redis.Client, nodes []types.PayoutNode, exchanges []types.Exchange, telegramClient *telegram.Client) *Client {
+func New(
+	pooldbClient *dbcl.Client,
+	redisClient *redis.Client,
+	nodes []types.PayoutNode,
+	exchanges []types.Exchange,
+	telegramClient *telegram.Client,
+) *Client {
 	nodeIdx := make(map[string]types.PayoutNode)
 	for _, node := range nodes {
 		nodeIdx[node.Chain()] = node

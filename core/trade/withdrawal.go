@@ -12,6 +12,21 @@ import (
 )
 
 func (c *Client) InitiateWithdrawals(batchID uint64, exchange types.Exchange) error {
+	allTrades, err := pooldb.GetExchangeTrades(c.pooldb.Reader(), batchID)
+	if err != nil {
+		return err
+	}
+
+	for _, trade := range allTrades {
+		if !trade.Initiated {
+			return fmt.Errorf("precheck: uninitiated trade trade %d", trade.ID)
+		} else if !trade.Confirmed {
+			return fmt.Errorf("precheck: unconfirmed trade trade %d", trade.ID)
+		} else if !trade.Proceeds.Valid {
+			return fmt.Errorf("precheck: no proceeds for trade %d", trade.ID)
+		}
+	}
+
 	trades, err := pooldb.GetFinalExchangeTrades(c.pooldb.Reader(), batchID)
 	if err != nil {
 		return err

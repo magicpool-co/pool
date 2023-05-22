@@ -126,7 +126,7 @@ func (c *Client) InitiateTradeStage(batchID uint64, exchange types.Exchange, sta
 		return fmt.Errorf("unsupported trade stage %d", stage)
 	}
 
-	trades, err := pooldb.GetExchangeTradesByStage(c.pooldb.Reader(), batchID, stage)
+	trades, err := pooldb.GetExchangeTradesByStage(c.pooldb.Writer(), batchID, stage)
 	if err != nil {
 		return err
 	}
@@ -232,12 +232,14 @@ func (c *Client) confirmTrade(batchID uint64, exchange types.Exchange, stage int
 
 		// otherwise cancel it, refetch the trade, then make a new trade
 		// to finish out the rest of the order
-		err = exchange.CancelTradeByID(trade.Market, tradeID)
-		if err != nil {
-			return completedTrade, err
-		}
+		if !parsedTrade.Cancelled {
+			err = exchange.CancelTradeByID(trade.Market, tradeID)
+			if err != nil {
+				return completedTrade, err
+			}
 
-		time.Sleep(time.Second)
+			time.Sleep(time.Second)
+		}
 
 		// refetch the trade in case more was filled
 		parsedTrade, err = exchange.GetTradeByID(trade.Market, tradeID, value)
@@ -406,10 +408,12 @@ func (c *Client) confirmTrade(batchID uint64, exchange types.Exchange, stage int
 	// calculate the slippage from the initial order price and the fill price
 	var slippage float64
 	orderPrice := types.Float64Value(trade.OrderPrice)
-	if types.TradeDirection(trade.Direction) == types.TradeSell {
-		slippage = (fillPrice - orderPrice) / orderPrice
-	} else {
-		slippage = (orderPrice - fillPrice) / fillPrice
+	if fillPrice > 0 && orderPrice > 0 {
+		if types.TradeDirection(trade.Direction) == types.TradeSell {
+			slippage = (fillPrice - orderPrice) / orderPrice
+		} else {
+			slippage = (orderPrice - fillPrice) / fillPrice
+		}
 	}
 
 	// finalize the trade in the database

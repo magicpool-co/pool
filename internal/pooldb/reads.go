@@ -963,6 +963,18 @@ func GetUnregisteredExchangeDepositsByChain(q dbcl.Querier, chain string) ([]*Ex
 	return output, err
 }
 
+func GetExchangeTrades(q dbcl.Querier, batchID uint64) ([]*ExchangeTrade, error) {
+	const query = `SELECT *
+	FROM exchange_trades
+	WHERE
+		batch_id = ?;`
+
+	output := []*ExchangeTrade{}
+	err := q.Select(&output, query, batchID)
+
+	return output, err
+}
+
 func GetExchangeTradesByStage(q dbcl.Querier, batchID uint64, stage int) ([]*ExchangeTrade, error) {
 	const query = `WITH cte AS (
 	    SELECT
