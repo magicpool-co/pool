@@ -67,7 +67,7 @@ func GetDefaultPayoutBounds(chain string) (*PayoutBounds, error) {
 	case "BTC":
 		bounds = &PayoutBounds{
 			Min:       MustParseBigInt("75000"),
-			Default:   MustParseBigInt("1000000"),
+			Default:   MustParseBigInt("500000"),
 			Max:       MustParseBigInt("200000000"),
 			Precision: 4,
 			Units:     8,
