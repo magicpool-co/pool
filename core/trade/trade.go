@@ -464,7 +464,7 @@ func (c *Client) ConfirmTradeStage(batchID uint64, exchange types.Exchange, stag
 		if err != nil {
 			return err
 		} else if !completedTrade {
-			completedTrade = false
+			completedAll = false
 		}
 	}
 
