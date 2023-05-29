@@ -200,26 +200,11 @@ func (c *Client) PrepareOutgoingTxs(
 					Active:  false,
 				}
 
-				_, err = pooldb.InsertUTXO(q, remainderUTXO)
+				allInputUTXOs = append(allInputUTXOs, remainderUTXO)
+				remainderUTXO.ID, err = pooldb.InsertUTXO(q, remainderUTXO)
 				if err != nil {
 					return nil, err
 				}
-			}
-		}
-
-		if remainder.Cmp(common.Big0) > 0 {
-			remainderUTXO := &pooldb.UTXO{
-				ChainID: node.Chain(),
-				TxID:    txid,
-				Index:   txs[i].RemainderIdx,
-				Value:   txs[i].Remainder,
-				Active:  false,
-			}
-
-			allInputUTXOs = append(allInputUTXOs, remainderUTXO)
-			remainderUTXO.ID, err = pooldb.InsertUTXO(q, remainderUTXO)
-			if err != nil {
-				return nil, err
 			}
 		}
 	}
