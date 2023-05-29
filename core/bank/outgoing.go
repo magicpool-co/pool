@@ -252,6 +252,7 @@ func (c *Client) MergeUTXOs(node types.PayoutNode, count int) error {
 			if size < 2 {
 				return nil
 			}
+			continue
 		} else if err != nil {
 			return err
 		} else if len(txOutputList) != len(txs) {
