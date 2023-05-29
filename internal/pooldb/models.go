@@ -324,6 +324,7 @@ type BalanceOutput struct {
 	Value        dbcl.NullBigInt `db:"value"`
 	PoolFees     dbcl.NullBigInt `db:"pool_fees"`
 	ExchangeFees dbcl.NullBigInt `db:"exchange_fees"`
+	TxFees       dbcl.NullBigInt `db:"tx_fees"`
 	Mature       bool            `db:"mature"`
 	Spent        bool            `db:"spent"`
 

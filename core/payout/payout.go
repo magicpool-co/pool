@@ -75,7 +75,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			return fmt.Errorf("no balance outputs found for miner %d", miner.ID)
 		}
 
-		valueSum, poolFeesSum, exchangeFeesSum := new(big.Int), new(big.Int), new(big.Int)
+		valueSum, poolFeesSum, exchangeFeesSum, txFeesSum := new(big.Int), new(big.Int), new(big.Int), new(big.Int)
 		balanceOutputIdx[miner.ID] = make([]*pooldb.BalanceOutput, 0)
 		for _, balanceOutput := range balanceOutputs {
 			if !balanceOutput.Value.Valid {
@@ -86,14 +86,12 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 				return fmt.Errorf("no exchange fees for balance output %d", balanceOutput.ID)
 			}
 
-			if balanceOutput.Value.BigInt.Cmp(common.Big0) < 0 {
-				poolFeesSum.Add(poolFeesSum, new(big.Int).Neg(balanceOutput.Value.BigInt))
-			} else {
-				valueSum.Add(valueSum, balanceOutput.Value.BigInt)
-			}
-
+			valueSum.Add(valueSum, balanceOutput.Value.BigInt)
 			poolFeesSum.Add(poolFeesSum, balanceOutput.PoolFees.BigInt)
 			exchangeFeesSum.Add(exchangeFeesSum, balanceOutput.ExchangeFees.BigInt)
+			if balanceOutput.TxFees.Valid {
+				txFeesSum.Add(txFeesSum, balanceOutput.TxFees.BigInt)
+			}
 
 			balanceOutputIdx[miner.ID] = append(balanceOutputIdx[miner.ID], balanceOutput)
 		}
@@ -114,6 +112,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			Value:        dbcl.NullBigInt{Valid: true, BigInt: valueSum},
 			PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: poolFeesSum},
 			ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: exchangeFeesSum},
+			TxFees:       dbcl.NullBigInt{Valid: true, BigInt: txFeesSum},
 		}
 	}
 
@@ -133,6 +132,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			FeeBalance:   dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
 			PoolFees:     balanceOutput.PoolFees,
 			ExchangeFees: balanceOutput.ExchangeFees,
+			TxFees:       balanceOutput.TxFees,
 
 			Pending: true,
 		}
@@ -171,7 +171,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 
 			payout.TransactionID = types.Uint64Ptr(txs[i].ID)
 			payout.TxID = txs[i].TxID
-			payout.TxFees = dbcl.NullBigInt{Valid: true, BigInt: outputList[i][0].Fee}
+			payout.TxFees.BigInt.Add(payout.TxFees.BigInt, outputList[i][0].Fee)
 			payoutID, err := pooldb.InsertPayout(dbTx, payout)
 			if err != nil {
 				return err
