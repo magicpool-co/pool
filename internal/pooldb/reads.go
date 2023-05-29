@@ -1218,6 +1218,31 @@ func GetBalanceOutputsByPayout(q dbcl.Querier, payoutID uint64) ([]*BalanceOutpu
 	return output, err
 }
 
+func GetRandomBalanceOutputAboveValue(q dbcl.Querier, chain, value string) (*BalanceOutput, error) {
+	const query = `SELECT *
+	FROM balance_outputs
+	WHERE
+		chain_id = ?
+	AND
+		value > ? * 10
+	AND
+		mature = TRUE
+	AND
+		spent = FALSE
+	ORDER BY id DESC
+	LIMIT 1;`
+
+	output := new(BalanceOutput)
+	err := q.Get(output, query, chain, value)
+	if err != nil && err != sql.ErrNoRows {
+		return output, err
+	} else if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return output, nil
+}
+
 func GetUnpaidBalanceOutputsByMiner(q dbcl.Querier, minerID uint64, chain string) ([]*BalanceOutput, error) {
 	const query = `SELECT *
 	FROM balance_outputs

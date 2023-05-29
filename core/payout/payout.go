@@ -12,6 +12,7 @@ import (
 	"github.com/magicpool-co/pool/internal/redis"
 	"github.com/magicpool-co/pool/internal/telegram"
 	"github.com/magicpool-co/pool/pkg/common"
+	txCommon "github.com/magicpool-co/pool/pkg/crypto/tx"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
@@ -201,7 +202,9 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 		}
 
 		txs, err := c.bank.PrepareOutgoingTxs(dbTx, node, types.PayoutTx, outputs)
-		if err != nil {
+		if err == txCommon.ErrTxTooBig && node.ShouldMergeUTXOs() {
+			return c.bank.MergeUTXOs(node, 3)
+		} else if err != nil {
 			return err
 		} else if len(txs) != 1 {
 			return fmt.Errorf("tx count not one: %d", len(txs))

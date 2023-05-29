@@ -24,6 +24,10 @@ func (node Node) GetAddressPrefix() string {
 	return ""
 }
 
+func (node Node) ShouldMergeUTXOs() bool {
+	return false
+}
+
 func (node Node) GetUnits() *types.Number {
 	return new(types.Number).SetFromValue(1e18)
 }

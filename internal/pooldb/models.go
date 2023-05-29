@@ -315,10 +315,11 @@ type BalanceOutput struct {
 	ChainID string `db:"chain_id"`
 	MinerID uint64 `db:"miner_id"`
 
-	InBatchID   *uint64 `db:"in_batch_id"`
-	InDepositID *uint64 `db:"in_deposit_id"`
-	InPayoutID  *uint64 `db:"in_payout_id"`
-	OutPayoutID *uint64 `db:"out_payout_id"`
+	InBatchID             *uint64 `db:"in_batch_id"`
+	InDepositID           *uint64 `db:"in_deposit_id"`
+	InPayoutID            *uint64 `db:"in_payout_id"`
+	OutPayoutID           *uint64 `db:"out_payout_id"`
+	OutMergeTransactionID *uint64 `db:"out_merge_transaction_id"`
 
 	Value        dbcl.NullBigInt `db:"value"`
 	PoolFees     dbcl.NullBigInt `db:"pool_fees"`

@@ -29,6 +29,10 @@ func (node Node) GetUnits() *types.Number {
 	return new(types.Number).SetFromValue(1e8)
 }
 
+func (node Node) ShouldMergeUTXOs() bool {
+	return false
+}
+
 func ValidateAddress(address string) bool {
 	_, err := btctx.AddressToScript(address, mainnetPrefixP2PKH, mainnetPrefixP2SH, true)
 

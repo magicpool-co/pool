@@ -70,6 +70,7 @@ type TransactionType int
 const (
 	DepositTx TransactionType = iota
 	PayoutTx
+	MergeTx
 )
 
 /* chart */

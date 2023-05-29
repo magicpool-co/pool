@@ -68,6 +68,10 @@ func (node Node) GetMatureDepth() uint64 {
 	return 100
 }
 
+func (node Node) ShouldMergeUTXOs() bool {
+	return false
+}
+
 func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 	if blockTime == 0 || difficulty == 0 {
 		return 0

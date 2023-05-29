@@ -91,6 +91,7 @@ type PayoutNode interface {
 	GetUnits() *Number
 	GetAccountingType() AccountingType
 	GetAddressPrefix() string
+	ShouldMergeUTXOs() bool
 	ValidateAddress(string) bool
 
 	// tx helpers

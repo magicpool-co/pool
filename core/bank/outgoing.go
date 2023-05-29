@@ -8,6 +8,7 @@ import (
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/pkg/common"
+	txCommon "github.com/magicpool-co/pool/pkg/crypto/tx"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
@@ -207,6 +208,117 @@ func (c *Client) PrepareOutgoingTxs(
 	}
 
 	return txs, nil
+}
+
+func (c *Client) MergeUTXOs(node types.PayoutNode, count int) error {
+	if node.GetAccountingType() != types.UTXOStructure || !node.ShouldMergeUTXOs() {
+		return nil
+	}
+
+	dbTx, err := c.pooldb.Begin()
+	if err != nil {
+		return err
+	}
+	defer dbTx.SafeRollback()
+
+	inputUTXOs, err := pooldb.GetUnspentUTXOsByChain(dbTx, node.Chain())
+	if err != nil {
+		return err
+	} else if len(inputUTXOs) == 0 {
+		return nil
+	}
+
+	size := len(inputUTXOs) / count
+	for {
+		txOutputList := make([][]*types.TxOutput, count)
+		for i := 0; i < count; i++ {
+			outputSum := new(big.Int)
+			for _, utxo := range inputUTXOs[count*size : (count+1)*size] {
+				outputSum.Add(outputSum, utxo.Value.BigInt)
+			}
+
+			txOutputList[i] = []*types.TxOutput{
+				&types.TxOutput{
+					Address:  node.Address(),
+					Value:    outputSum,
+					SplitFee: true,
+				},
+			}
+		}
+
+		txs, err := c.PrepareOutgoingTxs(dbTx, node, types.MergeTx, txOutputList...)
+		if err == txCommon.ErrTxTooBig {
+			size /= 2
+			if size < 2 {
+				return nil
+			}
+		} else if err != nil {
+			return err
+		} else if len(txOutputList) != len(txs) {
+			return fmt.Errorf("mismatch on tx output list and tx lengths")
+		}
+
+		for i, txOutputs := range txOutputList {
+			tx := txs[i]
+			if tx == nil {
+				return fmt.Errorf("tx not found")
+			}
+
+			fee := txOutputs[0].Fee
+			if fee == nil {
+				return fmt.Errorf("empty tx fee")
+			}
+
+			// fetch a random balance output that is above the fee value
+			balanceOutput, err := pooldb.GetRandomBalanceOutputAboveValue(dbTx, node.Chain(), fee.String())
+			if err != nil {
+				return err
+			} else if balanceOutput == nil || balanceOutput.ID == 0 || !balanceOutput.Value.Valid {
+				return fmt.Errorf("no balance output found")
+			} else if balanceOutput.Value.BigInt.Cmp(fee) <= 0 {
+				return fmt.Errorf("balance output less than or equal to merge tx fee")
+			}
+
+			// update the balance output value to subtract the fee
+			balanceOutput.Value.BigInt.Sub(balanceOutput.Value.BigInt, fee)
+			err = pooldb.UpdateBalanceOutput(dbTx, balanceOutput, []string{"value"})
+			if err != nil {
+				return err
+			}
+
+			// create a mature, spent balance output to maintain the record of
+			// who was charged fro the merge fee
+			subBalanceOutput := &pooldb.BalanceOutput{
+				ChainID: balanceOutput.ChainID,
+				MinerID: balanceOutput.MinerID,
+
+				OutMergeTransactionID: types.Uint64Ptr(tx.ID),
+
+				Value:  dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).Neg(fee)},
+				Mature: true,
+				Spent:  true,
+			}
+			err = pooldb.InsertBalanceOutputs(dbTx, subBalanceOutput)
+			if err != nil {
+				return err
+			}
+
+			// subtract sum value for balance outputs spent in the merge
+			err = pooldb.InsertSubtractBalanceSums(dbTx, &pooldb.BalanceSum{
+				MinerID: balanceOutput.MinerID,
+				ChainID: balanceOutput.ChainID,
+
+				MatureValue: dbcl.NullBigInt{Valid: true, BigInt: fee},
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		break
+	}
+
+	return dbTx.SafeCommit()
 }
 
 func (c *Client) spendTx(node types.PayoutNode, tx *pooldb.Transaction) error {

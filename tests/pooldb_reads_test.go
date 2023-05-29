@@ -418,6 +418,11 @@ func (suite *PooldbReadsSuite) TestReadBalanceOutput() {
 		suite.T().Errorf("failed: GetBalanceOutputsByPayoutTransaction: %v", err)
 	}
 
+	_, err = pooldb.GetRandomBalanceOutputAboveValue(pooldbClient.Reader(), "KAS", "1000")
+	if err != nil {
+		suite.T().Errorf("failed: GetRandomBalanceOutputAboveValue: %v", err)
+	}
+
 	_, err = pooldb.GetUnpaidBalanceOutputsByMiner(pooldbClient.Reader(), 1, "ETH")
 	if err != nil {
 		suite.T().Errorf("failed: GetUnpaidBalanceOutputsByMiner: %v", err)

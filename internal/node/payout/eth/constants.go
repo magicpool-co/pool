@@ -48,6 +48,10 @@ func (node Node) GetUnits() *types.Number {
 	return units
 }
 
+func (node Node) ShouldMergeUTXOs() bool {
+	return false
+}
+
 func ValidateAddress(address string) bool {
 	return addressExpr.MatchString(address)
 }
