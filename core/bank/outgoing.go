@@ -295,9 +295,11 @@ func (c *Client) MergeUTXOs(node types.PayoutNode, count int) error {
 
 				OutMergeTransactionID: types.Uint64Ptr(tx.ID),
 
-				Value:  dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).Neg(fee)},
-				Mature: true,
-				Spent:  true,
+				Value:        dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).Neg(fee)},
+				PoolFees:     dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				ExchangeFees: dbcl.NullBigInt{Valid: true, BigInt: new(big.Int)},
+				Mature:       true,
+				Spent:        true,
 			}
 			err = pooldb.InsertBalanceOutputs(dbTx, subBalanceOutput)
 			if err != nil {
