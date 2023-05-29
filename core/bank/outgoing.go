@@ -190,6 +190,23 @@ func (c *Client) PrepareOutgoingTxs(
 			}
 		}
 
+		for i, output := range txOutputs {
+			if output.Address == node.Address() {
+				remainderUTXO := &pooldb.UTXO{
+					ChainID: node.Chain(),
+					TxID:    txid,
+					Index:   uint32(i),
+					Value:   dbcl.NullBigInt{Valid: true, BigInt: output.Value},
+					Active:  false,
+				}
+
+				_, err = pooldb.InsertUTXO(q, remainderUTXO)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+
 		if remainder.Cmp(common.Big0) > 0 {
 			remainderUTXO := &pooldb.UTXO{
 				ChainID: node.Chain(),
