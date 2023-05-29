@@ -233,7 +233,7 @@ func (c *Client) MergeUTXOs(node types.PayoutNode, count int) error {
 		txOutputList := make([][]*types.TxOutput, count)
 		for i := 0; i < count; i++ {
 			outputSum := new(big.Int)
-			for _, utxo := range inputUTXOs[count*size : (count+1)*size] {
+			for _, utxo := range inputUTXOs[i*size : (i+1)*size] {
 				outputSum.Add(outputSum, utxo.Value.BigInt)
 			}
 
