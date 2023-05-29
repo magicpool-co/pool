@@ -1198,7 +1198,9 @@ func GetBalanceOutputsByPayoutTransaction(q dbcl.Querier, transactionID uint64) 
 	FROM balance_outputs
 	JOIN payouts ON payouts.id = balance_outputs.out_payout_id
 	WHERE
-		payouts.transaction_id = ?;`
+		payouts.transaction_id = ?
+	AND
+		out_merge_transaction_id IS NULL;`
 
 	output := []*BalanceOutput{}
 	err := q.Select(&output, query, transactionID)
