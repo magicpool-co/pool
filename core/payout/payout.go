@@ -85,7 +85,13 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			} else if !balanceOutput.ExchangeFees.Valid {
 				return fmt.Errorf("no exchange fees for balance output %d", balanceOutput.ID)
 			}
-			valueSum.Add(valueSum, balanceOutput.Value.BigInt)
+
+			if balanceOutput.Value.BigInt.Cmp(common.Big0) < 0 {
+				poolFeesSum.Add(poolFeesSum, new(big.Int).Neg(balanceOutput.Value.BigInt))
+			} else {
+				valueSum.Add(valueSum, balanceOutput.Value.BigInt)
+			}
+
 			poolFeesSum.Add(poolFeesSum, balanceOutput.PoolFees.BigInt)
 			exchangeFeesSum.Add(exchangeFeesSum, balanceOutput.ExchangeFees.BigInt)
 
