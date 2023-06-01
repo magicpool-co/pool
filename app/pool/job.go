@@ -75,6 +75,11 @@ func (l *JobList) Append(job *types.StratumJob) bool {
 
 	if len(l.order) > l.size {
 		for _, id := range l.order[l.size:] {
+			// in case we're getting rid of old jobs that haven't
+			// been overwritten with a "cleanJobs" flag, force the flag
+			if oldJob, ok := l.index[id]; ok && !cleanJobs {
+				cleanJobs = oldJob.Height.Value() == job.Height.Value()
+			}
 			delete(l.index, id)
 		}
 		l.order = l.order[:l.size]
