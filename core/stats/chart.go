@@ -460,12 +460,15 @@ func getShareChartSingle(metric types.ShareMetric, items []*tsdb.Share, period t
 
 	for i, timestamp := range timestamps {
 		for chain, item := range itemsIdx[timestamp] {
+			var buffValues bool
 			var value float64
 			switch metric {
 			case types.ShareHashrate:
 				value = item.Hashrate
+				buffValues = true
 			case types.ShareAverageHashrate:
 				value = item.AvgHashrate
+				buffValues = true
 			case types.ShareAcceptedCount:
 				value = float64(item.AcceptedShares)
 			case types.ShareRejectedCount:
@@ -479,7 +482,7 @@ func getShareChartSingle(metric types.ShareMetric, items []*tsdb.Share, period t
 				return nil, fmt.Errorf("unknown metric type")
 			}
 
-			if value == 0 && i > 0 {
+			if buffValues && value == 0 && i > 0 {
 				value = values[chain][i-1]
 			}
 
