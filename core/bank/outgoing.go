@@ -120,13 +120,13 @@ func (c *Client) PrepareOutgoingTxs(
 			}
 		case types.UTXOStructure:
 			// prune utxos to only use enough to cover the balance
-			for i := len(inputUTXOs) - 1; i > 0; i-- {
-				utxo := inputUTXOs[i]
+			for j := len(inputUTXOs) - 1; j > 0; j-- {
+				utxo := inputUTXOs[j]
 				if remainder.Cmp(utxo.Value.BigInt) < 0 {
 					break
 				}
 
-				inputUTXOs = inputUTXOs[:i]
+				inputUTXOs = inputUTXOs[:j]
 				remainder.Sub(remainder, utxo.Value.BigInt)
 			}
 
@@ -134,8 +134,8 @@ func (c *Client) PrepareOutgoingTxs(
 
 			// convert pooldb.UTXO to types.TxInput as txInputs
 			inputs = make([]*types.TxInput, len(inputUTXOs))
-			for i, inputUTXO := range inputUTXOs {
-				inputs[i] = &types.TxInput{
+			for j, inputUTXO := range inputUTXOs {
+				inputs[j] = &types.TxInput{
 					Hash:  inputUTXO.TxID,
 					Index: inputUTXO.Index,
 					Value: inputUTXO.Value.BigInt,
@@ -190,14 +190,16 @@ func (c *Client) PrepareOutgoingTxs(
 			}
 		}
 
-		// iterate through all outputs and add to list of remainder values. this only
-		// will work for UTXO-based chains since account-based chains don't have a
+		// iterate through all outputs and add to list of remainder values (and remainder indexes).
+		// this only will work for UTXO-based chains since account-based chains don't have a
 		// remainder txOutput (this is designed to handle multiple remainder outputs
-		// to the wallet in the case of UTXO merging)
+		// to the wallet in the case of UTXO merging).
 		remainderValues := make([]*big.Int, 0)
-		for _, output := range txOutputs {
+		remainderIndexes := make([]int, 0)
+		for j, output := range txOutputs {
 			if output.Address == node.Address() {
 				remainderValues = append(remainderValues, new(big.Int).Set(output.Value))
+				remainderIndexes = append(remainderIndexes, j)
 			}
 		}
 
@@ -205,15 +207,16 @@ func (c *Client) PrepareOutgoingTxs(
 		// if the remainder is non-zero add it manually
 		if len(remainderValues) == 0 && remainder.Cmp(common.Big0) > 0 {
 			remainderValues = append(remainderValues, new(big.Int).Set(remainder))
+			remainderIndexes = append(remainderIndexes, 0)
 		}
 
 		// create a UTXO for each remainder value and add it to the inputUTXOs
 		// for use in the next loop
-		for _, remainderValue := range remainderValues {
+		for j, remainderValue := range remainderValues {
 			remainderUTXO := &pooldb.UTXO{
 				ChainID: node.Chain(),
 				TxID:    txid,
-				Index:   uint32(i),
+				Index:   uint32(remainderIndexes[j]),
 				Value:   dbcl.NullBigInt{Valid: true, BigInt: remainderValue},
 				Active:  false,
 			}
