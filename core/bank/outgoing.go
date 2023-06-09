@@ -201,8 +201,8 @@ func (c *Client) PrepareOutgoingTxs(
 			}
 		}
 
-		// since account-based chains have no txOutputs, if the remainder is non-zero
-		// add it manually
+		// since account-based chains have no txOutputs (along with ERG),
+		// if the remainder is non-zero add it manually
 		if len(remainderValues) == 0 && remainder.Cmp(common.Big0) > 0 {
 			remainderValues = append(remainderValues, new(big.Int).Set(remainder))
 		}
