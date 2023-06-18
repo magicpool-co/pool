@@ -192,7 +192,7 @@ func (node Node) GetBlocksByHash(startHash string, limit uint64) ([]*tsdb.RawBlo
 	return nil, fmt.Errorf("GetBlocks: not implemented")
 }
 
-func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *types.StratumJob {
+func (node Node) JobNotify(ctx context.Context, interval time.Duration, shareFactor int64) chan *types.StratumJob {
 	jobCh := make(chan *types.StratumJob)
 
 	go func() {
@@ -243,10 +243,11 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *ty
 				}
 
 				job := &types.StratumJob{
-					HostID:     req.HostID,
-					Height:     epochVal,
-					HeaderHash: hashVal,
-					Difficulty: new(types.Difficulty).SetFromBig(boundaryBig, maxDiffBig),
+					HostID:      req.HostID,
+					ShareFactor: shareFactor,
+					Height:      epochVal,
+					HeaderHash:  hashVal,
+					Difficulty:  new(types.Difficulty).SetFromBig(boundaryBig, maxDiffBig),
 				}
 
 				jobCh <- job
@@ -266,7 +267,7 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 	}
 
 	hash := new(types.Hash).SetFromBytes(digest)
-	if !hash.MeetsDifficulty(node.GetShareDifficulty()) {
+	if !hash.MeetsDifficulty(node.GetShareDifficulty(job.ShareFactor)) {
 		return types.RejectedShare, nil, nil, nil
 	} else if !hash.MeetsDifficulty(job.Difficulty) {
 		return types.AcceptedShare, hash, nil, nil
@@ -338,7 +339,7 @@ func (node Node) MarshalJob(id interface{}, job *types.StratumJob, cleanJobs boo
 		job.ID,
 		job.Height.Value(),
 		job.HeaderHash.PrefixedHex(),
-		node.GetShareDifficulty().TargetPrefixedHex(),
+		node.GetShareDifficulty(job.ShareFactor).TargetPrefixedHex(),
 	}
 
 	return rpc.NewRequestWithID(id, "mining.notify", result...)
@@ -352,7 +353,7 @@ func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) (
 	return nil, nil
 }
 
-func (node Node) GetAuthorizeResponses() ([]interface{}, error) {
+func (node Node) GetAuthorizeResponses(shareFactor int64) ([]interface{}, error) {
 	return nil, nil
 }
 

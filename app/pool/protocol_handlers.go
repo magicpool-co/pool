@@ -146,6 +146,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 	c.SetSubscribed(true)
 	c.SetAuthorized(true)
 	c.SetReadDeadline(time.Time{})
+	c.SetShareFactor(p.shareFactor)
 
 	var workerID uint64
 	workerID, err = p.redis.GetWorkerID(minerID, workerName)
@@ -189,7 +190,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		msgs = []interface{}{rpc.NewResponseFromJSON(req.ID, common.JsonTrue)}
 	}
 
-	authResponses, err := p.node.GetAuthorizeResponses()
+	authResponses, err := p.node.GetAuthorizeResponses(p.shareFactor)
 	if err != nil {
 		p.logger.Error(err, c.GetCompoundID())
 		return msgs
@@ -269,7 +270,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 				return
 			}
 
-			shareDiff := float64(p.node.GetShareDifficulty().Value())
+			shareDiff := float64(p.node.GetShareDifficulty(1).Value())
 			if p.chain == "NEXA" {
 				shareDiff = 0.2
 			} else if shareDiff == 0 {
@@ -336,7 +337,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		interval := p.getCurrentInterval(false)
 		switch shareStatus {
 		case types.AcceptedShare:
-			err := p.redis.AddAcceptedShare(p.chain, interval, c.GetCompoundID(), p.windowSize)
+			err := p.redis.AddAcceptedShare(p.chain, interval, c.GetCompoundID(), c.GetShareFactor(), p.windowSize)
 			if err != nil {
 				p.logger.Error(err, c.GetCompoundID())
 				return

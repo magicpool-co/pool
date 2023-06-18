@@ -127,7 +127,7 @@ func (c *Client) rollupRounds(node types.MiningNode, endTime time.Time) error {
 
 	var hashrate, luck, profitability float64
 	if acceptedShares > 0 {
-		minedDifficulty := float64(node.GetShareDifficulty().Value()) * acceptedShares
+		minedDifficulty := float64(node.GetShareDifficulty(1).Value()) * acceptedShares
 		hashrate = node.CalculateHashrate(roundTime, difficulty)
 		luck = 100 * (difficulty / minedDifficulty)
 		profitability = (value / roundTime) / hashrate
@@ -224,7 +224,7 @@ func (c *Client) finalizeRounds(node types.MiningNode, endTime time.Time) error 
 				round.UncleRate = float64(round.UncleCount) / float64(round.Count)
 			}
 			if round.AcceptedShares > 0 {
-				minedDifficulty := float64(node.GetShareDifficulty().Value()) * round.AcceptedShares
+				minedDifficulty := float64(node.GetShareDifficulty(1).Value()) * round.AcceptedShares
 				round.Hashrate = node.CalculateHashrate(round.RoundTime, round.Difficulty)
 				round.Luck = 100 * (round.Difficulty / minedDifficulty)
 				round.Profitability = (round.Value / round.RoundTime) / round.Hashrate

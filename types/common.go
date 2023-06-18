@@ -270,10 +270,11 @@ func (s *Solution) SetFromHex(raw string) (*Solution, error) {
 /* Difficulty type */
 
 type Difficulty struct {
-	value     uint64
-	targetHex string
-	targetBig *big.Int
-	bits      uint32
+	value      uint64
+	targetHex  string
+	targetBig  *big.Int
+	maxDiffBig *big.Int
+	bits       uint32
 }
 
 func (d *Difficulty) Value() uint64             { return d.value }
@@ -281,40 +282,46 @@ func (d *Difficulty) TargetHex() string         { return d.targetHex }
 func (d *Difficulty) TargetPrefixedHex() string { return "0x" + d.targetHex }
 func (d *Difficulty) TargetBig() *big.Int       { return d.targetBig }
 func (d *Difficulty) Bits() uint32              { return d.bits }
+func (d *Difficulty) Mul(factor int64) *Difficulty {
+	return new(Difficulty).SetFromValue(d.value*uint64(factor), d.maxDiffBig)
+}
 
-func (d *Difficulty) SetFromBig(targetBig *big.Int, maxDiff *big.Int) *Difficulty {
+func (d *Difficulty) SetFromBig(targetBig *big.Int, maxDiffBig *big.Int) *Difficulty {
 	targetHex := fmt.Sprintf("%064x", targetBig)
-	valueBig := new(big.Int).Div(maxDiff, targetBig)
+	valueBig := new(big.Int).Div(maxDiffBig, targetBig)
 
 	d.value = valueBig.Uint64()
 	d.targetHex = targetHex
 	d.targetBig = targetBig
+	d.maxDiffBig = maxDiffBig
 	d.bits = bigToCompact(targetBig)
 
 	return d
 }
 
-func (d *Difficulty) SetFromValue(value uint64, maxDiff *big.Int) *Difficulty {
+func (d *Difficulty) SetFromValue(value uint64, maxDiffBig *big.Int) *Difficulty {
 	valueBig := new(big.Int).SetUint64(value)
-	targetBig := new(big.Int).Div(maxDiff, valueBig)
+	targetBig := new(big.Int).Div(maxDiffBig, valueBig)
 	targetHex := fmt.Sprintf("%064x", targetBig)
 
 	d.value = value
 	d.targetHex = targetHex
 	d.targetBig = targetBig
+	d.maxDiffBig = maxDiffBig
 	d.bits = bigToCompact(targetBig)
 
 	return d
 }
 
-func (d *Difficulty) SetFromBits(bits uint32, maxDiff *big.Int) *Difficulty {
+func (d *Difficulty) SetFromBits(bits uint32, maxDiffBig *big.Int) *Difficulty {
 	targetBig := compactToBig(bits)
 	targetHex := fmt.Sprintf("%064x", targetBig)
-	valueBig := new(big.Int).Div(maxDiff, targetBig)
+	valueBig := new(big.Int).Div(maxDiffBig, targetBig)
 
 	d.value = valueBig.Uint64()
 	d.targetHex = targetHex
 	d.targetBig = targetBig
+	d.maxDiffBig = maxDiffBig
 	d.bits = bits
 
 	return d

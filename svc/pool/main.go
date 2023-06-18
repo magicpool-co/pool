@@ -100,6 +100,7 @@ func main() {
 	argSecretVar := flag.String("secret", "", "ENV variable defined by ECS")
 	argPort := flag.Int("port", 3333, "The pool port to use")
 	argMetricsPort := flag.Int("metrics-port", 6060, "The metrics port to use")
+	argShareFactor := flag.Int("share-factor", 1, "The share factor")
 
 	flag.Parse()
 
@@ -109,6 +110,7 @@ func main() {
 	}
 
 	opts.StratumPort = *argPort
+	opts.ShareFactor = *argShareFactor
 	secrets, err := svc.ParseSecrets(*argSecretVar)
 	if err != nil {
 		panic(err)

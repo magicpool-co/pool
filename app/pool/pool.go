@@ -25,6 +25,7 @@ import (
 type Options struct {
 	Chain                string
 	StratumPort          int
+	ShareFactor          int
 	WindowSize           int
 	ExtraNonceSize       int
 	JobListSize          int
@@ -44,6 +45,7 @@ type Pool struct {
 
 	chain                string
 	windowSize           int64
+	shareFactor          int64
 	extraNonce1Size      int
 	forceErrorOnResponse bool
 	node                 types.MiningNode
@@ -79,12 +81,18 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 
 	logger.LabelKeys = []string{"miner"}
 
+	var shareFactor int64 = 1
+	if opt.ShareFactor > 0 {
+		shareFactor = int64(opt.ShareFactor)
+	}
+
 	pool := &Pool{
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
 		server:     server,
 
 		chain:                strings.ToUpper(opt.Chain),
+		shareFactor:          shareFactor,
 		windowSize:           int64(opt.WindowSize),
 		extraNonce1Size:      opt.ExtraNonceSize,
 		forceErrorOnResponse: opt.ForceErrorOnResponse,
@@ -172,7 +180,7 @@ func (p *Pool) startJobNotify() {
 	defer p.recoverPanic()
 
 	timer := time.NewTimer(time.Minute * 10)
-	jobCh := p.node.JobNotify(p.ctx, p.pollingPeriod)
+	jobCh := p.node.JobNotify(p.ctx, p.pollingPeriod, p.shareFactor)
 
 	for {
 		select {

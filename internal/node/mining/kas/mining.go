@@ -286,7 +286,7 @@ func (node Node) parseBlockTemplate(template *Block) (*types.StratumJob, error) 
 	return job, nil
 }
 
-func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *types.StratumJob {
+func (node Node) JobNotify(ctx context.Context, interval time.Duration, shareFactor int64) chan *types.StratumJob {
 	jobCh := make(chan *types.StratumJob)
 	ticker := time.NewTicker(interval)
 	staticInterval := time.Second * 5
@@ -311,6 +311,7 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *ty
 						node.logger.Error(err)
 					} else if job.Header.Hex() != lastHash || now.After(lastJob.Add(staticInterval)) {
 						job.HostID = hostID
+						job.ShareFactor = shareFactor
 						lastHash = job.Header.Hex()
 						lastJob = now
 						jobCh <- job
@@ -335,7 +336,7 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 	}
 
 	hash := new(types.Hash).SetFromBytes(digest)
-	if !hash.MeetsDifficulty(node.GetShareDifficulty()) {
+	if !hash.MeetsDifficulty(node.GetShareDifficulty(job.ShareFactor)) {
 		return types.RejectedShare, nil, nil, nil
 	} else if !hash.MeetsDifficulty(job.Difficulty) {
 		return types.AcceptedShare, hash, nil, nil
@@ -456,8 +457,8 @@ func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) (
 	return []interface{}{res, extraNonceRes}, nil
 }
 
-func (node Node) GetAuthorizeResponses() ([]interface{}, error) {
-	res, err := rpc.NewRequest("mining.set_difficulty", 10)
+func (node Node) GetAuthorizeResponses(shareFactor int64) ([]interface{}, error) {
+	res, err := rpc.NewRequest("mining.set_difficulty", 10*shareFactor)
 	if err != nil {
 		return nil, err
 	}

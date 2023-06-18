@@ -192,7 +192,7 @@ func (node Node) parseBlockTemplate(template *BlockTemplate) (*types.StratumJob,
 	return job, nil
 }
 
-func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *types.StratumJob {
+func (node Node) JobNotify(ctx context.Context, interval time.Duration, shareFactor int64) chan *types.StratumJob {
 	jobCh := make(chan *types.StratumJob)
 	ticker := time.NewTicker(interval)
 	staticInterval := time.Minute
@@ -217,6 +217,7 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *ty
 						node.logger.Error(err)
 					} else {
 						job.HostID = hostID
+						job.ShareFactor = shareFactor
 						lastHeight = job.Height.Value()
 						lastJob = now
 						jobCh <- job
@@ -240,7 +241,7 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 	}
 
 	hash := new(types.Hash).SetFromBytes(digest)
-	if !hash.MeetsDifficulty(node.GetShareDifficulty()) {
+	if !hash.MeetsDifficulty(node.GetShareDifficulty(job.ShareFactor)) {
 		return types.RejectedShare, nil, nil, nil
 	} else if !hash.MeetsDifficulty(job.Difficulty) {
 		return types.AcceptedShare, hash, nil, nil
@@ -321,7 +322,7 @@ func (node Node) MarshalJob(id interface{}, job *types.StratumJob, cleanJobs boo
 		job.ID,
 		job.HeaderHash.Hex(),
 		job.Seed.Hex(),
-		node.GetShareDifficulty().TargetHex(),
+		node.GetShareDifficulty(job.ShareFactor).TargetHex(),
 		cleanJobs,
 		job.Height.Value(),
 		fmt.Sprintf("%08x", job.Difficulty.Bits()),
@@ -343,8 +344,8 @@ func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) (
 	return []interface{}{res}, nil
 }
 
-func (node Node) GetAuthorizeResponses() ([]interface{}, error) {
-	res, err := rpc.NewRequest("mining.set_target", node.GetShareDifficulty().TargetHex())
+func (node Node) GetAuthorizeResponses(shareFactor int64) ([]interface{}, error) {
+	res, err := rpc.NewRequest("mining.set_target", node.GetShareDifficulty(shareFactor).TargetHex())
 	if err != nil {
 		return nil, err
 	}

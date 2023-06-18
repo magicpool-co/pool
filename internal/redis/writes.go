@@ -107,14 +107,20 @@ func (c *Client) AddUniqueShare(chain string, height uint64, hash string) (bool,
 
 /* rounds */
 
-func (c *Client) AddAcceptedShare(chain, interval, compoundID string, window int64) error {
+func (c *Client) AddAcceptedShare(chain, interval, compoundID string, count, window int64) error {
+	if count <= 0 {
+		return nil
+	}
+
 	ctx := context.Background()
 	pipe := c.writeClient.Pipeline()
 
-	pipe.LPush(ctx, c.getRoundSharesKey(chain), compoundID)
+	for i := 0; i < int(count); i++ {
+		pipe.LPush(ctx, c.getRoundSharesKey(chain), compoundID)
+	}
 	pipe.LTrim(ctx, c.getRoundSharesKey(chain), 0, window-1)
-	pipe.Incr(ctx, c.getRoundAcceptedSharesKey(chain))
-	pipe.ZIncrBy(ctx, c.getIntervalAcceptedSharesKey(chain, interval), 1, compoundID)
+	pipe.IncrBy(ctx, c.getRoundAcceptedSharesKey(chain), count)
+	pipe.ZIncrBy(ctx, c.getIntervalAcceptedSharesKey(chain, interval), float64(count), compoundID)
 
 	_, err := pipe.Exec(ctx)
 

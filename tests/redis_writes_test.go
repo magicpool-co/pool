@@ -80,7 +80,7 @@ func (suite *RedisWritesSuite) TestWriteShareIndexes() {
 func (suite *RedisWritesSuite) TestWriteRounds() {
 	var err error
 
-	err = redisClient.AddAcceptedShare("", "", "", 1)
+	err = redisClient.AddAcceptedShare("", "", "", 4, 1)
 	if err != nil {
 		suite.T().Errorf("failed: AddAcceptedShare: %v", err)
 	}

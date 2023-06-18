@@ -66,7 +66,7 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 		if chain == "NEXA" {
 			luck /= 0.2
 		} else {
-			luck /= float64(node.GetShareDifficulty().Value())
+			luck /= float64(node.GetShareDifficulty(1).Value())
 		}
 
 		luck *= 100

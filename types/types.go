@@ -22,6 +22,7 @@ type BlockBuilder interface {
 type StratumJob struct {
 	HostID       string
 	ID           string
+	ShareFactor  int64
 	Header       *Hash
 	HeaderHash   *Hash
 	Seed         *Hash
@@ -108,7 +109,7 @@ type MiningNode interface {
 	Mocked() bool
 
 	// constants
-	GetShareDifficulty() *Difficulty
+	GetShareDifficulty(int64) *Difficulty
 	GetAdjustedShareDifficulty() float64
 	GetMaxDifficulty() *big.Int
 	GetImmatureDepth() uint64
@@ -117,7 +118,7 @@ type MiningNode interface {
 
 	// stratum helpers
 	GetSubscribeResponses([]byte, string, string) ([]interface{}, error)
-	GetAuthorizeResponses() ([]interface{}, error)
+	GetAuthorizeResponses(int64) ([]interface{}, error)
 	GetClientType(string) int
 	MarshalJob(interface{}, *StratumJob, bool, int) (interface{}, error)
 	ParseWork([]json.RawMessage, string) (*StratumWork, error)
@@ -128,7 +129,7 @@ type MiningNode interface {
 	PingHosts() ([]string, []uint64, []bool, []error)
 	GetBlocks(uint64, uint64) ([]*tsdb.RawBlock, error)
 	GetBlocksByHash(string, uint64) ([]*tsdb.RawBlock, error)
-	JobNotify(context.Context, time.Duration) chan *StratumJob
+	JobNotify(context.Context, time.Duration, int64) chan *StratumJob
 	SubmitWork(*StratumJob, *StratumWork) (ShareStatus, *Hash, *pooldb.Round, error)
 	UnlockRound(*pooldb.Round) error
 	MatureRound(*pooldb.Round) ([]*pooldb.UTXO, error)
