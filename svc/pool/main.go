@@ -74,7 +74,7 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:      100000,
 		ExtraNonceSize:  2,
 		JobListSize:     50,
-		JobListAgeLimit: 18,
+		JobListAgeLimit: 30,
 		PollingPeriod:   time.Millisecond * 100,
 		PingingPeriod:   time.Second * 30,
 	},
