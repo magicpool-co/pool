@@ -24,8 +24,7 @@ import (
 
 type Options struct {
 	Chain                string
-	StratumPort          int
-	ShareFactor          int
+	PortDiffIdx          map[int]int
 	WindowSize           int
 	ExtraNonceSize       int
 	JobListSize          int
@@ -44,8 +43,8 @@ type Pool struct {
 	wg         sync.WaitGroup
 
 	chain                string
+	portDiffIdx          map[int]int
 	windowSize           int64
-	shareFactor          int64
 	extraNonce1Size      int
 	forceErrorOnResponse bool
 	node                 types.MiningNode
@@ -73,18 +72,18 @@ type Pool struct {
 }
 
 func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client, logger *log.Logger, telegramClient *telegram.Client, metricsClient *metrics.Client, opt *Options) (*Pool, error) {
+	ports := make([]int, 0)
+	for port := range opt.PortDiffIdx {
+		ports = append(ports, port)
+	}
+
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	server, err := stratum.NewServer(ctx, opt.StratumPort, logger)
+	server, err := stratum.NewServer(ctx, logger, ports...)
 	if err != nil {
 		return nil, err
 	}
 
 	logger.LabelKeys = []string{"miner"}
-
-	var shareFactor int64 = 1
-	if opt.ShareFactor > 0 {
-		shareFactor = int64(opt.ShareFactor)
-	}
 
 	pool := &Pool{
 		ctx:        ctx,
@@ -92,7 +91,6 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 		server:     server,
 
 		chain:                strings.ToUpper(opt.Chain),
-		shareFactor:          shareFactor,
 		windowSize:           int64(opt.WindowSize),
 		extraNonce1Size:      opt.ExtraNonceSize,
 		forceErrorOnResponse: opt.ForceErrorOnResponse,
@@ -180,7 +178,7 @@ func (p *Pool) startJobNotify() {
 	defer p.recoverPanic()
 
 	timer := time.NewTimer(time.Minute * 10)
-	jobCh := p.node.JobNotify(p.ctx, p.pollingPeriod, p.shareFactor)
+	jobCh := p.node.JobNotify(p.ctx, p.pollingPeriod)
 
 	for {
 		select {
@@ -362,8 +360,8 @@ func (p *Pool) startStratum() {
 	}
 }
 
-func (p *Pool) Port() int {
-	return p.server.Port()
+func (p *Pool) Port(idx int) int {
+	return p.server.Port(idx)
 }
 
 func (p *Pool) Serve() {

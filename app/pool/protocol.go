@@ -130,7 +130,7 @@ func (p *Pool) getWork(c *stratum.Conn, req *rpc.Request) error {
 		return fmt.Errorf("no template for %s", p.chain)
 	}
 
-	res, err := p.node.MarshalJob(req.ID, work, true, c.GetClientType())
+	res, err := p.node.MarshalJob(req.ID, work, true, c.GetClientType(), c.GetDiffFactor())
 	if err != nil {
 		return err
 	}

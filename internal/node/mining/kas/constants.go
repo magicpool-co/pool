@@ -54,9 +54,9 @@ func (node Node) GetUnits() *types.Number {
 	return units
 }
 
-func (node Node) GetShareDifficulty(shareFactor int64) *types.Difficulty {
-	if shareFactor > 1 {
-		return shareDiff.Mul(shareFactor)
+func (node Node) GetShareDifficulty(diffFactor int) *types.Difficulty {
+	if diffFactor > 1 {
+		return shareDiff.Mul(int64(diffFactor))
 	}
 	return shareDiff
 }

@@ -15,8 +15,8 @@ const (
 	scriptHashAddrID = 0x08
 	templateAddrID   = 0x98
 
-	diffFactor  = 4294967296
-	shareFactor = 0.2
+	globalDiffFactor = 4294967296
+	shareFactor      = 0.2
 )
 
 var (
@@ -54,15 +54,15 @@ func (node Node) GetUnits() *types.Number {
 	return units
 }
 
-func (node Node) GetShareDifficulty(shareFactor int64) *types.Difficulty {
-	if shareFactor > 1 {
-		return shareDiff.Mul(shareFactor)
+func (node Node) GetShareDifficulty(diffFactor int) *types.Difficulty {
+	if diffFactor > 1 {
+		return shareDiff.Mul(int64(diffFactor))
 	}
 	return shareDiff
 }
 
 func (node Node) GetAdjustedShareDifficulty() float64 {
-	return diffFactor * shareFactor
+	return globalDiffFactor * shareFactor
 }
 
 func (node Node) GetMaxDifficulty() *big.Int {
@@ -85,7 +85,7 @@ func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 	if blockTime == 0 || difficulty == 0 {
 		return 0
 	}
-	return difficulty * (diffFactor / blockTime)
+	return difficulty * (globalDiffFactor / blockTime)
 }
 
 func ValidateAddress(address string) bool {

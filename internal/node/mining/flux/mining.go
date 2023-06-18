@@ -256,7 +256,7 @@ func (node Node) parseBlockTemplate(template *BlockTemplate) (*types.StratumJob,
 	return job, nil
 }
 
-func (node Node) JobNotify(ctx context.Context, interval time.Duration, shareFactor int64) chan *types.StratumJob {
+func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *types.StratumJob {
 	jobCh := make(chan *types.StratumJob)
 	ticker := time.NewTicker(interval)
 	staticInterval := time.Minute * 2
@@ -280,7 +280,6 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration, shareFac
 					if err != nil {
 						node.logger.Error(err)
 					} else {
-						job.ShareFactor = shareFactor
 						job.HostID = hostID
 						lastHeight = job.Height.Value()
 						lastJob = now
@@ -294,7 +293,7 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration, shareFac
 	return jobCh
 }
 
-func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
+func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diffFactor int) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
 	header, headerHash, err := job.BlockBuilder.SerializeHeader(work)
 	if err != nil {
 		return types.RejectedShare, nil, nil, err
@@ -308,7 +307,7 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 	}
 
 	hash := new(types.Hash).SetFromBytes(headerHash)
-	if !hash.MeetsDifficulty(node.GetShareDifficulty(job.ShareFactor)) {
+	if !hash.MeetsDifficulty(node.GetShareDifficulty(diffFactor)) {
 		return types.RejectedShare, nil, nil, nil
 	} else if !hash.MeetsDifficulty(job.Difficulty) {
 		return types.AcceptedShare, hash, nil, nil
@@ -380,7 +379,7 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 	return work, nil
 }
 
-func (node Node) MarshalJob(id interface{}, job *types.StratumJob, cleanJobs bool, clientType int) (interface{}, error) {
+func (node Node) MarshalJob(id interface{}, job *types.StratumJob, cleanJobs bool, clientType, diffFactor int) (interface{}, error) {
 	partialJob := job.BlockBuilder.PartialJob()
 	result := append([]interface{}{job.ID}, partialJob...)
 	result = append(result, cleanJobs, "125_4", "ZelProof")
@@ -401,8 +400,8 @@ func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) (
 	return []interface{}{res}, nil
 }
 
-func (node Node) GetAuthorizeResponses(shareFactor int64) ([]interface{}, error) {
-	res, err := rpc.NewRequest("mining.set_target", node.GetShareDifficulty(shareFactor).TargetHex())
+func (node Node) GetAuthorizeResponses(diffFactor int) ([]interface{}, error) {
+	res, err := rpc.NewRequest("mining.set_target", node.GetShareDifficulty(diffFactor).TargetHex())
 	if err != nil {
 		return nil, err
 	}

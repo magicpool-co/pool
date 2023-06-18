@@ -10,6 +10,7 @@ import (
 
 type Conn struct {
 	id     uint64
+	port   int
 	ip     string
 	conn   net.Conn
 	quit   chan struct{}
@@ -24,7 +25,7 @@ type Conn struct {
 	subscribed           uint32
 	authorized           uint32
 	clientType           int32
-	shareFactor          int64
+	diffFactor           int32
 	lastErrorAt          int64
 	errorCount           int32
 }
@@ -52,9 +53,10 @@ func loadString(val *atomic.Value) string {
 	return ""
 }
 
-func NewConn(id uint64, ip string, rawConn net.Conn) *Conn {
+func NewConn(id uint64, port int, ip string, rawConn net.Conn) *Conn {
 	conn := &Conn{
 		id:   id,
+		port: port,
 		ip:   ip,
 		conn: rawConn,
 		quit: make(chan struct{}),
@@ -69,6 +71,7 @@ func NewConn(id uint64, ip string, rawConn net.Conn) *Conn {
 
 func (c *Conn) GetID() uint64                 { return c.id }
 func (c *Conn) GetIP() string                 { return c.ip }
+func (c *Conn) GetPort() int                  { return c.port }
 func (c *Conn) GetMinerID() uint64            { return atomic.LoadUint64(&(c.minerID)) }
 func (c *Conn) GetWorkerID() uint64           { return atomic.LoadUint64(&(c.workerID)) }
 func (c *Conn) GetCompoundID() string         { return loadString(c.compoundID) }
@@ -78,7 +81,7 @@ func (c *Conn) GetExtraNonceSubscribed() bool { return loadBool(&(c.extraNonceSu
 func (c *Conn) GetSubscribed() bool           { return loadBool(&(c.subscribed)) }
 func (c *Conn) GetAuthorized() bool           { return loadBool(&(c.authorized)) }
 func (c *Conn) GetClientType() int            { return int(atomic.LoadInt32(&(c.clientType))) }
-func (c *Conn) GetShareFactor() int64         { return atomic.LoadInt64(&(c.shareFactor)) }
+func (c *Conn) GetDiffFactor() int            { return int(atomic.LoadInt32(&(c.diffFactor))) }
 func (c *Conn) GetLastErrorAt() time.Time     { return time.Unix(atomic.LoadInt64(&c.lastErrorAt), 0) }
 func (c *Conn) GetErrorCount() int            { return int(atomic.LoadInt32(&c.errorCount)) }
 
@@ -101,12 +104,12 @@ func (c *Conn) SetExtraNonce(extraNonce string) { c.extraNonce.Store(extraNonce)
 func (c *Conn) SetExtraNonceSubscribed(extraNonceSubscribed bool) {
 	storeBool(&(c.extraNonceSubscribed), extraNonceSubscribed)
 }
-func (c *Conn) SetSubscribed(subscribed bool)    { storeBool(&(c.subscribed), subscribed) }
-func (c *Conn) SetAuthorized(authorized bool)    { storeBool(&(c.authorized), authorized) }
-func (c *Conn) SetClientType(clientType int)     { atomic.StoreInt32(&(c.clientType), int32(clientType)) }
-func (c *Conn) SetShareFactor(shareFactor int64) { atomic.StoreInt64(&(c.shareFactor), shareFactor) }
-func (c *Conn) SetLastErrorAt(ts time.Time)      { atomic.StoreInt64(&(c.lastErrorAt), ts.Unix()) }
-func (c *Conn) SetErrorCount(count int)          { atomic.StoreInt32(&(c.errorCount), int32(count)) }
+func (c *Conn) SetSubscribed(subscribed bool) { storeBool(&(c.subscribed), subscribed) }
+func (c *Conn) SetAuthorized(authorized bool) { storeBool(&(c.authorized), authorized) }
+func (c *Conn) SetClientType(clientType int)  { atomic.StoreInt32(&(c.clientType), int32(clientType)) }
+func (c *Conn) SetDiffFactor(diffFactor int)  { atomic.StoreInt32(&(c.diffFactor), int32(diffFactor)) }
+func (c *Conn) SetLastErrorAt(ts time.Time)   { atomic.StoreInt64(&(c.lastErrorAt), ts.Unix()) }
+func (c *Conn) SetErrorCount(count int)       { atomic.StoreInt32(&(c.errorCount), int32(count)) }
 
 func (c *Conn) GetLatency() (time.Duration, error) {
 	return getLatency(c.conn)

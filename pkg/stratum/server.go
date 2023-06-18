@@ -27,7 +27,7 @@ type Message struct {
 type Server struct {
 	ctx      context.Context
 	logger   *log.Logger
-	addr     *net.TCPAddr
+	addrs    []*net.TCPAddr
 	listener net.Listener
 	wg       sync.WaitGroup
 	mu       sync.RWMutex
@@ -35,27 +35,39 @@ type Server struct {
 	conns    map[uint64]*Conn
 }
 
-func NewServer(ctx context.Context, port int, logger *log.Logger) (*Server, error) {
-	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":%d", port))
-	if err != nil {
-		return nil, err
+func NewServer(ctx context.Context, logger *log.Logger, ports ...int) (*Server, error) {
+	if len(ports) == 0 {
+		return nil, fmt.Errorf("no ports defined")
+	}
+
+	addrs := make([]*net.TCPAddr, len(ports))
+	for i, port := range ports {
+		var err error
+		addrs[i], err = net.ResolveTCPAddr("tcp", fmt.Sprintf(":%d", port))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	server := &Server{
 		ctx:    ctx,
 		logger: logger,
-		addr:   addr,
+		addrs:  addrs,
 		conns:  make(map[uint64]*Conn),
 	}
 
 	return server, nil
 }
 
-func (s *Server) Port() int {
-	return s.addr.Port
+func (s *Server) Port(idx int) int {
+	if len(s.addrs) > idx {
+		return -1
+	}
+
+	return s.addrs[idx].Port
 }
 
-func (s *Server) newConn(rawConn net.Conn) *Conn {
+func (s *Server) newConn(rawConn net.Conn, port int) *Conn {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -69,7 +81,7 @@ func (s *Server) newConn(rawConn net.Conn) *Conn {
 		ip = addr.IP.String()
 	}
 
-	conn := NewConn(s.counter, ip, rawConn)
+	conn := NewConn(s.counter, port, ip, rawConn)
 	s.conns[conn.id] = conn
 
 	return conn
@@ -92,75 +104,77 @@ func (s *Server) Start(connTimeout time.Duration) (chan Message, chan uint64, ch
 	disconnectCh := make(chan uint64)
 	errCh := make(chan error)
 
-	var err error
-	s.listener, err = net.ListenTCP("tcp", s.addr)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-	s.addr = s.listener.Addr().(*net.TCPAddr)
+	for i := range s.addrs {
+		var err error
+		s.listener, err = net.ListenTCP("tcp", s.addrs[i])
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
+		s.addrs[i] = s.listener.Addr().(*net.TCPAddr)
 
-	go func() {
-		defer recoverPanic(errCh)
-		<-s.ctx.Done()
+		go func() {
+			defer recoverPanic(errCh)
+			<-s.ctx.Done()
+
+			go func() {
+				defer recoverPanic(errCh)
+
+				s.close()
+			}()
+		}()
 
 		go func() {
 			defer recoverPanic(errCh)
 
-			s.close()
-		}()
-	}()
-
-	go func() {
-		defer recoverPanic(errCh)
-
-		for {
-			rawConn, err := s.listener.Accept()
-			if err != nil {
-				select {
-				case <-s.ctx.Done():
-					return
-				default:
-					if !os.IsTimeout(err) {
-						errCh <- err
+			for {
+				rawConn, err := s.listener.Accept()
+				if err != nil {
+					select {
+					case <-s.ctx.Done():
+						return
+					default:
+						if !os.IsTimeout(err) {
+							errCh <- err
+						}
+						continue
 					}
-					continue
 				}
-			}
-
-			go func() {
-				defer recoverPanic(errCh)
-				s.wg.Add(1)
-
-				c := s.newConn(rawConn)
-				defer c.SoftClose()
-
-				c.SetReadDeadline(time.Now().Add(connTimeout))
-				connectCh <- c.id
 
 				go func() {
-					<-c.quit
+					defer recoverPanic(errCh)
+					s.wg.Add(1)
 
-					c.Close()
-					s.wg.Done()
-					disconnectCh <- c.id
+					c := s.newConn(rawConn, s.addrs[i].Port)
+					defer c.SoftClose()
 
-					s.mu.Lock()
-					defer s.mu.Unlock()
-					delete(s.conns, c.id)
-				}()
+					c.SetReadDeadline(time.Now().Add(connTimeout))
+					connectCh <- c.id
 
-				scanner := c.NewScanner()
-				for scanner.Scan() {
-					var req *rpc.Request
-					msg := scanner.Bytes()
-					s.logger.Debug("recieved stratum request: " + string(msg))
-					if err := json.Unmarshal(msg, &req); err == nil {
-						messageCh <- Message{Conn: c, Req: req}
+					go func() {
+						<-c.quit
+
+						c.Close()
+						s.wg.Done()
+						disconnectCh <- c.id
+
+						s.mu.Lock()
+						defer s.mu.Unlock()
+						delete(s.conns, c.id)
+					}()
+
+					scanner := c.NewScanner()
+					for scanner.Scan() {
+						var req *rpc.Request
+						msg := scanner.Bytes()
+						s.logger.Debug("recieved stratum request: " + string(msg))
+						if err := json.Unmarshal(msg, &req); err == nil {
+							messageCh <- Message{Conn: c, Req: req}
+						}
 					}
-				}
-			}()
-		}
-	}()
+				}()
+			}
+		}()
+	}
 
 	return messageCh, connectCh, disconnectCh, errCh, nil
 }

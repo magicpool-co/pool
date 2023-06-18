@@ -141,12 +141,17 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		}
 	}
 
+	diffFactor := p.portDiffIdx[c.GetPort()]
+	if diffFactor < 1 {
+		diffFactor = 1
+	}
+
 	c.SetUsername(username)
 	c.SetMinerID(minerID)
 	c.SetSubscribed(true)
 	c.SetAuthorized(true)
+	c.SetDiffFactor(diffFactor)
 	c.SetReadDeadline(time.Time{})
-	c.SetShareFactor(p.shareFactor)
 
 	var workerID uint64
 	workerID, err = p.redis.GetWorkerID(minerID, workerName)
@@ -190,7 +195,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		msgs = []interface{}{rpc.NewResponseFromJSON(req.ID, common.JsonTrue)}
 	}
 
-	authResponses, err := p.node.GetAuthorizeResponses(p.shareFactor)
+	authResponses, err := p.node.GetAuthorizeResponses(diffFactor)
 	if err != nil {
 		p.logger.Error(err, c.GetCompoundID())
 		return msgs
@@ -199,7 +204,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 
 	job := p.jobManager.LatestJob()
 	if job != nil {
-		msg, err := p.node.MarshalJob(0, job, true, c.GetClientType())
+		msg, err := p.node.MarshalJob(0, job, true, c.GetClientType(), c.GetDiffFactor())
 		if err != nil {
 			p.logger.Error(err, c.GetCompoundID())
 			return msgs
@@ -232,7 +237,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 	var round *pooldb.Round
 	job, activeShare := p.jobManager.GetJob(work.JobID)
 	if job != nil && activeShare {
-		shareStatus, hash, round, err = p.node.SubmitWork(job, work)
+		shareStatus, hash, round, err = p.node.SubmitWork(job, work, c.GetDiffFactor())
 		if err != nil {
 			return false, err
 		}
@@ -337,7 +342,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		interval := p.getCurrentInterval(false)
 		switch shareStatus {
 		case types.AcceptedShare:
-			err := p.redis.AddAcceptedShare(p.chain, interval, c.GetCompoundID(), c.GetShareFactor(), p.windowSize)
+			err := p.redis.AddAcceptedShare(p.chain, interval, c.GetCompoundID(), c.GetDiffFactor(), p.windowSize)
 			if err != nil {
 				p.logger.Error(err, c.GetCompoundID())
 				return

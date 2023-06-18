@@ -161,7 +161,7 @@ func (node Node) getBlockTemplate() (*types.StratumJob, error) {
 	return template, nil
 }
 
-func (node Node) JobNotify(ctx context.Context, interval time.Duration, shareFactor int64) chan *types.StratumJob {
+func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *types.StratumJob {
 	jobCh := make(chan *types.StratumJob)
 	ticker := time.NewTicker(interval)
 	staticInterval := time.Second * 15
@@ -181,7 +181,6 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration, shareFac
 				if err != nil {
 					node.logger.Error(err)
 				} else if lastHeight != job.Height.Value() || now.After(lastJob.Add(staticInterval)) {
-					job.ShareFactor = shareFactor
 					lastHeight = job.Height.Value()
 					lastJob = now
 					jobCh <- job
@@ -193,7 +192,7 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration, shareFac
 	return jobCh
 }
 
-func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
+func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diffFactor int) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
 	mixDigest, digest, err := node.pow.Compute(work.Hash.Bytes(), job.Height.Value(), work.Nonce.Value())
 	if err != nil {
 		return types.RejectedShare, nil, nil, err
@@ -204,7 +203,7 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork) (typ
 	}
 
 	hash := new(types.Hash).SetFromBytes(digest)
-	if !hash.MeetsDifficulty(node.GetShareDifficulty(job.ShareFactor)) {
+	if !hash.MeetsDifficulty(node.GetShareDifficulty(diffFactor)) {
 		return types.RejectedShare, nil, nil, nil
 	} else if !hash.MeetsDifficulty(job.Difficulty) {
 		return types.AcceptedShare, hash, nil, nil
@@ -269,7 +268,7 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 	return work, nil
 }
 
-func (node Node) MarshalJob(rawID interface{}, job *types.StratumJob, cleanJobs bool, clientType int) (interface{}, error) {
+func (node Node) MarshalJob(rawID interface{}, job *types.StratumJob, cleanJobs bool, clientType, diffFactor int) (interface{}, error) {
 	id, err := json.Marshal(rawID)
 	if err != nil {
 		return nil, err
@@ -278,7 +277,7 @@ func (node Node) MarshalJob(rawID interface{}, job *types.StratumJob, cleanJobs 
 	result := []interface{}{
 		job.Header.PrefixedHex(),
 		job.Seed.PrefixedHex(),
-		node.GetShareDifficulty(job.ShareFactor).TargetPrefixedHex(),
+		node.GetShareDifficulty(diffFactor).TargetPrefixedHex(),
 		job.Height.PrefixedHex(),
 	}
 
@@ -293,7 +292,7 @@ func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) (
 	return nil, nil
 }
 
-func (node Node) GetAuthorizeResponses(shareFactor int64) ([]interface{}, error) {
+func (node Node) GetAuthorizeResponses(diffFactor int) ([]interface{}, error) {
 	return nil, nil
 }
 

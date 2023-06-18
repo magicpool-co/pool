@@ -98,9 +98,11 @@ func main() {
 	argChain := flag.String("chain", "ETC", "The chain to run the pool for")
 	argMainnet := flag.Bool("mainnet", true, "Whether or not to run on the mainnet")
 	argSecretVar := flag.String("secret", "", "ENV variable defined by ECS")
-	argPort := flag.Int("port", 3333, "The pool port to use")
+	argStandardPort := flag.Int("port", 3333, "The pool port to use")
+	argStandardDiffFactor := flag.Int("diff-factor", 1, "The difficulty factor to use")
+	argHighDiffPort := flag.Int("high-diff-port", -1, "The high diff port to use")
+	argHighDiffFactor := flag.Int("high-diff-factor", -1, "The high diff factor to use")
 	argMetricsPort := flag.Int("metrics-port", 6060, "The metrics port to use")
-	argShareFactor := flag.Int("share-factor", 1, "The share factor")
 
 	flag.Parse()
 
@@ -109,8 +111,12 @@ func main() {
 		panic(fmt.Errorf("invalid chain %s", *argChain))
 	}
 
-	opts.StratumPort = *argPort
-	opts.ShareFactor = *argShareFactor
+	portDiffIdx := map[int]int{*argStandardPort: *argStandardDiffFactor}
+	if *argHighDiffPort > 0 && *argHighDiffFactor > 0 {
+		portDiffIdx[*argHighDiffPort] = portDiffIdx[*argHighDiffFactor]
+	}
+
+	opts.PortDiffIdx = portDiffIdx
 	secrets, err := svc.ParseSecrets(*argSecretVar)
 	if err != nil {
 		panic(err)
@@ -126,7 +132,7 @@ func main() {
 		panic(err)
 	}
 
-	logger.Debug(fmt.Sprintf("running server for %s on port %d", opts.Chain, opts.StratumPort))
+	logger.Debug(fmt.Sprintf("running server for %s", opts.Chain))
 
 	runner := svc.NewRunner(logger)
 	runner.AddTCPServer(poolServer)

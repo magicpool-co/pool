@@ -133,7 +133,7 @@ type JobManager struct {
 	ctx             context.Context
 	node            types.MiningNode
 	logger          *log.Logger
-	subscriptions   map[int]map[uint64]chan []byte
+	subscriptions   map[int]map[int]map[uint64]chan []byte
 	subscriptionsMu sync.RWMutex
 	jobList         *JobList
 }
@@ -143,7 +143,7 @@ func newJobManager(ctx context.Context, node types.MiningNode, logger *log.Logge
 		ctx:           ctx,
 		node:          node,
 		logger:        logger,
-		subscriptions: make(map[int]map[uint64]chan []byte),
+		subscriptions: make(map[int]map[int]map[uint64]chan []byte),
 		jobList:       newJobList(size, ageLimit),
 	}
 
@@ -166,40 +166,42 @@ func (m *JobManager) update(job *types.StratumJob) (bool, error) {
 	m.subscriptionsMu.Lock()
 	defer m.subscriptionsMu.Unlock()
 
-	for clientType, clientSubscriptions := range m.subscriptions {
-		if len(clientSubscriptions) == 0 {
-			continue
-		}
+	for clientType, clientSubscriptionsIdx := range m.subscriptions {
+		for diffFactor, clientSubscriptions := range clientSubscriptionsIdx {
+			if len(clientSubscriptions) == 0 {
+				continue
+			}
 
-		msg, err := m.node.MarshalJob(0, job, cleanJobs, clientType)
-		if err != nil {
-			return cleanJobs, err
-		}
+			msg, err := m.node.MarshalJob(0, job, cleanJobs, clientType, diffFactor)
+			if err != nil {
+				return cleanJobs, err
+			}
 
-		data, err := json.Marshal(msg)
-		if err != nil {
-			return cleanJobs, err
-		}
+			data, err := json.Marshal(msg)
+			if err != nil {
+				return cleanJobs, err
+			}
 
-		m.logger.Debug("broadcasting stratum job: " + string(data))
+			m.logger.Debug("broadcasting stratum job: " + string(data))
 
-		for _, ch := range clientSubscriptions {
-			select {
-			case <-ch:
-			default:
+			for _, ch := range clientSubscriptions {
 				select {
-				case ch <- data:
+				case <-ch:
 				default:
+					select {
+					case ch <- data:
+					default:
+					}
 				}
 			}
-		}
 
-		// garbage collect old subscriptions
-		for id, ch := range clientSubscriptions {
-			select {
-			case <-ch:
-				delete(clientSubscriptions, id)
-			default:
+			// garbage collect old subscriptions
+			for id, ch := range clientSubscriptions {
+				select {
+				case <-ch:
+					delete(clientSubscriptions, id)
+				default:
+				}
 			}
 		}
 	}
@@ -233,10 +235,14 @@ func (m *JobManager) AddConn(c *stratum.Conn) {
 
 	m.subscriptionsMu.Lock()
 	clientType := c.GetClientType()
+	diffFactor := c.GetDiffFactor()
 	if _, ok := m.subscriptions[clientType]; !ok {
-		m.subscriptions[clientType] = make(map[uint64]chan []byte)
+		m.subscriptions[clientType] = make(map[int]map[uint64]chan []byte)
 	}
-	m.subscriptions[clientType][c.GetID()] = jobs
+	if _, ok := m.subscriptions[clientType][diffFactor]; !ok {
+		m.subscriptions[clientType][diffFactor] = make(map[uint64]chan []byte)
+	}
+	m.subscriptions[clientType][diffFactor][c.GetID()] = jobs
 	m.subscriptionsMu.Unlock()
 
 	for {
@@ -262,11 +268,13 @@ func (m *JobManager) RemoveConn(id uint64) {
 	m.subscriptionsMu.RLock()
 	defer m.subscriptionsMu.RUnlock()
 
-	for _, clientSubscriptions := range m.subscriptions {
-		if ch, ok := clientSubscriptions[id]; ok {
-			close(ch)
+	for _, clientSubscriptionsIdx := range m.subscriptions {
+		for _, clientSubscriptions := range clientSubscriptionsIdx {
+			if ch, ok := clientSubscriptions[id]; ok {
+				close(ch)
+			}
+			break
 		}
-		break
 	}
 }
 
