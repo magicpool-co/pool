@@ -128,7 +128,7 @@ func (p *Pool) writeToConn(c *stratum.Conn, msg interface{}) error {
 		return err
 	}
 
-	if p.portDiffIdx[c.GetPort()] > 0 {
+	if p.portDiffIdx[c.GetPort()] > 1 {
 		p.logger.Info(fmt.Sprintf("high diff response: %s", string(data)))
 	}
 
@@ -345,7 +345,7 @@ func (p *Pool) startStratum() {
 					}()
 				}
 
-				if p.portDiffIdx[msg.Conn.GetPort()] > 0 {
+				if p.portDiffIdx[msg.Conn.GetPort()] > 1 {
 					items := make([]string, len(msg.Req.Params))
 					for i, param := range msg.Req.Params {
 						items[i] = string(param)
