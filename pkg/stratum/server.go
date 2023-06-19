@@ -6,6 +6,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"sort"
 	"sync"
 	"time"
 
@@ -25,17 +26,18 @@ type Message struct {
 }
 
 type Server struct {
-	ctx      context.Context
-	logger   *log.Logger
-	addrs    []*net.TCPAddr
-	listener net.Listener
-	wg       sync.WaitGroup
-	mu       sync.RWMutex
-	counter  uint64
-	conns    map[uint64]*Conn
+	ctx       context.Context
+	logger    *log.Logger
+	addrs     []*net.TCPAddr
+	listeners []net.Listener
+	wg        sync.WaitGroup
+	mu        sync.RWMutex
+	counter   uint64
+	conns     map[uint64]*Conn
 }
 
 func NewServer(ctx context.Context, logger *log.Logger, ports ...int) (*Server, error) {
+	sort.Ints(ports)
 	if len(ports) == 0 {
 		return nil, fmt.Errorf("no ports defined")
 	}
@@ -47,13 +49,15 @@ func NewServer(ctx context.Context, logger *log.Logger, ports ...int) (*Server, 
 		if err != nil {
 			return nil, err
 		}
+		logger.Info(fmt.Sprintf("listening on %s", addrs[i]))
 	}
 
 	server := &Server{
-		ctx:    ctx,
-		logger: logger,
-		addrs:  addrs,
-		conns:  make(map[uint64]*Conn),
+		ctx:       ctx,
+		logger:    logger,
+		addrs:     addrs,
+		listeners: make([]net.Listener, len(addrs)),
+		conns:     make(map[uint64]*Conn),
 	}
 
 	return server, nil
@@ -104,30 +108,30 @@ func (s *Server) Start(connTimeout time.Duration) (chan Message, chan uint64, ch
 	disconnectCh := make(chan uint64)
 	errCh := make(chan error)
 
+	go func() {
+		defer recoverPanic(errCh)
+		<-s.ctx.Done()
+
+		go func() {
+			defer recoverPanic(errCh)
+
+			s.close()
+		}()
+	}()
+
 	for i := range s.addrs {
 		var err error
-		s.listener, err = net.ListenTCP("tcp", s.addrs[i])
+		s.listeners[i], err = net.ListenTCP("tcp", s.addrs[i])
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}
-		s.addrs[i] = s.listener.Addr().(*net.TCPAddr)
+		s.addrs[i] = s.listeners[i].Addr().(*net.TCPAddr)
 
-		go func() {
-			defer recoverPanic(errCh)
-			<-s.ctx.Done()
-
-			go func() {
-				defer recoverPanic(errCh)
-
-				s.close()
-			}()
-		}()
-
-		go func() {
+		go func(listener net.Listener, port int) {
 			defer recoverPanic(errCh)
 
 			for {
-				rawConn, err := s.listener.Accept()
+				rawConn, err := listener.Accept()
 				if err != nil {
 					select {
 					case <-s.ctx.Done():
@@ -144,7 +148,7 @@ func (s *Server) Start(connTimeout time.Duration) (chan Message, chan uint64, ch
 					defer recoverPanic(errCh)
 					s.wg.Add(1)
 
-					c := s.newConn(rawConn, s.addrs[i].Port)
+					c := s.newConn(rawConn, port)
 					defer c.SoftClose()
 
 					c.SetReadDeadline(time.Now().Add(connTimeout))
@@ -173,7 +177,7 @@ func (s *Server) Start(connTimeout time.Duration) (chan Message, chan uint64, ch
 					}
 				}()
 			}
-		}()
+		}(s.listeners[i], s.addrs[i].Port)
 	}
 
 	return messageCh, connectCh, disconnectCh, errCh, nil
@@ -184,7 +188,9 @@ func (s *Server) close() {
 	const shutdownDuration = time.Second * 30
 	const batchInterval = time.Millisecond * 500
 
-	s.listener.Close()
+	for _, listener := range s.listeners {
+		listener.Close()
+	}
 
 	s.mu.Lock()
 	conns := s.conns
