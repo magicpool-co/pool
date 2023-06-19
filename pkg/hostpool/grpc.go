@@ -91,6 +91,10 @@ func NewGRPCPool(ctx context.Context, factory GRPCClientFactory, logger *log.Log
 }
 
 func (p *GRPCPool) GetAllHosts() []string {
+	if p == nil {
+		return nil
+	}
+
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 

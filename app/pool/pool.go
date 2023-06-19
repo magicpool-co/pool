@@ -91,6 +91,7 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 		server:     server,
 
 		chain:                strings.ToUpper(opt.Chain),
+		portDiffIdx:          opt.PortDiffIdx,
 		windowSize:           int64(opt.WindowSize),
 		extraNonce1Size:      opt.ExtraNonceSize,
 		forceErrorOnResponse: opt.ForceErrorOnResponse,
@@ -125,6 +126,10 @@ func (p *Pool) writeToConn(c *stratum.Conn, msg interface{}) error {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return err
+	}
+
+	if p.portDiffIdx[c.GetPort()] > 0 {
+		p.logger.Info(fmt.Sprintf("high diff response: %s", string(data)))
 	}
 
 	p.logger.Debug("sending stratum response: " + string(data))
@@ -338,6 +343,14 @@ func (p *Pool) startStratum() {
 						p.metrics.ObserveHistogram("request_duration_ms", requestTime, p.chain, msg.Req.Method)
 						p.metrics.IncrementCounter("requests_total", p.chain, msg.Req.Method)
 					}()
+				}
+
+				if p.portDiffIdx[msg.Conn.GetPort()] > 0 {
+					items := make([]string, len(msg.Req.Params))
+					for i, param := range msg.Req.Params {
+						items[i] = string(param)
+					}
+					p.logger.Info(fmt.Sprintf("high diff request: %s %s", msg.Req.Method, strings.Join(items, ",")))
 				}
 
 				err := handler(msg.Conn, msg.Req)

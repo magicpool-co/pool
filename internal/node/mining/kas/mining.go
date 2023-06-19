@@ -443,12 +443,12 @@ func (node Node) GetClientType(minerClient string) int {
 }
 
 func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) ([]interface{}, error) {
-	res, err := rpc.NewResponse(id, []interface{}{true})
+	res, err := rpc.NewResponse(id, []interface{}{true, "EthereumStratum/1.0.0"})
 	if err != nil {
 		return nil, err
 	}
 
-	extraNonceRes, err := rpc.NewRequest("mining.set_extranonce", extraNonce, 6)
+	extraNonceRes, err := rpc.NewRequest("set_extranonce", extraNonce, 6)
 	if err != nil {
 		return nil, err
 	}

@@ -99,9 +99,8 @@ func main() {
 	argMainnet := flag.Bool("mainnet", true, "Whether or not to run on the mainnet")
 	argSecretVar := flag.String("secret", "", "ENV variable defined by ECS")
 	argStandardPort := flag.Int("port", 3333, "The pool port to use")
-	argStandardDiffFactor := flag.Int("diff-factor", 1, "The difficulty factor to use")
-	argHighDiffPort := flag.Int("high-diff-port", -1, "The high diff port to use")
-	argHighDiffFactor := flag.Int("high-diff-factor", -1, "The high diff factor to use")
+	argHighDiffPort := flag.Int("high-diff-port", 5555, "The high difficulty port to use")
+	argHighDiffFactor := flag.Int("high-diff-factor", 256, "The high difficulty factor to use")
 	argMetricsPort := flag.Int("metrics-port", 6060, "The metrics port to use")
 
 	flag.Parse()
@@ -111,9 +110,10 @@ func main() {
 		panic(fmt.Errorf("invalid chain %s", *argChain))
 	}
 
-	portDiffIdx := map[int]int{*argStandardPort: *argStandardDiffFactor}
-	if *argHighDiffPort > 0 && *argHighDiffFactor > 0 {
-		portDiffIdx[*argHighDiffPort] = portDiffIdx[*argHighDiffFactor]
+	portDiffIdx := map[int]int{*argStandardPort: 1}
+	if *argHighDiffPort > 0 {
+		fmt.Println(*argHighDiffFactor)
+		portDiffIdx[*argHighDiffPort] = *argHighDiffFactor
 	}
 
 	opts.PortDiffIdx = portDiffIdx
