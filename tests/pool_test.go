@@ -37,6 +37,7 @@ func (suite *PoolSuite) TestPool() {
 				"03620b2ed304234abe4f02e4f95ece19626989351487c0f93821e4827ed1301e",
 			opts: &pool.Options{
 				Chain:          "AE",
+				PortDiffIdx:    map[int]int{0: 1},
 				WindowSize:     100000,
 				ExtraNonceSize: 4,
 				JobListSize:    5,
@@ -112,6 +113,7 @@ func (suite *PoolSuite) TestPool() {
 			priv:  "03620b2ed304234abe4f02e4f95ece19626989351487c0f93821e4827ed1301e",
 			opts: &pool.Options{
 				Chain:         "CFX",
+				PortDiffIdx:   map[int]int{0: 1},
 				WindowSize:    100000,
 				JobListSize:   10,
 				PollingPeriod: time.Millisecond * 100,
@@ -159,6 +161,7 @@ func (suite *PoolSuite) TestPool() {
 			priv:  "03620b2ed304234abe4f02e4f95ece19626989351487c0f93821e4827ed1301e",
 			opts: &pool.Options{
 				Chain:         "CTXC",
+				PortDiffIdx:   map[int]int{0: 1},
 				WindowSize:    100000,
 				JobListSize:   10,
 				PollingPeriod: time.Millisecond * 100,
@@ -219,6 +222,7 @@ func (suite *PoolSuite) TestPool() {
 			priv:  "",
 			opts: &pool.Options{
 				Chain:                "ERG",
+				PortDiffIdx:          map[int]int{0: 1},
 				WindowSize:           100000,
 				ExtraNonceSize:       2,
 				JobListSize:          5,
@@ -265,6 +269,7 @@ func (suite *PoolSuite) TestPool() {
 			priv:  "03620b2ed304234abe4f02e4f95ece19626989351487c0f93821e4827ed1301e",
 			opts: &pool.Options{
 				Chain:         "ETC",
+				PortDiffIdx:   map[int]int{0: 1},
 				WindowSize:    100000,
 				JobListSize:   10,
 				PollingPeriod: time.Millisecond * 100,
@@ -313,6 +318,7 @@ func (suite *PoolSuite) TestPool() {
 			priv:  "03620b2ed304234abe4f02e4f95ece19626989351487c0f93821e4827ed1301e",
 			opts: &pool.Options{
 				Chain:          "FIRO",
+				PortDiffIdx:    map[int]int{0: 1},
 				WindowSize:     300000,
 				ExtraNonceSize: 1,
 				JobListSize:    5,
@@ -363,6 +369,7 @@ func (suite *PoolSuite) TestPool() {
 			priv:  "03620b2ed304234abe4f02e4f95ece19626989351487c0f93821e4827ed1301e",
 			opts: &pool.Options{
 				Chain:          "FLUX",
+				PortDiffIdx:    map[int]int{0: 1},
 				WindowSize:     100000,
 				ExtraNonceSize: 4,
 				JobListSize:    5,
@@ -421,6 +428,7 @@ func (suite *PoolSuite) TestPool() {
 			priv:  "9476ca4050e719e3fb958be7ee64016d751e22d0063cca6b13880284c5bb42ad",
 			opts: &pool.Options{
 				Chain:           "KAS",
+				PortDiffIdx:     map[int]int{0: 1},
 				WindowSize:      100000,
 				ExtraNonceSize:  2,
 				JobListSize:     100,
@@ -461,6 +469,7 @@ func (suite *PoolSuite) TestPool() {
 			priv:  "9476ca4050e719e3fb958be7ee64016d751e22d0063cca6b13880284c5bb42ad",
 			opts: &pool.Options{
 				Chain:          "NEXA",
+				PortDiffIdx:    map[int]int{0: 1},
 				WindowSize:     100000,
 				ExtraNonceSize: 8,
 				JobListSize:    5,
@@ -503,6 +512,7 @@ func (suite *PoolSuite) TestPool() {
 			priv:  "9476ca4050e719e3fb958be7ee64016d751e22d0063cca6b13880284c5bb42ad",
 			opts: &pool.Options{
 				Chain:          "NEXA",
+				PortDiffIdx:    map[int]int{0: 1},
 				WindowSize:     100000,
 				ExtraNonceSize: 8,
 				JobListSize:    5,
@@ -540,6 +550,7 @@ func (suite *PoolSuite) TestPool() {
 			priv:  "03620b2ed304234abe4f02e4f95ece19626989351487c0f93821e4827ed1301e",
 			opts: &pool.Options{
 				Chain:          "RVN",
+				PortDiffIdx:    map[int]int{0: 1},
 				WindowSize:     300000,
 				ExtraNonceSize: 1,
 				JobListSize:    5,

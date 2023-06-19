@@ -60,7 +60,7 @@ func NewServer(ctx context.Context, logger *log.Logger, ports ...int) (*Server, 
 }
 
 func (s *Server) Port(idx int) int {
-	if len(s.addrs) > idx {
+	if idx > len(s.addrs) {
 		return -1
 	}
 
