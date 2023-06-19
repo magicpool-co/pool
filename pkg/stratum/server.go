@@ -49,7 +49,6 @@ func NewServer(ctx context.Context, logger *log.Logger, ports ...int) (*Server, 
 		if err != nil {
 			return nil, err
 		}
-		logger.Info(fmt.Sprintf("listening on %s", addrs[i]))
 	}
 
 	server := &Server{
