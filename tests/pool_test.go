@@ -450,13 +450,13 @@ func (suite *PoolSuite) TestPool() {
 				rpc.MustNewRequest("mining.submit",
 					"kaspa:qyp4ek94qc9k7aqzmpe4l7kdp6pvqus3gqehy89zdlc9dssvhc2rqjq2wr26hvd.worker",
 					"000001",
-					"ffff000016d9d7ca",
+					"ffff6a003aa3487c",
 				),
 				// test duplicate share
 				rpc.MustNewRequest("mining.submit",
 					"kaspa:qyp4ek94qc9k7aqzmpe4l7kdp6pvqus3gqehy89zdlc9dssvhc2rqjq2wr26hvd.worker",
 					"000001",
-					"ffff000016d9d7ca",
+					"ffff6a003aa3487c",
 				),
 			},
 			responses: [][]byte{

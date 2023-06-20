@@ -457,7 +457,7 @@ func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) (
 }
 
 func (node Node) GetAuthorizeResponses(diffFactor int) ([]interface{}, error) {
-	res, err := rpc.NewRequest("mining.set_difficulty", 10*diffFactor)
+	res, err := rpc.NewRequest("mining.set_difficulty", 16*diffFactor)
 	if err != nil {
 		return nil, err
 	}
