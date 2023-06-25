@@ -92,7 +92,7 @@ func (c *Client) getRoundLuckByChain(chain string) (float64, error) {
 		}
 	}
 
-	luck, err := pooldb.GetRoundLuckByChain(c.pooldb.Reader(), chain, time.Hour*24*30)
+	luck, err := pooldb.GetRoundLuckByChain(c.pooldb.Reader(), chain, time.Hour*24*7)
 	if err != nil {
 		return 0.0, err
 	}
