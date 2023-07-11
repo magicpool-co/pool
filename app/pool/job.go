@@ -45,14 +45,15 @@ func (l *JobList) Size() int {
 func (l *JobList) nextCounter() string {
 	l.counter++
 
-	if l.counter%0xffffffffff == 0 {
+	// if l.counter%0xffffffffff == 0 {
+	if l.counter%0xffff == 0 {
 		l.counter = 1
 	}
 
 	id := strconv.FormatUint(l.counter, 16)
-	for i := 0; i < 10-len(id); i++ {
-		id = "0" + id
-	}
+	// for i := 0; i < 10-len(id); i++ {
+	// 	id = "0" + id
+	// }
 
 	return id
 }
