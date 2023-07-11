@@ -128,10 +128,6 @@ func (p *Pool) writeToConn(c *stratum.Conn, msg interface{}) error {
 		return err
 	}
 
-	if p.portDiffIdx[c.GetPort()] > 1 {
-		p.logger.Info(fmt.Sprintf("high diff response: %s", string(data)))
-	}
-
 	p.logger.Debug("sending stratum response: " + string(data))
 
 	return c.Write(data)
@@ -343,14 +339,6 @@ func (p *Pool) startStratum() {
 						p.metrics.ObserveHistogram("request_duration_ms", requestTime, p.chain, msg.Req.Method)
 						p.metrics.IncrementCounter("requests_total", p.chain, msg.Req.Method)
 					}()
-				}
-
-				if p.portDiffIdx[msg.Conn.GetPort()] > 1 {
-					items := make([]string, len(msg.Req.Params))
-					for i, param := range msg.Req.Params {
-						items[i] = string(param)
-					}
-					p.logger.Info(fmt.Sprintf("high diff request: %s %s", msg.Req.Method, strings.Join(items, ",")))
 				}
 
 				err := handler(msg.Conn, msg.Req)
