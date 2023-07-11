@@ -53,13 +53,13 @@ jobs:
 
   build:
     name: Build and Push
-    needs: [init]
+    needs: [init, test]
     runs-on: [self-hosted, linux, ARM64]
     strategy:
       matrix:
-        app: [pool]
-        region: [us-east-1, us-west-2]
-        chain: [nexa, erg, etc]
+        # app: [pool]
+        # region: [us-east-1, us-west-2]
+        # chain: [erg, etc, nexa, kas]
         include:
           - region: eu-west-1
             app: worker
