@@ -2,7 +2,6 @@ package pool
 
 import (
 	"context"
-	"fmt"
 	"runtime/debug"
 	"strconv"
 	"sync"
@@ -89,7 +88,7 @@ func (l *JobList) Append(job *types.StratumJob) bool {
 	return cleanJobs
 }
 
-func (l *JobList) Get(id string) (*types.StratumJob, bool, uint64) {
+func (l *JobList) Get(id string) (*types.StratumJob, bool) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -104,7 +103,7 @@ func (l *JobList) Get(id string) (*types.StratumJob, bool, uint64) {
 		}
 	}
 
-	return job, active, l.height
+	return job, active
 }
 
 func (l *JobList) Latest() *types.StratumJob {
@@ -279,12 +278,7 @@ func (m *JobManager) RemoveConn(id uint64) {
 }
 
 func (m *JobManager) GetJob(id string) (*types.StratumJob, bool) {
-	job, active, activeHeight := m.jobList.Get(id)
-	if !active && job != nil {
-		m.logger.Info(fmt.Sprintf("share not active: %s (%d vs %d)", job.ID, job.Height.Value(), activeHeight))
-	}
-
-	return job, active
+	return m.jobList.Get(id)
 }
 
 func (m *JobManager) LatestJob() *types.StratumJob {

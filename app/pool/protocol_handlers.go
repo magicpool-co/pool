@@ -243,16 +243,6 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		}
 	}
 
-	if job == nil {
-		p.logger.Info(fmt.Sprintf("share rejected bc job not found: %s", work.JobID))
-	} else if !activeShare {
-		var height uint64
-		if job.Height != nil {
-			height = job.Height.Value()
-		}
-		p.logger.Info(fmt.Sprintf("share not active: %s (%d)", work.JobID, height))
-	}
-
 	// handle round
 	if round != nil {
 		go func() {
