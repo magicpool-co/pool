@@ -31,7 +31,9 @@ const (
 	bzMinerClientID       = 1
 )
 
-var isBzminer = regexp.MustCompile(".*BzMiner.*")
+var (
+	isBzminer = regexp.MustCompile(".*(BzMiner|IceRiverMiner).*")
+)
 
 func (node Node) GetBlockExplorerURL(round *pooldb.Round) string {
 	if node.mainnet {
