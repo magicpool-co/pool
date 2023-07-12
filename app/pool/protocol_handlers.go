@@ -339,7 +339,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			}
 
 			if p.metrics != nil {
-				p.metrics.IncrementCounter("accepted_shares_total", p.chain)
+				p.metrics.AddCounter("accepted_shares_total", float64(c.GetDiffFactor()), p.chain)
 			}
 
 			// need to replace ":" with "|" for IPv6 compatibility
@@ -359,14 +359,14 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			if err != nil {
 				p.logger.Error(err, c.GetCompoundID())
 			} else if p.metrics != nil {
-				p.metrics.IncrementCounter("rejected_shares_total", p.chain)
+				p.metrics.AddCounter("rejected_shares_total", float64(c.GetDiffFactor()), p.chain)
 			}
 		case types.InvalidShare:
 			err := p.redis.AddInvalidShare(p.chain, interval, c.GetCompoundID())
 			if err != nil {
 				p.logger.Error(err, c.GetCompoundID())
 			} else if p.metrics != nil {
-				p.metrics.IncrementCounter("invalid_shares_total", p.chain)
+				p.metrics.AddCounter("invalid_shares_total", float64(c.GetDiffFactor()), p.chain)
 			}
 		}
 	}()
