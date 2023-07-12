@@ -22,10 +22,8 @@ func SendEmail(client *aws.Client, address, subject, body string) error {
 			ToAddresses: []*string{
 				types.StringPtr(address),
 			},
-			CcAddresses: []*string{},
-			BccAddresses: []*string{
-				types.StringPtr("tug@sencha.dev"),
-			},
+			CcAddresses:  []*string{},
+			BccAddresses: []*string{},
 		},
 		Message: &ses.Message{
 			Body: &ses.Body{
