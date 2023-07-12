@@ -338,7 +338,6 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diff
 
 	hash := new(types.Hash).SetFromBytes(digest)
 	if !hash.MeetsDifficulty(node.GetShareDifficulty(diffFactor)) {
-		node.logger.Info(fmt.Sprintf("below diff: %s - %d (%d) [%s, %d, %s] %d", hash.PrefixedHex(), node.GetShareDifficulty(diffFactor).Value(), diffFactor, job.Header.PrefixedHex(), template.Timestamp, work.Nonce.PrefixedHex(), time.Now().Unix()))
 		return types.RejectedShare, nil, nil, nil
 	} else if !hash.MeetsDifficulty(job.Difficulty) {
 		return types.AcceptedShare, hash, nil, nil
