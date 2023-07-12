@@ -1,7 +1,6 @@
 package bank
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"time"
@@ -20,15 +19,6 @@ func (c *Client) PrepareOutgoingTxs(
 	txOutputList ...[]*types.TxOutput,
 ) ([]*pooldb.Transaction, error) {
 	txs := make([]*pooldb.Transaction, len(txOutputList))
-
-	// distributed lock to avoid race conditions
-	lock, err := c.fetchLock(node.Chain())
-	if err != nil {
-		return nil, err
-	} else if lock == nil {
-		return nil, nil
-	}
-	defer lock.Release(context.Background())
 
 	// verify that there are no other unspent transactions active
 	count, err := pooldb.GetUnspentTransactionCount(q, node.Chain())
@@ -455,15 +445,6 @@ func (c *Client) spendTx(node types.PayoutNode, tx *pooldb.Transaction) error {
 }
 
 func (c *Client) BroadcastOutgoingTxs(node types.PayoutNode) error {
-	// distributed lock to avoid race conditions
-	lock, err := c.fetchLock(node.Chain())
-	if err != nil {
-		return err
-	} else if lock == nil {
-		return nil
-	}
-	defer lock.Release(context.Background())
-
 	txs, err := pooldb.GetUnspentTransactions(c.pooldb.Reader(), node.Chain())
 	if err != nil {
 		return err
@@ -480,15 +461,6 @@ func (c *Client) BroadcastOutgoingTxs(node types.PayoutNode) error {
 }
 
 func (c *Client) ConfirmOutgoingTxs(node types.PayoutNode) error {
-	// distributed lock to avoid race conditions
-	lock, err := c.fetchLock(node.Chain())
-	if err != nil {
-		return err
-	} else if lock == nil {
-		return nil
-	}
-	defer lock.Release(context.Background())
-
 	txs, err := pooldb.GetUnconfirmedTransactions(c.pooldb.Reader(), node.Chain())
 	if err != nil {
 		return err

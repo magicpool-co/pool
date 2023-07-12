@@ -1,6 +1,7 @@
 package payout
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -137,6 +138,14 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			Pending: true,
 		}
 	}
+
+	bankLock, err := c.bank.FetchLock(node.Chain())
+	if err != nil {
+		return err
+	} else if bankLock == nil {
+		return nil
+	}
+	defer bankLock.Release(context.Background())
 
 	switch node.GetAccountingType() {
 	case types.AccountStructure:

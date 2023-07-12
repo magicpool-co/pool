@@ -1,6 +1,7 @@
 package trade
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 
@@ -50,6 +51,14 @@ func (c *Client) executeAndMaybeSplitDeposit(
 	for i, splitOutput := range outputs {
 		outputList[i] = []*types.TxOutput{splitOutput}
 	}
+
+	bankLock, err := c.bank.FetchLock(chain)
+	if err != nil {
+		return err
+	} else if bankLock == nil {
+		return nil
+	}
+	defer bankLock.Release(context.Background())
 
 	txs, err := c.bank.PrepareOutgoingTxs(dbTx, c.nodes[chain], types.DepositTx, outputList...)
 	if err != nil {
