@@ -19,7 +19,7 @@ func (c *Client) executeAndMaybeSplitDeposit(
 	split int,
 ) error {
 	// must do this in order to prevent recursivly locking itself
-	if count == 1 {
+	if split == 1 {
 		bankLock, err := c.bank.FetchLock(chain)
 		if err != nil {
 			return err
