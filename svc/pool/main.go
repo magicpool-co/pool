@@ -100,7 +100,7 @@ func main() {
 	argSecretVar := flag.String("secret", "", "ENV variable defined by ECS")
 	argStandardPort := flag.Int("port", 3333, "The pool port to use")
 	argHighDiffPort := flag.Int("high-diff-port", 5555, "The high difficulty port to use")
-	argHighDiffFactor := flag.Int("high-diff-factor", 64, "The high difficulty factor to use")
+	argHighDiffFactor := flag.Int("high-diff-factor", 32, "The high difficulty factor to use")
 	argMetricsPort := flag.Int("metrics-port", 6060, "The metrics port to use")
 
 	flag.Parse()

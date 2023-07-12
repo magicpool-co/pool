@@ -89,7 +89,7 @@ func (l *JobList) Append(job *types.StratumJob) bool {
 	return cleanJobs
 }
 
-func (l *JobList) Get(id string) (*types.StratumJob, bool, uint64) {
+func (l *JobList) Get(id string) (*types.StratumJob, bool) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -104,7 +104,7 @@ func (l *JobList) Get(id string) (*types.StratumJob, bool, uint64) {
 		}
 	}
 
-	return job, active, l.height
+	return job, active
 }
 
 func (l *JobList) Latest() *types.StratumJob {
@@ -254,10 +254,6 @@ func (m *JobManager) AddConn(c *stratum.Conn) {
 				return
 			}
 
-			if c.GetPort() == 5555 {
-				m.logger.Info(fmt.Sprintf("sdebug: %d: res: %s", c.GetID(), string(job)))
-			}
-
 			err := c.Write(job)
 			if err != nil {
 				return
@@ -283,16 +279,7 @@ func (m *JobManager) RemoveConn(id uint64) {
 }
 
 func (m *JobManager) GetJob(id string) (*types.StratumJob, bool) {
-	job, active, activeHeight := m.jobList.Get(id)
-	if !active {
-		if job != nil {
-			m.logger.Info(fmt.Sprintf("share not active: %s (%d vs %d)", job.ID, job.Height.Value(), activeHeight))
-		} else {
-			m.logger.Info(fmt.Sprintf("share not active: (%d)", activeHeight))
-		}
-	}
-
-	return job, active
+	return m.jobList.Get(id)
 }
 
 func (m *JobManager) LatestJob() *types.StratumJob {
