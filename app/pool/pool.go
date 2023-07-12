@@ -128,8 +128,8 @@ func (p *Pool) writeToConn(c *stratum.Conn, msg interface{}) error {
 		return err
 	}
 
-	if c.GetDiffFactor() > 1 {
-		p.logger.Info(fmt.Sprintf("strtmdebug: %d: res: %s", c.GetID(), string(data)))
+	if c.GetPort() == 5555 {
+		p.logger.Info(fmt.Sprintf("sdebug: %d: res: %s", c.GetID(), string(data)))
 	}
 
 	p.logger.Debug("sending stratum response: " + string(data))
@@ -328,10 +328,10 @@ func (p *Pool) startStratum() {
 				p.metrics.IncrementCounter("client_disconnects", p.chain)
 			}
 		case msg := <-msgCh:
-			if msg.Conn.GetDiffFactor() > 1 {
+			if msg.Conn.GetPort() == 5555 {
 				data, err := json.Marshal(msg.Req)
 				if err == nil {
-					p.logger.Info(fmt.Sprintf("strtmdebug: %d: req: %s", msg.Conn.GetID(), string(data)))
+					p.logger.Info(fmt.Sprintf("sdebug: %d: req: %s", msg.Conn.GetID(), string(data)))
 				}
 			}
 

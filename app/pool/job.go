@@ -254,8 +254,8 @@ func (m *JobManager) AddConn(c *stratum.Conn) {
 				return
 			}
 
-			if c.GetDiffFactor() > 1 {
-				m.logger.Info(fmt.Sprintf("strtmdebug: %d: res: %s", c.GetID(), string(job)))
+			if c.GetPort() == 5555 {
+				m.logger.Info(fmt.Sprintf("sdebug: %d: res: %s", c.GetID(), string(job)))
 			}
 
 			err := c.Write(job)
