@@ -280,8 +280,12 @@ func (m *JobManager) RemoveConn(id uint64) {
 
 func (m *JobManager) GetJob(id string) (*types.StratumJob, bool) {
 	job, active, activeHeight := m.jobList.Get(id)
-	if !active && job != nil {
-		m.logger.Info(fmt.Sprintf("share not active: %s (%d vs %d)", job.ID, job.Height.Value(), activeHeight))
+	if !active {
+		if job != nil {
+			m.logger.Info(fmt.Sprintf("share not active: %s (%d vs %d)", job.ID, job.Height.Value(), activeHeight))
+		} else {
+			m.logger.Info(fmt.Sprintf("share not active: (%d)", activeHeight))
+		}
 	}
 
 	return job, active
