@@ -55,8 +55,6 @@ func (c *Client) executeAndMaybeSplitDeposit(
 	bankLock, err := c.bank.FetchLock(chain)
 	if err != nil {
 		return err
-	} else if bankLock == nil {
-		return nil
 	}
 	defer bankLock.Release(context.Background())
 

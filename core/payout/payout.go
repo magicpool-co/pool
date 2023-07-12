@@ -142,8 +142,6 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 	bankLock, err := c.bank.FetchLock(node.Chain())
 	if err != nil {
 		return err
-	} else if bankLock == nil {
-		return nil
 	}
 	defer bankLock.Release(context.Background())
 

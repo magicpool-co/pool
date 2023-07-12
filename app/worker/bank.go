@@ -28,8 +28,6 @@ func (j *BankJob) broadcastAndConfirm(client *bank.Client, node types.PayoutNode
 	bankLock, err := client.FetchLock(node.Chain())
 	if err != nil {
 		return err
-	} else if bankLock == nil {
-		return nil
 	}
 	defer bankLock.Release(context.Background())
 

@@ -2,6 +2,7 @@ package bank
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -38,7 +39,7 @@ func (c *Client) FetchLock(chain string) (*redislock.Lock, error) {
 		if err != redislock.ErrNotObtained {
 			return nil, err
 		}
-		return nil, nil
+		return nil, fmt.Errorf("unable to retrieve lock")
 	}
 
 	return lock, nil
