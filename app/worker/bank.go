@@ -24,26 +24,6 @@ type BankJob struct {
 	telegram *telegram.Client
 }
 
-func (j *BankJob) broadcastAndConfirm(client *bank.Client, node types.PayoutNode) error {
-	bankLock, err := client.FetchLock(node.Chain())
-	if err != nil {
-		return err
-	}
-	defer bankLock.Release(context.Background())
-
-	err = client.BroadcastOutgoingTxs(node)
-	if err != nil {
-		return fmt.Errorf("bank: broadcast: %s: %v", node.Chain(), err)
-	}
-
-	err = client.ConfirmOutgoingTxs(node)
-	if err != nil {
-		return fmt.Errorf("bank: confirm: %s: %v", node.Chain(), err)
-	}
-
-	return nil
-}
-
 func (j *BankJob) Run() {
 	defer j.logger.RecoverPanic()
 
@@ -59,9 +39,14 @@ func (j *BankJob) Run() {
 
 	client := bank.New(j.pooldb, j.redis, j.telegram)
 	for _, node := range j.nodes {
-		err := j.broadcastAndConfirm(client, node)
+		err = client.BroadcastOutgoingTxs(node)
 		if err != nil {
-			j.logger.Error(err)
+			j.logger.Error(fmt.Errorf("bank: broadcast: %s: %v", node.Chain(), err))
+		}
+
+		err = client.ConfirmOutgoingTxs(node)
+		if err != nil {
+			j.logger.Error(fmt.Errorf("bank: confirm: %s: %v", node.Chain(), err))
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package bank
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"time"
@@ -338,6 +339,12 @@ func (c *Client) MergeUTXOs(node types.PayoutNode, count int) error {
 }
 
 func (c *Client) spendTx(node types.PayoutNode, tx *pooldb.Transaction) error {
+	lock, err := c.FetchLock(node.Chain())
+	if err != nil {
+		return err
+	}
+	defer lock.Release(context.Background())
+
 	dbTx, err := c.pooldb.Begin()
 	if err != nil {
 		return err
