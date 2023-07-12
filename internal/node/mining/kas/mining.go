@@ -328,16 +328,19 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *ty
 func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diffFactor int) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
 	template, ok := job.Data.(*Block)
 	if !ok {
+		node.logger.Info(fmt.Sprintf("template not casted"))
 		return types.RejectedShare, nil, nil, fmt.Errorf("unable to cast job data as block")
 	}
 
 	digest, err := node.pow.Compute(job.Header.Bytes(), template.Timestamp, work.Nonce.Value())
 	if err != nil {
+		node.logger.Info(fmt.Sprintf("invalid hash: %v", err))
 		return types.RejectedShare, nil, nil, err
 	}
 
 	hash := new(types.Hash).SetFromBytes(digest)
 	if !hash.MeetsDifficulty(node.GetShareDifficulty(diffFactor)) {
+		node.logger.Info(fmt.Sprintf("below diff: %s - %d (%d)", hash.PrefixedHex(), node.GetShareDifficulty(diffFactor).Value(), diffFactor))
 		return types.RejectedShare, nil, nil, nil
 	} else if !hash.MeetsDifficulty(job.Difficulty) {
 		return types.AcceptedShare, hash, nil, nil
