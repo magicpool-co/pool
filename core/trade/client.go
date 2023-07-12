@@ -24,7 +24,7 @@ var (
 		"CFX":  common.MustParseBigInt("2000000000000000000000000"), // 2,000,000 CFX
 		"CTXC": common.MustParseBigInt("5000000000000000000000000"), // 5,000,000 CTXC
 		"ERG":  new(big.Int).SetUint64(100_000_000_000),             // 100 ERG
-		"ETC":  common.MustParseBigInt("25000000000000000000"),      // 10 ETC
+		"ETC":  common.MustParseBigInt("2500000000000000000"),       // 2.5 ETC
 		"KAS":  new(big.Int).SetUint64(100_000_000_000),             // 5,000 KAS
 		"FIRO": new(big.Int).SetUint64(10_000_000_000),              // 100 FIRO
 		"FLUX": new(big.Int).SetUint64(10_000_000_000),              // 100 FLUX
