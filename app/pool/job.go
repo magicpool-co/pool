@@ -2,7 +2,6 @@ package pool
 
 import (
 	"context"
-	"fmt"
 	"runtime/debug"
 	"strconv"
 	"sync"
