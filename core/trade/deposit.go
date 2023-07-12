@@ -18,6 +18,15 @@ func (c *Client) executeAndMaybeSplitDeposit(
 	output *types.TxOutput,
 	split int,
 ) error {
+	// must do this in order to prevent recursivly locking itself
+	if count == 1 {
+		bankLock, err := c.bank.FetchLock(chain)
+		if err != nil {
+			return err
+		}
+		defer bankLock.Release(context.Background())
+	}
+
 	dbTx, err := c.pooldb.Begin()
 	if err != nil {
 		return err
@@ -51,12 +60,6 @@ func (c *Client) executeAndMaybeSplitDeposit(
 	for i, splitOutput := range outputs {
 		outputList[i] = []*types.TxOutput{splitOutput}
 	}
-
-	bankLock, err := c.bank.FetchLock(chain)
-	if err != nil {
-		return err
-	}
-	defer bankLock.Release(context.Background())
 
 	txs, err := c.bank.PrepareOutgoingTxs(dbTx, c.nodes[chain], types.DepositTx, outputList...)
 	if err != nil {
