@@ -19,9 +19,12 @@ func SendEmail(client *aws.Client, address, subject, body string) error {
 	svc := ses.New(client.Session())
 	input := &ses.SendEmailInput{
 		Destination: &ses.Destination{
-			CcAddresses: []*string{},
 			ToAddresses: []*string{
 				types.StringPtr(address),
+			},
+			CcAddresses: []*string{},
+			BccAddresses: []*string{
+				types.StringPtr("tug@sencha.dev"),
 			},
 		},
 		Message: &ses.Message{
