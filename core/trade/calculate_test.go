@@ -33,6 +33,76 @@ func TestBalanceInputsToInputPaths(t *testing.T) {
 		{
 			balanceInputs: []*pooldb.BalanceInput{
 				&pooldb.BalanceInput{
+					ChainID:    "CFX",
+					OutChainID: "BTC",
+					Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(118853973085484732)},
+				},
+				&pooldb.BalanceInput{
+					ChainID:    "CFX",
+					OutChainID: "ETH",
+					Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(8320656045383440320)},
+				},
+				&pooldb.BalanceInput{
+					ChainID:    "ETC",
+					OutChainID: "ETH",
+					Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(6846927847827534225)},
+				},
+				&pooldb.BalanceInput{
+					ChainID:    "ETC",
+					OutChainID: "BTC",
+					Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(3553506352296710575)},
+				},
+				&pooldb.BalanceInput{
+					ChainID:    "NEXA",
+					OutChainID: "ETH",
+					Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(80633842496)},
+				},
+				&pooldb.BalanceInput{
+					ChainID:    "KAS",
+					OutChainID: "ETH",
+					Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(1711990761540)},
+				},
+				&pooldb.BalanceInput{
+					ChainID:    "ERG",
+					OutChainID: "BTC",
+					Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(1061318688818)},
+				},
+				&pooldb.BalanceInput{
+					ChainID:    "ERG",
+					OutChainID: "ETH",
+					Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(1123753393614)},
+				},
+				&pooldb.BalanceInput{
+					ChainID:    "KAS",
+					OutChainID: "BTC",
+					Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(332442649077)},
+				},
+			},
+			inputPaths: map[string]map[string]*big.Int{
+				"CFX": map[string]*big.Int{
+					"BTC": new(big.Int).SetUint64(118853973085484732),
+					"ETH": new(big.Int).SetUint64(8320656045383440320),
+				},
+				"ERG": map[string]*big.Int{
+					"BTC": new(big.Int).SetUint64(1061318688818),
+					"ETH": new(big.Int).SetUint64(1123753393614),
+				},
+				"ETC": map[string]*big.Int{
+					"BTC": new(big.Int).SetUint64(3553506352296710575),
+					"ETH": new(big.Int).SetUint64(6846927847827534225),
+				},
+				"KAS": map[string]*big.Int{
+					"BTC": new(big.Int).SetUint64(332442649077),
+					"ETH": new(big.Int).SetUint64(1711990761540),
+				},
+				"NEXA": map[string]*big.Int{
+					"ETH": new(big.Int).SetUint64(80633842496),
+				},
+			},
+		},
+		{
+			balanceInputs: []*pooldb.BalanceInput{
+				&pooldb.BalanceInput{
 					ChainID:    "ETC",
 					OutChainID: "ETH",
 					Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(5818283841)},

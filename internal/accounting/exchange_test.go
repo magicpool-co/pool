@@ -123,6 +123,35 @@ func TestReverseMap(t *testing.T) {
 				},
 			},
 		},
+		{
+			input: map[string]map[string]*big.Int{
+				"KAS": map[string]*big.Int{
+					"BTC": new(big.Int).SetUint64(332442649077),
+					"ETH": new(big.Int).SetUint64(1711990761540),
+				},
+				"NEXA": map[string]*big.Int{
+					"ETH": new(big.Int).SetUint64(80633842496),
+				},
+			},
+			prices: map[string]map[string]float64{
+				"KAS": map[string]float64{
+					"BTC": 7.968882455859694e-07,
+					"ETH": 1.2952496931210139e-05,
+				},
+				"NEXA": map[string]float64{
+					"ETH": 2.9193848389144937e-09,
+				},
+			},
+			output: map[string]map[string]*big.Int{
+				"BTC": map[string]*big.Int{
+					"KAS": new(big.Int).SetUint64(262629),
+				},
+				"ETH": map[string]*big.Int{
+					"KAS":  new(big.Int).SetUint64(221745550830352120),
+					"NEXA": new(big.Int).SetUint64(2354008271059724800),
+				},
+			},
+		},
 	}
 
 	for i, tt := range tests {
@@ -271,6 +300,50 @@ func TestCalculateExchangePaths(t *testing.T) {
 					"ETH":  new(big.Int).SetUint64(20_000_000_000),
 					"BTC":  new(big.Int).SetUint64(20_000_000_000),
 					"USDC": new(big.Int).SetUint64(20_000_000_000),
+				},
+			},
+		},
+		{
+			inputPaths: map[string]map[string]*big.Int{
+				"KAS": map[string]*big.Int{
+					"BTC": new(big.Int).SetUint64(332442649077),
+					"ETH": new(big.Int).SetUint64(1711990761540),
+				},
+				"NEXA": map[string]*big.Int{
+					"ETH": new(big.Int).SetUint64(80633842496),
+				},
+			},
+			inputThresholds: map[string]*big.Int{
+				"CFX":  common.MustParseBigInt("2000000000000000000000000"),
+				"CTXC": common.MustParseBigInt("5000000000000000000000000"),
+				"ERG":  new(big.Int).SetUint64(100_000_000_000),
+				"ETC":  common.MustParseBigInt("25000000000000000000"),
+				"KAS":  new(big.Int).SetUint64(100_000_000_000),
+				"FIRO": new(big.Int).SetUint64(10_000_000_000),
+				"FLUX": new(big.Int).SetUint64(10_000_000_000),
+				"NEXA": new(big.Int).SetUint64(100_000_000),
+				"RVN":  new(big.Int).SetUint64(500_000_000_000),
+			},
+			outputThresholds: map[string]*big.Int{
+				"BTC":  new(big.Int).SetUint64(2_500_000),
+				"ETH":  new(big.Int).SetUint64(250_000_000_000_000_000),
+				"USDC": new(big.Int).SetUint64(20_000_000_000),
+			},
+			prices: map[string]map[string]float64{
+				"KAS": map[string]float64{
+					"BTC": 7.968882455859694e-07,
+					"ETH": 1.2952496931210139e-05,
+				},
+				"NEXA": map[string]float64{
+					"ETH": 2.9193848389144937e-09,
+				},
+			},
+			finalPaths: map[string]map[string]*big.Int{
+				"KAS": map[string]*big.Int{
+					"ETH": common.MustParseBigInt("1711990761540"),
+				},
+				"NEXA": map[string]*big.Int{
+					"ETH": common.MustParseBigInt("80633842496"),
 				},
 			},
 		},

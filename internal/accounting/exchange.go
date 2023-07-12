@@ -53,7 +53,7 @@ func reverseMap(input map[string]map[string]*big.Int, prices map[string]map[stri
 						return nil, err
 					}
 
-					rate, err := common.StringDecimalToBigint(fmt.Sprintf("%.8f", price), toUnits)
+					rate, err := common.StringDecimalToBigint(fmt.Sprintf("%.14f", price), toUnits)
 					if err != nil {
 						return nil, err
 					}
