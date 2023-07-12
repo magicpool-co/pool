@@ -254,6 +254,10 @@ func (m *JobManager) AddConn(c *stratum.Conn) {
 				return
 			}
 
+			if c.GetDiffFactor() > 1 {
+				m.logger.Info("stratumdebug: res: " + string(job))
+			}
+
 			err := c.Write(job)
 			if err != nil {
 				return

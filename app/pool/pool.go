@@ -128,6 +128,10 @@ func (p *Pool) writeToConn(c *stratum.Conn, msg interface{}) error {
 		return err
 	}
 
+	if c.GetDiffFactor() > 1 {
+		p.logger.Info("stratumdebug: req: " + string(data))
+	}
+
 	p.logger.Debug("sending stratum response: " + string(data))
 
 	return c.Write(data)
