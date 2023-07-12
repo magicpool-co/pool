@@ -85,12 +85,12 @@ func (suite *RedisWritesSuite) TestWriteRounds() {
 		suite.T().Errorf("failed: AddAcceptedShare: %v", err)
 	}
 
-	err = redisClient.AddRejectedShare("", "", "")
+	err = redisClient.AddRejectedShare("", "", "", 4)
 	if err != nil {
 		suite.T().Errorf("failed: AddRejectedShare: %v", err)
 	}
 
-	err = redisClient.AddInvalidShare("", "", "")
+	err = redisClient.AddInvalidShare("", "", "", 4)
 	if err != nil {
 		suite.T().Errorf("failed: AddInvalidShare: %v", err)
 	}

@@ -355,14 +355,14 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			}
 			p.minerStatsMu.Unlock()
 		case types.RejectedShare:
-			err := p.redis.AddRejectedShare(p.chain, interval, c.GetCompoundID())
+			err := p.redis.AddRejectedShare(p.chain, interval, c.GetCompoundID(), c.GetDiffFactor())
 			if err != nil {
 				p.logger.Error(err, c.GetCompoundID())
 			} else if p.metrics != nil {
 				p.metrics.AddCounter("rejected_shares_total", float64(c.GetDiffFactor()), p.chain)
 			}
 		case types.InvalidShare:
-			err := p.redis.AddInvalidShare(p.chain, interval, c.GetCompoundID())
+			err := p.redis.AddInvalidShare(p.chain, interval, c.GetCompoundID(), c.GetDiffFactor())
 			if err != nil {
 				p.logger.Error(err, c.GetCompoundID())
 			} else if p.metrics != nil {

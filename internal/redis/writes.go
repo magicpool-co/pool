@@ -127,24 +127,24 @@ func (c *Client) AddAcceptedShare(chain, interval, compoundID string, count int,
 	return err
 }
 
-func (c *Client) AddRejectedShare(chain, interval, compoundID string) error {
+func (c *Client) AddRejectedShare(chain, interval, compoundID string, count int) error {
 	ctx := context.Background()
 	pipe := c.writeClient.Pipeline()
 
-	pipe.Incr(ctx, c.getRoundRejectedSharesKey(chain))
-	pipe.ZIncrBy(ctx, c.getIntervalRejectedSharesKey(chain, interval), 1, compoundID)
+	pipe.IncrBy(ctx, c.getRoundRejectedSharesKey(chain), int64(count))
+	pipe.ZIncrBy(ctx, c.getIntervalRejectedSharesKey(chain, interval), float64(count), compoundID)
 
 	_, err := pipe.Exec(ctx)
 
 	return err
 }
 
-func (c *Client) AddInvalidShare(chain, interval, compoundID string) error {
+func (c *Client) AddInvalidShare(chain, interval, compoundID string, count int) error {
 	ctx := context.Background()
 	pipe := c.writeClient.Pipeline()
 
-	pipe.Incr(ctx, c.getRoundInvalidSharesKey(chain))
-	pipe.ZIncrBy(ctx, c.getIntervalInvalidSharesKey(chain, interval), 1, compoundID)
+	pipe.IncrBy(ctx, c.getRoundInvalidSharesKey(chain), int64(count))
+	pipe.ZIncrBy(ctx, c.getIntervalInvalidSharesKey(chain, interval), float64(count), compoundID)
 
 	_, err := pipe.Exec(ctx)
 
