@@ -68,7 +68,7 @@ func NewContext(
 func (ctx *Context) writeErrorResponse(w http.ResponseWriter, err error) {
 	httpErr, ok := err.(httpResponse)
 	if ok {
-		if !httpErr.Equals(errRouteNotFound) {
+		if httpErr.shouldLog {
 			ctx.logger.Error(err)
 		}
 	} else {
