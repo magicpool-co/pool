@@ -58,8 +58,8 @@ jobs:
     strategy:
       matrix:
         app: [pool]
-        region: [us-east-1, us-west-2]
-        chain: [erg, etc, nexa, kas]
+        region: [eu-central-1]
+        chain: [kas]
         include:
           - region: eu-west-1
             app: worker
