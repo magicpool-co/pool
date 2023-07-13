@@ -78,6 +78,7 @@ type varDiffManager struct {
 	diff         int
 	minDiff      int
 	maxDiff      int
+	lastShare    time.Time
 	lastRetarget time.Time
 
 	buffer *ringBuffer
@@ -102,6 +103,7 @@ func newVarDiffManager(currentDiff int) *varDiffManager {
 		minDiff:      minDiff,
 		maxDiff:      maxDiff,
 		buffer:       newRingBuffer(bufferSize),
+		lastShare:    time.Now(),
 		lastRetarget: time.Now(),
 	}
 
@@ -115,20 +117,27 @@ func (m *varDiffManager) SetCurrentDiff(currentDiff int) {
 	m.diff = currentDiff
 }
 
-func (m *varDiffManager) Retarget(lastShare time.Time) int {
+func (m *varDiffManager) Retarget(shareAt time.Time) int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	now := time.Now()
-	timeSinceLastShare := now.Sub(lastShare)
-	timeSinceLastRetarget := now.Sub(m.lastRetarget)
+	timeSinceLastShare := shareAt.Sub(m.lastShare)
+	if timeSinceLastShare < 0 {
+		timeSinceLastShare = 0
+	}
+	timeSinceLastRetarget := time.Now().Sub(m.lastRetarget)
+	m.lastShare = shareAt
 
 	// add time since last share to ring buffer
 	m.buffer.Append(int64(timeSinceLastShare))
 
-	// if time since last retarget is less than the
-	// retarget wait period, don't do anything
 	if timeSinceLastRetarget < retargetDelay {
+		// if time since last retarget is less than the
+		// retarget wait period, don't do anything
+		return m.diff
+	} else if m.buffer.len < 3 && timeSinceLastShare < time.Minute {
+		// if the share rate is reasonable (one per minute),
+		// require at least 3 shares before retargeting
 		return m.diff
 	}
 
