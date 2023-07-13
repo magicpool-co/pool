@@ -145,7 +145,7 @@ func (m *varDiffManager) Retarget(lastShare time.Time) int {
 	} else if avg < minTargetTime {
 		// increase the difficulty by a factor of 2
 		newDiff = m.diff * 2
-		if newDiff < m.maxDiff {
+		if newDiff > m.maxDiff {
 			newDiff = m.maxDiff
 		}
 	} else {
