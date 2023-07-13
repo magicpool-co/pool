@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	targetTime    = time.Second * 15
+	targetTime    = time.Second * 10
 	retargetDelay = time.Second * 60
 	bufferSize    = (int(retargetDelay) / int(targetTime)) * 4
 

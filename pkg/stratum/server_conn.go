@@ -126,7 +126,7 @@ func (c *Conn) SetErrorCount(count int)     { atomic.StoreInt32(&(c.errorCount),
 func (c *Conn) SetLastShareAt(ts time.Time) int {
 	if c.varDiff != nil {
 		newDiffFactor := c.varDiff.Retarget(ts)
-		if newDiffFactor != -1 {
+		if newDiffFactor != c.GetDiffFactor() {
 			return newDiffFactor
 		}
 	}
