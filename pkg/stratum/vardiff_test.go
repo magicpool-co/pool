@@ -57,6 +57,8 @@ func TestVarDiffManager(t *testing.T) {
 				time.Now().Add(time.Second * 0),
 				time.Now().Add(time.Second * 25),
 				time.Now().Add(time.Second * 50),
+				time.Now().Add(time.Second * 75),
+				time.Now().Add(time.Second * 100),
 			},
 			lastRetargets: []time.Time{
 				time.Now().Add(time.Second * -60),
@@ -72,8 +74,10 @@ func TestVarDiffManager(t *testing.T) {
 				time.Now().Add(time.Second * -60),
 				time.Now().Add(time.Second * -60),
 				time.Now().Add(time.Second * -60),
+				time.Now().Add(time.Second * -60),
+				time.Now().Add(time.Second * -60),
 			},
-			newDiffs: []int{4, 4, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 4},
+			newDiffs: []int{4, 4, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 4, 4},
 		},
 		{
 			startDiff: 64,
@@ -111,7 +115,7 @@ func TestVarDiffManager(t *testing.T) {
 				time.Now().Add(time.Second * -60),
 				time.Now().Add(time.Second * -60),
 			},
-			newDiffs: []int{64, 32, 32, 32, 32, 16, 16, 16, 16, 16, 16, 8, 8, 8, 4},
+			newDiffs: []int{64, 32, 32, 32, 32, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
 		},
 	}
 
@@ -120,7 +124,7 @@ func TestVarDiffManager(t *testing.T) {
 		for j, lastShare := range tt.lastShares {
 			mgr.lastRetarget = tt.lastRetargets[j]
 			newDiff := mgr.Retarget(lastShare)
-			mgr.SetCurrentDiff(newDiff)
+			mgr.SetCurrentDiff(newDiff, false)
 			if newDiff != tt.newDiffs[j] {
 				t.Errorf("failed on %d: retarget: %d: have %d, want %d",
 					i, j, newDiff, tt.newDiffs[j])

@@ -57,7 +57,7 @@ func loadString(val *atomic.Value) string {
 func NewConn(id uint64, port int, ip string, enableVarDiff bool, rawConn net.Conn) *Conn {
 	var varDiff *varDiffManager
 	if enableVarDiff {
-		varDiff = newVarDiffManager(1)
+		varDiff = newVarDiffManager(0)
 	}
 
 	conn := &Conn{
@@ -116,10 +116,10 @@ func (c *Conn) SetSubscribed(subscribed bool) { storeBool(&(c.subscribed), subsc
 func (c *Conn) SetAuthorized(authorized bool) { storeBool(&(c.authorized), authorized) }
 func (c *Conn) SetClientType(clientType int)  { atomic.StoreInt32(&(c.clientType), int32(clientType)) }
 func (c *Conn) SetDiffFactor(diffFactor int) {
-	atomic.StoreInt32(&(c.diffFactor), int32(diffFactor))
 	if c.varDiff != nil {
-		c.varDiff.SetCurrentDiff(diffFactor)
+		c.varDiff.SetCurrentDiff(diffFactor, c.GetDiffFactor() == 0)
 	}
+	atomic.StoreInt32(&(c.diffFactor), int32(diffFactor))
 }
 func (c *Conn) SetLastErrorAt(ts time.Time) { atomic.StoreInt64(&(c.lastErrorAt), ts.Unix()) }
 func (c *Conn) SetErrorCount(count int)     { atomic.StoreInt32(&(c.errorCount), int32(count)) }

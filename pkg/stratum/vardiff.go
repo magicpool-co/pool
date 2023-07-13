@@ -11,7 +11,7 @@ const (
 	retargetDelay = time.Second * 60
 	bufferSize    = (int(retargetDelay) / int(targetTime)) * 4
 
-	variance      = time.Duration(float64(targetTime) * 0.5)
+	variance      = time.Duration(float64(targetTime) * 0.6)
 	minTargetTime = targetTime - variance
 	maxTargetTime = targetTime + variance
 
@@ -75,11 +75,12 @@ func (r *ringBuffer) Average() int64 {
 }
 
 type varDiffManager struct {
-	diff         int
-	minDiff      int
-	maxDiff      int
-	lastShare    time.Time
-	lastRetarget time.Time
+	diff          int
+	minDiff       int
+	maxDiff       int
+	lastShare     time.Time
+	lastRetarget  time.Time
+	retargetCount int
 
 	buffer *ringBuffer
 	mu     sync.Mutex
@@ -102,18 +103,6 @@ func ceilDiff(currentDiff int) int {
 }
 
 func newVarDiffManager(currentDiff int) *varDiffManager {
-	// set the minimum difficulty to MIN(1, diff / diffBoundFactor)
-	minDiff := currentDiff / diffBoundFactor
-	if minDiff < 1 {
-		minDiff = 1
-	}
-
-	// set the maximum difficulty to MAX(512, diff * diffBoundFactor)
-	maxDiff := currentDiff * diffBoundFactor
-	if maxDiff > 512 {
-		maxDiff = 512
-	}
-
 	manager := &varDiffManager{
 		diff:         currentDiff,
 		minDiff:      floorDiff(currentDiff),
@@ -126,13 +115,15 @@ func newVarDiffManager(currentDiff int) *varDiffManager {
 	return manager
 }
 
-func (m *varDiffManager) SetCurrentDiff(currentDiff int) {
+func (m *varDiffManager) SetCurrentDiff(currentDiff int, shiftBounds bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.diff = currentDiff
-	m.minDiff = floorDiff(currentDiff)
-	m.maxDiff = ceilDiff(currentDiff)
+	if shiftBounds {
+		m.minDiff = floorDiff(currentDiff)
+		m.maxDiff = ceilDiff(currentDiff)
+	}
 }
 
 func (m *varDiffManager) Retarget(shareAt time.Time) int {
@@ -153,6 +144,9 @@ func (m *varDiffManager) Retarget(shareAt time.Time) int {
 		// if time since last retarget is less than the
 		// retarget wait period, don't do anything
 		return m.diff
+	} else if m.retargetCount > 3 && m.buffer.len < 5 {
+		// if there have been more than 3 retargets,
+		// require at least 5 shares before retargeting
 	} else if m.buffer.len < 3 && timeSinceLastShare < time.Minute {
 		// if the share rate is reasonable (one per minute),
 		// require at least 3 shares before retargeting
@@ -179,7 +173,9 @@ func (m *varDiffManager) Retarget(shareAt time.Time) int {
 		return m.diff
 	}
 
-	// clear buffer of old submit times
+	// set the retargets, clear buffer of old submit times
+	m.lastRetarget = time.Now()
+	m.retargetCount++
 	m.buffer.Clear()
 
 	return newDiff
