@@ -14,7 +14,7 @@ import (
 )
 
 type JobList struct {
-	mu       sync.Mutex
+	mu       sync.RWMutex
 	size     int
 	ageLimit int
 	counter  uint64
@@ -36,8 +36,8 @@ func newJobList(size, ageLimit int) *JobList {
 }
 
 func (l *JobList) Size() int {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.mu.RLock()
+	defer l.mu.RUnlock()
 
 	return len(l.order)
 }
@@ -89,8 +89,8 @@ func (l *JobList) Append(job *types.StratumJob) bool {
 }
 
 func (l *JobList) Get(id string) (*types.StratumJob, bool) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.mu.RLock()
+	defer l.mu.RUnlock()
 
 	job := l.index[id]
 	var active bool
@@ -107,23 +107,22 @@ func (l *JobList) Get(id string) (*types.StratumJob, bool) {
 }
 
 func (l *JobList) GetPrior(id string) (*types.StratumJob, bool) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
+	l.mu.RLock()
 	var previous string
 	for i := len(l.order) - 1; i >= 0; i-- {
 		if id == l.order[i] {
-			return l.Get(previous)
+			break
 		}
 		previous = l.order[i]
 	}
+	l.mu.RUnlock()
 
-	return nil, false
+	return l.Get(previous)
 }
 
 func (l *JobList) Latest() *types.StratumJob {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.mu.RLock()
+	defer l.mu.RUnlock()
 
 	if len(l.order) == 0 {
 		return nil
@@ -133,8 +132,8 @@ func (l *JobList) Latest() *types.StratumJob {
 }
 
 func (l *JobList) Oldest() *types.StratumJob {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.mu.RLock()
+	defer l.mu.RUnlock()
 
 	if len(l.order) == 0 {
 		return nil
