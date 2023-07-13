@@ -260,7 +260,7 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *ty
 func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diffFactor int) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
 	digest, err := node.pow.Compute(work.Hash.Bytes(), job.Height.Value(), work.Nonce.Value())
 	if err != nil {
-		return types.RejectedShare, nil, nil, err
+		return types.InvalidShare, nil, nil, err
 	} else if bytes.Compare(job.HeaderHash.Bytes(), work.Hash.Bytes()) != 0 {
 		return types.InvalidShare, nil, nil, nil
 	}
@@ -353,6 +353,10 @@ func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) (
 }
 
 func (node Node) GetAuthorizeResponses(diffFactor int) ([]interface{}, error) {
+	return nil, nil
+}
+
+func (node Node) GetSetDifficultyResponse(diffFactor int) (interface{}, error) {
 	return nil, nil
 }
 

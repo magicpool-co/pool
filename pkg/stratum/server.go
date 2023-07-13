@@ -26,17 +26,18 @@ type Message struct {
 }
 
 type Server struct {
-	ctx       context.Context
-	logger    *log.Logger
-	addrs     []*net.TCPAddr
-	listeners []net.Listener
-	wg        sync.WaitGroup
-	mu        sync.RWMutex
-	counter   uint64
-	conns     map[uint64]*Conn
+	ctx            context.Context
+	logger         *log.Logger
+	addrs          []*net.TCPAddr
+	listeners      []net.Listener
+	wg             sync.WaitGroup
+	mu             sync.RWMutex
+	counter        uint64
+	varDiffEnabled bool
+	conns          map[uint64]*Conn
 }
 
-func NewServer(ctx context.Context, logger *log.Logger, ports ...int) (*Server, error) {
+func NewServer(ctx context.Context, logger *log.Logger, enableVarDiff bool, ports ...int) (*Server, error) {
 	sort.Ints(ports)
 	if len(ports) == 0 {
 		return nil, fmt.Errorf("no ports defined")
@@ -52,11 +53,12 @@ func NewServer(ctx context.Context, logger *log.Logger, ports ...int) (*Server, 
 	}
 
 	server := &Server{
-		ctx:       ctx,
-		logger:    logger,
-		addrs:     addrs,
-		listeners: make([]net.Listener, len(addrs)),
-		conns:     make(map[uint64]*Conn),
+		ctx:            ctx,
+		logger:         logger,
+		addrs:          addrs,
+		listeners:      make([]net.Listener, len(addrs)),
+		varDiffEnabled: enableVarDiff,
+		conns:          make(map[uint64]*Conn),
 	}
 
 	return server, nil
@@ -84,7 +86,7 @@ func (s *Server) newConn(rawConn net.Conn, port int) *Conn {
 		ip = addr.IP.String()
 	}
 
-	conn := NewConn(s.counter, port, ip, rawConn)
+	conn := NewConn(s.counter, port, ip, s.varDiffEnabled, rawConn)
 	s.conns[conn.id] = conn
 
 	return conn

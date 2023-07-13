@@ -29,6 +29,7 @@ type Options struct {
 	ExtraNonceSize       int
 	JobListSize          int
 	JobListAgeLimit      int
+	VarDiffEnabled       bool
 	ForceErrorOnResponse bool
 	Flush                bool
 	PollingPeriod        time.Duration
@@ -78,7 +79,7 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	server, err := stratum.NewServer(ctx, logger, ports...)
+	server, err := stratum.NewServer(ctx, logger, opt.VarDiffEnabled, ports...)
 	if err != nil {
 		return nil, err
 	}

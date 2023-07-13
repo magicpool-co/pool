@@ -226,7 +226,7 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *ty
 func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diffFactor int) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
 	digest, err := node.pow.Compute(job.Header.Bytes(), job.Height.Value(), work.Nonce.Value())
 	if err != nil {
-		return types.RejectedShare, nil, nil, err
+		return types.InvalidShare, nil, nil, err
 	}
 
 	hash := new(types.Hash).SetFromBytes(digest)
@@ -317,12 +317,16 @@ func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) (
 }
 
 func (node Node) GetAuthorizeResponses(diffFactor int) ([]interface{}, error) {
-	res, err := rpc.NewRequest("mining.set_difficulty", diffFactor)
+	res, err := node.GetSetDifficultyResponse(diffFactor)
 	if err != nil {
 		return nil, err
 	}
 
 	return []interface{}{res}, nil
+}
+
+func (node Node) GetSetDifficultyResponse(diffFactor int) (interface{}, error) {
+	return rpc.NewRequest("mining.set_difficulty", diffFactor)
 }
 
 func (node Node) UnlockRound(round *pooldb.Round) error {

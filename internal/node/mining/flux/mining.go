@@ -296,12 +296,12 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *ty
 func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diffFactor int) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
 	header, headerHash, err := job.BlockBuilder.SerializeHeader(work)
 	if err != nil {
-		return types.RejectedShare, nil, nil, err
+		return types.InvalidShare, nil, nil, err
 	}
 
 	validSolution, err := node.pow.Verify(header, work.EquihashSolution[1:])
 	if err != nil {
-		return types.RejectedShare, nil, nil, err
+		return types.InvalidShare, nil, nil, err
 	} else if !validSolution {
 		return types.InvalidShare, nil, nil, nil
 	}
@@ -401,12 +401,16 @@ func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) (
 }
 
 func (node Node) GetAuthorizeResponses(diffFactor int) ([]interface{}, error) {
-	res, err := rpc.NewRequest("mining.set_target", node.GetShareDifficulty(diffFactor).TargetHex())
+	res, err := node.GetSetDifficultyResponse(diffFactor)
 	if err != nil {
 		return nil, err
 	}
 
 	return []interface{}{res}, nil
+}
+
+func (node Node) GetSetDifficultyResponse(diffFactor int) (interface{}, error) {
+	return rpc.NewRequest("mining.set_target", node.GetShareDifficulty(diffFactor).TargetHex())
 }
 
 func (node Node) UnlockRound(round *pooldb.Round) error {

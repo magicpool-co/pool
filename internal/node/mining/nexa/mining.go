@@ -376,12 +376,16 @@ func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) (
 }
 
 func (node Node) GetAuthorizeResponses(diffFactor int) ([]interface{}, error) {
-	res, err := rpc.NewRequest("mining.set_difficulty", shareFactor*float64(diffFactor))
+	res, err := node.GetSetDifficultyResponse(diffFactor)
 	if err != nil {
 		return nil, err
 	}
 
 	return []interface{}{res}, nil
+}
+
+func (node Node) GetSetDifficultyResponse(diffFactor int) (interface{}, error) {
+	return rpc.NewRequest("mining.set_difficulty", shareFactor*float64(diffFactor))
 }
 
 func (node Node) UnlockRound(round *pooldb.Round) error {

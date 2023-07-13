@@ -163,7 +163,7 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diff
 	header := generateHeader(job.HeaderHash.Bytes(), work.Nonce.Value())
 	validSolution, err := node.pow.Verify(header, work.CuckooSolution.Data())
 	if err != nil {
-		return types.RejectedShare, nil, nil, err
+		return types.InvalidShare, nil, nil, err
 	} else if !validSolution {
 		return types.InvalidShare, nil, nil, nil
 	}
@@ -292,12 +292,16 @@ func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) (
 }
 
 func (node Node) GetAuthorizeResponses(diffFactor int) ([]interface{}, error) {
-	res, err := rpc.NewRequest("mining.set_difficulty", node.GetShareDifficulty(diffFactor).Value())
+	res, err := node.GetSetDifficultyResponse(diffFactor)
 	if err != nil {
 		return nil, err
 	}
 
 	return []interface{}{res}, nil
+}
+
+func (node Node) GetSetDifficultyResponse(diffFactor int) (interface{}, error) {
+	return rpc.NewRequest("mining.set_difficulty", node.GetShareDifficulty(diffFactor).Value())
 }
 
 func (node Node) getBlockReward(height uint64) (*big.Int, error) {

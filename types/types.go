@@ -118,6 +118,7 @@ type MiningNode interface {
 	// stratum helpers
 	GetSubscribeResponses([]byte, string, string) ([]interface{}, error)
 	GetAuthorizeResponses(int) ([]interface{}, error)
+	GetSetDifficultyResponse(int) (interface{}, error)
 	GetClientType(string) int
 	MarshalJob(interface{}, *StratumJob, bool, int, int) (interface{}, error)
 	ParseWork([]json.RawMessage, string) (*StratumWork, error)

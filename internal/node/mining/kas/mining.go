@@ -328,12 +328,12 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *ty
 func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diffFactor int) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
 	template, ok := job.Data.(*Block)
 	if !ok {
-		return types.RejectedShare, nil, nil, fmt.Errorf("unable to cast job data as block")
+		return types.InvalidShare, nil, nil, fmt.Errorf("unable to cast job data as block")
 	}
 
 	digest, err := node.pow.Compute(job.Header.Bytes(), template.Timestamp, work.Nonce.Value())
 	if err != nil {
-		return types.RejectedShare, nil, nil, err
+		return types.InvalidShare, nil, nil, err
 	}
 
 	hash := new(types.Hash).SetFromBytes(digest)
@@ -459,12 +459,16 @@ func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) (
 }
 
 func (node Node) GetAuthorizeResponses(diffFactor int) ([]interface{}, error) {
-	res, err := rpc.NewRequest("mining.set_difficulty", 16*diffFactor)
+	res, err := node.GetSetDifficultyResponse(diffFactor)
 	if err != nil {
 		return nil, err
 	}
 
 	return []interface{}{res}, nil
+}
+
+func (node Node) GetSetDifficultyResponse(diffFactor int) (interface{}, error) {
+	return rpc.NewRequest("mining.set_difficulty", 16*diffFactor)
 }
 
 func (node Node) UnlockRound(round *pooldb.Round) error {

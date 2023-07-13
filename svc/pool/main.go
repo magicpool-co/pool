@@ -16,6 +16,7 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:     100000,
 		ExtraNonceSize: 4,
 		JobListSize:    5,
+		VarDiffEnabled: false,
 		PollingPeriod:  time.Millisecond * 100,
 	},
 	"CFX": &pool.Options{
@@ -23,6 +24,7 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:      100000,
 		JobListSize:     100,
 		JobListAgeLimit: -1,
+		VarDiffEnabled:  false,
 		PollingPeriod:   time.Millisecond * 100,
 	},
 	"CTXC": &pool.Options{
@@ -30,6 +32,7 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:      100000,
 		JobListSize:     25,
 		JobListAgeLimit: 7,
+		VarDiffEnabled:  false,
 		PollingPeriod:   time.Millisecond * 100,
 	},
 	"ERG": &pool.Options{
@@ -37,6 +40,7 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:           100000,
 		ExtraNonceSize:       2,
 		JobListSize:          5,
+		VarDiffEnabled:       false,
 		ForceErrorOnResponse: true,
 		PollingPeriod:        time.Millisecond * 100,
 		PingingPeriod:        time.Minute,
@@ -46,6 +50,7 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:      100000,
 		JobListSize:     25,
 		JobListAgeLimit: 7,
+		VarDiffEnabled:  false,
 		PollingPeriod:   time.Millisecond * 100,
 	},
 	"ETHW": &pool.Options{
@@ -53,6 +58,7 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:      2000000,
 		JobListSize:     25,
 		JobListAgeLimit: 7,
+		VarDiffEnabled:  false,
 		PollingPeriod:   time.Millisecond * 100,
 	},
 	"FIRO": &pool.Options{
@@ -60,6 +66,7 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:     300000,
 		ExtraNonceSize: 1,
 		JobListSize:    5,
+		VarDiffEnabled: false,
 		PollingPeriod:  time.Second,
 	},
 	"FLUX": &pool.Options{
@@ -67,6 +74,7 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:     100000,
 		ExtraNonceSize: 4,
 		JobListSize:    5,
+		VarDiffEnabled: false,
 		PollingPeriod:  time.Second,
 	},
 	"KAS": &pool.Options{
@@ -75,6 +83,7 @@ var defaultOptions = map[string]*pool.Options{
 		ExtraNonceSize:  2,
 		JobListSize:     50,
 		JobListAgeLimit: 30,
+		VarDiffEnabled:  true,
 		PollingPeriod:   time.Millisecond * 100,
 		PingingPeriod:   time.Second * 30,
 	},
@@ -83,6 +92,7 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:     150000,
 		ExtraNonceSize: 4,
 		JobListSize:    5,
+		VarDiffEnabled: false,
 		PollingPeriod:  time.Second,
 	},
 	"RVN": &pool.Options{
@@ -90,6 +100,7 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:     300000,
 		ExtraNonceSize: 1,
 		JobListSize:    5,
+		VarDiffEnabled: false,
 		PollingPeriod:  time.Second,
 	},
 }

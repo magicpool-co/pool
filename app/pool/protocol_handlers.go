@@ -255,6 +255,35 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		}
 	}
 
+	// handle vardiff
+	if c.GetDiffFactor() > 1 && shareStatus != types.InvalidShare {
+		go func() {
+			defer p.recoverPanic()
+
+			newDiff := c.SetLastShareAt(submitTime)
+			if newDiff == -1 {
+				return
+			}
+
+			diffResponse, err := p.node.GetSetDifficultyResponse(newDiff)
+			if err != nil {
+				p.logger.Error(err)
+				return
+			} else if diffResponse == nil {
+				return
+			}
+
+			p.logger.Info(fmt.Sprintf("setting vardiff for client %d: %d -> %d", c.GetID(), newDiff, c.GetDiffFactor()))
+			err = p.writeToConn(c, diffResponse)
+			if err != nil {
+				p.logger.Error(err)
+				return
+			}
+
+			c.SetDiffFactor(newDiff)
+		}()
+	}
+
 	// handle round
 	if round != nil {
 		go func() {

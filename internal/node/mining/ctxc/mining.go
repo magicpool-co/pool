@@ -225,7 +225,7 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diff
 	header := generateHeader(work.Hash.Bytes(), work.Nonce.Value())
 	validSolution, err := node.pow.Verify(header, work.CuckooSolution.Data())
 	if err != nil {
-		return types.RejectedShare, nil, nil, err
+		return types.InvalidShare, nil, nil, err
 	} else if !validSolution {
 		return types.InvalidShare, nil, nil, nil
 	} else if bytes.Compare(job.HeaderHash.Bytes(), work.Hash.Bytes()) != 0 {
@@ -323,6 +323,10 @@ func (node Node) GetSubscribeResponses(id []byte, clientID, extraNonce string) (
 }
 
 func (node Node) GetAuthorizeResponses(diffFactor int) ([]interface{}, error) {
+	return nil, nil
+}
+
+func (node Node) GetSetDifficultyResponse(diffFactor int) (interface{}, error) {
 	return nil, nil
 }
 
