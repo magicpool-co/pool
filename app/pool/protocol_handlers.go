@@ -241,6 +241,18 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		if err != nil {
 			return false, err
 		}
+
+		// special handing for IceRiver ASICs since sometimes they submit
+		// a solution for the prior job instead of the job ID that is sent
+		if c.GetDiffFactor() > 1 && shareStatus == types.RejectedShare {
+			job, activeShare = p.jobManager.GetPriorJob(work.JobID)
+			if job != nil && activeShare {
+				shareStatus, hash, round, err = p.node.SubmitWork(job, work, c.GetDiffFactor())
+				if err != nil {
+					return false, err
+				}
+			}
+		}
 	}
 
 	// handle round

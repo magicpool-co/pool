@@ -106,6 +106,21 @@ func (l *JobList) Get(id string) (*types.StratumJob, bool) {
 	return job, active
 }
 
+func (l *JobList) GetPrior(id string) (*types.StratumJob, bool) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	var previous string
+	for i := len(l.order) - 1; i >= 0; i-- {
+		if id == l.order[i] {
+			return l.Get(previous)
+		}
+		previous = l.order[i]
+	}
+
+	return nil, false
+}
+
 func (l *JobList) Latest() *types.StratumJob {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -279,6 +294,10 @@ func (m *JobManager) RemoveConn(id uint64) {
 
 func (m *JobManager) GetJob(id string) (*types.StratumJob, bool) {
 	return m.jobList.Get(id)
+}
+
+func (m *JobManager) GetPriorJob(id string) (*types.StratumJob, bool) {
+	return m.jobList.GetPrior(id)
 }
 
 func (m *JobManager) LatestJob() *types.StratumJob {
