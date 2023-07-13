@@ -85,6 +85,22 @@ type varDiffManager struct {
 	mu     sync.Mutex
 }
 
+func floorDiff(currentDiff int) int {
+	diff := currentDiff / diffBoundFactor
+	if diff < 1 {
+		return 1
+	}
+	return diff
+}
+
+func ceilDiff(currentDiff int) int {
+	diff := currentDiff * diffBoundFactor
+	if diff > 512 {
+		return 512
+	}
+	return diff
+}
+
 func newVarDiffManager(currentDiff int) *varDiffManager {
 	// set the minimum difficulty to MIN(1, diff / diffBoundFactor)
 	minDiff := currentDiff / diffBoundFactor
@@ -100,8 +116,8 @@ func newVarDiffManager(currentDiff int) *varDiffManager {
 
 	manager := &varDiffManager{
 		diff:         currentDiff,
-		minDiff:      minDiff,
-		maxDiff:      maxDiff,
+		minDiff:      floorDiff(currentDiff),
+		maxDiff:      ceilDiff(currentDiff),
 		buffer:       newRingBuffer(bufferSize),
 		lastShare:    time.Now(),
 		lastRetarget: time.Now(),
@@ -115,6 +131,8 @@ func (m *varDiffManager) SetCurrentDiff(currentDiff int) {
 	defer m.mu.Unlock()
 
 	m.diff = currentDiff
+	m.minDiff = floorDiff(currentDiff)
+	m.maxDiff = ceilDiff(currentDiff)
 }
 
 func (m *varDiffManager) Retarget(shareAt time.Time) int {

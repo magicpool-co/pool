@@ -90,9 +90,9 @@ func TestVarDiffManager(t *testing.T) {
 				time.Now().Add(time.Second * 10),
 				time.Now().Add(time.Second * 30),
 				time.Now().Add(time.Second * 50),
-				time.Now().Add(time.Second * 75),
-				time.Now().Add(time.Second * 100),
-				time.Now().Add(time.Second * 200),
+				time.Now().Add(time.Second * 70),
+				time.Now().Add(time.Second * 90),
+				time.Now().Add(time.Second * 110),
 			},
 			lastRetargets: []time.Time{
 				time.Now().Add(time.Second * -60),
@@ -111,7 +111,7 @@ func TestVarDiffManager(t *testing.T) {
 				time.Now().Add(time.Second * -60),
 				time.Now().Add(time.Second * -60),
 			},
-			newDiffs: []int{64, 32, 32, 32, 32, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
+			newDiffs: []int{64, 32, 32, 32, 32, 16, 16, 16, 16, 16, 16, 8, 8, 8, 4},
 		},
 	}
 
