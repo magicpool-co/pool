@@ -144,12 +144,12 @@ func (m *varDiffManager) Retarget(shareAt time.Time) int {
 		// if time since last retarget is less than the
 		// retarget wait period, don't do anything
 		return m.diff
-	} else if m.retargetCount > 3 && m.buffer.len < 5 {
+	} else if m.retargetCount > 3 && m.buffer.len < 10 {
 		// if there have been more than 3 retargets,
-		// require at least 5 shares before retargeting
-	} else if m.buffer.len < 3 && timeSinceLastShare < time.Minute {
+		// require at least 10 shares before retargeting
+	} else if m.buffer.len < 5 && timeSinceLastShare < time.Minute {
 		// if the share rate is reasonable (one per minute),
-		// require at least 3 shares before retargeting
+		// require at least 5 shares before retargeting
 		return m.diff
 	}
 
