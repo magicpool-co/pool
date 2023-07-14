@@ -10,6 +10,12 @@ import (
 	"github.com/magicpool-co/pool/internal/tsdb"
 )
 
+/* channels */
+
+func (c *Client) WriteToStreamChannel(msg string) error {
+	return c.writeClient.Publish(context.Background(), c.getStreamChannelKey(), msg).Err()
+}
+
 /* miner */
 
 func (c *Client) SetMinerID(miner string, minerID uint64) error {

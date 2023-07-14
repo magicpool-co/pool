@@ -14,6 +14,12 @@ func (c *Client) getKey(args ...string) string {
 	return key
 }
 
+/* channels */
+
+func (c *Client) getStreamChannelKey() string {
+	return c.getKey("strm")
+}
+
 /* miners/workers */
 
 func (c *Client) getMinersKey(minerID string) string {

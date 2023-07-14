@@ -17,6 +17,7 @@ var defaultOptions = map[string]*pool.Options{
 		ExtraNonceSize: 4,
 		JobListSize:    5,
 		VarDiffEnabled: false,
+		StreamEnabled:  false,
 		PollingPeriod:  time.Millisecond * 100,
 	},
 	"CFX": &pool.Options{
@@ -25,6 +26,7 @@ var defaultOptions = map[string]*pool.Options{
 		JobListSize:     100,
 		JobListAgeLimit: -1,
 		VarDiffEnabled:  false,
+		StreamEnabled:   false,
 		PollingPeriod:   time.Millisecond * 100,
 	},
 	"CTXC": &pool.Options{
@@ -33,6 +35,7 @@ var defaultOptions = map[string]*pool.Options{
 		JobListSize:     25,
 		JobListAgeLimit: 7,
 		VarDiffEnabled:  false,
+		StreamEnabled:   false,
 		PollingPeriod:   time.Millisecond * 100,
 	},
 	"ERG": &pool.Options{
@@ -41,6 +44,7 @@ var defaultOptions = map[string]*pool.Options{
 		ExtraNonceSize:       2,
 		JobListSize:          5,
 		VarDiffEnabled:       false,
+		StreamEnabled:        false,
 		ForceErrorOnResponse: true,
 		PollingPeriod:        time.Millisecond * 100,
 		PingingPeriod:        time.Minute,
@@ -51,6 +55,7 @@ var defaultOptions = map[string]*pool.Options{
 		JobListSize:     25,
 		JobListAgeLimit: 7,
 		VarDiffEnabled:  false,
+		StreamEnabled:   false,
 		PollingPeriod:   time.Millisecond * 100,
 	},
 	"ETHW": &pool.Options{
@@ -59,6 +64,7 @@ var defaultOptions = map[string]*pool.Options{
 		JobListSize:     25,
 		JobListAgeLimit: 7,
 		VarDiffEnabled:  false,
+		StreamEnabled:   false,
 		PollingPeriod:   time.Millisecond * 100,
 	},
 	"FIRO": &pool.Options{
@@ -67,6 +73,7 @@ var defaultOptions = map[string]*pool.Options{
 		ExtraNonceSize: 1,
 		JobListSize:    5,
 		VarDiffEnabled: false,
+		StreamEnabled:  false,
 		PollingPeriod:  time.Second,
 	},
 	"FLUX": &pool.Options{
@@ -75,6 +82,7 @@ var defaultOptions = map[string]*pool.Options{
 		ExtraNonceSize: 4,
 		JobListSize:    5,
 		VarDiffEnabled: false,
+		StreamEnabled:  false,
 		PollingPeriod:  time.Second,
 	},
 	"KAS": &pool.Options{
@@ -84,6 +92,7 @@ var defaultOptions = map[string]*pool.Options{
 		JobListSize:     50,
 		JobListAgeLimit: 30,
 		VarDiffEnabled:  true,
+		StreamEnabled:   true,
 		PollingPeriod:   time.Millisecond * 100,
 		PingingPeriod:   time.Second * 30,
 	},
@@ -93,6 +102,7 @@ var defaultOptions = map[string]*pool.Options{
 		ExtraNonceSize: 4,
 		JobListSize:    5,
 		VarDiffEnabled: false,
+		StreamEnabled:  false,
 		PollingPeriod:  time.Second,
 	},
 	"RVN": &pool.Options{
@@ -101,6 +111,7 @@ var defaultOptions = map[string]*pool.Options{
 		ExtraNonceSize: 1,
 		JobListSize:    5,
 		VarDiffEnabled: false,
+		StreamEnabled:  false,
 		PollingPeriod:  time.Second,
 	},
 }
@@ -110,7 +121,7 @@ func main() {
 	argMainnet := flag.Bool("mainnet", true, "Whether or not to run on the mainnet")
 	argSecretVar := flag.String("secret", "", "ENV variable defined by ECS")
 	argStandardPort := flag.Int("port", 3333, "The pool port to use")
-	argHighDiffPort := flag.Int("high-diff-port", 5555, "The high difficulty port to use")
+	argHighDiffPort := flag.Int("high-diff-port", 13333, "The high difficulty port to use")
 	argHighDiffFactor := flag.Int("high-diff-factor", 64, "The high difficulty factor to use")
 	argMetricsPort := flag.Int("metrics-port", 6060, "The metrics port to use")
 

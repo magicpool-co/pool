@@ -73,7 +73,7 @@ func (p *Pool) subscribe(c *stratum.Conn, req *rpc.Request) error {
 		var minerClient string
 		err := json.Unmarshal(req.Params[0], &minerClient)
 		if err == nil {
-			c.SetClientName(minerClient)
+			c.SetClient(minerClient)
 			c.SetClientType(p.node.GetClientType(minerClient))
 		}
 	}

@@ -47,6 +47,9 @@ func (h *Hash) Big() *big.Int       { return h.big }
 func (h *Hash) MeetsDifficulty(diff *Difficulty) bool {
 	return diff.TargetBig().Cmp(h.big) >= 0
 }
+func (h *Hash) Difficulty(maxDiff *big.Int) uint64 {
+	return new(big.Int).Div(maxDiff, h.big).Uint64()
+}
 
 func (h *Hash) SetFromBytes(value []byte) *Hash {
 	h.hex = hex.EncodeToString(value)

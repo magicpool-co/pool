@@ -14,6 +14,15 @@ type RedisWritesSuite struct {
 	suite.Suite
 }
 
+func (suite *RedisWritesSuite) TestWriteStreamChannel() {
+	var err error
+
+	err = redisClient.WriteToStreamChannel("")
+	if err != nil {
+		suite.T().Errorf("failed: WriteToStreamChannel: %v", err)
+	}
+}
+
 func (suite *RedisWritesSuite) TestWriteMiners() {
 	var err error
 

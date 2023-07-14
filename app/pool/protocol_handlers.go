@@ -151,6 +151,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 	c.SetSubscribed(true)
 	c.SetAuthorized(true)
 	c.SetDiffFactor(diffFactor)
+	c.SetDiffValue(p.node.GetShareDifficulty(diffFactor).Value())
 	c.SetReadDeadline(time.Time{})
 
 	var workerID uint64
@@ -256,35 +257,6 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		}
 	}
 
-	// handle vardiff
-	if p.varDiffEnabled && shareStatus != types.InvalidShare {
-		go func() {
-			defer p.recoverPanic()
-
-			newDiff := c.SetLastShareAt(submitTime)
-			if newDiff == -1 {
-				return
-			}
-
-			diffResponse, err := p.node.GetSetDifficultyResponse(newDiff)
-			if err != nil {
-				p.logger.Error(err)
-				return
-			} else if diffResponse == nil {
-				return
-			}
-
-			p.logger.Info(fmt.Sprintf("setting vardiff for miner %s: %d -> %d", c.GetCompoundID(), c.GetDiffFactor(), newDiff))
-			err = p.writeToConn(c, diffResponse)
-			if err != nil {
-				p.logger.Error(err)
-				return
-			}
-
-			c.SetDiffFactor(newDiff)
-		}()
-	}
-
 	// handle round
 	if round != nil {
 		go func() {
@@ -362,6 +334,56 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 				shareStatus = types.RejectedShare
 			}
 		}
+	}
+
+	// handle share streaming
+	if p.streamWriter != nil {
+		targetDiff := c.GetDiffValue()
+		go func() {
+			var shareDiff uint64
+			if hash != nil {
+				shareDiff = hash.Difficulty(p.node.GetMaxDifficulty())
+			}
+
+			p.streamWriter.WriteShareEvent(c.GetMiner(), c.GetWorker(), c.GetClient(), shareStatus, shareDiff, targetDiff)
+		}()
+	}
+
+	// handle vardiff
+	if p.varDiffEnabled && shareStatus != types.InvalidShare {
+		go func() {
+			defer p.recoverPanic()
+
+			newDiffFactor := c.SetLastShareAt(submitTime)
+			if newDiffFactor == -1 {
+				return
+			}
+
+			diffResponse, err := p.node.GetSetDifficultyResponse(newDiffFactor)
+			if err != nil {
+				p.logger.Error(err)
+				return
+			} else if diffResponse == nil {
+				return
+			}
+
+			p.logger.Info(fmt.Sprintf("setting vardiff for miner %s: %d -> %d", c.GetCompoundID(), c.GetDiffFactor(), newDiffFactor))
+			err = p.writeToConn(c, diffResponse)
+			if err != nil {
+				p.logger.Error(err)
+				return
+			}
+
+			oldDiff := p.node.GetShareDifficulty(c.GetDiffFactor()).Value()
+			newDiff := p.node.GetShareDifficulty(newDiffFactor).Value()
+			c.SetDiffFactor(newDiffFactor)
+			c.SetDiffValue(p.node.GetShareDifficulty(newDiffFactor).Value())
+
+			// handle retarget streaming
+			if p.streamWriter != nil {
+				p.streamWriter.WriteRetargetEvent(c.GetMiner(), c.GetWorker(), c.GetClient(), oldDiff, newDiff)
+			}
+		}()
 	}
 
 	// handle share

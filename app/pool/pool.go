@@ -30,6 +30,7 @@ type Options struct {
 	JobListSize          int
 	JobListAgeLimit      int
 	VarDiffEnabled       bool
+	StreamEnabled        bool
 	ForceErrorOnResponse bool
 	Flush                bool
 	PollingPeriod        time.Duration
@@ -50,6 +51,7 @@ type Pool struct {
 	varDiffEnabled       bool
 	forceErrorOnResponse bool
 	node                 types.MiningNode
+	streamWriter         *streamWriter
 
 	pollingPeriod time.Duration
 	pingingPeriod time.Duration
@@ -87,6 +89,14 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 
 	logger.LabelKeys = []string{"miner"}
 
+	var stream *streamWriter
+	if opt.StreamEnabled {
+		stream, err = newStreamWriter(ctx, opt.Chain, "/stream", logger, redisClient)
+		if err != nil {
+			logger.Fatal(fmt.Errorf("failed to init stream writer: %v", err))
+		}
+	}
+
 	pool := &Pool{
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
@@ -99,6 +109,7 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 		varDiffEnabled:       opt.VarDiffEnabled,
 		forceErrorOnResponse: opt.ForceErrorOnResponse,
 		node:                 node,
+		streamWriter:         stream,
 
 		pollingPeriod: opt.PollingPeriod,
 		pingingPeriod: opt.PingingPeriod,
@@ -315,13 +326,24 @@ func (p *Pool) startStratum() {
 		select {
 		case <-p.ctx.Done():
 			return
-		case <-connectCh:
+		case c := <-connectCh:
+			// handle connect streaming
+			if p.streamWriter != nil && c != nil && c.GetAuthorized() {
+				p.streamWriter.WriteConnectEvent(c.GetMiner(), c.GetWorker(), c.GetClient())
+			}
+
 			if p.metrics != nil {
 				p.metrics.IncrementGauge("clients_active", p.chain)
 				p.metrics.IncrementCounter("client_connects", p.chain)
 			}
-		case connID := <-disconnectCh:
-			go p.jobManager.RemoveConn(connID)
+		case c := <-disconnectCh:
+			go p.jobManager.RemoveConn(c.GetID())
+
+			// handle disconnect streaming
+			if p.streamWriter != nil && c != nil && c.GetAuthorized() {
+				p.streamWriter.WriteDisconnectEvent(c.GetMiner(), c.GetWorker(), c.GetClient())
+			}
+
 			if p.metrics != nil {
 				p.metrics.DecrementGauge("clients_active", p.chain)
 				p.metrics.IncrementCounter("client_disconnects", p.chain)

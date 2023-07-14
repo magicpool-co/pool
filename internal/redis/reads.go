@@ -11,6 +11,40 @@ import (
 	"github.com/magicpool-co/pool/internal/tsdb"
 )
 
+/* channels */
+
+type PubSub struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+	pubsub *redis.PubSub
+}
+
+func (p *PubSub) Channel() <-chan *redis.Message {
+	return p.pubsub.Channel()
+}
+
+func (p *PubSub) Close() {
+	p.cancel()
+	p.pubsub.Close()
+}
+
+func (c *Client) GetStreamChannel() (*PubSub, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	rawPubsub := c.readClient.Subscribe(ctx, c.getStreamChannelKey())
+	_, err := rawPubsub.Receive(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	pubsub := &PubSub{
+		ctx:    ctx,
+		cancel: cancel,
+		pubsub: rawPubsub,
+	}
+
+	return pubsub, nil
+}
+
 /* miners */
 
 func (c *Client) GetMinerID(miner string) (uint64, error) {

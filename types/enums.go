@@ -25,6 +25,19 @@ const (
 	InvalidShare
 )
 
+func (status ShareStatus) String() string {
+	switch status {
+	case AcceptedShare:
+		return "accepted"
+	case RejectedShare:
+		return "rejected"
+	case InvalidShare:
+		return "invalid"
+	default:
+		return ""
+	}
+}
+
 /* exchange */
 
 type ExchangeID int

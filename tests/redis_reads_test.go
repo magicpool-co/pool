@@ -10,6 +10,15 @@ type RedisReadsSuite struct {
 	suite.Suite
 }
 
+func (suite *RedisReadsSuite) TestGetStreamChannel() {
+	var err error
+
+	_, err = redisClient.GetStreamChannel()
+	if err != nil {
+		suite.T().Errorf("failed: GetStreamChannel: %v", err)
+	}
+}
+
 func (suite *RedisReadsSuite) TestGetMiners() {
 	var err error
 

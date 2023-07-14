@@ -26,9 +26,10 @@ type Conn struct {
 	extraNonceSubscribed uint32
 	subscribed           uint32
 	authorized           uint32
-	clientName           *atomic.Value
+	client               *atomic.Value
 	clientType           int32
 	diffFactor           int32
+	diffValue            uint64
 	lastErrorAt          int64
 	errorCount           int32
 }
@@ -74,7 +75,7 @@ func NewConn(id uint64, port int, ip string, enableVarDiff bool, rawConn net.Con
 		worker:     new(atomic.Value),
 		compoundID: new(atomic.Value),
 		extraNonce: new(atomic.Value),
-		clientName: new(atomic.Value),
+		client:     new(atomic.Value),
 	}
 
 	return conn
@@ -92,9 +93,10 @@ func (c *Conn) GetExtraNonce() string              { return loadString(c.extraNo
 func (c *Conn) GetExtraNonceSubscribed() bool      { return loadBool(&(c.extraNonceSubscribed)) }
 func (c *Conn) GetSubscribed() bool                { return loadBool(&(c.subscribed)) }
 func (c *Conn) GetAuthorized() bool                { return loadBool(&(c.authorized)) }
-func (c *Conn) GetClientName() string              { return loadString(c.clientName) }
+func (c *Conn) GetClient() string                  { return loadString(c.client) }
 func (c *Conn) GetClientType() int                 { return int(atomic.LoadInt32(&(c.clientType))) }
 func (c *Conn) GetDiffFactor() int                 { return int(atomic.LoadInt32(&(c.diffFactor))) }
+func (c *Conn) GetDiffValue() uint64               { return atomic.LoadUint64(&(c.diffValue)) }
 func (c *Conn) GetLastErrorAt() time.Time          { return time.Unix(atomic.LoadInt64(&c.lastErrorAt), 0) }
 func (c *Conn) GetErrorCount() int                 { return int(atomic.LoadInt32(&c.errorCount)) }
 func (c *Conn) GetLatency() (time.Duration, error) { return getLatency(c.conn) }
@@ -119,15 +121,18 @@ func (c *Conn) SetExtraNonce(extraNonce string) { c.extraNonce.Store(extraNonce)
 func (c *Conn) SetExtraNonceSubscribed(extraNonceSubscribed bool) {
 	storeBool(&(c.extraNonceSubscribed), extraNonceSubscribed)
 }
-func (c *Conn) SetSubscribed(subscribed bool)   { storeBool(&(c.subscribed), subscribed) }
-func (c *Conn) SetAuthorized(authorized bool)   { storeBool(&(c.authorized), authorized) }
-func (c *Conn) SetClientName(clientName string) { c.clientName.Store(clientName) }
-func (c *Conn) SetClientType(clientType int)    { atomic.StoreInt32(&(c.clientType), int32(clientType)) }
+func (c *Conn) SetSubscribed(subscribed bool) { storeBool(&(c.subscribed), subscribed) }
+func (c *Conn) SetAuthorized(authorized bool) { storeBool(&(c.authorized), authorized) }
+func (c *Conn) SetClient(client string)       { c.client.Store(client) }
+func (c *Conn) SetClientType(clientType int)  { atomic.StoreInt32(&(c.clientType), int32(clientType)) }
 func (c *Conn) SetDiffFactor(diffFactor int) {
 	if c.varDiff != nil {
 		c.varDiff.SetCurrentDiff(diffFactor, c.GetDiffFactor() == 0)
 	}
 	atomic.StoreInt32(&(c.diffFactor), int32(diffFactor))
+}
+func (c *Conn) SetDiffValue(diffValue uint64) {
+	atomic.StoreUint64(&(c.diffValue), diffValue)
 }
 func (c *Conn) SetLastErrorAt(ts time.Time) { atomic.StoreInt64(&(c.lastErrorAt), ts.Unix()) }
 func (c *Conn) SetErrorCount(count int)     { atomic.StoreInt32(&(c.errorCount), int32(count)) }
