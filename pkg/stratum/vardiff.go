@@ -78,6 +78,7 @@ type varDiffManager struct {
 	diff          int
 	minDiff       int
 	maxDiff       int
+	lastDiff      int
 	lastShare     time.Time
 	lastRetarget  time.Time
 	retargetCount int
@@ -107,6 +108,7 @@ func newVarDiffManager(currentDiff int) *varDiffManager {
 		diff:         currentDiff,
 		minDiff:      floorDiff(currentDiff),
 		maxDiff:      ceilDiff(currentDiff),
+		lastDiff:     currentDiff,
 		buffer:       newRingBuffer(bufferSize),
 		lastShare:    time.Now(),
 		lastRetarget: time.Now(),
@@ -119,6 +121,7 @@ func (m *varDiffManager) SetCurrentDiff(currentDiff int, shiftBounds bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	m.lastDiff = m.diff
 	m.diff = currentDiff
 	if shiftBounds {
 		m.minDiff = floorDiff(currentDiff)
@@ -147,6 +150,7 @@ func (m *varDiffManager) Retarget(shareAt time.Time) int {
 	} else if m.retargetCount > 3 && m.buffer.len < 10 {
 		// if there have been more than 3 retargets,
 		// require at least 10 shares before retargeting
+		return m.diff
 	} else if m.buffer.len < 5 && timeSinceLastShare < time.Minute {
 		// if the share rate is reasonable (one per minute),
 		// require at least 5 shares before retargeting
@@ -170,6 +174,12 @@ func (m *varDiffManager) Retarget(shareAt time.Time) int {
 			newDiff = m.maxDiff
 		}
 	} else {
+		return m.diff
+	}
+
+	// if trying to set to the old diff,
+	// require at least 5 shares before changing back
+	if m.buffer.len < 5 && newDiff == m.lastDiff {
 		return m.diff
 	}
 
