@@ -17,14 +17,16 @@ type Conn struct {
 	quit    chan struct{}
 	closed  uint32
 
+	miner                *atomic.Value
 	minerID              uint64
+	worker               *atomic.Value
 	workerID             uint64
 	compoundID           *atomic.Value
-	username             *atomic.Value
 	extraNonce           *atomic.Value
 	extraNonceSubscribed uint32
 	subscribed           uint32
 	authorized           uint32
+	clientName           *atomic.Value
 	clientType           int32
 	diffFactor           int32
 	lastErrorAt          int64
@@ -68,9 +70,11 @@ func NewConn(id uint64, port int, ip string, enableVarDiff bool, rawConn net.Con
 		varDiff: varDiff,
 		quit:    make(chan struct{}),
 
+		miner:      new(atomic.Value),
+		worker:     new(atomic.Value),
 		compoundID: new(atomic.Value),
-		username:   new(atomic.Value),
 		extraNonce: new(atomic.Value),
+		clientName: new(atomic.Value),
 	}
 
 	return conn
@@ -79,14 +83,16 @@ func NewConn(id uint64, port int, ip string, enableVarDiff bool, rawConn net.Con
 func (c *Conn) GetID() uint64                      { return c.id }
 func (c *Conn) GetIP() string                      { return c.ip }
 func (c *Conn) GetPort() int                       { return c.port }
+func (c *Conn) GetMiner() string                   { return loadString(c.miner) }
 func (c *Conn) GetMinerID() uint64                 { return atomic.LoadUint64(&(c.minerID)) }
+func (c *Conn) GetWorker() string                  { return loadString(c.worker) }
 func (c *Conn) GetWorkerID() uint64                { return atomic.LoadUint64(&(c.workerID)) }
 func (c *Conn) GetCompoundID() string              { return loadString(c.compoundID) }
-func (c *Conn) GetUsername() string                { return loadString(c.username) }
 func (c *Conn) GetExtraNonce() string              { return loadString(c.extraNonce) }
 func (c *Conn) GetExtraNonceSubscribed() bool      { return loadBool(&(c.extraNonceSubscribed)) }
 func (c *Conn) GetSubscribed() bool                { return loadBool(&(c.subscribed)) }
 func (c *Conn) GetAuthorized() bool                { return loadBool(&(c.authorized)) }
+func (c *Conn) GetClientName() string              { return loadString(c.clientName) }
 func (c *Conn) GetClientType() int                 { return int(atomic.LoadInt32(&(c.clientType))) }
 func (c *Conn) GetDiffFactor() int                 { return int(atomic.LoadInt32(&(c.diffFactor))) }
 func (c *Conn) GetLastErrorAt() time.Time          { return time.Unix(atomic.LoadInt64(&c.lastErrorAt), 0) }
@@ -99,22 +105,24 @@ func (c *Conn) resetCompoundID() {
 	c.compoundID.Store(minerID + ":" + workerID)
 }
 
+func (c *Conn) SetMiner(miner string) { c.miner.Store(miner) }
 func (c *Conn) SetMinerID(minerID uint64) {
 	atomic.StoreUint64(&(c.minerID), minerID)
 	c.resetCompoundID()
 }
+func (c *Conn) SetWorker(worker string) { c.worker.Store(worker) }
 func (c *Conn) SetWorkerID(workerID uint64) {
 	atomic.StoreUint64(&(c.workerID), workerID)
 	c.resetCompoundID()
 }
-func (c *Conn) SetUsername(username string)     { c.username.Store(username) }
 func (c *Conn) SetExtraNonce(extraNonce string) { c.extraNonce.Store(extraNonce) }
 func (c *Conn) SetExtraNonceSubscribed(extraNonceSubscribed bool) {
 	storeBool(&(c.extraNonceSubscribed), extraNonceSubscribed)
 }
-func (c *Conn) SetSubscribed(subscribed bool) { storeBool(&(c.subscribed), subscribed) }
-func (c *Conn) SetAuthorized(authorized bool) { storeBool(&(c.authorized), authorized) }
-func (c *Conn) SetClientType(clientType int)  { atomic.StoreInt32(&(c.clientType), int32(clientType)) }
+func (c *Conn) SetSubscribed(subscribed bool)   { storeBool(&(c.subscribed), subscribed) }
+func (c *Conn) SetAuthorized(authorized bool)   { storeBool(&(c.authorized), authorized) }
+func (c *Conn) SetClientName(clientName string) { c.clientName.Store(clientName) }
+func (c *Conn) SetClientType(clientType int)    { atomic.StoreInt32(&(c.clientType), int32(clientType)) }
 func (c *Conn) SetDiffFactor(diffFactor int) {
 	if c.varDiff != nil {
 		c.varDiff.SetCurrentDiff(diffFactor, c.GetDiffFactor() == 0)

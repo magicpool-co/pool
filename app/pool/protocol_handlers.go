@@ -146,7 +146,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		diffFactor = 1
 	}
 
-	c.SetUsername(username)
+	c.SetMiner(addressChain)
 	c.SetMinerID(minerID)
 	c.SetSubscribed(true)
 	c.SetAuthorized(true)
@@ -186,6 +186,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 			p.logger.Error(err, c.GetCompoundID())
 		}
 	}
+	c.SetWorker(workerName)
 	c.SetWorkerID(workerID)
 
 	var msgs []interface{}
