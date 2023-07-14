@@ -256,7 +256,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 	}
 
 	// handle vardiff
-	if c.GetDiffFactor() > 1 && shareStatus != types.InvalidShare {
+	if p.varDiffEnabled && shareStatus != types.InvalidShare {
 		go func() {
 			defer p.recoverPanic()
 

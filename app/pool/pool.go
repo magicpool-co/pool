@@ -47,6 +47,7 @@ type Pool struct {
 	portDiffIdx          map[int]int
 	windowSize           int64
 	extraNonce1Size      int
+	varDiffEnabled       bool
 	forceErrorOnResponse bool
 	node                 types.MiningNode
 
@@ -95,6 +96,7 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 		portDiffIdx:          opt.PortDiffIdx,
 		windowSize:           int64(opt.WindowSize),
 		extraNonce1Size:      opt.ExtraNonceSize,
+		varDiffEnabled:       opt.VarDiffEnabled,
 		forceErrorOnResponse: opt.ForceErrorOnResponse,
 		node:                 node,
 
