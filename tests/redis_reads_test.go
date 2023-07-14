@@ -75,17 +75,17 @@ func (suite *RedisReadsSuite) TestGetIntervals() {
 		suite.T().Errorf("failed: GetIntervals: %v", err)
 	}
 
-	_, err = redisClient.GetIntervalAcceptedShares("", "")
+	_, _, err = redisClient.GetIntervalAcceptedShares("", "")
 	if err != nil {
 		suite.T().Errorf("failed: GetIntervalAcceptedShares: %v", err)
 	}
 
-	_, err = redisClient.GetIntervalRejectedShares("", "")
+	_, _, err = redisClient.GetIntervalRejectedShares("", "")
 	if err != nil {
 		suite.T().Errorf("failed: GetIntervalRejectedShares: %v", err)
 	}
 
-	_, err = redisClient.GetIntervalInvalidShares("", "")
+	_, _, err = redisClient.GetIntervalInvalidShares("", "")
 	if err != nil {
 		suite.T().Errorf("failed: GetIntervalInvalidShares: %v", err)
 	}

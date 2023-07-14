@@ -121,6 +121,7 @@ func (c *Client) AddAcceptedShare(chain, interval, compoundID string, count int,
 	pipe.LTrim(ctx, c.getRoundSharesKey(chain), 0, window-1)
 	pipe.IncrBy(ctx, c.getRoundAcceptedSharesKey(chain), int64(count))
 	pipe.ZIncrBy(ctx, c.getIntervalAcceptedSharesKey(chain, interval), float64(count), compoundID)
+	pipe.ZIncrBy(ctx, c.getIntervalAcceptedAdjustedSharesKey(chain, interval), 1, compoundID)
 
 	_, err := pipe.Exec(ctx)
 
@@ -133,6 +134,7 @@ func (c *Client) AddRejectedShare(chain, interval, compoundID string, count int)
 
 	pipe.IncrBy(ctx, c.getRoundRejectedSharesKey(chain), int64(count))
 	pipe.ZIncrBy(ctx, c.getIntervalRejectedSharesKey(chain, interval), float64(count), compoundID)
+	pipe.ZIncrBy(ctx, c.getIntervalRejectedAdjustedSharesKey(chain, interval), 1, compoundID)
 
 	_, err := pipe.Exec(ctx)
 
@@ -145,6 +147,7 @@ func (c *Client) AddInvalidShare(chain, interval, compoundID string, count int) 
 
 	pipe.IncrBy(ctx, c.getRoundInvalidSharesKey(chain), int64(count))
 	pipe.ZIncrBy(ctx, c.getIntervalInvalidSharesKey(chain, interval), float64(count), compoundID)
+	pipe.ZIncrBy(ctx, c.getIntervalInvalidAdjustedSharesKey(chain, interval), 1, compoundID)
 
 	_, err := pipe.Exec(ctx)
 
@@ -164,8 +167,11 @@ func (c *Client) DeleteInterval(chain, interval string) error {
 
 	// remove miner accepted, rejected, and last shares
 	pipe.Del(ctx, c.getIntervalAcceptedSharesKey(chain, interval))
+	pipe.Del(ctx, c.getIntervalAcceptedAdjustedSharesKey(chain, interval))
 	pipe.Del(ctx, c.getIntervalRejectedSharesKey(chain, interval))
+	pipe.Del(ctx, c.getIntervalRejectedAdjustedSharesKey(chain, interval))
 	pipe.Del(ctx, c.getIntervalInvalidSharesKey(chain, interval))
+	pipe.Del(ctx, c.getIntervalInvalidAdjustedSharesKey(chain, interval))
 
 	// remove interval from the set
 	pipe.SRem(ctx, c.getIntervalsKey(chain), interval)

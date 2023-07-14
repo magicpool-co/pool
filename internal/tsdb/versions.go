@@ -35,6 +35,12 @@ var sql004removeReportedHashrateUp string
 //go:embed migrations/004_remove_reported_hashrate.down.sql
 var sql004removeReportedHashrateDown string
 
+//go:embed migrations/005_adjusted_shares.sql
+var sql005adjustedSharesUp string
+
+//go:embed migrations/005_adjusted_shares.down.sql
+var sql005adjustedSharesDown string
+
 func getMigrationVersions() (map[string]string, error) {
 	migrations := map[string]string{
 		"000_init.sql":                          sql000initUp,
@@ -47,6 +53,8 @@ func getMigrationVersions() (map[string]string, error) {
 		"003_raw_blocks_hash.down.sql":          sql003rawBlocksHashDown,
 		"004_remove_reported_hashrate.sql":      sql004removeReportedHashrateUp,
 		"004_remove_reported_hashrate.down.sql": sql004removeReportedHashrateDown,
+		"005_adjusted_shares.sql":               sql005adjustedSharesUp,
+		"005_adjusted_shares.down.sql":          sql005adjustedSharesDown,
 	}
 
 	for k, v := range migrations {

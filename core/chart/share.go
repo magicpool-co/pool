@@ -66,15 +66,15 @@ func (c *Client) rollupShares(node types.MiningNode, interval string) error {
 		return nil
 	}
 
-	accepted, err := c.redis.GetIntervalAcceptedShares(node.Chain(), interval)
+	accepted, acceptedAdjusted, err := c.redis.GetIntervalAcceptedShares(node.Chain(), interval)
 	if err != nil {
 		return err
 	}
-	rejected, err := c.redis.GetIntervalRejectedShares(node.Chain(), interval)
+	rejected, rejectedAdjusted, err := c.redis.GetIntervalRejectedShares(node.Chain(), interval)
 	if err != nil {
 		return err
 	}
-	invalid, err := c.redis.GetIntervalInvalidShares(node.Chain(), interval)
+	invalid, invalidAdjusted, err := c.redis.GetIntervalInvalidShares(node.Chain(), interval)
 	if err != nil {
 		return err
 	}
@@ -129,8 +129,22 @@ func (c *Client) rollupShares(node types.MiningNode, interval string) error {
 			}
 		}
 		minerSharesIdx[minerID].AcceptedShares += accepted[compoundID]
+		minerSharesIdx[minerID].AcceptedAdjustedShares += acceptedAdjusted[compoundID]
+		if _, ok := acceptedAdjusted[compoundID]; !ok {
+			minerSharesIdx[minerID].AcceptedAdjustedShares += accepted[compoundID]
+		}
+
 		minerSharesIdx[minerID].RejectedShares += rejected[compoundID]
+		minerSharesIdx[minerID].RejectedAdjustedShares += rejectedAdjusted[compoundID]
+		if _, ok := rejectedAdjusted[compoundID]; !ok {
+			minerSharesIdx[minerID].RejectedAdjustedShares += rejected[compoundID]
+		}
+
 		minerSharesIdx[minerID].InvalidShares += invalid[compoundID]
+		minerSharesIdx[minerID].InvalidAdjustedShares += invalidAdjusted[compoundID]
+		if _, ok := invalidAdjusted[compoundID]; !ok {
+			minerSharesIdx[minerID].InvalidAdjustedShares += invalid[compoundID]
+		}
 
 		workerID, err := strconv.ParseUint(parts[1], 10, 64)
 		if err != nil {
@@ -151,9 +165,23 @@ func (c *Client) rollupShares(node types.MiningNode, interval string) error {
 				EndTime:     endTime,
 			}
 		}
-		workerSharesIdx[workerID].AcceptedShares += accepted[compoundID]
-		workerSharesIdx[workerID].RejectedShares += rejected[compoundID]
-		workerSharesIdx[workerID].InvalidShares += invalid[compoundID]
+		workerSharesIdx[minerID].AcceptedShares += accepted[compoundID]
+		workerSharesIdx[minerID].AcceptedAdjustedShares += acceptedAdjusted[compoundID]
+		if _, ok := acceptedAdjusted[compoundID]; !ok {
+			workerSharesIdx[minerID].AcceptedAdjustedShares += accepted[compoundID]
+		}
+
+		workerSharesIdx[minerID].RejectedShares += rejected[compoundID]
+		workerSharesIdx[minerID].RejectedAdjustedShares += rejectedAdjusted[compoundID]
+		if _, ok := rejectedAdjusted[compoundID]; !ok {
+			workerSharesIdx[minerID].RejectedAdjustedShares += rejected[compoundID]
+		}
+
+		workerSharesIdx[minerID].InvalidShares += invalid[compoundID]
+		workerSharesIdx[minerID].InvalidAdjustedShares += invalidAdjusted[compoundID]
+		if _, ok := invalidAdjusted[compoundID]; !ok {
+			workerSharesIdx[minerID].InvalidAdjustedShares += invalid[compoundID]
+		}
 	}
 
 	// make sure not to insert when there is nothing to insert
@@ -165,8 +193,11 @@ func (c *Client) rollupShares(node types.MiningNode, interval string) error {
 
 			// sum all miner values for global share
 			globalShare.AcceptedShares += minerShare.AcceptedShares
+			globalShare.AcceptedAdjustedShares += minerShare.AcceptedAdjustedShares
 			globalShare.RejectedShares += minerShare.RejectedShares
+			globalShare.RejectedAdjustedShares += minerShare.RejectedAdjustedShares
 			globalShare.InvalidShares += minerShare.InvalidShares
+			globalShare.InvalidAdjustedShares += minerShare.InvalidAdjustedShares
 			globalShare.Hashrate += minerShare.Hashrate
 		}
 

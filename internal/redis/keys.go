@@ -79,12 +79,24 @@ func (c *Client) getIntervalAcceptedSharesKey(chain, interval string) string {
 	return c.getKey("pool", strings.ToLower(chain), "ash", interval)
 }
 
+func (c *Client) getIntervalAcceptedAdjustedSharesKey(chain, interval string) string {
+	return c.getKey("pool", strings.ToLower(chain), "ashadj", interval)
+}
+
 func (c *Client) getIntervalRejectedSharesKey(chain, interval string) string {
 	return c.getKey("pool", strings.ToLower(chain), "rsh", interval)
 }
 
+func (c *Client) getIntervalRejectedAdjustedSharesKey(chain, interval string) string {
+	return c.getKey("pool", strings.ToLower(chain), "rshadj", interval)
+}
+
 func (c *Client) getIntervalInvalidSharesKey(chain, interval string) string {
 	return c.getKey("pool", strings.ToLower(chain), "ish", interval)
+}
+
+func (c *Client) getIntervalInvalidAdjustedSharesKey(chain, interval string) string {
+	return c.getKey("pool", strings.ToLower(chain), "ishadj", interval)
 }
 
 /* chart */

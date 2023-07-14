@@ -87,13 +87,16 @@ type Share struct {
 	MinerID  *uint64 `db:"miner_id"`
 	WorkerID *uint64 `db:"worker_id"`
 
-	Miners         uint64  `db:"miners"`
-	Workers        uint64  `db:"workers"`
-	AcceptedShares uint64  `db:"accepted_shares"`
-	RejectedShares uint64  `db:"rejected_shares"`
-	InvalidShares  uint64  `db:"invalid_shares"`
-	Hashrate       float64 `db:"hashrate"`
-	AvgHashrate    float64 `db:"avg_hashrate"`
+	Miners                 uint64  `db:"miners"`
+	Workers                uint64  `db:"workers"`
+	AcceptedShares         uint64  `db:"accepted_shares"`
+	AcceptedAdjustedShares uint64  `db:"accepted_adjusted_shares"`
+	RejectedShares         uint64  `db:"rejected_shares"`
+	RejectedAdjustedShares uint64  `db:"rejected_adjusted_shares"`
+	InvalidShares          uint64  `db:"invalid_shares"`
+	InvalidAdjustedShares  uint64  `db:"invalid_adjusted_shares"`
+	Hashrate               float64 `db:"hashrate"`
+	AvgHashrate            float64 `db:"avg_hashrate"`
 
 	Pending   bool      `db:"pending"`
 	Count     uint64    `db:"count"`

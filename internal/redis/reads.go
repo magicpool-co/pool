@@ -137,16 +137,46 @@ func (c *Client) GetIntervals(chain string) ([]string, error) {
 	return c.baseSMembers(c.getIntervalsKey(chain))
 }
 
-func (c *Client) GetIntervalAcceptedShares(chain, interval string) (map[string]uint64, error) {
-	return c.baseZRangeWithScoresUint64(c.getIntervalAcceptedSharesKey(chain, interval))
+func (c *Client) GetIntervalAcceptedShares(chain, interval string) (map[string]uint64, map[string]uint64, error) {
+	raw, err := c.baseZRangeWithScoresUint64(c.getIntervalAcceptedSharesKey(chain, interval))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	adjusted, err := c.baseZRangeWithScoresUint64(c.getIntervalAcceptedAdjustedSharesKey(chain, interval))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return raw, adjusted, nil
 }
 
-func (c *Client) GetIntervalRejectedShares(chain, interval string) (map[string]uint64, error) {
-	return c.baseZRangeWithScoresUint64(c.getIntervalRejectedSharesKey(chain, interval))
+func (c *Client) GetIntervalRejectedShares(chain, interval string) (map[string]uint64, map[string]uint64, error) {
+	raw, err := c.baseZRangeWithScoresUint64(c.getIntervalRejectedSharesKey(chain, interval))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	adjusted, err := c.baseZRangeWithScoresUint64(c.getIntervalRejectedAdjustedSharesKey(chain, interval))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return raw, adjusted, nil
 }
 
-func (c *Client) GetIntervalInvalidShares(chain, interval string) (map[string]uint64, error) {
-	return c.baseZRangeWithScoresUint64(c.getIntervalInvalidSharesKey(chain, interval))
+func (c *Client) GetIntervalInvalidShares(chain, interval string) (map[string]uint64, map[string]uint64, error) {
+	raw, err := c.baseZRangeWithScoresUint64(c.getIntervalInvalidSharesKey(chain, interval))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	adjusted, err := c.baseZRangeWithScoresUint64(c.getIntervalInvalidAdjustedSharesKey(chain, interval))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return raw, adjusted, nil
 }
 
 /* chart */
