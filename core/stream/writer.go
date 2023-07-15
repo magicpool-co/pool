@@ -1,44 +1,52 @@
-package pool
+package stream
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
+	"hash/maphash"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/puzpuzpuz/xsync/v2"
 
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/redis"
 )
 
-type streamWriter struct {
+func hashUint64(seed maphash.Seed, u uint64) uint64 {
+	var h maphash.Hash
+	h.SetSeed(seed)
+	binary.Write(&h, binary.LittleEndian, u)
+	return h.Sum64()
+}
+
+type Writer struct {
 	chain   string
 	path    string
 	ctx     context.Context
 	logger  *log.Logger
 	redis   *redis.Client
 	pubsub  *redis.PubSub
-	streams map[uint64]time.Time
-	mu      sync.RWMutex
+	streams *xsync.MapOf[uint64, time.Time]
 }
 
-func newStreamWriter(ctx context.Context, chain, path string, logger *log.Logger, redisClient *redis.Client) (*streamWriter, error) {
+func NewWriter(ctx context.Context, chain, path string, logger *log.Logger, redisClient *redis.Client) (*Writer, error) {
 	pubsub, err := redisClient.GetStreamIndexChannel()
 	if err != nil {
 		return nil, err
 	}
 
-	writer := &streamWriter{
+	writer := &Writer{
 		chain:   chain,
 		path:    path,
 		ctx:     ctx,
 		logger:  logger,
 		redis:   redisClient,
 		pubsub:  pubsub,
-		streams: make(map[uint64]time.Time),
+		streams: xsync.NewTypedMapOf[uint64, time.Time](hashUint64),
 	}
 
 	go writer.listen()
@@ -46,23 +54,7 @@ func newStreamWriter(ctx context.Context, chain, path string, logger *log.Logger
 	return writer, nil
 }
 
-func (w *streamWriter) getStream(minerID uint64) bool {
-	w.mu.RLock()
-	lastAck, ok := w.streams[minerID]
-	w.mu.RUnlock()
-
-	if !ok || time.Since(lastAck) < time.Second*15 {
-		return true
-	}
-
-	w.mu.Lock()
-	delete(w.streams, minerID)
-	w.mu.Unlock()
-
-	return false
-}
-
-func (w *streamWriter) listen() {
+func (w *Writer) listen() {
 	defer w.logger.RecoverPanic()
 
 	ch := w.pubsub.Channel()
@@ -71,18 +63,14 @@ func (w *streamWriter) listen() {
 		select {
 		case <-w.ctx.Done():
 			w.pubsub.Close()
-			w.mu.Lock()
-			w.streams = nil
-			w.mu.Unlock()
 			return
 		case <-ticker.C:
-			w.mu.Lock()
-			for minerID, lastAck := range w.streams {
+			w.streams.Range(func(minerID uint64, lastAck time.Time) bool {
 				if time.Since(lastAck) > time.Minute {
-					delete(w.streams, minerID)
+					w.streams.Delete(minerID)
 				}
-			}
-			w.mu.Unlock()
+				return true
+			})
 		case msg := <-ch:
 			parts := strings.Split(msg.Payload, "|")
 			if len(parts) != 2 {
@@ -96,26 +84,28 @@ func (w *streamWriter) listen() {
 					w.logger.Error(fmt.Errorf("invalid ack: %s", msg.Payload))
 					continue
 				}
-
-				w.mu.Lock()
-				w.streams[minerID] = time.Now()
-				w.mu.Unlock()
+				w.streams.Store(minerID, time.Now())
 			}
 		}
 	}
 }
 
-func (w *streamWriter) write(minerID uint64, chain, eventType, worker, client string, data map[string]interface{}) {
-	if !w.getStream(minerID) {
+func (w *Writer) write(minerID uint64, chain, eventType, worker, client string, data map[string]interface{}) {
+	lastAck, ok := w.streams.Load(minerID)
+	if ok && time.Since(lastAck) > time.Second*15 {
+		w.streams.Delete(minerID)
+		return
+	} else if !ok {
 		return
 	}
 
 	event := map[string]interface{}{
-		"chain":  chain,
-		"type":   eventType,
-		"worker": worker,
-		"client": client,
-		"data":   data,
+		"chain":     chain,
+		"type":      eventType,
+		"worker":    worker,
+		"client":    client,
+		"data":      data,
+		"timestamp": time.Now().Unix(),
 	}
 
 	msg, err := json.Marshal(event)
@@ -131,20 +121,20 @@ func (w *streamWriter) write(minerID uint64, chain, eventType, worker, client st
 	}
 }
 
-func (w *streamWriter) WriteConnectEvent(minerID uint64, worker, client string) {
+func (w *Writer) WriteConnectEvent(minerID uint64, worker, client string) {
 	w.write(minerID, w.chain, "connect", worker, client, nil)
 }
 
-func (w *streamWriter) WriteDisconnectEvent(minerID uint64, worker, client string) {
+func (w *Writer) WriteDisconnectEvent(minerID uint64, worker, client string) {
 	w.write(minerID, w.chain, "disconnect", worker, client, nil)
 }
 
-func (w *streamWriter) WriteShareEvent(minerID uint64, worker, client, status string, shareDiff, targetDiff uint64) {
+func (w *Writer) WriteShareEvent(minerID uint64, worker, client, status string, shareDiff, targetDiff uint64) {
 	data := map[string]interface{}{"status": status, "share_diff": shareDiff, "target_diff": targetDiff}
 	w.write(minerID, w.chain, "share", worker, client, data)
 }
 
-func (w *streamWriter) WriteRetargetEvent(minerID uint64, worker, client string, oldDiff, newDiff uint64) {
+func (w *Writer) WriteRetargetEvent(minerID uint64, worker, client string, oldDiff, newDiff uint64) {
 	data := map[string]interface{}{"old_diff": oldDiff, "new_diff": newDiff}
 	w.write(minerID, w.chain, "retarget", worker, client, data)
 }

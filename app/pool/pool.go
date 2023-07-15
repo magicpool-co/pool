@@ -12,6 +12,7 @@ import (
 
 	"github.com/goccy/go-json"
 
+	"github.com/magicpool-co/pool/core/stream"
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/metrics"
 	"github.com/magicpool-co/pool/internal/redis"
@@ -51,7 +52,7 @@ type Pool struct {
 	varDiffEnabled       bool
 	forceErrorOnResponse bool
 	node                 types.MiningNode
-	streamWriter         *streamWriter
+	streamWriter         *stream.Writer
 
 	pollingPeriod time.Duration
 	pingingPeriod time.Duration
@@ -89,9 +90,9 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 
 	logger.LabelKeys = []string{"miner"}
 
-	var stream *streamWriter
+	var streamWriter *stream.Writer
 	if opt.StreamEnabled {
-		stream, err = newStreamWriter(ctx, opt.Chain, "/stream", logger, redisClient)
+		streamWriter, err = stream.NewWriter(ctx, opt.Chain, "/stream", logger, redisClient)
 		if err != nil {
 			logger.Fatal(fmt.Errorf("failed to init stream writer: %v", err))
 		}
@@ -109,7 +110,7 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 		varDiffEnabled:       opt.VarDiffEnabled,
 		forceErrorOnResponse: opt.ForceErrorOnResponse,
 		node:                 node,
-		streamWriter:         stream,
+		streamWriter:         streamWriter,
 
 		pollingPeriod: opt.PollingPeriod,
 		pingingPeriod: opt.PingingPeriod,

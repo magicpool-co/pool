@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"math/big"
 	"net/http"
 	"net/mail"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/magicpool-co/pool/core/export"
 	"github.com/magicpool-co/pool/core/stats"
+	"github.com/magicpool-co/pool/core/stream"
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/metrics"
 	"github.com/magicpool-co/pool/internal/pooldb"
@@ -21,13 +23,14 @@ import (
 )
 
 type Context struct {
-	logger  *log.Logger
-	metrics *metrics.Client
-	pooldb  *dbcl.Client
-	tsdb    *dbcl.Client
-	redis   *redis.Client
-	stats   *stats.Client
-	nodes   []types.MiningNode
+	logger        *log.Logger
+	metrics       *metrics.Client
+	pooldb        *dbcl.Client
+	tsdb          *dbcl.Client
+	redis         *redis.Client
+	stats         *stats.Client
+	nodes         []types.MiningNode
+	streamManager *stream.Manager
 }
 
 func NewContext(
@@ -51,13 +54,14 @@ func NewContext(
 	}
 
 	ctx := &Context{
-		logger:  logger,
-		metrics: metricsClient,
-		pooldb:  pooldbClient,
-		tsdb:    tsdbClient,
-		redis:   redisClient,
-		stats:   stats.New(pooldbClient, tsdbClient, redisClient, statsChains, cacheEnabled),
-		nodes:   nodes,
+		logger:        logger,
+		metrics:       metricsClient,
+		pooldb:        pooldbClient,
+		tsdb:          tsdbClient,
+		redis:         redisClient,
+		stats:         stats.New(pooldbClient, tsdbClient, redisClient, statsChains, cacheEnabled),
+		nodes:         nodes,
+		streamManager: stream.NewManager(redisClient),
 	}
 
 	return ctx
@@ -917,5 +921,48 @@ func (ctx *Context) updateMinerSettings(args updateMinerSettingsArgs) http.Handl
 		}
 
 		ctx.writeOkResponse(w, nil)
+	})
+}
+
+type getMinerStreamArgs struct {
+	miner string
+}
+
+func (ctx *Context) getMinerStream(args getMinerStreamArgs) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			ctx.writeErrorResponse(w, errStreamingNotSupported)
+			return
+		}
+
+		minerID, _, err := ctx.getMinerID(args.miner)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		subID, ch, err := ctx.streamManager.Subscribe(minerID)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		go func() {
+			<-r.Context().Done()
+			ctx.streamManager.Unsubscribe(minerID, subID)
+		}()
+
+		w.WriteHeader(http.StatusOK)
+		flusher.Flush()
+
+		for msg := range ch {
+			fmt.Fprintf(w, "data: %s\n\n", msg)
+			flusher.Flush()
+		}
 	})
 }
