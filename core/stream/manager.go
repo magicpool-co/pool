@@ -10,6 +10,7 @@ import (
 
 	"github.com/puzpuzpuz/xsync/v2"
 
+	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/redis"
 )
 
@@ -46,36 +47,31 @@ func newStream(minerID uint64, redisClient *redis.Client) (*stream, error) {
 		subscriptions: xsync.NewTypedMapOf[uint32, chan string](hashUint32),
 	}
 
-	go s.listenAndBroadcast()
-
 	return s, nil
 }
 
-func (s *stream) close() {
-	s.cancel()
-	s.pubsub.Close()
-	s.subscriptions.Range(func(subID uint32, ch chan string) bool {
-		close(ch)
-		s.subscriptions.Delete(subID)
-		return true
-	})
-}
+func (s *stream) ackLoop(logger *log.Logger) {
+	ackMsg := fmt.Sprintf("ack:%d", s.minerID)
+	err := s.redis.WriteToStreamIndexChannel(ackMsg)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to ack: %v", err))
+	}
 
-func (s *stream) listenAndBroadcast() {
-	go func() {
-		ackMsg := fmt.Sprintf("ack:%d", s.minerID)
-		s.redis.WriteToStreamIndexChannel(ackMsg)
-		ticker := time.NewTicker(time.Second * 3)
-		for {
-			select {
-			case <-s.ctx.Done():
-				return
-			case <-ticker.C:
-				s.redis.WriteToStreamIndexChannel(ackMsg)
+	ticker := time.NewTicker(time.Second * 3)
+	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		case <-ticker.C:
+			err = s.redis.WriteToStreamIndexChannel(ackMsg)
+			if err != nil {
+				logger.Error(fmt.Errorf("failed to ack: %v", err))
 			}
 		}
-	}()
+	}
+}
 
+func (s *stream) publishLoop() {
 	pubsubCh := s.pubsub.Channel()
 	for {
 		select {
@@ -97,14 +93,26 @@ func (s *stream) listenAndBroadcast() {
 	}
 }
 
+func (s *stream) close() {
+	s.cancel()
+	s.pubsub.Close()
+	s.subscriptions.Range(func(subID uint32, ch chan string) bool {
+		close(ch)
+		s.subscriptions.Delete(subID)
+		return true
+	})
+}
+
 type Manager struct {
+	logger  *log.Logger
 	redis   *redis.Client
 	streams map[uint64]*stream
 	mu      *xsync.RBMutex
 }
 
-func NewManager(redisClient *redis.Client) *Manager {
+func NewManager(logger *log.Logger, redisClient *redis.Client) *Manager {
 	manager := &Manager{
+		logger:  logger,
 		redis:   redisClient,
 		streams: make(map[uint64]*stream),
 		mu:      xsync.NewRBMutex(),
@@ -126,6 +134,16 @@ func (m *Manager) Subscribe(minerID uint64) (uint32, <-chan string, error) {
 		if err != nil {
 			return 0, nil, err
 		}
+
+		go func() {
+			defer m.logger.RecoverPanic()
+			s.ackLoop(m.logger)
+		}()
+
+		go func() {
+			defer m.logger.RecoverPanic()
+			s.publishLoop()
+		}()
 	}
 
 	subID := s.counter.Add(1)

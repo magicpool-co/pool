@@ -92,7 +92,7 @@ func (w *Writer) getStream(minerID uint64) bool {
 	w.mu.RUnlock()
 
 	if !ok || time.Since(lastAck) < time.Second*15 {
-		return true
+		return ok
 	}
 
 	w.mu.Lock()

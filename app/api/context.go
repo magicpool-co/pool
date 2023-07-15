@@ -61,7 +61,7 @@ func NewContext(
 		redis:         redisClient,
 		stats:         stats.New(pooldbClient, tsdbClient, redisClient, statsChains, cacheEnabled),
 		nodes:         nodes,
-		streamManager: stream.NewManager(redisClient),
+		streamManager: stream.NewManager(logger, redisClient),
 	}
 
 	return ctx
