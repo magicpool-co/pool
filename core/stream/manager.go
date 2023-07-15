@@ -51,7 +51,7 @@ func newStream(minerID uint64, redisClient *redis.Client) (*stream, error) {
 }
 
 func (s *stream) ackLoop(logger *log.Logger) {
-	ackMsg := fmt.Sprintf("ack:%d", s.minerID)
+	ackMsg := fmt.Sprintf("ack|%d", s.minerID)
 	err := s.redis.WriteToStreamIndexChannel(ackMsg)
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to ack: %v", err))
