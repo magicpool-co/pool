@@ -179,16 +179,19 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			handler = rtr.ctx.getMinerSettings(minerSettingsArgs{miner: miner})
 		case "POST":
 			method = "POST"
-
 			args := updateMinerSettingsArgs{miner: miner}
 			err := decodeJSONBody(w, r, &args)
 			if err != nil {
 				rtr.ctx.writeErrorResponse(w, errInvalidJSONBody)
 				return
 			}
-
 			handler = rtr.ctx.updateMinerSettings(args)
 		}
+
+	case rtr.match(path, "/miner/+/stream", &miner):
+		method = "GET"
+		handler = rtr.ctx.getMinerStream(getMinerStreamArgs{miner: miner})
+
 	case rtr.match(path, "/worker/+/+", &miner, &worker):
 		method = "GET"
 		handler = rtr.ctx.getExists(existsArgs{miner: miner, worker: worker})

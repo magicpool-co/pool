@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/magicpool-co/pool/internal/tsdb"
 )
@@ -28,9 +28,13 @@ func (p *PubSub) Close() {
 	p.pubsub.Close()
 }
 
-func (c *Client) GetStreamChannel() (*PubSub, error) {
+func (c *Client) getClusterChannel(key string) (*PubSub, error) {
+	if c.streamClusterClient == nil {
+		return nil, nil
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
-	rawPubsub := c.readClient.Subscribe(ctx, c.getStreamChannelKey())
+	rawPubsub := c.streamClusterClient.SSubscribe(ctx, key)
 	_, err := rawPubsub.Receive(ctx)
 	if err != nil {
 		return nil, err
@@ -43,6 +47,14 @@ func (c *Client) GetStreamChannel() (*PubSub, error) {
 	}
 
 	return pubsub, nil
+}
+
+func (c *Client) GetStreamIndexChannel() (*PubSub, error) {
+	return c.getClusterChannel(c.getStreamIndexChannelKey())
+}
+
+func (c *Client) GetStreamMinerChannel(minerID uint64) (*PubSub, error) {
+	return c.getClusterChannel(c.getStreamMinerChannelKey(minerID))
 }
 
 /* miners */

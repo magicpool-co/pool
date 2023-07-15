@@ -340,12 +340,13 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 	if p.streamWriter != nil {
 		targetDiff := c.GetDiffValue()
 		go func() {
+			status := shareStatus.String()
 			var shareDiff uint64
 			if hash != nil {
 				shareDiff = hash.Difficulty(p.node.GetMaxDifficulty())
 			}
 
-			p.streamWriter.WriteShareEvent(c.GetMiner(), c.GetWorker(), c.GetClient(), shareStatus, shareDiff, targetDiff)
+			p.streamWriter.WriteShareEvent(c.GetMinerID(), c.GetWorker(), c.GetClient(), status, shareDiff, targetDiff)
 		}()
 	}
 
@@ -381,7 +382,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 
 			// handle retarget streaming
 			if p.streamWriter != nil {
-				p.streamWriter.WriteRetargetEvent(c.GetMiner(), c.GetWorker(), c.GetClient(), oldDiff, newDiff)
+				p.streamWriter.WriteRetargetEvent(c.GetMinerID(), c.GetWorker(), c.GetClient(), oldDiff, newDiff)
 			}
 		}()
 	}

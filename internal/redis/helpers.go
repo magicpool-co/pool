@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 /* encoding */
@@ -201,7 +201,7 @@ func (c *Client) baseResetList(key string, values []interface{}) error {
 	return err
 }
 
-func (c *Client) baseZAddBatch(key string, members []*redis.Z) error {
+func (c *Client) baseZAddBatch(key string, members []redis.Z) error {
 	if len(members) == 0 {
 		return nil
 	}

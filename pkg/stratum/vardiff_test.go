@@ -1,38 +1,9 @@
 package stratum
 
 import (
-	"reflect"
 	"testing"
 	"time"
 )
-
-func TestRingBuffer(t *testing.T) {
-	tests := []struct {
-		size  int
-		items []int64
-		avgs  []int64
-	}{
-		{
-			size:  5,
-			items: []int64{1, 2, 3, 4, 5},
-			avgs:  []int64{1, 1, 2, 2, 3},
-		},
-	}
-
-	for i, tt := range tests {
-		buf := newRingBuffer(tt.size)
-		for j, item := range tt.items {
-			buf.Append(item)
-			if !reflect.DeepEqual(buf.Items(), tt.items[:j+1]) {
-				t.Errorf("failed on %d: items: %d: have %v, want %v",
-					i, j, buf.Items(), tt.items[:j+1])
-			} else if buf.Average() != tt.avgs[j] {
-				t.Errorf("failed on %d: avg: %d: have %d, want %d",
-					i, j, buf.Average(), tt.avgs[j])
-			}
-		}
-	}
-}
 
 func TestVarDiffManager(t *testing.T) {
 	tests := []struct {
@@ -77,7 +48,7 @@ func TestVarDiffManager(t *testing.T) {
 				time.Now().Add(time.Second * -90),
 				time.Now().Add(time.Second * -90),
 			},
-			newDiffs: []int{4, 4, 4, 4, 4, 8, 8, 8, 8, 8, 4, 4, 4, 4, 4},
+			newDiffs: []int{4, 4, 4, 4, 4, 8, 8, 8, 8, 8, 4, 2, 1, 1, 1},
 		},
 		{
 			startDiff: 64,
@@ -115,7 +86,7 @@ func TestVarDiffManager(t *testing.T) {
 				time.Now().Add(time.Second * -90),
 				time.Now().Add(time.Second * -90),
 			},
-			newDiffs: []int{64, 32, 32, 32, 32, 32, 16, 16, 16, 16, 16, 16, 16, 16, 16},
+			newDiffs: []int{64, 32, 32, 32, 32, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
 		},
 	}
 

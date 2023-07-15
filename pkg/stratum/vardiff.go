@@ -1,7 +1,6 @@
 package stratum
 
 import (
-	"container/ring"
 	"sync"
 	"time"
 )
@@ -20,58 +19,50 @@ const (
 	diffBoundFactor = 4
 )
 
-type ringBuffer struct {
-	size int
-	len  int
-	ring *ring.Ring
+type diffList struct {
+	size  int
+	len   int
+	items []int64
 }
 
-func newRingBuffer(size int) *ringBuffer {
-	buf := &ringBuffer{
-		size: size,
-		ring: ring.New(size),
+func newDiffList(size int) *diffList {
+	list := &diffList{
+		size:  size,
+		items: make([]int64, 0),
 	}
 
-	return buf
+	return list
 }
 
-func (r *ringBuffer) Items() []int64 {
-	count := r.len
-	item := r.ring.Move(-count)
-	items := make([]int64, count)
-	for i := range items {
-		items[i] = item.Value.(int64)
-		item = item.Next()
-	}
-
-	return items
+func (l *diffList) Items() []int64 {
+	return l.items
 }
 
-func (r *ringBuffer) Append(item int64) {
-	r.ring.Value = item
-	r.ring = r.ring.Next()
-	if r.len < r.size {
-		r.len++
+func (l *diffList) Append(item int64) {
+	l.items = append([]int64{item}, l.items...)
+	if len(l.items) > l.size {
+		l.items = l.items[:l.size]
+	} else {
+		l.len++
 	}
 }
 
-func (r *ringBuffer) Clear() {
-	r.ring = ring.New(r.size)
-	r.len = 0
+func (l *diffList) Clear() {
+	l.items = make([]int64, 0)
 }
 
-func (r *ringBuffer) Average() int64 {
-	items := r.Items()
-	if len(items) == 0 {
+func (l *diffList) Average() int64 {
+	length := len(l.items)
+	if length == 0 {
 		return 0
 	}
 
 	var sum int64
-	for _, item := range items {
+	for _, item := range l.items {
 		sum += item
 	}
 
-	return sum / int64(len(items))
+	return sum / int64(length)
 }
 
 type varDiffManager struct {
@@ -83,8 +74,8 @@ type varDiffManager struct {
 	lastRetarget  time.Time
 	retargetCount int
 
-	buffer *ringBuffer
-	mu     sync.Mutex
+	diffList *diffList
+	mu       sync.Mutex
 }
 
 func floorDiff(currentDiff int) int {
@@ -109,7 +100,7 @@ func newVarDiffManager(currentDiff int) *varDiffManager {
 		minDiff:      floorDiff(currentDiff),
 		maxDiff:      ceilDiff(currentDiff),
 		lastDiff:     currentDiff,
-		buffer:       newRingBuffer(bufferSize),
+		diffList:     newDiffList(bufferSize),
 		lastShare:    time.Now(),
 		lastRetarget: time.Now(),
 	}
@@ -140,25 +131,25 @@ func (m *varDiffManager) Retarget(shareAt time.Time) int {
 	timeSinceLastRetarget := time.Now().Sub(m.lastRetarget)
 	m.lastShare = shareAt
 
-	// add time since last share to ring buffer
-	m.buffer.Append(int64(timeSinceLastShare))
+	// add time since last share to diff list
+	m.diffList.Append(int64(timeSinceLastShare))
 
 	if timeSinceLastRetarget < retargetDelay {
 		// if time since last retarget is less than the
 		// retarget wait period, don't do anything
 		return m.diff
-	} else if m.retargetCount > 3 && m.buffer.len < 10 {
+	} else if m.retargetCount > 3 && m.diffList.len < 10 {
 		// if there have been more than 3 retargets,
 		// require at least 10 shares before retargeting
 		return m.diff
-	} else if m.buffer.len < 5 && timeSinceLastShare < time.Minute {
+	} else if m.diffList.len < 5 && timeSinceLastShare < time.Minute {
 		// if the share rate is reasonable (one per minute),
 		// require at least 5 shares before retargeting
 		return m.diff
 	}
 
 	// fetch the average share submit time
-	avg := time.Duration(m.buffer.Average())
+	avg := time.Duration(m.diffList.Average())
 	var newDiff int
 
 	if avg > maxTargetTime {
@@ -179,14 +170,14 @@ func (m *varDiffManager) Retarget(shareAt time.Time) int {
 
 	// if trying to set to the old diff,
 	// require at least 5 shares before changing back
-	if m.buffer.len < 5 && newDiff == m.lastDiff {
+	if m.diffList.len < 5 && newDiff == m.lastDiff {
 		return m.diff
 	}
 
 	// set the retargets, clear buffer of old submit times
 	m.lastRetarget = time.Now()
 	m.retargetCount++
-	m.buffer.Clear()
+	m.diffList.Clear()
 
 	return newDiff
 }
