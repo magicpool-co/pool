@@ -137,6 +137,8 @@ func (w *streamWriter) getStream(miner string) *stream {
 }
 
 func (w *streamWriter) listen() {
+	defer w.logger.RecoverPanic()
+
 	ch := w.pubsub.Channel()
 	ticker := time.NewTicker(time.Minute)
 	var err error
@@ -165,15 +167,23 @@ func (w *streamWriter) listen() {
 			switch parts[0] {
 			case "ack":
 				miner := parts[1]
-				w.mu.Lock()
-				if _, ok := w.streams[miner]; !ok {
-					w.streams[miner], err = newStream(miner, w.path, w.logger)
+				w.mu.RLock()
+				stream, ok := w.streams[miner]
+				w.mu.RUnlock()
+
+				if !ok {
+					stream, err = newStream(miner, w.path, w.logger)
 					if err != nil {
 						w.logger.Error(fmt.Errorf("writing to stream: %s: %v", miner, err))
 						continue
 					}
 				}
-				w.streams[miner].lastAck = time.Now()
+
+				w.mu.Lock()
+				stream.lastAck = time.Now()
+				if !ok {
+					w.streams[miner] = stream
+				}
 				w.mu.Unlock()
 			}
 		}
