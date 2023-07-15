@@ -22,6 +22,10 @@ type stream struct {
 	lastAck time.Time
 }
 
+func getFile(path string) (*os.File, error) {
+	return os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+}
+
 func newStream(miner, path string, logger *log.Logger) (*stream, error) {
 	parts := strings.Split(miner, ":")
 	if len(parts) == 2 {
@@ -34,12 +38,24 @@ func newStream(miner, path string, logger *log.Logger) (*stream, error) {
 		}
 		path += "/" + parts[0]
 	}
-	path += "/" + miner
 
-	output, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+	output, err := getFile(path + "/" + miner)
 	if err != nil {
-		return nil, err
+		if osErr, ok := err.(*os.PathError); ok && osErr.Err.Error() == "no such file or directory" {
+			err = os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				return nil, err
+			}
+
+			output, err = getFile(path + "/" + miner)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
+
 	writer := diode.NewWriter(output, 100, 10*time.Millisecond, func(i int) {
 		logger.Error(fmt.Errorf("missed %d logs for %s", i, miner))
 	})
