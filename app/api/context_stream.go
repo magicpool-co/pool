@@ -64,7 +64,7 @@ func (ctx *Context) getMinerStream(args getMinerStreamArgs) http.Handler {
 
 		ch := pubsub.Channel()
 		for msg := range ch {
-			fmt.Fprintf(w, "data: %s\n\n", msg)
+			fmt.Fprintf(w, "data: %s\n\n", msg.Payload)
 			flusher.Flush()
 		}
 	})
