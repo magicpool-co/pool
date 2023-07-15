@@ -20,17 +20,23 @@ type PubSub struct {
 }
 
 func (p *PubSub) Channel() <-chan *redis.Message {
+	if p.pubsub == nil {
+		return nil
+	}
+
 	return p.pubsub.Channel()
 }
 
 func (p *PubSub) Close() {
-	p.cancel()
-	p.pubsub.Close()
+	if p.pubsub != nil {
+		p.cancel()
+		p.pubsub.Close()
+	}
 }
 
 func (c *Client) getClusterChannel(key string) (*PubSub, error) {
 	if c.streamClusterClient == nil {
-		return nil, nil
+		return &PubSub{}, nil
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
