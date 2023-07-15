@@ -2,26 +2,17 @@ package stream
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
-	"hash/maphash"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/goccy/go-json"
-	"github.com/puzpuzpuz/xsync/v2"
 
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/internal/redis"
 )
-
-func hashUint64(seed maphash.Seed, u uint64) uint64 {
-	var h maphash.Hash
-	h.SetSeed(seed)
-	binary.Write(&h, binary.LittleEndian, u)
-	return h.Sum64()
-}
 
 type Writer struct {
 	chain   string
@@ -30,7 +21,8 @@ type Writer struct {
 	logger  *log.Logger
 	redis   *redis.Client
 	pubsub  *redis.PubSub
-	streams *xsync.MapOf[uint64, time.Time]
+	streams map[uint64]time.Time
+	mu      sync.RWMutex
 }
 
 func NewWriter(ctx context.Context, chain, path string, logger *log.Logger, redisClient *redis.Client) (*Writer, error) {
@@ -46,7 +38,7 @@ func NewWriter(ctx context.Context, chain, path string, logger *log.Logger, redi
 		logger:  logger,
 		redis:   redisClient,
 		pubsub:  pubsub,
-		streams: xsync.NewTypedMapOf[uint64, time.Time](hashUint64),
+		streams: make(map[uint64]time.Time),
 	}
 
 	go writer.listen()
@@ -65,12 +57,13 @@ func (w *Writer) listen() {
 			w.pubsub.Close()
 			return
 		case <-ticker.C:
-			w.streams.Range(func(minerID uint64, lastAck time.Time) bool {
+			w.mu.Lock()
+			for minerID, lastAck := range w.streams {
 				if time.Since(lastAck) > time.Minute {
-					w.streams.Delete(minerID)
+					delete(w.streams, minerID)
 				}
-				return true
-			})
+			}
+			w.mu.Unlock()
 		case msg := <-ch:
 			parts := strings.Split(msg.Payload, "|")
 			if len(parts) != 2 {
@@ -84,18 +77,33 @@ func (w *Writer) listen() {
 					w.logger.Error(fmt.Errorf("invalid ack: %s", msg.Payload))
 					continue
 				}
-				w.streams.Store(minerID, time.Now())
+
+				w.mu.Lock()
+				w.streams[minerID] = time.Now()
+				w.mu.Unlock()
 			}
 		}
 	}
 }
 
+func (w *Writer) getStream(minerID uint64) bool {
+	w.mu.RLock()
+	lastAck, ok := w.streams[minerID]
+	w.mu.RUnlock()
+
+	if !ok || time.Since(lastAck) < time.Second*15 {
+		return true
+	}
+
+	w.mu.Lock()
+	delete(w.streams, minerID)
+	w.mu.Unlock()
+
+	return false
+}
+
 func (w *Writer) write(minerID uint64, chain, eventType, worker, client string, data map[string]interface{}) {
-	lastAck, ok := w.streams.Load(minerID)
-	if ok && time.Since(lastAck) > time.Second*15 {
-		w.streams.Delete(minerID)
-		return
-	} else if !ok {
+	if !w.getStream(minerID) {
 		return
 	}
 
