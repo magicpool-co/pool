@@ -3,6 +3,7 @@ package hostpool
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	"sync"
 	"time"
@@ -292,12 +293,16 @@ func (p *GRPCPool) HandleInfoRequest(w http.ResponseWriter, r *http.Request) {
 		gc.mu.Lock()
 		url, errCount, synced := gc.client.URL(), gc.errors, gc.synced
 		gc.mu.Unlock()
+
+		latency := float64(p.latencyIdx[id]) / float64(time.Millisecond)
+		latency = math.Round(latency*100) / 100
+
 		hosts[i] = map[string]interface{}{
 			"id":      id,
 			"url":     url,
 			"index":   i,
 			"synced":  synced,
-			"latency": time.Duration(p.latencyIdx[id]) * time.Nanosecond,
+			"latency": latency,
 			"errors":  errCount,
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"net/http"
 	"sync"
 	"time"
@@ -423,12 +424,16 @@ func (p *HTTPPool) HandleInfoRequest(w http.ResponseWriter, r *http.Request) {
 		hc.mu.Lock()
 		url, errCount, synced := hc.url, hc.errors, hc.synced
 		hc.mu.Unlock()
+
+		latency := float64(p.latencyIdx[id]) / float64(time.Millisecond)
+		latency = math.Round(latency*100) / 100
+
 		hosts[i] = map[string]interface{}{
 			"id":      id,
 			"url":     url,
 			"index":   i,
 			"synced":  synced,
-			"latency": time.Duration(p.latencyIdx[id]) * time.Nanosecond,
+			"latency": latency,
 			"errors":  errCount,
 		}
 	}
