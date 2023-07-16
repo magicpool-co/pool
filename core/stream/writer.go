@@ -137,8 +137,11 @@ func (w *Writer) WriteDisconnectEvent(minerID uint64, worker, client string) {
 	w.write(minerID, w.chain, "disconnect", worker, client, nil)
 }
 
-func (w *Writer) WriteShareEvent(minerID uint64, worker, client, status string, shareDiff, targetDiff uint64) {
+func (w *Writer) WriteShareEvent(minerID uint64, worker, client, status, reason string, shareDiff, targetDiff uint64) {
 	data := map[string]interface{}{"status": status, "share_diff": shareDiff, "target_diff": targetDiff}
+	if len(reason) > 0 {
+		data["reason"] = reason
+	}
 	w.write(minerID, w.chain, "share", worker, client, data)
 }
 

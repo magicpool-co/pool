@@ -63,7 +63,7 @@ func newConn(url string, timeout time.Duration, rtr *router, logger *log.Logger,
 	}
 
 	go c.sendLoop()
-	go c.recieveLoop()
+	go c.receiveLoop()
 
 	return c, nil
 }
@@ -100,7 +100,7 @@ func (c *conn) sendLoop() {
 	}
 }
 
-func (c *conn) recieveLoop() {
+func (c *conn) receiveLoop() {
 	defer c.logger.RecoverPanic()
 
 	for {

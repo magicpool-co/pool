@@ -346,12 +346,23 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		targetDiff := c.GetDiffValue()
 		go func() {
 			status := shareStatus.String()
+			var reason string
+			if shareStatus == types.RejectedShare {
+				if job == nil {
+					reason = "job not found"
+				} else if !activeShare {
+					reason = "job too old"
+				} else {
+					reason = "difficulty too low"
+				}
+			}
+
 			var shareDiff uint64
 			if hash != nil {
 				shareDiff = hash.Difficulty(p.node.GetMaxDifficulty())
 			}
 
-			p.streamWriter.WriteShareEvent(c.GetMinerID(), c.GetWorker(), c.GetClient(), status, shareDiff, targetDiff)
+			p.streamWriter.WriteShareEvent(c.GetMinerID(), c.GetWorker(), c.GetClient(), status, reason, shareDiff, targetDiff)
 		}()
 	}
 
