@@ -102,7 +102,7 @@ func (w *Writer) getStream(minerID uint64) bool {
 	return false
 }
 
-func (w *Writer) write(minerID uint64, chain, eventType, worker, client string, data map[string]interface{}) {
+func (w *Writer) write(minerID uint64, chain, eventType, worker, client string, port int, data map[string]interface{}) {
 	if !w.getStream(minerID) {
 		return
 	}
@@ -110,6 +110,7 @@ func (w *Writer) write(minerID uint64, chain, eventType, worker, client string, 
 	event := map[string]interface{}{
 		"chain":     chain,
 		"type":      eventType,
+		"port":      port,
 		"worker":    worker,
 		"client":    client,
 		"data":      data,
@@ -129,23 +130,23 @@ func (w *Writer) write(minerID uint64, chain, eventType, worker, client string, 
 	}
 }
 
-func (w *Writer) WriteConnectEvent(minerID uint64, worker, client string) {
-	w.write(minerID, w.chain, "connect", worker, client, nil)
+func (w *Writer) WriteConnectEvent(minerID uint64, worker, client string, port int) {
+	w.write(minerID, w.chain, "connect", worker, client, port, nil)
 }
 
-func (w *Writer) WriteDisconnectEvent(minerID uint64, worker, client string) {
-	w.write(minerID, w.chain, "disconnect", worker, client, nil)
+func (w *Writer) WriteDisconnectEvent(minerID uint64, worker, client string, port int) {
+	w.write(minerID, w.chain, "disconnect", worker, client, port, nil)
 }
 
-func (w *Writer) WriteShareEvent(minerID uint64, worker, client, status, reason string, shareDiff, targetDiff uint64) {
+func (w *Writer) WriteShareEvent(minerID uint64, worker, client string, port int, status, reason string, shareDiff, targetDiff uint64) {
 	data := map[string]interface{}{"status": status, "share_diff": shareDiff, "target_diff": targetDiff}
 	if len(reason) > 0 {
 		data["reason"] = reason
 	}
-	w.write(minerID, w.chain, "share", worker, client, data)
+	w.write(minerID, w.chain, "share", worker, client, port, data)
 }
 
-func (w *Writer) WriteRetargetEvent(minerID uint64, worker, client string, oldDiff, newDiff uint64) {
+func (w *Writer) WriteRetargetEvent(minerID uint64, worker, client string, port int, oldDiff, newDiff uint64) {
 	data := map[string]interface{}{"old_diff": oldDiff, "new_diff": newDiff}
-	w.write(minerID, w.chain, "retarget", worker, client, data)
+	w.write(minerID, w.chain, "retarget", worker, client, port, data)
 }
