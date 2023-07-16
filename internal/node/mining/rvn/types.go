@@ -2,6 +2,7 @@ package rvn
 
 import (
 	"context"
+	"net/http"
 
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/goccy/go-json"
@@ -104,6 +105,17 @@ type Node struct {
 	rpcHost     *hostpool.HTTPPool
 	pow         *kawpow.Client
 	logger      *log.Logger
+}
+
+func (node *Node) HandleHostPoolInfoRequest(w http.ResponseWriter, r *http.Request) {
+	if node.rpcHost == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(400)
+		w.Write([]byte(`{"status": 400, "error": "NoHostPool"}`))
+		return
+	}
+
+	node.rpcHost.HandleInfoRequest(w, r)
 }
 
 type BlockchainInfo struct {

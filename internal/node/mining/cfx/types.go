@@ -3,6 +3,7 @@ package cfx
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
@@ -132,6 +133,17 @@ type Node struct {
 	tcpHost       *hostpool.TCPPool
 	pow           *octopus.Client
 	logger        *log.Logger
+}
+
+func (node *Node) HandleHostPoolInfoRequest(w http.ResponseWriter, r *http.Request) {
+	if node.tcpHost == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(400)
+		w.Write([]byte(`{"status": 400, "error": "NoHostPool"}`))
+		return
+	}
+
+	node.tcpHost.HandleInfoRequest(w, r)
 }
 
 func (node Node) execRPCfromFallback(req *rpc.Request, target interface{}) error {

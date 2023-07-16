@@ -3,8 +3,11 @@ package hostpool
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/sshtunnel"
@@ -16,6 +19,7 @@ const (
 )
 
 type GRPCClient interface {
+	URL() string
 	Send(interface{}) (interface{}, error)
 	Reconnect() error
 }
@@ -28,6 +32,7 @@ type GRPCPool struct {
 	mu          sync.RWMutex
 	index       map[string]*grpcConn
 	order       []string
+	latencyIdx  map[string]int
 	factory     GRPCClientFactory
 	healthCheck *GRPCHealthCheck
 	tunnel      *sshtunnel.SSHTunnel
@@ -273,5 +278,36 @@ func (p *GRPCPool) runHealthCheck() {
 
 	p.mu.Lock()
 	p.order = processHealthCheck(p.order[0], latencies, nil)
+	p.latencyIdx = latencies
 	p.mu.Unlock()
+}
+
+func (p *GRPCPool) HandleInfoRequest(w http.ResponseWriter, r *http.Request) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	hosts := make([]map[string]interface{}, len(p.order))
+	for i, id := range p.order {
+		gc := p.index[id]
+		gc.mu.Lock()
+		url, errCount, synced := gc.client.URL(), gc.errors, gc.synced
+		gc.mu.Unlock()
+		hosts[i] = map[string]interface{}{
+			"id":      id,
+			"url":     url,
+			"index":   i,
+			"synced":  synced,
+			"latency": time.Duration(p.latencyIdx[id]) * time.Nanosecond,
+			"errors":  errCount,
+		}
+	}
+
+	res := map[string]interface{}{
+		"status": 200,
+		"data":   hosts,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(res)
 }

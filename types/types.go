@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 	"math/big"
+	"net/http"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -106,6 +107,7 @@ type PayoutNode interface {
 type MiningNode interface {
 	PayoutNode
 	Mocked() bool
+	HandleHostPoolInfoRequest(http.ResponseWriter, *http.Request)
 
 	// constants
 	GetShareDifficulty(int) *Difficulty

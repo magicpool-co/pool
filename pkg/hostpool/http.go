@@ -47,6 +47,7 @@ type HTTPPool struct {
 	mu          sync.RWMutex
 	index       map[string]*httpConn
 	order       []string
+	latencyIdx  map[string]int
 	healthCheck *HTTPHealthCheck
 	tunnel      *sshtunnel.SSHTunnel
 	logger      *log.Logger
@@ -408,5 +409,36 @@ func (p *HTTPPool) runHealthCheck() {
 
 	p.mu.Lock()
 	p.order = processHealthCheck(p.order[0], latencies, nil)
+	p.latencyIdx = latencies
 	p.mu.Unlock()
+}
+
+func (p *HTTPPool) HandleInfoRequest(w http.ResponseWriter, r *http.Request) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	hosts := make([]map[string]interface{}, len(p.order))
+	for i, id := range p.order {
+		hc := p.index[id]
+		hc.mu.Lock()
+		url, errCount, synced := hc.url, hc.errors, hc.synced
+		hc.mu.Unlock()
+		hosts[i] = map[string]interface{}{
+			"id":      id,
+			"url":     url,
+			"index":   i,
+			"synced":  synced,
+			"latency": time.Duration(p.latencyIdx[id]) * time.Nanosecond,
+			"errors":  errCount,
+		}
+	}
+
+	res := map[string]interface{}{
+		"status": 200,
+		"data":   hosts,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(res)
 }

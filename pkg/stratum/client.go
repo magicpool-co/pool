@@ -62,6 +62,10 @@ func NewClient(ctx context.Context, host string, timeout, reconnect time.Duratio
 	return client
 }
 
+func (c *Client) URL() string {
+	return c.host
+}
+
 func (c *Client) connect(handshakeReqs []*rpc.Request, reqCh chan *rpc.Request, resCh chan *rpc.Response, errCh chan error) {
 	var err error
 	c.connMu.Lock()

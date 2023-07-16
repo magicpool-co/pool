@@ -11,6 +11,7 @@ import (
 )
 
 type Client struct {
+	mux        *http.ServeMux
 	server     *http.Server
 	histograms map[string]*prometheus.HistogramVec
 	summaries  map[string]*prometheus.SummaryVec
@@ -36,6 +37,7 @@ func InitClient(port int, enableProfiling bool) *Client {
 	}
 
 	client := &Client{
+		mux:        mux,
 		server:     server,
 		histograms: make(map[string]*prometheus.HistogramVec),
 		summaries:  make(map[string]*prometheus.SummaryVec),
@@ -48,6 +50,10 @@ func InitClient(port int, enableProfiling bool) *Client {
 
 func (c *Client) Server() *http.Server {
 	return c.server
+}
+
+func (c *Client) AddHandler(path string, handler http.HandlerFunc) {
+	c.mux.HandleFunc(path, handler)
 }
 
 func (c *Client) NewHistogram(namespace, name, env, help string, labels ...string) error {

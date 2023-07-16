@@ -3,6 +3,7 @@ package erg
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/brianium/mnemonic"
 	"github.com/goccy/go-json"
@@ -119,6 +120,17 @@ type Node struct {
 	httpHost *hostpool.HTTPPool
 	pow      *autolykos2.Client
 	logger   *log.Logger
+}
+
+func (node *Node) HandleHostPoolInfoRequest(w http.ResponseWriter, r *http.Request) {
+	if node.httpHost == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(400)
+		w.Write([]byte(`{"status": 400, "error": "NoHostPool"}`))
+		return
+	}
+
+	node.httpHost.HandleInfoRequest(w, r)
 }
 
 type NodeInfo struct {

@@ -3,9 +3,12 @@ package hostpool
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/sshtunnel"
@@ -30,6 +33,7 @@ type TCPPool struct {
 	index       map[string]*tcpConn
 	order       []string
 	counts      map[string]int
+	latencyIdx  map[string]int
 	healthCheck *TCPHealthCheck
 	tunnel      *sshtunnel.SSHTunnel
 	logger      *log.Logger
@@ -272,5 +276,36 @@ func (p *TCPPool) runHealthCheck() {
 	p.mu.Lock()
 	p.order = processHealthCheck(p.order[0], latencies, p.counts)
 	p.counts = make(map[string]int)
+	p.latencyIdx = latencies
 	p.mu.Unlock()
+}
+
+func (p *TCPPool) HandleInfoRequest(w http.ResponseWriter, r *http.Request) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	hosts := make([]map[string]interface{}, len(p.order))
+	for i, id := range p.order {
+		tc := p.index[id]
+		tc.mu.Lock()
+		url, errCount, synced := tc.client.URL(), tc.errors, tc.synced
+		tc.mu.Unlock()
+		hosts[i] = map[string]interface{}{
+			"id":      id,
+			"url":     url,
+			"index":   i,
+			"synced":  synced,
+			"latency": time.Duration(p.latencyIdx[id]) * time.Nanosecond,
+			"errors":  errCount,
+		}
+	}
+
+	res := map[string]interface{}{
+		"status": 200,
+		"data":   hosts,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(res)
 }

@@ -2,6 +2,7 @@ package kas
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"time"
 
@@ -100,6 +101,17 @@ type Node struct {
 	grpcHost *hostpool.GRPCPool
 	pow      *heavyhash.Client
 	logger   *log.Logger
+}
+
+func (node *Node) HandleHostPoolInfoRequest(w http.ResponseWriter, r *http.Request) {
+	if node.grpcHost == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(400)
+		w.Write([]byte(`{"status": 400, "error": "NoHostPool"}`))
+		return
+	}
+
+	node.grpcHost.HandleInfoRequest(w, r)
 }
 
 type TransactionOutpoint struct {

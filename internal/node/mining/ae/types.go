@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
+	"net/http"
 
 	"github.com/goccy/go-json"
 	"github.com/sencha-dev/powkit/cuckoo"
@@ -122,6 +123,17 @@ type Node struct {
 	externalHost *hostpool.HTTPPool
 	pow          *cuckoo.Client
 	logger       *log.Logger
+}
+
+func (node *Node) HandleHostPoolInfoRequest(w http.ResponseWriter, r *http.Request) {
+	if node.internalHost == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(400)
+		w.Write([]byte(`{"status": 400, "error": "NoHostPool"}`))
+		return
+	}
+
+	node.internalHost.HandleInfoRequest(w, r)
 }
 
 type Status struct {

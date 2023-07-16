@@ -82,6 +82,8 @@ func newPool(secrets map[string]string, mainnet bool, opts *pool.Options, metric
 	miningNode, err := node.GetMiningNode(mainnet, opts.Chain, secrets[opts.Chain+"_PRIVATE_KEY"], urls, logger, tunnel)
 	if err != nil {
 		return nil, nil, err
+	} else if metricsClient != nil {
+		metricsClient.AddHandler("/hostinfo", miningNode.HandleHostPoolInfoRequest)
 	}
 
 	poolServer, err := pool.New(miningNode, dbClient, redisClient, logger, telegramClient, metricsClient, opts)

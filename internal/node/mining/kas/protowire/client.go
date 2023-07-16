@@ -73,6 +73,10 @@ func (c *Client) disconnect() {
 	c.conn.disconnect()
 }
 
+func (c *Client) URL() string {
+	return c.url
+}
+
 func (c *Client) Send(raw interface{}) (interface{}, error) {
 	req, ok := raw.(*KaspadMessage)
 	if !ok {
