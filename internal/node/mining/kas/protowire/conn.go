@@ -85,6 +85,7 @@ func (c *conn) disconnect() {
 		return
 	}
 
+	c.cancel()
 	c.closeSend()
 }
 
@@ -94,7 +95,6 @@ func (c *conn) handleError(err error) {
 		return
 	} else if errors.Is(err, ErrRouteClosed) {
 		c.disconnect()
-		return
 	}
 
 	c.errorHandler(err)
@@ -132,16 +132,20 @@ func (c *conn) closeSend() {
 func (c *conn) sendLoop() {
 	defer c.logger.RecoverPanic()
 
-	for atomic.LoadUint32(&c.isConnected) != 0 {
-		msg, ok := <-c.router.outgoing.ch
-		if !ok {
+	for {
+		select {
+		case <-c.ctx.Done():
 			return
-		}
+		case msg, ok := <-c.router.outgoing.ch:
+			if !ok {
+				return
+			}
 
-		err := c.send(msg)
-		if err != nil {
-			c.handleError(err)
-			return
+			err := c.send(msg)
+			if err != nil {
+				c.handleError(err)
+				return
+			}
 		}
 	}
 }
