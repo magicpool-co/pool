@@ -124,10 +124,8 @@ func (c *conn) closeSend() {
 	c.streamLock.Lock()
 	defer c.streamLock.Unlock()
 
-	clientStream := c.stream.(grpc.ClientStream)
-
 	// ignore error because we don't really know what's the status of the connection
-	_ = clientStream.CloseSend()
+	_ = c.stream.CloseSend()
 	_ = c.conn.Close()
 }
 
