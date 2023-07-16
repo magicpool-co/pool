@@ -10,7 +10,7 @@ const (
 	retargetDelay = time.Second * 60
 	bufferSize    = (int(retargetDelay) / int(targetTime)) * 4
 
-	variance      = time.Duration(float64(targetTime) * 0.75)
+	variance      = time.Duration(float64(targetTime) * 0.6)
 	minTargetTime = targetTime - variance
 	maxTargetTime = targetTime + variance
 

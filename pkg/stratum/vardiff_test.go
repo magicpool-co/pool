@@ -86,7 +86,7 @@ func TestVarDiffManager(t *testing.T) {
 				time.Now().Add(time.Second * -90),
 				time.Now().Add(time.Second * -90),
 			},
-			newDiffs: []int{64, 32, 32, 32, 32, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
+			newDiffs: []int{64, 32, 32, 32, 32, 16, 16, 16, 16, 16, 16, 16, 16, 8, 8},
 		},
 	}
 
