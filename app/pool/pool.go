@@ -327,12 +327,7 @@ func (p *Pool) startStratum() {
 		select {
 		case <-p.ctx.Done():
 			return
-		case c := <-connectCh:
-			// handle connect streaming
-			if p.streamWriter != nil && c != nil && c.GetAuthorized() {
-				p.streamWriter.WriteConnectEvent(c.GetMinerID(), c.GetWorker(), c.GetClient())
-			}
-
+		case <-connectCh:
 			if p.metrics != nil {
 				p.metrics.IncrementGauge("clients_active", p.chain)
 				p.metrics.IncrementCounter("client_connects", p.chain)

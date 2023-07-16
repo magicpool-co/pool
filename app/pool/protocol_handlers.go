@@ -190,6 +190,11 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 	c.SetWorker(workerName)
 	c.SetWorkerID(workerID)
 
+	// handle connect streaming
+	if p.streamWriter != nil {
+		p.streamWriter.WriteConnectEvent(c.GetMinerID(), c.GetWorker(), c.GetClient())
+	}
+
 	var msgs []interface{}
 	if p.forceErrorOnResponse {
 		msgs = []interface{}{rpc.NewResponseForcedFromJSON(req.ID, common.JsonTrue)}

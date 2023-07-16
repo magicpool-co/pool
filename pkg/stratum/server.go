@@ -103,9 +103,9 @@ func (s *Server) GetConn(id uint64) (*Conn, error) {
 	return nil, ErrConnNotFound
 }
 
-func (s *Server) Start(connTimeout time.Duration) (chan Message, chan *Conn, chan *Conn, chan error, error) {
+func (s *Server) Start(connTimeout time.Duration) (chan Message, chan uint64, chan *Conn, chan error, error) {
 	messageCh := make(chan Message)
-	connectCh := make(chan *Conn)
+	connectCh := make(chan uint64)
 	disconnectCh := make(chan *Conn)
 	errCh := make(chan error)
 
@@ -153,7 +153,7 @@ func (s *Server) Start(connTimeout time.Duration) (chan Message, chan *Conn, cha
 					defer c.SoftClose()
 
 					c.SetReadDeadline(time.Now().Add(connTimeout))
-					connectCh <- c
+					connectCh <- c.id
 
 					go func() {
 						<-c.quit
