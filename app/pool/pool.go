@@ -174,7 +174,7 @@ func (p *Pool) getCurrentInterval(reset bool) string {
 
 func (p *Pool) startPingHosts() {
 	if p.pingingPeriod == 0 {
-		p.pingingPeriod = time.Second * 5
+		return
 	}
 
 	defer p.recoverPanic()

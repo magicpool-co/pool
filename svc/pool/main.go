@@ -94,7 +94,7 @@ var defaultOptions = map[string]*pool.Options{
 		VarDiffEnabled:  true,
 		StreamEnabled:   true,
 		PollingPeriod:   time.Millisecond * 100,
-		PingingPeriod:   time.Second * 30,
+		PingingPeriod:   time.Second * 10,
 	},
 	"NEXA": &pool.Options{
 		Chain:          "NEXA",

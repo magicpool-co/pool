@@ -6,6 +6,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"google.golang.org/grpc"
@@ -16,14 +18,23 @@ import (
 
 // GRPCClient is a gRPC-based RPC client
 type conn struct {
-	ctx               context.Context
-	cancel            context.CancelFunc
-	conn              *grpc.ClientConn
-	stream            RPC_MessageStreamClient
+	ctx    context.Context
+	cancel context.CancelFunc
+	conn   *grpc.ClientConn
+
+	stream RPC_MessageStreamClient
+	// streamLock protects concurrent access to stream.
+	// Note that it's an RWMutex. Despite what the name
+	// implies, we use it to RLock() send() and receive() because
+	// they can work perfectly fine in parallel, and Lock()
+	// closeSend() because it must run alone.
+	streamLock sync.RWMutex
+
 	router            *router
 	logger            *log.Logger
 	disconnectHandler func()
 	errorHandler      func(error)
+	isConnected       uint32
 }
 
 func newGRPCConn(url string, timeout time.Duration) (*grpc.ClientConn, error) {
@@ -60,6 +71,7 @@ func newConn(url string, timeout time.Duration, rtr *router, logger *log.Logger,
 		logger:            logger,
 		disconnectHandler: disconnectHandler,
 		errorHandler:      errorHandler,
+		isConnected:       1,
 	}
 
 	go c.sendLoop()
@@ -68,8 +80,12 @@ func newConn(url string, timeout time.Duration, rtr *router, logger *log.Logger,
 	return c, nil
 }
 
-func (c *conn) disconnect() error {
-	return c.stream.CloseSend()
+func (c *conn) disconnect() {
+	if !atomic.CompareAndSwapUint32(&c.isConnected, 1, 0) {
+		return
+	}
+
+	c.closeSend()
 }
 
 func (c *conn) handleError(err error) {
@@ -77,22 +93,54 @@ func (c *conn) handleError(err error) {
 		c.disconnectHandler()
 		return
 	} else if errors.Is(err, ErrRouteClosed) {
-		err = c.disconnect()
+		c.disconnect()
+		return
 	}
 
 	c.errorHandler(err)
 }
 
+func (c *conn) receive() (*KaspadMessage, error) {
+	// We use RLock here and in send() because they can work
+	// in parallel. closeSend(), however, must not have either
+	// receive() nor send() running while it's running.
+	c.streamLock.RLock()
+	defer c.streamLock.RUnlock()
+
+	return c.stream.Recv()
+}
+
+func (c *conn) send(message *KaspadMessage) error {
+	// We use RLock here and in receive() because they can work
+	// in parallel. closeSend(), however, must not have either
+	// receive() nor send() running while it's running.
+	c.streamLock.RLock()
+	defer c.streamLock.RUnlock()
+
+	return c.stream.Send(message)
+}
+
+func (c *conn) closeSend() {
+	c.streamLock.Lock()
+	defer c.streamLock.Unlock()
+
+	clientStream := c.stream.(grpc.ClientStream)
+
+	// ignore error because we don't really know what's the status of the connection
+	_ = clientStream.CloseSend()
+	_ = c.conn.Close()
+}
+
 func (c *conn) sendLoop() {
 	defer c.logger.RecoverPanic()
 
-	for {
+	for atomic.LoadUint32(&c.isConnected) != 0 {
 		msg, ok := <-c.router.outgoing.ch
 		if !ok {
 			return
 		}
 
-		err := c.stream.Send(msg)
+		err := c.send(msg)
 		if err != nil {
 			c.handleError(err)
 			return
@@ -104,7 +152,7 @@ func (c *conn) receiveLoop() {
 	defer c.logger.RecoverPanic()
 
 	for {
-		msg, err := c.stream.Recv()
+		msg, err := c.receive()
 		if err != nil {
 			c.handleError(err)
 			return

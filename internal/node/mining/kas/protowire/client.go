@@ -39,12 +39,8 @@ func NewClient(url string, timeout time.Duration, logger *log.Logger) (*Client, 
 func (c *Client) disconnectHandler() {
 	atomic.StoreUint32(&c.isConnected, 0)
 	if atomic.LoadUint32(&c.isClosed) == 0 {
-		err := c.disconnect()
-		if err != nil {
-			c.logger.Error(fmt.Errorf("kaspad grpc: disconnect: %v", err))
-		}
-
-		err = c.Reconnect()
+		c.disconnect()
+		err := c.Reconnect()
 		if err != nil {
 			c.logger.Error(fmt.Errorf("kaspad grpc: reconnect: %v", err))
 		}
@@ -73,8 +69,8 @@ func (c *Client) connect() error {
 	return nil
 }
 
-func (c *Client) disconnect() error {
-	return c.conn.disconnect()
+func (c *Client) disconnect() {
+	c.conn.disconnect()
 }
 
 func (c *Client) Send(raw interface{}) (interface{}, error) {
@@ -124,10 +120,7 @@ func (c *Client) Reconnect() error {
 	defer atomic.StoreUint32(&c.isReconnecting, 0)
 
 	if atomic.LoadUint32(&c.isConnected) == 1 {
-		err := c.disconnect()
-		if err != nil {
-			return err
-		}
+		c.disconnect()
 	}
 
 	var err error
