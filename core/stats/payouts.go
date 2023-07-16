@@ -32,7 +32,7 @@ func getTxExplorerURL(chain, hash string) (string, error) {
 	case "FLUX":
 		explorerURL = "https://explorer.runonflux.io/tx/" + hash
 	case "KAS":
-		explorerURL = "https://katnip.kaspad.net/tx/" + hash
+		explorerURL = "https://explorer.kaspa.org/txs/" + hash
 	case "NEXA":
 		explorerURL = "https://explorer.nexa.org/tx/" + hash
 	case "RVN":
