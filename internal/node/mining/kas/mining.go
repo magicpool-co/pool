@@ -19,6 +19,7 @@ import (
 	"github.com/magicpool-co/pool/pkg/crypto/blkbuilder"
 	"github.com/magicpool-co/pool/pkg/crypto/tx/kastx"
 	"github.com/magicpool-co/pool/pkg/dbcl"
+	"github.com/magicpool-co/pool/pkg/hostpool"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 	"github.com/magicpool-co/pool/types"
 )
@@ -54,7 +55,7 @@ func (node Node) getStatusByHost(hostID string) (uint64, bool, error) {
 	}
 
 	syncing, err := node.getInfo(hostID)
-	if err != nil {
+	if err != nil && err != hostpool.ErrNoHealthyHosts {
 		return 0, false, err
 	}
 	node.grpcHost.SetHostSyncStatus(hostID, syncing)
