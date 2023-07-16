@@ -10,13 +10,13 @@ const (
 	retargetDelay = time.Second * 60
 	bufferSize    = (int(retargetDelay) / int(targetTime)) * 4
 
-	variance      = time.Duration(float64(targetTime) * 0.6)
+	variance      = time.Duration(float64(targetTime) * 0.75)
 	minTargetTime = targetTime - variance
 	maxTargetTime = targetTime + variance
 
 	minDiff         = 1
 	maxDiff         = 512
-	diffBoundFactor = 4
+	diffBoundFactor = 8
 )
 
 type diffList struct {
