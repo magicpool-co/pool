@@ -141,7 +141,8 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		}
 	}
 
-	diffFactor := p.portDiffIdx[c.GetPort()]
+	port := c.GetPort()
+	diffFactor := p.portDiffIdx[port]
 	if diffFactor < 1 {
 		diffFactor = 1
 	}
@@ -152,6 +153,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 	c.SetAuthorized(true)
 	c.SetDiffFactor(diffFactor)
 	c.SetDiffValue(p.node.GetShareDifficulty(diffFactor).Value())
+	c.SetIsSolo(p.soloPortIdx[port])
 	c.SetReadDeadline(time.Time{})
 
 	var workerID uint64

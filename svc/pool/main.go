@@ -121,8 +121,9 @@ func main() {
 	argMainnet := flag.Bool("mainnet", true, "Whether or not to run on the mainnet")
 	argSecretVar := flag.String("secret", "", "ENV variable defined by ECS")
 	argStandardPort := flag.Int("port", 3333, "The pool port to use")
-	argHighDiffPort := flag.Int("high-diff-port", 13333, "The high difficulty port to use")
-	argHighDiffFactor := flag.Int("high-diff-factor", 64, "The high difficulty factor to use")
+	argHighDiffEnabled := flag.Bool("high-diff", true, "Whether or not to enable high difficulty")
+	argExtraHighDiffEnabled := flag.Bool("extra-high-diff", true, "Whether or not to enable extra high difficulty")
+	argSoloEnabled := flag.Bool("solo-enabled", true, "Whether or not to enable solo")
 	argMetricsPort := flag.Int("metrics-port", 6060, "The metrics port to use")
 
 	flag.Parse()
@@ -130,14 +131,20 @@ func main() {
 	opts, ok := defaultOptions[strings.ToUpper(*argChain)]
 	if !ok {
 		panic(fmt.Errorf("invalid chain %s", *argChain))
+	} else if *argStandardPort > 10000 {
+		panic(fmt.Errorf("port must be less than 10000"))
 	}
 
 	portDiffIdx := map[int]int{*argStandardPort: 1}
-	if *argHighDiffPort > 0 {
-		portDiffIdx[*argHighDiffPort] = *argHighDiffFactor
+	if *argHighDiffEnabled {
+		portDiffIdx[*argStandardPort+10000] = 64
+	}
+	if *argExtraHighDiffEnabled {
+		portDiffIdx[*argStandardPort+20000] = 4096
 	}
 
 	opts.PortDiffIdx = portDiffIdx
+	opts.SoloEnabled = *argSoloEnabled
 	secrets, err := svc.ParseSecrets(*argSecretVar)
 	if err != nil {
 		panic(err)

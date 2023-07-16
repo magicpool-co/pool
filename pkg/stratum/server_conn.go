@@ -26,6 +26,7 @@ type Conn struct {
 	extraNonceSubscribed uint32
 	subscribed           uint32
 	authorized           uint32
+	isSolo               uint32
 	client               *atomic.Value
 	clientType           int32
 	diffFactor           int32
@@ -93,6 +94,7 @@ func (c *Conn) GetExtraNonce() string              { return loadString(c.extraNo
 func (c *Conn) GetExtraNonceSubscribed() bool      { return loadBool(&(c.extraNonceSubscribed)) }
 func (c *Conn) GetSubscribed() bool                { return loadBool(&(c.subscribed)) }
 func (c *Conn) GetAuthorized() bool                { return loadBool(&(c.authorized)) }
+func (c *Conn) GetIsSolo() bool                    { return loadBool(&(c.isSolo)) }
 func (c *Conn) GetClient() string                  { return loadString(c.client) }
 func (c *Conn) GetClientType() int                 { return int(atomic.LoadInt32(&(c.clientType))) }
 func (c *Conn) GetDiffFactor() int                 { return int(atomic.LoadInt32(&(c.diffFactor))) }
@@ -123,6 +125,7 @@ func (c *Conn) SetExtraNonceSubscribed(extraNonceSubscribed bool) {
 }
 func (c *Conn) SetSubscribed(subscribed bool) { storeBool(&(c.subscribed), subscribed) }
 func (c *Conn) SetAuthorized(authorized bool) { storeBool(&(c.authorized), authorized) }
+func (c *Conn) SetIsSolo(isSolo bool)         { storeBool(&(c.isSolo), isSolo) }
 func (c *Conn) SetClient(client string)       { c.client.Store(client) }
 func (c *Conn) SetClientType(clientType int)  { atomic.StoreInt32(&(c.clientType), int32(clientType)) }
 func (c *Conn) SetDiffFactor(diffFactor int) {
