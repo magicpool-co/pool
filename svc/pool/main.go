@@ -55,7 +55,7 @@ var defaultOptions = map[string]*pool.Options{
 		JobListSize:     25,
 		JobListAgeLimit: 7,
 		VarDiffEnabled:  false,
-		StreamEnabled:   false,
+		StreamEnabled:   true,
 		PollingPeriod:   time.Millisecond * 100,
 	},
 	"ETHW": &pool.Options{
@@ -123,7 +123,7 @@ func main() {
 	argStandardPort := flag.Int("port", 3333, "The pool port to use")
 	argHighDiffPort := flag.Int("high-diff-port", -1, "The port for high difficulty (-1 is disabled)")
 	argExtraHighDiffPort := flag.Int("extra-high-diff-port", -1, "The port for extra high difficulty (-1 is disabled)")
-	argSoloEnabled := flag.Bool("solo-enabled", false, "Whether or not to enable solo")
+	argSoloEnabled := flag.Bool("solo-enabled", true, "Whether or not to enable solo")
 	argMetricsPort := flag.Int("metrics-port", 6060, "The metrics port to use")
 
 	flag.Parse()
