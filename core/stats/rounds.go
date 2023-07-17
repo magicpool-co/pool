@@ -50,6 +50,11 @@ func newRound(dbRound *pooldb.Round) (*Round, error) {
 		value = value.Set(dbRound.Value.BigInt)
 	}
 
+	poolType := "PPLNS"
+	if dbRound.Solo {
+		poolType = "SOLO"
+	}
+
 	roundType := "block"
 	if dbRound.Pending {
 		roundType = "pending"
@@ -94,6 +99,7 @@ func newRound(dbRound *pooldb.Round) (*Round, error) {
 	round := &Round{
 		Chain:           dbRound.ChainID,
 		Type:            roundType,
+		Pool:            poolType,
 		Pending:         dbRound.Pending,
 		Mature:          dbRound.Mature,
 		Hash:            dbRound.Hash,

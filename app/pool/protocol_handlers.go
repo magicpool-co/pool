@@ -241,6 +241,15 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 	// 	}
 	// }
 
+	// if solo mining, prefix the chain with "S" so
+	// that we can differentiate in charts and whatnot
+	chain := p.chain
+	var soloMinerID uint64
+	if c.GetIsSolo() {
+		chain = p.soloChain
+		soloMinerID = c.GetMinerID()
+	}
+
 	var shareStatus types.ShareStatus = types.RejectedShare
 	var hash *types.Hash
 	var round *pooldb.Round
@@ -253,12 +262,22 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 
 		// special handing for IceRiver ASICs since sometimes they submit
 		// a solution for the prior job instead of the job ID that is sent
-		if c.GetDiffFactor() > 1 && shareStatus == types.RejectedShare {
-			job, activeShare = p.jobManager.GetPriorJob(work.JobID)
-			if job != nil && activeShare {
-				shareStatus, hash, round, err = p.node.SubmitWork(job, work, c.GetDiffFactor())
-				if err != nil {
-					return false, err
+		if p.chain == "KAS" && shareStatus == types.RejectedShare {
+			jobID := work.JobID
+			for i := 0; i < 2; i++ {
+				job, activeShare = p.jobManager.GetPriorJob(jobID)
+				if job == nil {
+					break
+				}
+
+				jobID = job.ID
+				if activeShare {
+					shareStatus, hash, round, err = p.node.SubmitWork(job, work, c.GetDiffFactor())
+					if err != nil {
+						return false, err
+					} else if shareStatus == types.AcceptedShare {
+						break
+					}
 				}
 			}
 		}
@@ -273,16 +292,25 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			defer p.wg.Done()
 
 			p.logger.Info("found valid block")
-			sharesIdx, err := p.redis.GetRoundShares(p.chain)
+			compoundID := c.GetCompoundID()
+			round.Solo = c.GetIsSolo()
+
+			var sharesIdx map[uint64]uint64
+			var err error
+			if soloMinerID == 0 {
+				sharesIdx, err = p.redis.GetRoundShares(chain)
+			} else {
+				sharesIdx[c.GetMinerID()], err = p.redis.GetRoundSoloShares(chain, soloMinerID)
+			}
 			if err != nil {
-				p.logger.Error(err, c.GetCompoundID())
+				p.logger.Error(err, compoundID)
 				return
 			}
 
 			// number of accepted, rejected, and invalid shares since last block (not PPLNS share number)
-			round.AcceptedShares, round.RejectedShares, round.InvalidShares, err = p.redis.GetRoundShareCounts(p.chain)
+			round.AcceptedShares, round.RejectedShares, round.InvalidShares, err = p.redis.GetRoundShareCounts(chain, soloMinerID)
 			if err != nil {
-				p.logger.Error(err, c.GetCompoundID())
+				p.logger.Error(err, compoundID)
 				return
 			}
 
@@ -303,7 +331,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			round.MinerID = c.GetMinerID()
 			roundID, err := pooldb.InsertRound(p.db.Writer(), round)
 			if err != nil {
-				p.logger.Error(err, c.GetCompoundID())
+				p.logger.Error(err, compoundID)
 				return
 			}
 
@@ -319,7 +347,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			}
 
 			if err := pooldb.InsertShares(p.db.Writer(), shares...); err != nil {
-				p.logger.Error(err, c.GetCompoundID())
+				p.logger.Error(err, compoundID)
 				return
 			}
 
@@ -334,7 +362,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		if hash == nil {
 			p.logger.Error(fmt.Errorf("no hash returned for an accepted share"), c.GetCompoundID())
 		} else {
-			isUnique, err := p.redis.AddUniqueShare(p.chain, job.Height.Value(), hash.Hex())
+			isUnique, err := p.redis.AddUniqueShare(chain, job.Height.Value(), hash.Hex())
 			if err != nil {
 				return false, err
 			} else if !isUnique {
@@ -414,10 +442,10 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		p.wg.Add(1)
 		defer p.wg.Done()
 
-		interval := p.getCurrentInterval(false)
+		interval := p.getCurrentInterval(chain, false)
 		switch shareStatus {
 		case types.AcceptedShare:
-			err := p.redis.AddAcceptedShare(p.chain, interval, c.GetCompoundID(), c.GetDiffFactor(), p.windowSize)
+			err := p.redis.AddAcceptedShare(chain, interval, c.GetCompoundID(), soloMinerID, c.GetDiffFactor(), p.windowSize)
 			if err != nil {
 				p.logger.Error(err, c.GetCompoundID())
 				return
@@ -440,14 +468,14 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			}
 			p.minerStatsMu.Unlock()
 		case types.RejectedShare:
-			err := p.redis.AddRejectedShare(p.chain, interval, c.GetCompoundID(), c.GetDiffFactor())
+			err := p.redis.AddRejectedShare(chain, interval, c.GetCompoundID(), soloMinerID, c.GetDiffFactor())
 			if err != nil {
 				p.logger.Error(err, c.GetCompoundID())
 			} else if p.metrics != nil {
 				p.metrics.AddCounter("rejected_shares_total", float64(c.GetDiffFactor()), p.chain)
 			}
 		case types.InvalidShare:
-			err := p.redis.AddInvalidShare(p.chain, interval, c.GetCompoundID(), c.GetDiffFactor())
+			err := p.redis.AddInvalidShare(chain, interval, c.GetCompoundID(), soloMinerID, c.GetDiffFactor())
 			if err != nil {
 				p.logger.Error(err, c.GetCompoundID())
 			} else if p.metrics != nil {

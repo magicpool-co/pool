@@ -14,9 +14,9 @@ const (
 	minTargetTime = targetTime - variance
 	maxTargetTime = targetTime + variance
 
-	minDiff         = 1
-	maxDiff         = 512
-	diffBoundFactor = 8
+	globalMinDiff   = 1
+	globalMaxDiff   = 8192
+	diffBoundFactor = 4
 )
 
 type diffList struct {
@@ -80,16 +80,16 @@ type varDiffManager struct {
 
 func floorDiff(currentDiff int) int {
 	diff := currentDiff / diffBoundFactor
-	if diff < 1 {
-		return 1
+	if diff < globalMinDiff {
+		return globalMinDiff
 	}
 	return diff
 }
 
 func ceilDiff(currentDiff int) int {
 	diff := currentDiff * diffBoundFactor
-	if diff > 512 {
-		return 512
+	if diff > globalMaxDiff {
+		return globalMaxDiff
 	}
 	return diff
 }

@@ -71,12 +71,24 @@ func (c *Client) getRoundAcceptedSharesKey(chain string) string {
 	return c.getKey("pool", strings.ToLower(chain), "ash")
 }
 
+func (c *Client) getRoundSoloAcceptedSharesKey(chain string, minerID uint64) string {
+	return c.getKey("pool", strings.ToLower(chain), "ash", "solo", strconv.FormatUint(minerID, 10))
+}
+
 func (c *Client) getRoundRejectedSharesKey(chain string) string {
 	return c.getKey("pool", strings.ToLower(chain), "rsh")
 }
 
+func (c *Client) getRoundSoloRejectedSharesKey(chain string, minerID uint64) string {
+	return c.getKey("pool", strings.ToLower(chain), "rsh", "solo", strconv.FormatUint(minerID, 10))
+}
+
 func (c *Client) getRoundInvalidSharesKey(chain string) string {
 	return c.getKey("pool", strings.ToLower(chain), "ish")
+}
+
+func (c *Client) getRoundSoloInvalidSharesKey(chain string, minerID uint64) string {
+	return c.getKey("pool", strings.ToLower(chain), "ish", "solo", strconv.FormatUint(minerID, 10))
 }
 
 /* intervals */
@@ -89,24 +101,48 @@ func (c *Client) getIntervalAcceptedSharesKey(chain, interval string) string {
 	return c.getKey("pool", strings.ToLower(chain), "ash", interval)
 }
 
+func (c *Client) getIntervalAcceptedSoloSharesKey(chain, interval string) string {
+	return c.getKey("pool", strings.ToLower(chain), "ash", interval, "solo")
+}
+
 func (c *Client) getIntervalAcceptedAdjustedSharesKey(chain, interval string) string {
 	return c.getKey("pool", strings.ToLower(chain), "ashadj", interval)
+}
+
+func (c *Client) getIntervalAcceptedSoloAdjustedSharesKey(chain, interval string) string {
+	return c.getKey("pool", strings.ToLower(chain), "ashadj", interval, "solo")
 }
 
 func (c *Client) getIntervalRejectedSharesKey(chain, interval string) string {
 	return c.getKey("pool", strings.ToLower(chain), "rsh", interval)
 }
 
+func (c *Client) getIntervalRejectedSoloSharesKey(chain, interval string) string {
+	return c.getKey("pool", strings.ToLower(chain), "rsh", interval, "solo")
+}
+
 func (c *Client) getIntervalRejectedAdjustedSharesKey(chain, interval string) string {
 	return c.getKey("pool", strings.ToLower(chain), "rshadj", interval)
+}
+
+func (c *Client) getIntervalRejectedSoloAdjustedSharesKey(chain, interval string) string {
+	return c.getKey("pool", strings.ToLower(chain), "rshadj", interval, "solo")
 }
 
 func (c *Client) getIntervalInvalidSharesKey(chain, interval string) string {
 	return c.getKey("pool", strings.ToLower(chain), "ish", interval)
 }
 
+func (c *Client) getIntervalInvalidSoloSharesKey(chain, interval string) string {
+	return c.getKey("pool", strings.ToLower(chain), "ish", interval, "solo")
+}
+
 func (c *Client) getIntervalInvalidAdjustedSharesKey(chain, interval string) string {
 	return c.getKey("pool", strings.ToLower(chain), "ishadj", interval)
+}
+
+func (c *Client) getIntervalInvalidSoloAdjustedSharesKey(chain, interval string) string {
+	return c.getKey("pool", strings.ToLower(chain), "ishadj", interval, "solo")
 }
 
 /* chart */

@@ -145,17 +145,32 @@ func (c *Client) GetRoundShares(chain string) (map[uint64]uint64, error) {
 	return values, nil
 }
 
-func (c *Client) GetRoundShareCounts(chain string) (uint64, uint64, uint64, error) {
+func (c *Client) GetRoundSoloShares(chain string, minerID uint64) (uint64, error) {
+	return c.baseGetUint64(c.getRoundSoloAcceptedSharesKey(chain, minerID))
+}
+
+func (c *Client) GetRoundShareCounts(chain string, soloMinerID uint64) (uint64, uint64, uint64, error) {
+	var acceptedKey, rejectedKey, invalidKey string
+	if soloMinerID == 0 {
+		acceptedKey = c.getRoundAcceptedSharesKey(chain)
+		rejectedKey = c.getRoundRejectedSharesKey(chain)
+		invalidKey = c.getRoundInvalidSharesKey(chain)
+	} else {
+		acceptedKey = c.getRoundSoloAcceptedSharesKey(chain, soloMinerID)
+		rejectedKey = c.getRoundSoloRejectedSharesKey(chain, soloMinerID)
+		invalidKey = c.getRoundSoloInvalidSharesKey(chain, soloMinerID)
+	}
+
 	ctx := context.Background()
 	pipe := c.writeClient.Pipeline()
 
-	acceptedRaw := pipe.Get(ctx, c.getRoundAcceptedSharesKey(chain))
-	rejectedRaw := pipe.Get(ctx, c.getRoundRejectedSharesKey(chain))
-	invalidRaw := pipe.Get(ctx, c.getRoundInvalidSharesKey(chain))
+	acceptedRaw := pipe.Get(ctx, acceptedKey)
+	rejectedRaw := pipe.Get(ctx, rejectedKey)
+	invalidRaw := pipe.Get(ctx, invalidKey)
 
-	pipe.Set(ctx, c.getRoundAcceptedSharesKey(chain), "0", 0)
-	pipe.Set(ctx, c.getRoundRejectedSharesKey(chain), "0", 0)
-	pipe.Set(ctx, c.getRoundInvalidSharesKey(chain), "0", 0)
+	pipe.Set(ctx, acceptedKey, "0", 0)
+	pipe.Set(ctx, rejectedKey, "0", 0)
+	pipe.Set(ctx, invalidKey, "0", 0)
 
 	_, err := pipe.Exec(ctx)
 	if err != nil && err != redis.Nil {

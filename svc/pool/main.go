@@ -121,9 +121,9 @@ func main() {
 	argMainnet := flag.Bool("mainnet", true, "Whether or not to run on the mainnet")
 	argSecretVar := flag.String("secret", "", "ENV variable defined by ECS")
 	argStandardPort := flag.Int("port", 3333, "The pool port to use")
-	argHighDiffEnabled := flag.Bool("high-diff", true, "Whether or not to enable high difficulty")
-	argExtraHighDiffEnabled := flag.Bool("extra-high-diff", true, "Whether or not to enable extra high difficulty")
-	argSoloEnabled := flag.Bool("solo-enabled", true, "Whether or not to enable solo")
+	argHighDiffPort := flag.Int("high-diff-port", -1, "The port for high difficulty (-1 is disabled)")
+	argExtraHighDiffPort := flag.Int("extra-high-diff-port", -1, "The port for extra high difficulty (-1 is disabled)")
+	argSoloEnabled := flag.Bool("solo-enabled", false, "Whether or not to enable solo")
 	argMetricsPort := flag.Int("metrics-port", 6060, "The metrics port to use")
 
 	flag.Parse()
@@ -136,11 +136,11 @@ func main() {
 	}
 
 	portDiffIdx := map[int]int{*argStandardPort: 1}
-	if *argHighDiffEnabled {
-		portDiffIdx[*argStandardPort+10000] = 64
+	if *argHighDiffPort != -1 {
+		portDiffIdx[*argHighDiffPort] = 16
 	}
-	if *argExtraHighDiffEnabled {
-		portDiffIdx[*argStandardPort+20000] = 4096
+	if *argExtraHighDiffPort != -1 {
+		portDiffIdx[*argExtraHighDiffPort] = 256
 	}
 
 	opts.PortDiffIdx = portDiffIdx

@@ -125,7 +125,7 @@ func (c *Client) AddUniqueShare(chain string, height uint64, hash string) (bool,
 
 /* rounds */
 
-func (c *Client) AddAcceptedShare(chain, interval, compoundID string, count int, window int64) error {
+func (c *Client) AddAcceptedShare(chain, interval, compoundID string, soloMinerID uint64, count int, window int64) error {
 	if count <= 0 {
 		return nil
 	}
@@ -133,11 +133,19 @@ func (c *Client) AddAcceptedShare(chain, interval, compoundID string, count int,
 	ctx := context.Background()
 	pipe := c.writeClient.Pipeline()
 
-	for i := 0; i < count; i++ {
-		pipe.LPush(ctx, c.getRoundSharesKey(chain), compoundID)
+	// if there is no solo miner ID, push the shares to the global list
+	// and increment the global round share counter. otherwise, increment
+	// the miner specific round share counter
+	if soloMinerID == 0 {
+		for i := 0; i < count; i++ {
+			pipe.LPush(ctx, c.getRoundSharesKey(chain), compoundID)
+		}
+		pipe.LTrim(ctx, c.getRoundSharesKey(chain), 0, window-1)
+		pipe.IncrBy(ctx, c.getRoundAcceptedSharesKey(chain), int64(count))
+	} else {
+		pipe.IncrBy(ctx, c.getRoundSoloAcceptedSharesKey(chain, soloMinerID), int64(count))
 	}
-	pipe.LTrim(ctx, c.getRoundSharesKey(chain), 0, window-1)
-	pipe.IncrBy(ctx, c.getRoundAcceptedSharesKey(chain), int64(count))
+
 	pipe.ZIncrBy(ctx, c.getIntervalAcceptedSharesKey(chain, interval), float64(count), compoundID)
 	pipe.ZIncrBy(ctx, c.getIntervalAcceptedAdjustedSharesKey(chain, interval), 1, compoundID)
 
@@ -146,11 +154,16 @@ func (c *Client) AddAcceptedShare(chain, interval, compoundID string, count int,
 	return err
 }
 
-func (c *Client) AddRejectedShare(chain, interval, compoundID string, count int) error {
+func (c *Client) AddRejectedShare(chain, interval, compoundID string, soloMinerID uint64, count int) error {
 	ctx := context.Background()
 	pipe := c.writeClient.Pipeline()
 
-	pipe.IncrBy(ctx, c.getRoundRejectedSharesKey(chain), int64(count))
+	if soloMinerID == 0 {
+		pipe.IncrBy(ctx, c.getRoundRejectedSharesKey(chain), int64(count))
+	} else {
+		pipe.IncrBy(ctx, c.getRoundSoloRejectedSharesKey(chain, soloMinerID), int64(count))
+	}
+
 	pipe.ZIncrBy(ctx, c.getIntervalRejectedSharesKey(chain, interval), float64(count), compoundID)
 	pipe.ZIncrBy(ctx, c.getIntervalRejectedAdjustedSharesKey(chain, interval), 1, compoundID)
 
@@ -159,11 +172,16 @@ func (c *Client) AddRejectedShare(chain, interval, compoundID string, count int)
 	return err
 }
 
-func (c *Client) AddInvalidShare(chain, interval, compoundID string, count int) error {
+func (c *Client) AddInvalidShare(chain, interval, compoundID string, soloMinerID uint64, count int) error {
 	ctx := context.Background()
 	pipe := c.writeClient.Pipeline()
 
-	pipe.IncrBy(ctx, c.getRoundInvalidSharesKey(chain), int64(count))
+	if soloMinerID == 0 {
+		pipe.IncrBy(ctx, c.getRoundInvalidSharesKey(chain), int64(count))
+	} else {
+		pipe.IncrBy(ctx, c.getRoundSoloInvalidSharesKey(chain, soloMinerID), int64(count))
+	}
+
 	pipe.ZIncrBy(ctx, c.getIntervalInvalidSharesKey(chain, interval), float64(count), compoundID)
 	pipe.ZIncrBy(ctx, c.getIntervalInvalidAdjustedSharesKey(chain, interval), 1, compoundID)
 

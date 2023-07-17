@@ -88,6 +88,7 @@ type IPAddress struct {
 	MinerID   uint64 `db:"miner_id"`
 	WorkerID  uint64 `db:"worker_id"`
 	IPAddress string `db:"ip_address"`
+	Solo      bool   `db:"solo"`
 
 	Active        bool      `db:"active"`
 	Expired       bool      `db:"expired"`
@@ -105,6 +106,7 @@ type Round struct {
 	// column not present in the table, only
 	// helpful for a specific join query (GetRounds)
 	Miner *string `db:"miner"`
+	Solo  bool    `db:"solo"`
 
 	Height      uint64  `db:"height"`
 	UncleHeight *uint64 `db:"uncle_height"`

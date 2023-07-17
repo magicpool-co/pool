@@ -80,19 +80,34 @@ func (suite *RedisWritesSuite) TestWriteShareIndexes() {
 func (suite *RedisWritesSuite) TestWriteRounds() {
 	var err error
 
-	err = redisClient.AddAcceptedShare("", "", "", 4, 1)
+	err = redisClient.AddAcceptedShare("", "", "", 0, 4, 1)
 	if err != nil {
 		suite.T().Errorf("failed: AddAcceptedShare: %v", err)
 	}
 
-	err = redisClient.AddRejectedShare("", "", "", 4)
+	err = redisClient.AddAcceptedShare("", "", "", 1, 4, 1)
+	if err != nil {
+		suite.T().Errorf("failed: AddAcceptedShare (SOLO): %v", err)
+	}
+
+	err = redisClient.AddRejectedShare("", "", "", 0, 4)
 	if err != nil {
 		suite.T().Errorf("failed: AddRejectedShare: %v", err)
 	}
 
-	err = redisClient.AddInvalidShare("", "", "", 4)
+	err = redisClient.AddRejectedShare("", "", "", 1, 4)
+	if err != nil {
+		suite.T().Errorf("failed: AddRejectedShare (SOLO): %v", err)
+	}
+
+	err = redisClient.AddInvalidShare("", "", "", 0, 4)
 	if err != nil {
 		suite.T().Errorf("failed: AddInvalidShare: %v", err)
+	}
+
+	err = redisClient.AddInvalidShare("", "", "", 1, 4)
+	if err != nil {
+		suite.T().Errorf("failed: AddInvalidShare (SOLO): %v", err)
 	}
 }
 

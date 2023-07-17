@@ -25,6 +25,8 @@ func processHashrateInfo(shares []*tsdb.Share) map[string]*HashrateInfo {
 			units = "S/s"
 		case "AE", "CTXC":
 			units = "Gps"
+		case "SKAS":
+			share.ChainID = "KAS (SOLO)"
 		default:
 			units = "H/s"
 		}
@@ -41,6 +43,11 @@ func processHashrateInfo(shares []*tsdb.Share) map[string]*HashrateInfo {
 func processShareInfo(shares []*tsdb.Share) map[string]*ShareInfo {
 	idx := make(map[string]*ShareInfo)
 	for _, share := range shares {
+		switch share.ChainID {
+		case "SKAS":
+			share.ChainID = "KAS (SOLO)"
+		}
+
 		var acceptedRate, rejectedRate, invalidRate float64
 		sumShares := float64(share.AcceptedShares + share.RejectedShares + share.InvalidShares)
 		if sumShares > 0 {
@@ -60,37 +67,6 @@ func processShareInfo(shares []*tsdb.Share) map[string]*ShareInfo {
 	}
 
 	return idx
-}
-
-func (c *Client) GetGlobalDashboard() (*Dashboard, error) {
-	sumShares, err := tsdb.GetGlobalSharesSum(c.tsdb.Reader(), dashboardAggPeriod, dashboardAggDuration)
-	if err != nil {
-		return nil, err
-	}
-
-	lastShares, err := tsdb.GetGlobalSharesLast(c.tsdb.Reader(), dashboardAggPeriod)
-	if err != nil {
-		return nil, err
-	}
-
-	activeMiners, err := pooldb.GetActiveMinersCount(c.pooldb.Reader(), "")
-	if err != nil {
-		return nil, err
-	}
-
-	activeWorkers, err := pooldb.GetActiveWorkersCount(c.pooldb.Reader(), "")
-	if err != nil {
-		return nil, err
-	}
-
-	dashboard := &Dashboard{
-		Miners:        newNumberFromUint64Ptr(activeMiners),
-		ActiveWorkers: newNumberFromUint64Ptr(activeWorkers),
-		HashrateInfo:  processHashrateInfo(lastShares),
-		ShareInfo:     processShareInfo(sumShares),
-	}
-
-	return dashboard, nil
 }
 
 func (c *Client) GetMinerDashboard(minerIdx map[uint64]string) (*Dashboard, error) {

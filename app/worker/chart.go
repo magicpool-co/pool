@@ -46,17 +46,19 @@ func (j *ChartJob) Run() {
 
 	// shares
 	for _, node := range j.nodes {
-		intervals, err := client.FetchShareIntervals(node.Chain())
-		if err != nil {
-			j.logger.Error(fmt.Errorf("share: interval: %s: %v", node.Chain(), err))
-			continue
-		}
-
-		for _, interval := range intervals {
-			err := client.ProcessShares(interval, node)
+		for _, chain := range []string{node.Chain(), "S" + node.Chain()} {
+			intervals, err := client.FetchShareIntervals(chain)
 			if err != nil {
-				j.logger.Error(fmt.Errorf("share: %v", err))
-				break
+				j.logger.Error(fmt.Errorf("share: interval: %s: %v", chain, err))
+				continue
+			}
+
+			for _, interval := range intervals {
+				err := client.ProcessShares(chain, interval, node)
+				if err != nil {
+					j.logger.Error(fmt.Errorf("share: %v", err))
+					break
+				}
 			}
 		}
 	}

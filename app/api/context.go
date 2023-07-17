@@ -329,7 +329,7 @@ func (ctx *Context) getDashboard(args dashboardArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var dashboard *stats.Dashboard
 		var err error
-		if args.miner == "" && args.worker != "" {
+		if args.miner == "" {
 			ctx.writeErrorResponse(w, errInvalidParameters)
 			return
 		} else if args.worker != "" {
@@ -359,8 +359,6 @@ func (ctx *Context) getDashboard(args dashboardArgs) http.Handler {
 			}
 
 			dashboard, err = ctx.stats.GetMinerDashboard(minerIdx)
-		} else {
-			dashboard, err = ctx.stats.GetGlobalDashboard()
 		}
 
 		if err != nil {

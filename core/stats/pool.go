@@ -31,19 +31,13 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 	stats := make([]*PoolSummary, len(nodes))
 	for i, node := range nodes {
 		chain := node.Chain()
-		miners, err := c.getActiveMinersCount(chain)
-		if err != nil {
-			return nil, err
-		}
-
-		workers, err := c.getActiveWorkersCount(chain)
-		if err != nil {
-			return nil, err
-		}
 
 		var hashrate float64
+		var miners, workers uint64
 		if dbShare, ok := dbSharesIdx[chain]; ok {
 			hashrate = dbShare.Hashrate
+			miners = dbShare.Miners
+			workers = dbShare.Workers
 		}
 
 		var networkDifficulty, networkHashrate, blockReward, blockTime, profitUsd, profitBtc float64

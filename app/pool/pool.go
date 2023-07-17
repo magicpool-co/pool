@@ -47,10 +47,12 @@ type Pool struct {
 	wg         sync.WaitGroup
 
 	chain                string
+	soloChain            string
 	portDiffIdx          map[int]int
 	soloPortIdx          map[int]bool
 	windowSize           int64
 	extraNonce1Size      int
+	soloEnabled          bool
 	varDiffEnabled       bool
 	forceErrorOnResponse bool
 	node                 types.MiningNode
@@ -81,9 +83,14 @@ type Pool struct {
 func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client, logger *log.Logger, telegramClient *telegram.Client, metricsClient *metrics.Client, opt *Options) (*Pool, error) {
 	soloPortIdx := make(map[int]bool)
 	if opt.SoloEnabled {
+		soloPortDiffIdx := make(map[int]int)
 		for port, diff := range opt.PortDiffIdx {
 			soloPortIdx[port+1] = true
-			opt.PortDiffIdx[port+1] = diff
+			soloPortDiffIdx[port+1] = diff
+		}
+
+		for port, diff := range soloPortDiffIdx {
+			opt.PortDiffIdx[port] = diff
 		}
 	}
 
@@ -114,10 +121,12 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 		server:     server,
 
 		chain:                strings.ToUpper(opt.Chain),
+		soloChain:            "S" + strings.ToUpper(opt.Chain),
 		portDiffIdx:          opt.PortDiffIdx,
 		soloPortIdx:          soloPortIdx,
 		windowSize:           int64(opt.WindowSize),
 		extraNonce1Size:      opt.ExtraNonceSize,
+		soloEnabled:          opt.SoloEnabled,
 		varDiffEnabled:       opt.VarDiffEnabled,
 		forceErrorOnResponse: opt.ForceErrorOnResponse,
 		node:                 node,
@@ -159,7 +168,7 @@ func (p *Pool) writeToConn(c *stratum.Conn, msg interface{}) error {
 	return c.Write(data)
 }
 
-func (p *Pool) getCurrentInterval(reset bool) string {
+func (p *Pool) getCurrentInterval(chain string, reset bool) string {
 	normalizedDate := common.NormalizeDate(time.Now().UTC(), time.Minute*15, false)
 	interval := strconv.FormatInt(normalizedDate.Unix(), 10)
 	if interval != p.interval {
@@ -167,7 +176,7 @@ func (p *Pool) getCurrentInterval(reset bool) string {
 			p.intervalMu.Lock()
 			defer p.intervalMu.Unlock()
 
-			if err := p.redis.AddInterval(p.chain, interval); err != nil {
+			if err := p.redis.AddInterval(chain, interval); err != nil {
 				p.logger.Error(err)
 			} else {
 				p.interval = interval
@@ -224,6 +233,13 @@ func (p *Pool) startJobNotify() {
 				if err != nil {
 					p.logger.Error(err)
 				}
+
+				if p.soloEnabled {
+					err = p.redis.AddShareIndexHeight(p.soloChain, job.Height.Value())
+					if err != nil {
+						p.logger.Error(err)
+					}
+				}
 			}
 		case <-timer.C:
 			timer.Reset(time.Minute * 10)
@@ -253,24 +269,31 @@ func (p *Pool) startShareIndexClearer() {
 		case <-p.ctx.Done():
 			return
 		case <-ticker.C:
-			indexes, err := p.redis.GetShareIndexes(p.chain)
-			if err != nil {
-				p.logger.Error(err)
-				continue
+			chains := []string{p.chain}
+			if p.soloEnabled {
+				chains = append(chains, p.soloChain)
 			}
 
-			for _, index := range indexes {
-				height, err := strconv.ParseUint(index, 10, 64)
+			for _, chain := range chains {
+				indexes, err := p.redis.GetShareIndexes(chain)
 				if err != nil {
 					p.logger.Error(err)
-					continue
-				} else if !p.jobManager.isExpiredHeight(height) {
 					continue
 				}
 
-				err = p.redis.DeleteShareIndexHeight(p.chain, height)
-				if err != nil {
-					p.logger.Error(err)
+				for _, index := range indexes {
+					height, err := strconv.ParseUint(index, 10, 64)
+					if err != nil {
+						p.logger.Error(err)
+						continue
+					} else if !p.jobManager.isExpiredHeight(height) {
+						continue
+					}
+
+					err = p.redis.DeleteShareIndexHeight(chain, height)
+					if err != nil {
+						p.logger.Error(err)
+					}
 				}
 			}
 		}
@@ -287,7 +310,10 @@ func (p *Pool) startMinerStatsPusher() {
 			return
 		case <-ticker.C:
 			// force interval addition
-			p.getCurrentInterval(true)
+			p.getCurrentInterval(p.chain, true)
+			if p.soloEnabled {
+				p.getCurrentInterval(p.soloChain, true)
+			}
 
 			// copy and replace last share and latency index
 			p.minerStatsMu.Lock()

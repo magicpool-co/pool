@@ -61,9 +61,19 @@ func (suite *RedisReadsSuite) TestGetRounds() {
 		suite.T().Errorf("failed: GetRoundShares: %v", err)
 	}
 
-	_, _, _, err = redisClient.GetRoundShareCounts("")
+	_, err = redisClient.GetRoundSoloShares("", 0)
+	if err != nil {
+		suite.T().Errorf("failed: GetRoundSoloShares: %v", err)
+	}
+
+	_, _, _, err = redisClient.GetRoundShareCounts("", 0)
 	if err != nil {
 		suite.T().Errorf("failed: GetRoundShareCounts: %v", err)
+	}
+
+	_, _, _, err = redisClient.GetRoundShareCounts("", 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetRoundShareCounts (SOLO): %v", err)
 	}
 }
 

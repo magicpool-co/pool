@@ -80,16 +80,6 @@ func (suite *PooldbReadsSuite) TestReadMiner() {
 	if err != nil {
 		suite.T().Errorf("failed: GetRecipients: %v", err)
 	}
-
-	_, err = pooldb.GetActiveMiners(pooldbClient.Reader(), []uint64{1, 2, 3})
-	if err != nil {
-		suite.T().Errorf("failed: GetActiveMiners: %v", err)
-	}
-
-	_, err = pooldb.GetActiveMinersCount(pooldbClient.Reader(), "ETC")
-	if err != nil {
-		suite.T().Errorf("failed: GetActiveMinersCount: %v", err)
-	}
 }
 
 func (suite *PooldbReadsSuite) TestReadWorker() {
@@ -108,11 +98,6 @@ func (suite *PooldbReadsSuite) TestReadWorker() {
 	_, err = pooldb.GetWorkersByMiner(pooldbClient.Reader(), 0)
 	if err != nil {
 		suite.T().Errorf("failed: GetWorkersByMiner: %v", err)
-	}
-
-	_, err = pooldb.GetActiveWorkersCount(pooldbClient.Reader(), "ETC")
-	if err != nil {
-		suite.T().Errorf("failed: GetActiveWorkersCount: %v", err)
 	}
 
 	_, err = pooldb.GetActiveWorkersByMinersCount(pooldbClient.Reader(), []uint64{0, 1})

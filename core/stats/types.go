@@ -194,6 +194,7 @@ type Dashboard struct {
 type Round struct {
 	Chain           string  `json:"chain"`
 	Type            string  `json:"type"`
+	Pool            string  `json:"pool"`
 	Pending         bool    `json:"pending"`
 	Mature          bool    `json:"mature"`
 	Hash            string  `json:"hash"`
