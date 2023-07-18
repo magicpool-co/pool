@@ -573,6 +573,7 @@ func (ctx *Context) getShareMetricChart(args shareMetricChartArgs) http.Handler 
 }
 
 type earningMetricChartArgs struct {
+	metric string
 	period string
 	miner  string
 	worker string
@@ -580,6 +581,12 @@ type earningMetricChartArgs struct {
 
 func (ctx *Context) getEarningMetricChart(args earningMetricChartArgs) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		metric, err := types.ParseEarningMetric(args.metric)
+		if err != nil {
+			ctx.writeErrorResponse(w, errMetricNotFound)
+			return
+		}
+
 		period, err := types.ParsePeriodType(args.period)
 		if err != nil || period != types.Period1d {
 			ctx.writeErrorResponse(w, errPeriodNotFound)
@@ -592,7 +599,7 @@ func (ctx *Context) getEarningMetricChart(args earningMetricChartArgs) http.Hand
 			return
 		}
 
-		data, err := ctx.stats.GetMinerEarningChart(minerIDs, period)
+		data, err := ctx.stats.GetMinerEarningChart(minerIDs, metric, period)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return

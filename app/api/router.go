@@ -153,10 +153,10 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		period := r.URL.Query().Get("period")
 		handler = rtr.ctx.getShareMetricChart(shareMetricChartArgs{metric: metric, period: period, miner: miner})
 
-	case rtr.match(path, "/miner/+/charts/earnings", &miner):
+	case rtr.match(path, "/miner/+/charts/earnings/+", &miner, &metric):
 		method = "GET"
 		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getEarningMetricChart(earningMetricChartArgs{period: period, miner: miner})
+		handler = rtr.ctx.getEarningMetricChart(earningMetricChartArgs{metric: metric, period: period, miner: miner})
 
 	case rtr.match(path, "/miner/+/rounds", &miner):
 		method = "GET"

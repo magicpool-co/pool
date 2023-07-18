@@ -289,46 +289,6 @@ func (c *Client) GetRoundChart(chain string, period types.PeriodType) (*RoundCha
 /* share chart */
 
 func sumShares(items []*tsdb.Share) []*tsdb.Share {
-	idx := make(map[time.Time]*tsdb.Share)
-	duplicateIdx := make(map[time.Time][]*tsdb.Share)
-	for _, item := range items {
-		if _, ok := idx[item.EndTime]; !ok {
-			idx[item.EndTime] = item
-			continue
-		} else if _, ok := duplicateIdx[item.EndTime]; !ok {
-			duplicateIdx[item.EndTime] = make([]*tsdb.Share, 0)
-		}
-
-		duplicateIdx[item.EndTime] = append(duplicateIdx[item.EndTime], item)
-	}
-
-	for timestamp, duplicateItems := range duplicateIdx {
-		for _, item := range duplicateItems {
-			idx[timestamp].Miners += item.Miners
-			idx[timestamp].Workers += item.Workers
-			idx[timestamp].AcceptedAdjustedShares += item.AcceptedAdjustedShares
-			idx[timestamp].RejectedAdjustedShares += item.RejectedAdjustedShares
-			idx[timestamp].InvalidAdjustedShares += item.InvalidAdjustedShares
-			idx[timestamp].Hashrate += item.Hashrate
-			idx[timestamp].AvgHashrate += item.AvgHashrate
-		}
-	}
-
-	var count int
-	uniqueItems := make([]*tsdb.Share, len(idx))
-	for _, item := range idx {
-		uniqueItems[count] = item
-		count++
-	}
-
-	sort.Slice(uniqueItems, func(i, j int) bool {
-		return uniqueItems[i].EndTime.Before(uniqueItems[j].EndTime)
-	})
-
-	return uniqueItems
-}
-
-func sumSharesSingle(metric types.ShareMetric, items []*tsdb.Share) ([]*tsdb.Share, error) {
 	compoundIdx := make(map[time.Time]map[string]*tsdb.Share)
 	compoundDuplicateIdx := make(map[time.Time]map[string][]*tsdb.Share)
 	for _, item := range items {
@@ -350,17 +310,13 @@ func sumSharesSingle(metric types.ShareMetric, items []*tsdb.Share) ([]*tsdb.Sha
 	for timestamp, duplicateIdx := range compoundDuplicateIdx {
 		for chain, duplicateItems := range duplicateIdx {
 			for _, item := range duplicateItems {
-				switch metric {
-				case types.ShareHashrate:
-					compoundIdx[timestamp][chain].Hashrate += item.Hashrate
-				case types.ShareAverageHashrate:
-					compoundIdx[timestamp][chain].AvgHashrate += item.AvgHashrate
-				case types.ShareAcceptedCount, types.ShareRejectedCount, types.ShareRejectedRate:
-					compoundIdx[timestamp][chain].AcceptedAdjustedShares += item.AcceptedAdjustedShares
-					compoundIdx[timestamp][chain].RejectedAdjustedShares += item.RejectedAdjustedShares
-				default:
-					return nil, fmt.Errorf("unknown metric type")
-				}
+				compoundIdx[timestamp][chain].Miners += item.Miners
+				compoundIdx[timestamp][chain].Workers += item.Workers
+				compoundIdx[timestamp][chain].AcceptedAdjustedShares += item.AcceptedAdjustedShares
+				compoundIdx[timestamp][chain].RejectedAdjustedShares += item.RejectedAdjustedShares
+				compoundIdx[timestamp][chain].InvalidAdjustedShares += item.InvalidAdjustedShares
+				compoundIdx[timestamp][chain].Hashrate += item.Hashrate
+				compoundIdx[timestamp][chain].AvgHashrate += item.AvgHashrate
 			}
 		}
 	}
@@ -376,7 +332,7 @@ func sumSharesSingle(metric types.ShareMetric, items []*tsdb.Share) ([]*tsdb.Sha
 		return uniqueItems[i].EndTime.Before(uniqueItems[j].EndTime)
 	})
 
-	return uniqueItems, nil
+	return uniqueItems
 }
 
 func getShareChart(items []*tsdb.Share, period types.PeriodType) *ShareChart {
@@ -538,10 +494,7 @@ func (c *Client) GetMinerShareSingleMetricChart(minerIDs []uint64, metric types.
 
 	// sum shares if more than one miner
 	if len(minerIDs) > 1 {
-		items, err = sumSharesSingle(metric, items)
-		if err != nil {
-			return nil, err
-		}
+		items = sumShares(items)
 	}
 
 	return c.getShareChartSingle(metric, items, period)
@@ -567,7 +520,7 @@ func (c *Client) GetWorkerShareSingleMetricChart(workerID uint64, metric types.S
 
 /* share chart */
 
-func sumEarningsSingle(items []*tsdb.Earning) ([]*tsdb.Earning, error) {
+func sumEarnings(items []*tsdb.Earning) ([]*tsdb.Earning, error) {
 	compoundIdx := make(map[time.Time]map[string]*tsdb.Earning)
 	compoundDuplicateIdx := make(map[time.Time]map[string][]*tsdb.Earning)
 	for _, item := range items {
@@ -662,15 +615,15 @@ func (c *Client) GetGlobalEarningChart(period types.PeriodType) (*ChartSingle, e
 	return c.getEarningChartSingle(items, period)
 }
 
-func (c *Client) GetMinerEarningChart(minerIDs []uint64, period types.PeriodType) (*ChartSingle, error) {
-	items, err := tsdb.GetMinerEarningsSingleMetric(c.tsdb.Reader(), minerIDs, "value", int(period))
+func (c *Client) GetMinerEarningChart(minerIDs []uint64, metric types.EarningMetric, period types.PeriodType) (*ChartSingle, error) {
+	items, err := tsdb.GetMinerEarningsSingleMetric(c.tsdb.Reader(), minerIDs, string(metric), int(period))
 	if err != nil {
 		return nil, err
 	}
 
 	// sum shares if more than one miner
 	if len(minerIDs) > 1 {
-		items, err = sumEarningsSingle(items)
+		items, err = sumEarnings(items)
 		if err != nil {
 			return nil, err
 		}

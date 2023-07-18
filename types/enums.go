@@ -231,3 +231,21 @@ func ParseShareMetric(raw string) (ShareMetric, error) {
 		return "", fmt.Errorf("unknown metric type")
 	}
 }
+
+type EarningMetric string
+
+const (
+	EarningValue        EarningMetric = "value"
+	EarningAverageValue EarningMetric = "avg_value"
+)
+
+func ParseEarningMetric(raw string) (EarningMetric, error) {
+	switch raw {
+	case "value":
+		return EarningValue, nil
+	case "avgValue":
+		return EarningAverageValue, nil
+	default:
+		return "", fmt.Errorf("unknown metric type")
+	}
+}

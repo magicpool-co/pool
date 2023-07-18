@@ -53,7 +53,8 @@ func (c *Client) GetMiners(chain string, page, size uint64) ([]*Miner, uint64, e
 	// mark a miner as solo if their avg solo hashrate is greater
 	// than their avg pplns hashrate, add the solo hashrate
 	isSoloIdx := make(map[uint64]bool)
-	for minerID, dbShare := range dbShares {
+	for _, dbShare := range dbShares {
+		minerID := types.Uint64Value(dbShare.MinerID)
 		dbSoloShare, ok := dbSoloShareIdx[minerID]
 		if !ok {
 			continue
@@ -62,7 +63,7 @@ func (c *Client) GetMiners(chain string, page, size uint64) ([]*Miner, uint64, e
 		isSoloIdx[minerID] = dbSoloShare.AvgHashrate > dbShare.AvgHashrate
 		dbShare.Hashrate += dbSoloShare.Hashrate
 		dbShare.AvgHashrate += dbSoloShare.AvgHashrate
-		delete(minerID, dbSoloShareIdx)
+		delete(dbSoloShareIdx, minerID)
 	}
 
 	for minerID, dbSoloShare := range dbSoloShareIdx {
