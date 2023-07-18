@@ -260,6 +260,10 @@ func (c *Client) GetChartRoundsLastTime(chain string) (time.Time, error) {
 	return c.baseGetTime(c.getChartRoundsLastTimeKey(chain))
 }
 
+func (c *Client) GetChartEarningsLastTime(chain string) (time.Time, error) {
+	return c.baseGetTime(c.getChartEarningsLastTimeKey(chain))
+}
+
 /* cached stats */
 
 func (c *Client) GetCachedGlobalLastShares() ([]*tsdb.Share, error) {

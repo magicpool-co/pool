@@ -127,6 +127,25 @@ func (suite *TsdbReadsSuite) TestReadRounds() {
 	}
 }
 
+func (suite *TsdbReadsSuite) TestReadEarnings() {
+	var err error
+
+	_, err = tsdb.GetEarningMaxEndTime(tsdbClient.Reader(), "ETH", 1)
+	if err != nil {
+		suite.T().Errorf("failed: GetEarningMaxEndTime: %v", err)
+	}
+
+	_, err = tsdb.GetGlobalEarningsAverage(tsdbClient.Reader(), time.Now(), "ETH", 1, time.Hour)
+	if err != nil {
+		suite.T().Errorf("failed: GetRoundsAverageLuckSlow: %v", err)
+	}
+
+	_, err = tsdb.GetMinerEarningsAverage(tsdbClient.Reader(), time.Now(), "ETH", 1, time.Hour)
+	if err != nil {
+		suite.T().Errorf("failed: GetRoundsAverageProfitabilitySlow: %v", err)
+	}
+}
+
 func (suite *TsdbReadsSuite) TestReadShares() {
 	var err error
 	metrics := []string{"hashrate", "avg_hashrate"}

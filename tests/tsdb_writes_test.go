@@ -138,6 +138,33 @@ func (suite *TsdbWritesSuite) TestWriteRound() {
 	}
 }
 
+func (suite *TsdbWritesSuite) TestWriteEarning() {
+	tests := []struct {
+		earning *tsdb.Earning
+	}{
+		{
+			earning: &tsdb.Earning{
+				MinerID:   types.Uint64Ptr(1),
+				StartTime: time.Now(),
+				EndTime:   time.Now(),
+			},
+		},
+	}
+
+	var err error
+	for i, tt := range tests {
+		err = tsdb.InsertGlobalEarnings(tsdbClient.Writer(), tt.earning)
+		if err != nil {
+			suite.T().Errorf("failed on %d: InsertGlobalEarnings: %v", i, err)
+		}
+
+		err = tsdb.InsertMinerEarnings(tsdbClient.Writer(), tt.earning)
+		if err != nil {
+			suite.T().Errorf("failed on %d: InsertMinerEarnings: %v", i, err)
+		}
+	}
+}
+
 func (suite *TsdbWritesSuite) TestWriteShare() {
 	tests := []struct {
 		share *tsdb.Share

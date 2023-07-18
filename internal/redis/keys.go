@@ -159,6 +159,10 @@ func (c *Client) getChartRoundsLastTimeKey(chain string) string {
 	return c.getKey("chrt", "rnd", strings.ToLower(chain))
 }
 
+func (c *Client) getChartEarningsLastTimeKey(chain string) string {
+	return c.getKey("chrt", "earn", strings.ToLower(chain))
+}
+
 /* cached stats */
 
 func (c *Client) getCachedGlobalLastSharesKey() string {

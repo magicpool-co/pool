@@ -347,3 +347,29 @@ func InsertFinalWorkerShares(q dbcl.Querier, objects ...*Share) error {
 
 	return dbcl.ExecBulkInsertUpdateOverwrite(q, table, insertCols, updateCols, rawObjects)
 }
+
+func InsertGlobalEarnings(q dbcl.Querier, objects ...*Earning) error {
+	const table = "global_earnings"
+	cols := []string{"chain_id", "value", "avg_value",
+		"pending", "count", "period", "start_time", "end_time"}
+
+	rawObjects := make([]interface{}, len(objects))
+	for i, object := range objects {
+		rawObjects[i] = object
+	}
+
+	return dbcl.ExecBulkInsert(q, table, cols, rawObjects)
+}
+
+func InsertMinerEarnings(q dbcl.Querier, objects ...*Earning) error {
+	const table = "miner_earnings"
+	cols := []string{"chain_id", "miner_id", "value", "avg_value",
+		"pending", "count", "period", "start_time", "end_time"}
+
+	rawObjects := make([]interface{}, len(objects))
+	for i, object := range objects {
+		rawObjects[i] = object
+	}
+
+	return dbcl.ExecBulkInsert(q, table, cols, rawObjects)
+}

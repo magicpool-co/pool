@@ -1114,6 +1114,32 @@ func GetPendingBalanceInputSumByChain(q dbcl.Querier, chain string) (*big.Int, e
 	return dbcl.GetBigInt(q, query, chain)
 }
 
+func GetBalanceInputMinTimestamp(q dbcl.Querier, chain string) (time.Time, error) {
+	const query = `SELECT MIN(created_at)
+	FROM balance_inputs
+	WHERE
+		chain_id = ?;`
+
+	return dbcl.GetTime(q, query, chain)
+}
+
+func GetBalanceInputSumFromRange(q dbcl.Querier, chain string, startTime, endTime time.Time) ([]*BalanceInput, error) {
+	const query = `SELECT
+		miner_id,
+		sum(value) value
+	FROM balance_inputs
+	WHERE
+		chain_id = ?
+	AND
+		created_at BETWEEN ? AND ?
+	GROUP BY miner_id;`
+
+	output := []*BalanceInput{}
+	err := q.Select(&output, query, chain, startTime, endTime)
+
+	return output, err
+}
+
 func GetBalanceOutputsByBatch(q dbcl.Querier, batchID uint64) ([]*BalanceOutput, error) {
 	const query = `SELECT *
 	FROM balance_outputs

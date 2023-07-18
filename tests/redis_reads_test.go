@@ -118,6 +118,11 @@ func (suite *RedisReadsSuite) TestGetCharts() {
 	if err != nil {
 		suite.T().Errorf("failed: GetChartRoundsLastTime: %v", err)
 	}
+
+	_, err = redisClient.GetChartEarningsLastTime("")
+	if err != nil {
+		suite.T().Errorf("failed: GetChartEarningsLastTime: %v", err)
+	}
 }
 
 func (suite *RedisReadsSuite) TestWriteCachedStats() {

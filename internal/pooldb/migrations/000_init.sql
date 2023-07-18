@@ -523,7 +523,8 @@ CREATE TABLE balance_inputs (
 	INDEX idx_balance_inputs_balance_output_id (balance_output_id),
 	INDEX idx_balance_inputs_batch_id (batch_id),
 	INDEX idx_balance_inputs_pending_mature_batch_id (pending, mature, batch_id),
-	INDEX idx_balance_inputs_chain_id_mature_pending (chain_id, mature, pending)
+	INDEX idx_balance_inputs_chain_id_mature_pending (chain_id, mature, pending),
+	INDEX idx_balance_inputs_chain_id_created_at (chain_id, created_at)
 );
 
 CREATE TABLE balance_sums (

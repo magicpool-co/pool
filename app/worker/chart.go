@@ -103,6 +103,23 @@ func (j *ChartJob) Run() {
 		}
 	}
 
+	// earnings
+	for _, node := range j.nodes {
+		intervals, err := client.FetchEarningIntervals(node.Chain())
+		if err != nil {
+			j.logger.Error(fmt.Errorf("earning: interval: %s: %v", node.Chain(), err))
+			continue
+		}
+
+		for _, interval := range intervals {
+			err := client.ProcessEarnings(interval, node)
+			if err != nil {
+				j.logger.Error(fmt.Errorf("earning: %v", err))
+				break
+			}
+		}
+	}
+
 	// prices
 	for _, node := range j.nodes {
 		err := client.ProcessPrices(node.Chain())

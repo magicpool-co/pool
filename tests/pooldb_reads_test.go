@@ -383,6 +383,16 @@ func (suite *PooldbReadsSuite) TestReadBalanceInput() {
 	if err != nil {
 		suite.T().Errorf("failed: GetPendingBalanceInputSumByChain: %v", err)
 	}
+
+	_, err = pooldb.GetBalanceInputMinTimestamp(pooldbClient.Reader(), "ETH")
+	if err != nil {
+		suite.T().Errorf("failed: GetBalanceInputMinTimestamp: %v", err)
+	}
+
+	_, err = pooldb.GetBalanceInputSumFromRange(pooldbClient.Reader(), "ETH", time.Now(), time.Now())
+	if err != nil {
+		suite.T().Errorf("failed: GetBalanceInputSumFromRange: %v", err)
+	}
 }
 
 func (suite *PooldbReadsSuite) TestReadBalanceOutput() {

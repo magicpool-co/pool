@@ -104,3 +104,17 @@ type Share struct {
 	StartTime time.Time `db:"start_time"`
 	EndTime   time.Time `db:"end_time"`
 }
+
+type Earning struct {
+	ChainID string  `db:"chain_id"`
+	MinerID *uint64 `db:"miner_id"`
+
+	Value    float64 `db:"value"`
+	AvgValue float64 `db:"avg_value"`
+
+	Pending   bool      `db:"pending"`
+	Count     uint64    `db:"count"`
+	Period    int       `db:"period"`
+	StartTime time.Time `db:"start_time"`
+	EndTime   time.Time `db:"end_time"`
+}

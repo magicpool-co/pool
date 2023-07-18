@@ -549,6 +549,19 @@ func GetRoundMaxEndTime(q dbcl.Querier, chain string, period int) (time.Time, er
 	return dbcl.GetTime(q, query, chain, period)
 }
 
+func GetEarningMaxEndTime(q dbcl.Querier, chain string, period int) (time.Time, error) {
+	const query = `SELECT MAX(end_time)
+	FROM global_earnings
+	WHERE
+		chain_id = ?
+	AND
+		period = ?;`
+
+	return dbcl.GetTime(q, query, chain, period)
+}
+
+/* averages */
+
 func GetGlobalSharesAverageFast(q dbcl.Querier, timestamp time.Time, chain string, period, windowSize int, duration time.Duration) (float64, error) {
 	var query = fmt.Sprintf(`WITH last AS (
     	SELECT hashrate, avg_hashrate
@@ -807,6 +820,47 @@ func GetWorkerSharesAverageSlow(q dbcl.Querier, workerID uint64, timestamp time.
 		period = ?;`, dbcl.ConvertDurationToInterval(duration))
 
 	return dbcl.GetFloat64(q, query, timestamp, timestamp, workerID, chain, period)
+}
+
+func GetGlobalEarningsAverage(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (float64, error) {
+	var query = fmt.Sprintf(`SELECT IFNULL(AVG(value), 0) avg_value
+	FROM global_earnings
+	WHERE
+		end_time BETWEEN DATE_SUB(?, %s) AND ?
+	AND
+		chain_id = ?
+	AND
+		period = ?;`, dbcl.ConvertDurationToInterval(duration))
+
+	return dbcl.GetFloat64(q, query, timestamp, timestamp, chain, period)
+}
+
+func GetMinerEarningsAverage(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (map[uint64]float64, error) {
+	var query = fmt.Sprintf(`SELECT miner_id, IFNULL(AVG(value), 0) avg_value
+	FROM miner_earnings
+	WHERE
+		end_time BETWEEN DATE_SUB(?, %s) AND ?
+	AND
+		chain_id = ?
+	AND
+		period = ?
+	GROUP BY miner_id`, dbcl.ConvertDurationToInterval(duration))
+
+	items := []*Earning{}
+	err := q.Select(&items, query, timestamp, timestamp, chain, period)
+	if err != nil {
+		return nil, err
+	}
+
+	output := make(map[uint64]float64, len(items))
+	for _, item := range items {
+		if item.MinerID == nil {
+			return nil, fmt.Errorf("empty minerID")
+		}
+		output[*item.MinerID] = item.AvgValue
+	}
+
+	return output, err
 }
 
 /* sums */

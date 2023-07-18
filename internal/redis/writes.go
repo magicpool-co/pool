@@ -234,6 +234,11 @@ func (c *Client) SetChartRoundsLastTime(chain string, timestamp time.Time) error
 	return c.baseSet(c.getChartRoundsLastTimeKey(chain), encoded)
 }
 
+func (c *Client) SetChartEarningsLastTime(chain string, timestamp time.Time) error {
+	encoded := strconv.FormatInt(timestamp.UTC().Unix(), 10)
+	return c.baseSet(c.getChartEarningsLastTimeKey(chain), encoded)
+}
+
 /* cached stats */
 
 func (c *Client) SetCachedGlobalLastShares(shares []*tsdb.Share, exp time.Duration) error {

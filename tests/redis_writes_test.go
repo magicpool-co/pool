@@ -142,6 +142,11 @@ func (suite *RedisWritesSuite) TestWriteCharts() {
 	if err != nil {
 		suite.T().Errorf("failed: SetChartRoundsLastTime: %v", err)
 	}
+
+	err = redisClient.SetChartEarningsLastTime("", time.Now())
+	if err != nil {
+		suite.T().Errorf("failed: SetChartEarningsLastTime: %v", err)
+	}
 }
 
 func (suite *RedisWritesSuite) TestWriteCachedStats() {
