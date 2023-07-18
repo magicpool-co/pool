@@ -29,10 +29,10 @@ func TestVarDiffManager(t *testing.T) {
 				time.Now().Add(time.Second * -30),
 				time.Now().Add(time.Second * 0),
 				time.Now().Add(time.Second * 25),
-				time.Now().Add(time.Second * 50),
-				time.Now().Add(time.Second * 75),
+				time.Now().Add(time.Second * 70),
 				time.Now().Add(time.Second * 100),
-				time.Now().Add(time.Second * 150),
+				time.Now().Add(time.Second * 140),
+				time.Now().Add(time.Second * 190),
 			},
 			lastRetargets: []time.Time{
 				time.Now().Add(time.Second * -90),

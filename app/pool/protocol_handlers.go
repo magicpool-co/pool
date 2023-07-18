@@ -464,7 +464,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		p.wg.Add(1)
 		defer p.wg.Done()
 
-		interval := p.getCurrentInterval(chain, false)
+		interval := p.getCurrentInterval(false)
 		switch shareStatus {
 		case types.AcceptedShare:
 			err := p.redis.AddAcceptedShare(chain, interval, c.GetCompoundID(), soloMinerID, activeDiffFactor, p.windowSize)

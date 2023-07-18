@@ -153,7 +153,7 @@ func (p *Pool) writeToConn(c *stratum.Conn, msg interface{}) error {
 	return c.Write(data)
 }
 
-func (p *Pool) getCurrentInterval(chain string, reset bool) string {
+func (p *Pool) getCurrentInterval(reset bool) string {
 	normalizedDate := common.NormalizeDate(time.Now().UTC(), time.Minute*15, false)
 	interval := strconv.FormatInt(normalizedDate.Unix(), 10)
 	if interval != p.interval {
@@ -161,11 +161,18 @@ func (p *Pool) getCurrentInterval(chain string, reset bool) string {
 			p.intervalMu.Lock()
 			defer p.intervalMu.Unlock()
 
-			if err := p.redis.AddInterval(chain, interval); err != nil {
+			if err := p.redis.AddInterval(p.chain, interval); err != nil {
 				p.logger.Error(err)
 			} else {
 				p.interval = interval
 				atomic.StoreUint32(&p.intervalDone, 1)
+			}
+
+			if p.soloEnabled {
+				err := p.redis.AddInterval(p.soloChain, interval)
+				if err != nil {
+					p.logger.Error(err)
+				}
 			}
 		}
 	}
@@ -295,10 +302,7 @@ func (p *Pool) startMinerStatsPusher() {
 			return
 		case <-ticker.C:
 			// force interval addition
-			p.getCurrentInterval(p.chain, true)
-			if p.soloEnabled {
-				p.getCurrentInterval(p.soloChain, true)
-			}
+			p.getCurrentInterval(true)
 
 			// copy and replace last share and latency index
 			p.minerStatsMu.Lock()
