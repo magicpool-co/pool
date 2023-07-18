@@ -202,7 +202,8 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 
 	// handle connect streaming
 	if p.streamWriter != nil {
-		p.streamWriter.WriteConnectEvent(c.GetMinerID(), c.GetWorker(), c.GetClient(), c.GetPort())
+		p.streamWriter.WriteConnectEvent(c.GetMinerID(), c.GetWorker(),
+			c.GetClient(), c.GetPort(), c.GetIsSolo())
 	}
 
 	var msgs []interface{}
@@ -415,7 +416,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			}
 
 			p.streamWriter.WriteShareEvent(c.GetMinerID(), c.GetWorker(), c.GetClient(),
-				c.GetPort(), status, reason, shareDiff, targetDiff)
+				c.GetPort(), c.GetIsSolo(), status, reason, shareDiff, targetDiff)
 		}()
 	}
 
@@ -450,8 +451,8 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 
 			// handle retarget streaming
 			if p.streamWriter != nil {
-				p.streamWriter.WriteRetargetEvent(c.GetMinerID(), c.GetWorker(), c.GetClient(),
-					c.GetPort(), oldDiff, newDiff)
+				p.streamWriter.WriteRetargetEvent(c.GetMinerID(), c.GetWorker(),
+					c.GetClient(), c.GetPort(), c.GetIsSolo(), oldDiff, newDiff)
 			}
 		}()
 	}

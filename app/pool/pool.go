@@ -359,7 +359,8 @@ func (p *Pool) startStratum() {
 
 			// handle disconnect streaming
 			if p.streamWriter != nil && c != nil && c.GetAuthorized() {
-				p.streamWriter.WriteDisconnectEvent(c.GetMinerID(), c.GetWorker(), c.GetClient(), c.GetPort())
+				p.streamWriter.WriteDisconnectEvent(c.GetMinerID(), c.GetWorker(),
+					c.GetClient(), c.GetPort(), c.GetIsSolo())
 			}
 
 			if p.metrics != nil {
