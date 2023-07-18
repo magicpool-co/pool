@@ -126,18 +126,23 @@ func (c *Client) rollupEarnings(node types.MiningNode, endTime time.Time) error 
 		return err
 	}
 
-	return tx.SafeCommit()
+	err = tx.SafeCommit()
+	if err != nil {
+		return err
+	}
+
+	err = c.redis.SetChartEarningsLastTime(node.Chain(), timestamp)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Client) ProcessEarnings(timestamp time.Time, node types.MiningNode) error {
 	err := c.rollupEarnings(node, timestamp)
 	if err != nil {
 		return fmt.Errorf("rollup: %s: %v", node.Chain(), err)
-	}
-
-	err = c.redis.SetChartEarningsLastTime(node.Chain(), timestamp)
-	if err != nil {
-		return fmt.Errorf("time: %s: %v", node.Chain(), err)
 	}
 
 	return nil

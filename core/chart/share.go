@@ -84,7 +84,7 @@ func (c *Client) rollupShares(chain string, node types.MiningNode, interval stri
 	}
 
 	globalShare := &tsdb.Share{
-		ChainID:     node.Chain(),
+		ChainID:     chain,
 		AvgHashrate: globalAvg,
 		Count:       1,
 		Period:      int(sharePeriod),
