@@ -134,7 +134,6 @@ func (c *Conn) SetDiffFactor(diffFactor int) {
 	}
 	lastDiffFactor := atomic.SwapInt32(&(c.diffFactor), int32(diffFactor))
 	atomic.StoreInt32(&(c.lastDiffFactor), lastDiffFactor)
-
 }
 func (c *Conn) SetLastErrorAt(ts time.Time) { atomic.StoreInt64(&(c.lastErrorAt), ts.Unix()) }
 func (c *Conn) SetErrorCount(count int)     { atomic.StoreInt32(&(c.errorCount), int32(count)) }

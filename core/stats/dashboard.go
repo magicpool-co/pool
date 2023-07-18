@@ -54,19 +54,19 @@ func (c *Client) processShareInfo(shares []*tsdb.Share) map[string]*ShareInfo {
 		}
 
 		var acceptedRate, rejectedRate, invalidRate float64
-		sumShares := float64(share.AcceptedShares + share.RejectedShares + share.InvalidShares)
+		sumShares := float64(share.AcceptedAdjustedShares + share.RejectedAdjustedShares + share.InvalidAdjustedShares)
 		if sumShares > 0 {
-			acceptedRate = 100 * float64(share.AcceptedShares) / sumShares
-			rejectedRate = 100 * float64(share.RejectedShares) / sumShares
-			invalidRate = 100 * float64(share.InvalidShares) / sumShares
+			acceptedRate = 100 * float64(share.AcceptedAdjustedShares) / sumShares
+			rejectedRate = 100 * float64(share.RejectedAdjustedShares) / sumShares
+			invalidRate = 100 * float64(share.InvalidAdjustedShares) / sumShares
 		}
 
 		idx[share.ChainID] = &ShareInfo{
-			AcceptedShares:    newNumberFromFloat64(float64(share.AcceptedShares), "", false),
+			AcceptedShares:    newNumberFromFloat64(float64(share.AcceptedAdjustedShares), "", false),
 			AcceptedShareRate: newNumberFromFloat64(acceptedRate, "%", false),
-			RejectedShares:    newNumberFromFloat64(float64(share.RejectedShares), "", false),
+			RejectedShares:    newNumberFromFloat64(float64(share.RejectedAdjustedShares), "", false),
 			RejectedShareRate: newNumberFromFloat64(rejectedRate, "%", false),
-			InvalidShares:     newNumberFromFloat64(float64(share.InvalidShares), "", false),
+			InvalidShares:     newNumberFromFloat64(float64(share.InvalidAdjustedShares), "", false),
 			InvalidShareRate:  newNumberFromFloat64(invalidRate, "%", false),
 		}
 	}

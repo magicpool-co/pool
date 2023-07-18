@@ -271,9 +271,9 @@ func sumShares(items []*tsdb.Share) []*tsdb.Share {
 		for _, item := range duplicateItems {
 			idx[timestamp].Miners += item.Miners
 			idx[timestamp].Workers += item.Workers
-			idx[timestamp].AcceptedShares += item.AcceptedShares
-			idx[timestamp].RejectedShares += item.RejectedShares
-			idx[timestamp].InvalidShares += item.InvalidShares
+			idx[timestamp].AcceptedAdjustedShares += item.AcceptedAdjustedShares
+			idx[timestamp].RejectedAdjustedShares += item.RejectedAdjustedShares
+			idx[timestamp].InvalidAdjustedShares += item.InvalidAdjustedShares
 			idx[timestamp].Hashrate += item.Hashrate
 			idx[timestamp].AvgHashrate += item.AvgHashrate
 		}
@@ -321,8 +321,8 @@ func sumSharesSingle(metric types.ShareMetric, items []*tsdb.Share) ([]*tsdb.Sha
 				case types.ShareAverageHashrate:
 					compoundIdx[timestamp][chain].AvgHashrate += item.AvgHashrate
 				case types.ShareAcceptedCount, types.ShareRejectedCount, types.ShareRejectedRate:
-					compoundIdx[timestamp][chain].AcceptedShares += item.AcceptedShares
-					compoundIdx[timestamp][chain].RejectedShares += item.RejectedShares
+					compoundIdx[timestamp][chain].AcceptedAdjustedShares += item.AcceptedAdjustedShares
+					compoundIdx[timestamp][chain].RejectedAdjustedShares += item.RejectedAdjustedShares
 				default:
 					return nil, fmt.Errorf("unknown metric type")
 				}
@@ -427,13 +427,13 @@ func (c *Client) getShareChartSingle(metric types.ShareMetric, items []*tsdb.Sha
 				value = item.AvgHashrate
 				buffValues = true
 			case types.ShareAcceptedCount:
-				value = float64(item.AcceptedShares)
+				value = float64(item.AcceptedAdjustedShares)
 			case types.ShareRejectedCount:
-				value = float64(item.RejectedShares)
+				value = float64(item.RejectedAdjustedShares)
 			case types.ShareRejectedRate:
 				if item.AcceptedShares > 0 {
-					denominator := float64(item.AcceptedShares + item.RejectedShares)
-					value = 100 * (float64(item.RejectedShares) / denominator)
+					denominator := float64(item.AcceptedAdjustedShares + item.RejectedAdjustedShares)
+					value = 100 * (float64(item.RejectedAdjustedShares) / denominator)
 				}
 			default:
 				return nil, fmt.Errorf("unknown metric type")

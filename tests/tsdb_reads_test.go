@@ -148,7 +148,7 @@ func (suite *TsdbReadsSuite) TestReadEarnings() {
 
 func (suite *TsdbReadsSuite) TestReadShares() {
 	var err error
-	metrics := []string{"hashrate", "avg_hashrate"}
+	metrics := []string{"hashrate", "avg_hashrate", "accepted_shares", "accepted_adjusted_shares"}
 
 	for _, metric := range metrics {
 		_, err = tsdb.GetGlobalSharesSingleMetric(tsdbClient.Reader(), metric, 1)

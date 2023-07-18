@@ -210,9 +210,9 @@ type ShareMetric string
 const (
 	ShareHashrate        ShareMetric = "hashrate"
 	ShareAverageHashrate ShareMetric = "avg_hashrate"
-	ShareAcceptedCount   ShareMetric = "accepted_shares"
-	ShareRejectedCount   ShareMetric = "rejected_shares"
-	ShareRejectedRate    ShareMetric = "accepted_shares, rejected_shares"
+	ShareAcceptedCount   ShareMetric = "accepted_adjusted_shares"
+	ShareRejectedCount   ShareMetric = "rejected_adjusted_shares"
+	ShareRejectedRate    ShareMetric = "accepted_adjusted_shares, rejected_adjusted_shares"
 )
 
 func ParseShareMetric(raw string) (ShareMetric, error) {
