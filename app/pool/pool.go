@@ -49,7 +49,6 @@ type Pool struct {
 	chain                string
 	soloChain            string
 	portDiffIdx          map[int]int
-	soloPortIdx          map[int]bool
 	windowSize           int64
 	extraNonce1Size      int
 	soloEnabled          bool
@@ -81,19 +80,6 @@ type Pool struct {
 }
 
 func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client, logger *log.Logger, telegramClient *telegram.Client, metricsClient *metrics.Client, opt *Options) (*Pool, error) {
-	soloPortIdx := make(map[int]bool)
-	if opt.SoloEnabled {
-		soloPortDiffIdx := make(map[int]int)
-		for port, diff := range opt.PortDiffIdx {
-			soloPortIdx[port+1] = true
-			soloPortDiffIdx[port+1] = diff
-		}
-
-		for port, diff := range soloPortDiffIdx {
-			opt.PortDiffIdx[port] = diff
-		}
-	}
-
 	ports := make([]int, 0)
 	for port := range opt.PortDiffIdx {
 		ports = append(ports, port)
@@ -123,7 +109,6 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 		chain:                strings.ToUpper(opt.Chain),
 		soloChain:            "S" + strings.ToUpper(opt.Chain),
 		portDiffIdx:          opt.PortDiffIdx,
-		soloPortIdx:          soloPortIdx,
 		windowSize:           int64(opt.WindowSize),
 		extraNonce1Size:      opt.ExtraNonceSize,
 		soloEnabled:          opt.SoloEnabled,

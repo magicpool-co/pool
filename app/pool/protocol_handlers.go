@@ -74,13 +74,22 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		workerName = "default"
 	}
 
-	// address formatting is chain:address
+	// address formatting is chain:address for standard,
+	// solo:chain:address for solo mining (if enabled)
+	var isSolo bool
 	addressChain := args[0]
 	partial := strings.Split(addressChain, ":")
-	if len(partial) != 2 {
+	switch len(partial) {
+	case 2:
+	case 3:
+		if !p.soloEnabled || strings.ToLower(partial[0]) != "solo" {
+			return errInvalidAddressFormatting(req.ID)
+		}
+		isSolo = true
+		partial = partial[1:]
+	default:
 		return errInvalidAddressFormatting(req.ID)
 	}
-
 	chain := strings.ToUpper(partial[0])
 	address := partial[1]
 
@@ -152,8 +161,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 	c.SetSubscribed(true)
 	c.SetAuthorized(true)
 	c.SetDiffFactor(diffFactor)
-	c.SetDiffValue(p.node.GetShareDifficulty(diffFactor).Value())
-	c.SetIsSolo(p.soloPortIdx[port])
+	c.SetIsSolo(isSolo)
 	c.SetReadDeadline(time.Time{})
 
 	var workerID uint64
@@ -249,15 +257,29 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		chain = p.soloChain
 		soloMinerID = c.GetMinerID()
 	}
+	activeDiffFactor := c.GetDiffFactor()
 
 	var shareStatus types.ShareStatus = types.RejectedShare
 	var hash *types.Hash
 	var round *pooldb.Round
 	job, activeShare := p.jobManager.GetJob(work.JobID)
 	if job != nil && activeShare {
-		shareStatus, hash, round, err = p.node.SubmitWork(job, work, c.GetDiffFactor())
+		shareStatus, hash, round, err = p.node.SubmitWork(job, work, activeDiffFactor)
 		if err != nil {
 			return false, err
+		}
+
+		// if the share is rejected, check to see if the last difficulty factor
+		// is less than the current one, in which case check to see if the share
+		// meets the difficulty level of the prior difficulty
+		if p.varDiffEnabled && shareStatus == types.RejectedShare && hash != nil {
+			lastDiffFactor := c.GetLastDiffFactor()
+			if lastDiffFactor > 0 && lastDiffFactor < activeDiffFactor {
+				if hash.MeetsDifficulty(p.node.GetShareDifficulty(lastDiffFactor)) {
+					shareStatus = types.AcceptedShare
+					activeDiffFactor = lastDiffFactor
+				}
+			}
 		}
 
 		// special handing for IceRiver ASICs since sometimes they submit
@@ -272,7 +294,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 
 				jobID = job.ID
 				if activeShare {
-					shareStatus, hash, round, err = p.node.SubmitWork(job, work, c.GetDiffFactor())
+					shareStatus, hash, round, err = p.node.SubmitWork(job, work, activeDiffFactor)
 					if err != nil {
 						return false, err
 					} else if shareStatus == types.AcceptedShare {
@@ -373,7 +395,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 
 	// handle share streaming
 	if p.streamWriter != nil {
-		targetDiff := c.GetDiffValue()
+		targetDiff := p.node.GetShareDifficulty(activeDiffFactor).Value()
 		go func() {
 			status := shareStatus.String()
 			var reason string
@@ -425,7 +447,6 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			oldDiff := p.node.GetShareDifficulty(c.GetDiffFactor()).Value()
 			newDiff := p.node.GetShareDifficulty(newDiffFactor).Value()
 			c.SetDiffFactor(newDiffFactor)
-			c.SetDiffValue(p.node.GetShareDifficulty(newDiffFactor).Value())
 
 			// handle retarget streaming
 			if p.streamWriter != nil {
@@ -445,14 +466,14 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		interval := p.getCurrentInterval(chain, false)
 		switch shareStatus {
 		case types.AcceptedShare:
-			err := p.redis.AddAcceptedShare(chain, interval, c.GetCompoundID(), soloMinerID, c.GetDiffFactor(), p.windowSize)
+			err := p.redis.AddAcceptedShare(chain, interval, c.GetCompoundID(), soloMinerID, activeDiffFactor, p.windowSize)
 			if err != nil {
 				p.logger.Error(err, c.GetCompoundID())
 				return
 			}
 
 			if p.metrics != nil {
-				p.metrics.AddCounter("accepted_shares_total", float64(c.GetDiffFactor()), p.chain)
+				p.metrics.AddCounter("accepted_shares_total", float64(activeDiffFactor), p.chain)
 			}
 
 			// need to replace ":" with "|" for IPv6 compatibility
@@ -468,18 +489,18 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			}
 			p.minerStatsMu.Unlock()
 		case types.RejectedShare:
-			err := p.redis.AddRejectedShare(chain, interval, c.GetCompoundID(), soloMinerID, c.GetDiffFactor())
+			err := p.redis.AddRejectedShare(chain, interval, c.GetCompoundID(), soloMinerID, activeDiffFactor)
 			if err != nil {
 				p.logger.Error(err, c.GetCompoundID())
 			} else if p.metrics != nil {
-				p.metrics.AddCounter("rejected_shares_total", float64(c.GetDiffFactor()), p.chain)
+				p.metrics.AddCounter("rejected_shares_total", float64(activeDiffFactor), p.chain)
 			}
 		case types.InvalidShare:
-			err := p.redis.AddInvalidShare(chain, interval, c.GetCompoundID(), soloMinerID, c.GetDiffFactor())
+			err := p.redis.AddInvalidShare(chain, interval, c.GetCompoundID(), soloMinerID, activeDiffFactor)
 			if err != nil {
 				p.logger.Error(err, c.GetCompoundID())
 			} else if p.metrics != nil {
-				p.metrics.AddCounter("invalid_shares_total", float64(c.GetDiffFactor()), p.chain)
+				p.metrics.AddCounter("invalid_shares_total", float64(activeDiffFactor), p.chain)
 			}
 		}
 	}()

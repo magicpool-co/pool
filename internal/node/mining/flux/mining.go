@@ -308,7 +308,7 @@ func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diff
 
 	hash := new(types.Hash).SetFromBytes(headerHash)
 	if !hash.MeetsDifficulty(node.GetShareDifficulty(diffFactor)) {
-		return types.RejectedShare, nil, nil, nil
+		return types.RejectedShare, hash, nil, nil
 	} else if !hash.MeetsDifficulty(job.Difficulty) {
 		return types.AcceptedShare, hash, nil, nil
 	}

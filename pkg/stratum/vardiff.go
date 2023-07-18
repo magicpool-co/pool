@@ -6,63 +6,69 @@ import (
 )
 
 const (
-	targetTime    = time.Second * 10
-	retargetDelay = time.Second * 60
+	targetTime    = time.Second * 15
+	retargetDelay = time.Second * 90
 	bufferSize    = (int(retargetDelay) / int(targetTime)) * 4
 
-	variance      = time.Duration(float64(targetTime) * 0.6)
+	variance      = time.Duration(float64(targetTime) * 0.3)
 	minTargetTime = targetTime - variance
 	maxTargetTime = targetTime + variance
 
 	globalMinDiff   = 1
-	globalMaxDiff   = 8192
-	diffBoundFactor = 4
+	globalMaxDiff   = 256
+	diffBoundFactor = 8
 )
 
-type diffList struct {
-	size  int
-	len   int
-	items []int64
+type ringBuffer struct {
+	size   int
+	len    int
+	cursor int
+	full   bool
+	items  []int64
 }
 
-func newDiffList(size int) *diffList {
-	list := &diffList{
+func newRingBuffer(size int) *ringBuffer {
+	b := &ringBuffer{
 		size:  size,
 		items: make([]int64, 0),
 	}
 
-	return list
+	return b
 }
 
-func (l *diffList) Items() []int64 {
-	return l.items
-}
-
-func (l *diffList) Append(item int64) {
-	l.items = append([]int64{item}, l.items...)
-	if len(l.items) > l.size {
-		l.items = l.items[:l.size]
+func (b *ringBuffer) Append(item int64) {
+	if b.full {
+		b.items[b.cursor] = item
+		b.cursor = (b.cursor + 1) % b.size
 	} else {
-		l.len++
+		b.items = append(b.items, item)
+		b.cursor++
+		b.len++
+		if b.len == b.size {
+			b.cursor = 0
+			b.full = true
+		}
 	}
 }
 
-func (l *diffList) Clear() {
-	l.items = make([]int64, 0)
+func (b *ringBuffer) Clear() {
+	b.items = make([]int64, 0)
+	b.len = 0
+	b.cursor = 0
+	b.full = false
 }
 
-func (l *diffList) Average() int64 {
-	length := len(l.items)
-	if length == 0 {
+func (b *ringBuffer) Average() int64 {
+	if b.len == 0 {
 		return 0
 	}
 
 	var sum int64
-	for _, item := range l.items {
+	for _, item := range b.items {
 		sum += item
 	}
 
-	return sum / int64(length)
+	return sum / int64(b.len)
 }
 
 type varDiffManager struct {
@@ -74,8 +80,8 @@ type varDiffManager struct {
 	lastRetarget  time.Time
 	retargetCount int
 
-	diffList *diffList
-	mu       sync.Mutex
+	ringBuffer *ringBuffer
+	mu         sync.Mutex
 }
 
 func floorDiff(currentDiff int) int {
@@ -95,14 +101,15 @@ func ceilDiff(currentDiff int) int {
 }
 
 func newVarDiffManager(currentDiff int) *varDiffManager {
+	now := time.Now()
 	manager := &varDiffManager{
 		diff:         currentDiff,
 		minDiff:      floorDiff(currentDiff),
 		maxDiff:      ceilDiff(currentDiff),
 		lastDiff:     currentDiff,
-		diffList:     newDiffList(bufferSize),
-		lastShare:    time.Now(),
-		lastRetarget: time.Now(),
+		ringBuffer:   newRingBuffer(bufferSize),
+		lastShare:    now,
+		lastRetarget: now.Add(-retargetDelay / 2),
 	}
 
 	return manager
@@ -124,41 +131,33 @@ func (m *varDiffManager) Retarget(shareAt time.Time) int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	now := time.Now()
 	timeSinceLastShare := shareAt.Sub(m.lastShare)
 	if timeSinceLastShare < 0 {
 		timeSinceLastShare = 0
 	}
-	timeSinceLastRetarget := time.Now().Sub(m.lastRetarget)
+
 	m.lastShare = shareAt
+	m.ringBuffer.Append(int64(timeSinceLastShare))
 
-	// add time since last share to diff list
-	m.diffList.Append(int64(timeSinceLastShare))
-
+	timeSinceLastRetarget := now.Sub(m.lastRetarget)
 	if timeSinceLastRetarget < retargetDelay {
 		// if time since last retarget is less than the
 		// retarget wait period, don't do anything
 		return m.diff
-	} else if m.retargetCount > 3 && m.diffList.len < 10 {
-		// if there have been more than 3 retargets,
-		// require at least 10 shares before retargeting
-		return m.diff
-	} else if m.diffList.len < 5 && timeSinceLastShare < time.Minute {
-		// if the share rate is reasonable (one per minute),
-		// require at least 5 shares before retargeting
-		return m.diff
 	}
+	m.lastRetarget = now
 
 	// fetch the average share submit time
-	avg := time.Duration(m.diffList.Average())
+	avg := time.Duration(m.ringBuffer.Average())
 	var newDiff int
-
-	if avg > maxTargetTime {
+	if avg > maxTargetTime && m.diff > m.minDiff {
 		// decrease the difficulty by a factor of 2
 		newDiff = m.diff / 2
 		if newDiff < m.minDiff {
 			newDiff = m.minDiff
 		}
-	} else if avg < minTargetTime {
+	} else if avg < minTargetTime && m.diff < m.maxDiff {
 		// increase the difficulty by a factor of 2
 		newDiff = m.diff * 2
 		if newDiff > m.maxDiff {
@@ -168,16 +167,9 @@ func (m *varDiffManager) Retarget(shareAt time.Time) int {
 		return m.diff
 	}
 
-	// if trying to set to the old diff,
-	// require at least 5 shares before changing back
-	if m.diffList.len < 5 && newDiff == m.lastDiff {
-		return m.diff
-	}
-
 	// set the retargets, clear buffer of old submit times
-	m.lastRetarget = time.Now()
 	m.retargetCount++
-	m.diffList.Clear()
+	m.ringBuffer.Clear()
 
 	return newDiff
 }
