@@ -131,7 +131,7 @@ func (c *Client) rollupEarnings(node types.MiningNode, endTime time.Time) error 
 		return err
 	}
 
-	err = c.redis.SetChartEarningsLastTime(node.Chain(), timestamp)
+	err = c.redis.SetChartEarningsLastTime(node.Chain(), endTime)
 	if err != nil {
 		return err
 	}
