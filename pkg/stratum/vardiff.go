@@ -6,11 +6,11 @@ import (
 )
 
 const (
-	targetTime    = time.Second * 15
+	targetTime    = time.Second * 10
 	retargetDelay = time.Second * 90
 	bufferSize    = (int(retargetDelay) / int(targetTime)) * 4
 
-	variance      = time.Duration(float64(targetTime) * 0.5)
+	variance      = time.Duration(float64(targetTime) * 0.6)
 	minTargetTime = targetTime - variance
 	maxTargetTime = targetTime + variance
 

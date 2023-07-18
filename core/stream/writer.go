@@ -139,11 +139,6 @@ func (w *Writer) WriteDisconnectEvent(minerID uint64, worker, client string, por
 	w.write(minerID, w.chain, "disconnect", worker, client, port, solo, nil)
 }
 
-func (w *Writer) WriteErrorEvent(minerID uint64, worker, client string, port int, solo bool, error string) {
-	data := map[string]interface{}{"error": error}
-	w.write(minerID, w.chain, "error", worker, client, port, solo, data)
-}
-
 func (w *Writer) WriteShareEvent(minerID uint64, worker, client string, port int, solo bool, status, reason string, shareDiff, targetDiff uint64) {
 	data := map[string]interface{}{"status": status, "share_diff": shareDiff, "target_diff": targetDiff}
 	if len(reason) > 0 {
