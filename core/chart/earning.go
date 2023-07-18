@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	earningDelay  = time.Hour
+	earningDelay  = time.Hour * 4
 	earningPeriod = types.Period1d
 )
 
@@ -40,7 +40,7 @@ func (c *Client) FetchEarningIntervals(chain string) ([]time.Time, error) {
 	intervals := make([]time.Time, 0)
 	for {
 		endTime := lastTime.Add(earningPeriod.Rollup())
-		if time.Now().Before(endTime) {
+		if time.Since(endTime) < earningDelay {
 			break
 		}
 
