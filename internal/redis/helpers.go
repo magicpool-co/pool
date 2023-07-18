@@ -104,6 +104,24 @@ func (c *Client) baseSMembers(key string) ([]string, error) {
 	return values, nil
 }
 
+func (c *Client) baseZRange(key string, limit int64, reverse bool) ([]string, error) {
+	args := redis.ZRangeArgs{
+		Key:   key,
+		Start: 0,
+		Stop:  limit,
+		Rev:   reverse,
+	}
+
+	results, err := c.readClient.ZRangeArgs(context.Background(), args).Result()
+	if err == redis.Nil {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
 func (c *Client) baseZRangeWithScores(key string) (map[string]float64, error) {
 	args := redis.ZRangeArgs{
 		Key:   key,

@@ -52,9 +52,14 @@ func (suite *RedisWritesSuite) TestWriteMiners() {
 		suite.T().Errorf("failed: SetWorkerID: %v", err)
 	}
 
-	err = redisClient.SetTopMinerIDs("", []uint64{0})
+	err = redisClient.SetTopMinerIDsBulk("", map[uint64]float64{0: 2143}, false)
 	if err != nil {
-		suite.T().Errorf("failed: SetTopMinerIDs: %v", err)
+		suite.T().Errorf("failed: SetTopMinerIDsBulk: %v", err)
+	}
+
+	err = redisClient.SetTopMinerIDsBulk("", map[uint64]float64{0: 2143}, true)
+	if err != nil {
+		suite.T().Errorf("failed: SetTopMinerIDsBulk (increment): %v", err)
 	}
 }
 

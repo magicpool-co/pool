@@ -261,17 +261,19 @@ func (c *Client) rollupShares(chain string, node types.MiningNode, interval stri
 			return minerShares[i].Hashrate < minerShares[j].Hashrate
 		})
 
-		topMinerCount := len(minerShares)
-		if topMinerCount > 100 {
-			topMinerCount = 100
+		const topMinerLimit = 250
+		topMinerIdx := make(map[uint64]float64, 0)
+		for i, minerShare := range minerShares {
+			if i > topMinerLimit || minerShare.Hashrate == 0 {
+				break
+			}
+			topMinerIdx[types.Uint64Value(minerShare.MinerID)] = minerShare.Hashrate
 		}
 
-		topMinerIDs := make([]uint64, topMinerCount)
-		for i := len(minerShares) - 1; i > len(minerShares)-topMinerCount-1; i-- {
-			topMinerIDs[i] = types.Uint64Value(minerShares[i].MinerID)
-		}
-
-		if err := c.redis.SetTopMinerIDs(chain, topMinerIDs); err != nil {
+		// increment instead of replacing if the chain doesn't match the nodes
+		// (meaning it is solo), since solo will always happen after standard pplns
+		err = c.redis.SetTopMinerIDsBulk(node.Chain(), topMinerIdx, node.Chain() == chain)
+		if err != nil {
 			return err
 		}
 	}

@@ -88,13 +88,26 @@ func (c *Client) SetWorkerID(minerID uint64, worker string, workerID uint64) err
 	return c.baseSet(c.getWorkersKey(minerID, worker), strconv.FormatUint(workerID, 10))
 }
 
-func (c *Client) SetTopMinerIDs(chain string, minerIDs []uint64) error {
-	values := make([]interface{}, len(minerIDs))
-	for i, minerID := range minerIDs {
-		values[i] = strconv.FormatUint(minerID, 10)
+func (c *Client) SetTopMinerIDsBulk(chain string, values map[uint64]float64, increment bool) error {
+	if !increment {
+		members := make([]redis.Z, 0)
+		for k, v := range values {
+			members = append(members, redis.Z{Member: strconv.FormatUint(k, 10), Score: float64(v)})
+		}
+
+		return c.baseZAddBatch(c.getTopMinersKey(chain), members)
 	}
 
-	return c.baseResetList(c.getTopMinersKey(chain), values)
+	ctx := context.Background()
+	pipe := c.writeClient.Pipeline()
+
+	for id, value := range values {
+		pipe.ZIncrBy(ctx, c.getTopMinersKey(chain), value, strconv.FormatUint(id, 10))
+	}
+
+	_, err := pipe.Exec(ctx)
+
+	return err
 }
 
 /* share index */
