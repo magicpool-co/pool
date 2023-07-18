@@ -69,6 +69,7 @@ type Pool struct {
 
 	minerStatsMu      sync.Mutex
 	lastShareIndex    map[string]int64
+	lastDiffIndex     map[string]int64
 	latencyValueIndex map[string]int64
 	latencyCountIndex map[string]int64
 
@@ -123,6 +124,7 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 		jobManager: newJobManager(ctx, node, logger, opt.JobListSize, opt.JobListAgeLimit),
 
 		lastShareIndex:    make(map[string]int64),
+		lastDiffIndex:     make(map[string]int64),
 		latencyValueIndex: make(map[string]int64),
 		latencyCountIndex: make(map[string]int64),
 
@@ -310,6 +312,9 @@ func (p *Pool) startMinerStatsPusher() {
 			lastShareIndex := p.lastShareIndex
 			p.lastShareIndex = make(map[string]int64)
 
+			lastDiffIndex := p.lastDiffIndex
+			p.lastDiffIndex = make(map[string]int64)
+
 			latencyValueIndex, latencyCountIndex := p.latencyValueIndex, p.latencyCountIndex
 			p.latencyValueIndex, p.latencyCountIndex = make(map[string]int64), make(map[string]int64)
 
@@ -317,6 +322,11 @@ func (p *Pool) startMinerStatsPusher() {
 
 			// process set ip address in bulk
 			err := p.redis.SetMinerIPAddressesBulk(p.chain, lastShareIndex)
+			if err != nil {
+				p.logger.Error(err)
+			}
+
+			err = p.redis.SetMinerDifficultiesBulk(p.chain, lastDiffIndex)
 			if err != nil {
 				p.logger.Error(err)
 			}

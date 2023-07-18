@@ -275,7 +275,8 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		// meets the difficulty level of the prior difficulty
 		if p.varDiffEnabled && shareStatus == types.RejectedShare && hash != nil {
 			lastDiffFactor := c.GetLastDiffFactor()
-			if lastDiffFactor > 0 && lastDiffFactor < activeDiffFactor {
+			timeSince := time.Since(c.GetLastDiffFactorAt())
+			if lastDiffFactor > 0 && lastDiffFactor < activeDiffFactor && timeSince < time.Second * 30 {
 				if hash.MeetsDifficulty(p.node.GetShareDifficulty(lastDiffFactor)) {
 					shareStatus = types.AcceptedShare
 					activeDiffFactor = lastDiffFactor
@@ -488,6 +489,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 
 			p.minerStatsMu.Lock()
 			p.lastShareIndex[id] = submitTime.Unix()
+			p.lastDiffIndex[id] = int64(activeDiffFactor)
 			if latency > 0 {
 				p.latencyValueIndex[id] += int64(latency)
 				p.latencyCountIndex[id]++

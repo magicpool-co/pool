@@ -31,6 +31,7 @@ type Conn struct {
 	clientType           int32
 	diffFactor           int32
 	lastDiffFactor       int32
+	lastDiffFactorAt     int64
 	lastErrorAt          int64
 	errorCount           int32
 }
@@ -99,6 +100,7 @@ func (c *Conn) GetClient() string                  { return loadString(c.client)
 func (c *Conn) GetClientType() int                 { return int(atomic.LoadInt32(&(c.clientType))) }
 func (c *Conn) GetDiffFactor() int                 { return int(atomic.LoadInt32(&(c.diffFactor))) }
 func (c *Conn) GetLastDiffFactor() int             { return int(atomic.LoadInt32(&(c.lastDiffFactor))) }
+func (c *Conn) GetLastDiffFactorAt() time.Time     { return time.Unix(atomic.LoadInt64(&c.lastErrorAt), 0) }
 func (c *Conn) GetLastErrorAt() time.Time          { return time.Unix(atomic.LoadInt64(&c.lastErrorAt), 0) }
 func (c *Conn) GetErrorCount() int                 { return int(atomic.LoadInt32(&c.errorCount)) }
 func (c *Conn) GetLatency() (time.Duration, error) { return getLatency(c.conn) }
@@ -134,6 +136,7 @@ func (c *Conn) SetDiffFactor(diffFactor int) {
 	}
 	lastDiffFactor := atomic.SwapInt32(&(c.diffFactor), int32(diffFactor))
 	atomic.StoreInt32(&(c.lastDiffFactor), lastDiffFactor)
+	atomic.StoreInt64(&(c.lastDiffFactorAt), time.Now().Unix())
 }
 func (c *Conn) SetLastErrorAt(ts time.Time) { atomic.StoreInt64(&(c.lastErrorAt), ts.Unix()) }
 func (c *Conn) SetErrorCount(count int)     { atomic.StoreInt32(&(c.errorCount), int32(count)) }

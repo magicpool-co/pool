@@ -27,6 +27,11 @@ func (suite *RedisWritesSuite) TestWriteMiners() {
 		suite.T().Errorf("failed: SetMinerIPAddressesBulk: %v", err)
 	}
 
+	err = redisClient.SetMinerDifficultiesBulk("", map[string]int64{"test": 3})
+	if err != nil {
+		suite.T().Errorf("failed: SetMinerDifficultiesBulk: %v", err)
+	}
+
 	err = redisClient.SetMinerLatenciesBulk("", map[string]int64{"test": 3})
 	if err != nil {
 		suite.T().Errorf("failed: SetMinerLatenciesBulk: %v", err)

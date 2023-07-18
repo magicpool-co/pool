@@ -73,6 +73,10 @@ func (c *Client) GetMinerIPAddresses(chain string) (map[string]float64, error) {
 	return c.baseZRangeWithScores(c.getMinerIPAddressesKey(chain))
 }
 
+func (c *Client) GetMinerDifficulties(chain string) (map[string]float64, error) {
+	return c.baseZRangeWithScores(c.getMinerDifficultiesKey(chain))
+}
+
 func (c *Client) GetMinerLatencies(chain string) (map[string]float64, error) {
 	return c.baseZRangeWithScores(c.getMinerLatenciesKey(chain))
 }

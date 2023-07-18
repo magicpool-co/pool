@@ -28,6 +28,11 @@ func (suite *RedisReadsSuite) TestGetMiners() {
 		suite.T().Errorf("failed: GetMinerLatencies: %v", err)
 	}
 
+	_, err = redisClient.GetMinerDifficulties("")
+	if err != nil {
+		suite.T().Errorf("failed: GetMinerDifficulties: %v", err)
+	}
+
 	_, err = redisClient.GetMinerIPAddressesInactive("")
 	if err != nil {
 		suite.T().Errorf("failed: GetMinerIPAddressesInactive: %v", err)
