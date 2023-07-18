@@ -318,7 +318,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			compoundID := c.GetCompoundID()
 			round.Solo = c.GetIsSolo()
 
-			var sharesIdx map[uint64]uint64
+			sharesIdx := make(map[uint64]uint64)
 			var err error
 			if soloMinerID == 0 {
 				sharesIdx, err = p.redis.GetRoundShares(chain)

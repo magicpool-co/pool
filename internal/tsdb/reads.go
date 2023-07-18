@@ -806,9 +806,9 @@ func GetMinerEarningsAverage(q dbcl.Querier, timestamp time.Time, chain string, 
 func GetGlobalSharesSum(q dbcl.Querier, period int, duration time.Duration) ([]*Share, error) {
 	var query = fmt.Sprintf(`SELECT
 		chain_id,
-		IFNULL(SUM(accepted_shares), 0) accepted_shares,
-		IFNULL(SUM(rejected_shares), 0) rejected_shares,
-		IFNULL(SUM(invalid_shares), 0) invalid_shares
+		IFNULL(SUM(accepted_adjusted_shares), 0) accepted_adjusted_shares,
+		IFNULL(SUM(rejected_adjusted_shares), 0) rejected_adjusted_shares,
+		IFNULL(SUM(invalid_adjusted_shares), 0) invalid_adjusted_shares
 	FROM global_shares
     WHERE
 		end_time BETWEEN DATE_SUB(CURRENT_TIMESTAMP, %s) AND CURRENT_TIMESTAMP
@@ -849,9 +849,9 @@ func GetGlobalSharesLast(q dbcl.Querier, period int) ([]*Share, error) {
 func GetMinersSharesSum(q dbcl.Querier, minerIDs []uint64, period int, duration time.Duration) ([]*Share, error) {
 	var rawQuery = fmt.Sprintf(`SELECT
 		chain_id,
-		IFNULL(SUM(accepted_shares), 0) accepted_shares,
-		IFNULL(SUM(rejected_shares), 0) rejected_shares,
-		IFNULL(SUM(invalid_shares), 0) invalid_shares
+		IFNULL(SUM(accepted_adjusted_shares), 0) accepted_adjusted_shares,
+		IFNULL(SUM(rejected_adjusted_shares), 0) rejected_adjusted_shares,
+		IFNULL(SUM(invalid_adjusted_shares), 0) invalid_adjusted_shares
 	FROM miner_shares
     WHERE
 		end_time BETWEEN DATE_SUB(CURRENT_TIMESTAMP, %s) AND CURRENT_TIMESTAMP
@@ -918,9 +918,9 @@ func GetWorkerSharesSum(q dbcl.Querier, workerIDs []uint64, period int, duration
 	var rawQuery = fmt.Sprintf(`SELECT
 		worker_id,
 		chain_id,
-		IFNULL(SUM(accepted_shares), 0) accepted_shares,
-		IFNULL(SUM(rejected_shares), 0) rejected_shares,
-		IFNULL(SUM(invalid_shares), 0) invalid_shares
+		IFNULL(SUM(accepted_adjusted_shares), 0) accepted_adjusted_shares,
+		IFNULL(SUM(rejected_adjusted_shares), 0) rejected_adjusted_shares,
+		IFNULL(SUM(invalid_adjusted_shares), 0) invalid_adjusted_shares
 	FROM worker_shares
     WHERE
 		end_time BETWEEN DATE_SUB(CURRENT_TIMESTAMP, %s) AND CURRENT_TIMESTAMP
