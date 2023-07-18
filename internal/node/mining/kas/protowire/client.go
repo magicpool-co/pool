@@ -105,7 +105,7 @@ func (c *Client) Send(raw interface{}) (interface{}, error) {
 	for {
 		select {
 		case <-timer.C:
-			return nil, ErrRouteTimedOut
+			return nil, fmt.Errorf("%s: %v", cmd, ErrRouteTimedOut)
 		case res, ok := <-rte.ch:
 			if !ok {
 				return nil, ErrRouteClosed
