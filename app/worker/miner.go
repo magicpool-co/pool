@@ -72,6 +72,12 @@ func (j *MinerJob) Run() {
 			j.logger.Error(fmt.Errorf("ip: fetch inactive ips: %s: %v", node.Chain(), err))
 		}
 
+		diffCache := make(map[int]float64)
+		diffIdx, err := j.redis.GetMinerDifficulties(node.Chain())
+		if err != nil {
+			j.logger.Error(fmt.Errorf("ip: fetch difficulties: %s: %v", node.Chain(), err))
+		}
+
 		rttIdx, err := j.redis.GetMinerLatencies(node.Chain())
 		if err != nil {
 			j.logger.Error(fmt.Errorf("ip: fetch latencies: %s: %v", node.Chain(), err))
@@ -88,6 +94,15 @@ func (j *MinerJob) Run() {
 			if err != nil {
 				j.logger.Error(fmt.Errorf("ip: %v", err))
 				continue
+			}
+
+			var lastDiff *float64
+			if rawDiffFactor, ok := diffIdx[compoundID]; ok {
+				diffFactor := int(rawDiffFactor)
+				if _, ok := diffCache[diffFactor]; !ok {
+					diffCache[diffFactor] = float64(node.GetShareDifficulty(diffFactor).Value())
+				}
+				lastDiff = types.Float64Ptr(diffCache[diffFactor])
 			}
 
 			var rtt *float64
@@ -126,10 +141,11 @@ func (j *MinerJob) Run() {
 				ChainID:   node.Chain(),
 				IPAddress: ipAddress,
 
-				Active:        active,
-				Expired:       expired,
-				LastShare:     lastShare,
-				RoundTripTime: rtt,
+				Active:         active,
+				Expired:        expired,
+				LastShare:      lastShare,
+				LastDifficulty: lastDiff,
+				RoundTripTime:  rtt,
 			})
 		}
 

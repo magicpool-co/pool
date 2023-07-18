@@ -88,12 +88,12 @@ type IPAddress struct {
 	MinerID   uint64 `db:"miner_id"`
 	WorkerID  uint64 `db:"worker_id"`
 	IPAddress string `db:"ip_address"`
-	Solo      bool   `db:"solo"`
 
-	Active        bool      `db:"active"`
-	Expired       bool      `db:"expired"`
-	LastShare     time.Time `db:"last_share"`
-	RoundTripTime *float64  `db:"rtt"`
+	Active         bool      `db:"active"`
+	Expired        bool      `db:"expired"`
+	LastShare      time.Time `db:"last_share"`
+	LastDifficulty *float64  `db:"last_difficulty"`
+	RoundTripTime  *float64  `db:"rtt"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`

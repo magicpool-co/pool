@@ -276,7 +276,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 		if p.varDiffEnabled && shareStatus == types.RejectedShare && hash != nil {
 			lastDiffFactor := c.GetLastDiffFactor()
 			timeSince := time.Since(c.GetLastDiffFactorAt())
-			if lastDiffFactor > 0 && lastDiffFactor < activeDiffFactor && timeSince < time.Second * 30 {
+			if lastDiffFactor > 0 && lastDiffFactor < activeDiffFactor && timeSince < time.Second*30 {
 				if hash.MeetsDifficulty(p.node.GetShareDifficulty(lastDiffFactor)) {
 					shareStatus = types.AcceptedShare
 					activeDiffFactor = lastDiffFactor
