@@ -57,9 +57,9 @@ jobs:
     runs-on: [self-hosted, linux, ARM64]
     strategy:
       matrix:
-        # app: [pool]
-        # region: [eu-central-1]
-        # chain: [etc]
+        app: [pool]
+        region: [eu-central-1]
+        chain: [kas]
         include:
           - region: eu-west-1
             app: worker
