@@ -68,6 +68,7 @@ func (c *Client) GetMiners(chain string, page, size uint64) ([]*Miner, uint64, e
 
 	for minerID, dbSoloShare := range dbSoloShareIdx {
 		isSoloIdx[minerID] = true
+		dbSoloShare.ChainID = chain
 		dbShares = append(dbShares, dbSoloShare)
 	}
 
