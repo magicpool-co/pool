@@ -154,6 +154,7 @@ type Miner struct {
 	Chain        string                   `json:"chain"`
 	Address      string                   `json:"address"`
 	Active       bool                     `json:"active"`
+	Solo         bool                     `json:"solo"`
 	HashrateInfo map[string]*HashrateInfo `json:"hashrateInfo"`
 	ShareInfo    map[string]*ShareInfo    `json:"shareInfo"`
 	FirstSeen    int64                    `json:"firstSeen"`

@@ -38,6 +38,33 @@ func (c *Client) GetMiners(chain string, page, size uint64) ([]*Miner, uint64, e
 		return nil, 0, err
 	}
 
+	// fetch solo shares since they're not included
+	dbSoloShares, err := tsdb.GetMinerSharesByEndTime(c.tsdb.Reader(),
+		timestamp, minerIDs, "S"+chain, int(types.Period15m))
+	if err != nil {
+		return nil, 0, err
+	}
+
+	dbSoloShareIdx := make(map[uint64]*tsdb.Share)
+	for _, dbSoloShare := range dbSoloShares {
+		dbSoloShareIdx[types.Uint64Value(dbSoloShare.MinerID)] = dbSoloShare
+	}
+
+	// mark a miner as solo if their avg solo hashrate is greater
+	// than their avg pplns hashrate, add the solo hashrate
+	isSoloIdx := make(map[uint64]bool)
+	for _, dbShare := range dbShares {
+		minerID := types.Uint64Value(dbShare.MinerID)
+		dbSoloShare, ok := dbSoloShareIdx[minerID]
+		if !ok {
+			continue
+		}
+
+		isSoloIdx[minerID] = dbSoloShare.AvgHashrate > dbShare.AvgHashrate
+		dbShare.Hashrate += dbSoloShare.Hashrate
+		dbShare.AvgHashrate += dbSoloShare.AvgHashrate
+	}
+
 	sort.Slice(dbShares, func(i, j int) bool {
 		return dbShares[i].Hashrate > dbShares[j].Hashrate
 	})
@@ -65,6 +92,7 @@ func (c *Client) GetMiners(chain string, page, size uint64) ([]*Miner, uint64, e
 			Chain:        dbMiner.ChainID,
 			Address:      dbMiner.Address,
 			Active:       true,
+			Solo:         isSoloIdx[dbMiner.ID],
 			HashrateInfo: c.processHashrateInfo([]*tsdb.Share{dbShare}),
 			FirstSeen:    dbMiner.CreatedAt.Unix(),
 			LastSeen:     dbMiner.LastShare.Unix(),
