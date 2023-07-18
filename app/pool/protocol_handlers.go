@@ -57,8 +57,18 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 
 	var username string
 	if len(req.Params) < 1 {
+		if p.streamWriter != nil {
+			p.streamWriter.WriteErrorEvent(c.GetMinerID(), c.GetWorker(),
+				c.GetClient(), c.GetPort(), c.GetIsSolo(), "too few params in auth request")
+		}
+
 		return errInvalidAuthRequest(req.ID)
 	} else if err := json.Unmarshal(req.Params[0], &username); err != nil || len(username) == 0 {
+		if p.streamWriter != nil {
+			p.streamWriter.WriteErrorEvent(c.GetMinerID(), c.GetWorker(),
+				c.GetClient(), c.GetPort(), c.GetIsSolo(), "empty username in auth request")
+		}
+
 		return errInvalidAuthRequest(req.ID)
 	}
 
@@ -83,11 +93,21 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 	case 2:
 	case 3:
 		if !p.soloEnabled || strings.ToLower(partial[0]) != "solo" {
+			if p.streamWriter != nil {
+				p.streamWriter.WriteErrorEvent(c.GetMinerID(), c.GetWorker(),
+					c.GetClient(), c.GetPort(), c.GetIsSolo(), fmt.Sprintf("invalid address: %s", username))
+			}
+
 			return errInvalidAddressFormatting(req.ID)
 		}
 		isSolo = true
 		partial = partial[1:]
 	default:
+		if p.streamWriter != nil {
+			p.streamWriter.WriteErrorEvent(c.GetMinerID(), c.GetWorker(),
+				c.GetClient(), c.GetPort(), c.GetIsSolo(), fmt.Sprintf("invalid address: %s", username))
+		}
+
 		return errInvalidAddressFormatting(req.ID)
 	}
 	chain := strings.ToUpper(partial[0])
