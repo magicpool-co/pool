@@ -16,17 +16,21 @@ var (
 	dashboardAggDuration = time.Hour * 24
 )
 
-func processHashrateInfo(shares []*tsdb.Share) map[string]*HashrateInfo {
+func (c *Client) processHashrateInfo(shares []*tsdb.Share) map[string]*HashrateInfo {
 	idx := make(map[string]*HashrateInfo)
 	for _, share := range shares {
+		var ok bool
+		share.ChainID, ok = c.processChainID(share.ChainID)
+		if !ok {
+			continue
+		}
+
 		var units string
 		switch share.ChainID {
 		case "FLUX":
 			units = "S/s"
 		case "AE", "CTXC":
 			units = "Gps"
-		case "SKAS":
-			share.ChainID = "KAS (SOLO)"
 		default:
 			units = "H/s"
 		}
@@ -40,12 +44,13 @@ func processHashrateInfo(shares []*tsdb.Share) map[string]*HashrateInfo {
 	return idx
 }
 
-func processShareInfo(shares []*tsdb.Share) map[string]*ShareInfo {
+func (c *Client) processShareInfo(shares []*tsdb.Share) map[string]*ShareInfo {
 	idx := make(map[string]*ShareInfo)
 	for _, share := range shares {
-		switch share.ChainID {
-		case "SKAS":
-			share.ChainID = "KAS (SOLO)"
+		var ok bool
+		share.ChainID, ok = c.processChainID(share.ChainID)
+		if !ok {
+			continue
 		}
 
 		var acceptedRate, rejectedRate, invalidRate float64
@@ -177,8 +182,8 @@ func (c *Client) GetMinerDashboard(minerIdx map[uint64]string) (*Dashboard, erro
 	}
 
 	// calculate hashrate and share info
-	hashrateInfo := processHashrateInfo(lastShares)
-	shareInfo := processShareInfo(sumShares)
+	hashrateInfo := c.processHashrateInfo(lastShares)
+	shareInfo := c.processShareInfo(sumShares)
 
 	// convert profitabilities into index
 	profitIndex := make(map[string]*tsdb.Block)
@@ -231,8 +236,8 @@ func (c *Client) GetWorkerDashboard(workerID uint64) (*Dashboard, error) {
 	}
 
 	dashboard := &Dashboard{
-		HashrateInfo: processHashrateInfo(lastShares),
-		ShareInfo:    processShareInfo(sumShares),
+		HashrateInfo: c.processHashrateInfo(lastShares),
+		ShareInfo:    c.processShareInfo(sumShares),
 	}
 
 	return dashboard, nil

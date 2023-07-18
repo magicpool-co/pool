@@ -44,6 +44,16 @@ func New(
 	return client
 }
 
+func (c *Client) processChainID(chainID string) (string, bool) {
+	if c.chains[chainID] {
+		return chainID, true
+	} else if len(chainID) > 1 && c.chains[chainID[1:]] {
+		return chainID[1:] + " SOLO", true
+	}
+
+	return "", false
+}
+
 func (c *Client) getGlobalSharesLast() ([]*tsdb.Share, error) {
 	if c.useCache {
 		shares, err := c.redis.GetCachedGlobalLastShares()

@@ -65,7 +65,7 @@ func (c *Client) GetMiners(chain string, page, size uint64) ([]*Miner, uint64, e
 			Chain:        dbMiner.ChainID,
 			Address:      dbMiner.Address,
 			Active:       true,
-			HashrateInfo: processHashrateInfo([]*tsdb.Share{dbShare}),
+			HashrateInfo: c.processHashrateInfo([]*tsdb.Share{dbShare}),
 			FirstSeen:    dbMiner.CreatedAt.Unix(),
 			LastSeen:     dbMiner.LastShare.Unix(),
 		}
@@ -129,8 +129,8 @@ func (c *Client) GetWorkers(minerID uint64) (*WorkerList, error) {
 		worker := &Worker{
 			Name:         dbWorker.Name,
 			Active:       dbWorker.Active,
-			HashrateInfo: processHashrateInfo(dbSharesIdx[dbWorker.ID]),
-			ShareInfo:    processShareInfo(sumSharesIdx[dbWorker.ID]),
+			HashrateInfo: c.processHashrateInfo(dbSharesIdx[dbWorker.ID]),
+			ShareInfo:    c.processShareInfo(sumSharesIdx[dbWorker.ID]),
 			FirstSeen:    dbWorker.CreatedAt.Unix(),
 			LastSeen:     dbWorker.LastShare.Unix(),
 		}

@@ -344,59 +344,16 @@ func sumSharesSingle(metric types.ShareMetric, items []*tsdb.Share) ([]*tsdb.Sha
 	return uniqueItems, nil
 }
 
-func getShareChart(items []*tsdb.Share, period types.PeriodType) *ShareChart {
-	var endTime time.Time
-	if len(items) == 0 {
-		endTime = time.Now()
-	} else {
-		endTime = items[0].EndTime
-		if newEndTime := items[len(items)-1].EndTime; newEndTime.After(endTime) {
-			endTime = newEndTime
-		}
-	}
-
-	index := period.GenerateRange(common.NormalizeDate(endTime, period.Rollup(), true))
-	chart := &ShareChart{
-		Timestamp:      make([]int64, 0),
-		Miners:         make([]uint64, 0),
-		Workers:        make([]uint64, 0),
-		AcceptedShares: make([]uint64, 0),
-		RejectedShares: make([]uint64, 0),
-		InvalidShares:  make([]uint64, 0),
-		Hashrate:       make([]float64, 0),
-		AvgHashrate:    make([]float64, 0),
-	}
-
-	var firstTime, lastTime time.Time
-	for _, item := range items {
-		if exists := index[item.EndTime]; !exists {
-			chart.AddPoint(item)
-			index[item.EndTime] = true
-
-			if firstTime.IsZero() || item.EndTime.Before(firstTime) {
-				firstTime = item.EndTime
-			}
-			if lastTime.IsZero() || item.EndTime.Before(lastTime) {
-				lastTime = item.EndTime
-			}
-		}
-	}
-
-	for timestamp, exists := range index {
-		if !exists && !timestamp.Before(firstTime) && !timestamp.After(lastTime) {
-			chart.AddPoint(&tsdb.Share{EndTime: timestamp})
-		}
-	}
-
-	sort.Sort(chart)
-
-	return chart
-}
-
-func getShareChartSingle(metric types.ShareMetric, items []*tsdb.Share, period types.PeriodType) (*ChartSingle, error) {
+func (c *Client) getShareChartSingle(metric types.ShareMetric, items []*tsdb.Share, period types.PeriodType) (*ChartSingle, error) {
 	itemsIdx := make(map[time.Time]map[string]*tsdb.Share)
 	chainIdx := make(map[string]time.Time)
 	for _, item := range items {
+		var ok bool
+		item.ChainID, ok = c.processChainID(item.ChainID)
+		if !ok {
+			continue
+		}
+
 		if _, ok := itemsIdx[item.EndTime]; !ok {
 			itemsIdx[item.EndTime] = make(map[string]*tsdb.Share)
 		}
@@ -503,36 +460,13 @@ func getShareChartSingle(metric types.ShareMetric, items []*tsdb.Share, period t
 	return chart, nil
 }
 
-func (c *Client) GetGlobalShareChart(chain string, period types.PeriodType) (*ShareChart, error) {
-	items, err := tsdb.GetGlobalShares(c.tsdb.Reader(), chain, int(period))
-	if err != nil {
-		return nil, err
-	}
-
-	return getShareChart(items, period), nil
-}
-
 func (c *Client) GetGlobalShareSingleMetricChart(metric types.ShareMetric, period types.PeriodType) (*ChartSingle, error) {
 	items, err := tsdb.GetGlobalSharesSingleMetric(c.tsdb.Reader(), string(metric), int(period))
 	if err != nil {
 		return nil, err
 	}
 
-	return getShareChartSingle(metric, items, period)
-}
-
-func (c *Client) GetMinerShareChart(minerIDs []uint64, chain string, period types.PeriodType) (*ShareChart, error) {
-	items, err := tsdb.GetMinerShares(c.tsdb.Reader(), minerIDs, chain, int(period))
-	if err != nil {
-		return nil, err
-	}
-
-	// sum shares if more than one miner
-	if len(minerIDs) > 1 {
-		items = sumShares(items)
-	}
-
-	return getShareChart(items, period), nil
+	return c.getShareChartSingle(metric, items, period)
 }
 
 func (c *Client) GetMinerShareSingleMetricChart(minerIDs []uint64, metric types.ShareMetric, period types.PeriodType) (*ChartSingle, error) {
@@ -549,16 +483,7 @@ func (c *Client) GetMinerShareSingleMetricChart(minerIDs []uint64, metric types.
 		}
 	}
 
-	return getShareChartSingle(metric, items, period)
-}
-
-func (c *Client) GetWorkerShareChart(workerID uint64, chain string, period types.PeriodType) (*ShareChart, error) {
-	items, err := tsdb.GetWorkerShares(c.tsdb.Reader(), workerID, chain, int(period))
-	if err != nil {
-		return nil, err
-	}
-
-	return getShareChart(items, period), nil
+	return c.getShareChartSingle(metric, items, period)
 }
 
 func (c *Client) GetWorkerShareSingleMetricChart(workerID uint64, metric types.ShareMetric, period types.PeriodType) (*ChartSingle, error) {
@@ -567,5 +492,5 @@ func (c *Client) GetWorkerShareSingleMetricChart(workerID uint64, metric types.S
 		return nil, err
 	}
 
-	return getShareChartSingle(metric, items, period)
+	return c.getShareChartSingle(metric, items, period)
 }
