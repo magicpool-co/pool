@@ -314,9 +314,13 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			p.wg.Add(1)
 			defer p.wg.Done()
 
-			p.logger.Info("found valid block")
 			compoundID := c.GetCompoundID()
 			round.Solo = c.GetIsSolo()
+			if round.Solo {
+				p.logger.Info("found valid solo block")
+			} else {
+				p.logger.Info("found valid block")
+			}
 
 			sharesIdx := make(map[uint64]uint64)
 			var err error
@@ -474,7 +478,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			}
 
 			if p.metrics != nil {
-				p.metrics.AddCounter("accepted_shares_total", float64(activeDiffFactor), p.chain)
+				p.metrics.AddCounter("accepted_shares_total", float64(activeDiffFactor), chain)
 			}
 
 			// need to replace ":" with "|" for IPv6 compatibility
@@ -494,14 +498,14 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 			if err != nil {
 				p.logger.Error(err, c.GetCompoundID())
 			} else if p.metrics != nil {
-				p.metrics.AddCounter("rejected_shares_total", float64(activeDiffFactor), p.chain)
+				p.metrics.AddCounter("rejected_shares_total", float64(activeDiffFactor), chain)
 			}
 		case types.InvalidShare:
 			err := p.redis.AddInvalidShare(chain, interval, c.GetCompoundID(), soloMinerID, activeDiffFactor)
 			if err != nil {
 				p.logger.Error(err, c.GetCompoundID())
 			} else if p.metrics != nil {
-				p.metrics.AddCounter("invalid_shares_total", float64(activeDiffFactor), p.chain)
+				p.metrics.AddCounter("invalid_shares_total", float64(activeDiffFactor), chain)
 			}
 		}
 	}()

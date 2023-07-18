@@ -272,7 +272,7 @@ func (c *Client) rollupShares(chain string, node types.MiningNode, interval stri
 
 		// increment instead of replacing if the chain doesn't match the nodes
 		// (meaning it is solo), since solo will always happen after standard pplns
-		err = c.redis.SetTopMinerIDsBulk(node.Chain(), topMinerIdx, node.Chain() == chain)
+		err = c.redis.SetTopMinerIDsBulk(node.Chain(), topMinerIdx, node.Chain() != chain)
 		if err != nil {
 			return err
 		}
