@@ -79,12 +79,6 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		method = "GET"
 		handler = rtr.ctx.getDashboard(dashboardArgs{})
 
-	case rtr.match(path, "/global/charts/blocks"):
-		method = "GET"
-		chain := r.URL.Query().Get("chain")
-		period := r.URL.Query().Get("period")
-		handler = rtr.ctx.getBlockChart(blockChartArgs{chain: chain, period: period})
-
 	case rtr.match(path, "/global/charts/blocks/+", &metric):
 		method = "GET"
 		period := r.URL.Query().Get("period")
@@ -140,6 +134,11 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		method = "GET"
 		period := r.URL.Query().Get("period")
 		handler = rtr.ctx.getShareMetricChart(shareMetricChartArgs{metric: metric, period: period, miner: miner})
+
+	case rtr.match(path, "/miner/+/+/charts/earnings", &miner):
+		method = "GET"
+		period := r.URL.Query().Get("period")
+		handler = rtr.ctx.getEarningMetricChart(earningMetricChartArgs{period: period, miner: miner})
 
 	case rtr.match(path, "/miner/+/rounds", &miner):
 		method = "GET"

@@ -129,6 +129,7 @@ func (suite *TsdbReadsSuite) TestReadRounds() {
 
 func (suite *TsdbReadsSuite) TestReadEarnings() {
 	var err error
+	metrics := []string{"value", "avg_value"}
 
 	_, err = tsdb.GetEarningMaxEndTime(tsdbClient.Reader(), "ETH", 1)
 	if err != nil {
@@ -143,6 +144,18 @@ func (suite *TsdbReadsSuite) TestReadEarnings() {
 	_, err = tsdb.GetMinerEarningsAverage(tsdbClient.Reader(), time.Now(), "ETH", 1, time.Hour)
 	if err != nil {
 		suite.T().Errorf("failed: GetRoundsAverageProfitabilitySlow: %v", err)
+	}
+
+	for _, metric := range metrics {
+		_, err = tsdb.GetGlobalEarningsSingleMetric(tsdbClient.Reader(), metric, 3)
+		if err != nil {
+			suite.T().Errorf("failed: GetGlobalEarningsSingleMetric: %s: %v", metric, err)
+		}
+
+		_, err = tsdb.GetMinerEarningsSingleMetric(tsdbClient.Reader(), []uint64{0, 1}, metric, 3)
+		if err != nil {
+			suite.T().Errorf("failed: GetMinerEarningsSingleMetric: %s: %v", metric, err)
+		}
 	}
 }
 

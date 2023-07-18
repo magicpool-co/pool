@@ -370,33 +370,6 @@ func (ctx *Context) getDashboard(args dashboardArgs) http.Handler {
 	})
 }
 
-type blockChartArgs struct {
-	chain  string
-	period string
-}
-
-func (ctx *Context) getBlockChart(args blockChartArgs) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		chain := strings.ToUpper(args.chain)
-		period, err := types.ParsePeriodType(args.period)
-		if err != nil {
-			ctx.writeErrorResponse(w, errPeriodNotFound)
-			return
-		} else if !validateMiningChain(chain) {
-			ctx.writeErrorResponse(w, errChainNotFound)
-			return
-		}
-
-		data, err := ctx.stats.GetBlockChart(chain, period)
-		if err != nil {
-			ctx.writeErrorResponse(w, err)
-			return
-		}
-
-		ctx.writeOkResponse(w, data)
-	})
-}
-
 type blockMetricChartArgs struct {
 	metric  string
 	period  string
@@ -505,6 +478,36 @@ func (ctx *Context) getShareMetricChart(args shareMetricChartArgs) http.Handler 
 			data, err = ctx.stats.GetGlobalShareSingleMetricChart(metric, period)
 		}
 
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		ctx.writeOkResponse(w, data)
+	})
+}
+
+type earningMetricChartArgs struct {
+	period string
+	miner  string
+	worker string
+}
+
+func (ctx *Context) getEarningMetricChart(args earningMetricChartArgs) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		period, err := types.ParsePeriodType(args.period)
+		if err != nil || period != types.Period1d {
+			ctx.writeErrorResponse(w, errPeriodNotFound)
+			return
+		}
+
+		minerIDs, _, err := ctx.getMinerIDs(args.miner)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		data, err := ctx.stats.GetMinerEarningChart(minerIDs, period)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return

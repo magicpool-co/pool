@@ -10,64 +10,84 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
-/* block chart */
+type rangeItem struct {
+	ChainID   string
+	Timestamp time.Time
+	Data      interface{}
+}
 
-func (c *Client) GetBlockChart(chain string, period types.PeriodType) (*BlockChart, error) {
-	items, err := tsdb.GetBlocks(c.tsdb.Reader(), chain, int(period))
-	if err != nil {
-		return nil, err
+func (c *Client) normalizeRange(
+	items []rangeItem,
+	period types.PeriodType,
+) ([]time.Time, map[string]time.Time, map[time.Time]map[string]rangeItem) {
+	itemsIdx := make(map[time.Time]map[string]rangeItem)
+	chainIdx := make(map[string]time.Time)
+	for _, item := range items {
+		var ok bool
+		item.ChainID, ok = c.processChainID(item.ChainID)
+		if !ok {
+			continue
+		}
+
+		if _, ok := itemsIdx[item.Timestamp]; !ok {
+			itemsIdx[item.Timestamp] = make(map[string]rangeItem)
+		}
+		itemsIdx[item.Timestamp][item.ChainID] = item
+
+		if item.Timestamp.After(chainIdx[item.ChainID]) {
+			chainIdx[item.ChainID] = item.Timestamp
+		}
 	}
 
-	var endTime time.Time
-	if len(items) == 0 {
-		endTime = time.Now()
-	} else {
-		endTime = items[0].EndTime
-		if newEndTime := items[len(items)-1].EndTime; newEndTime.After(endTime) {
-			endTime = newEndTime
+	var startTime, endTime time.Time
+	for _, timestamp := range chainIdx {
+		if startTime.IsZero() || timestamp.Before(startTime) {
+			startTime = timestamp
 		}
+		if endTime.IsZero() || timestamp.After(endTime) {
+			endTime = timestamp
+		}
+	}
+
+	if endTime.IsZero() {
+		endTime = time.Now()
 	}
 
 	index := period.GenerateRange(common.NormalizeDate(endTime, period.Rollup(), true))
-	chart := &BlockChart{
-		Timestamp:        make([]int64, 0),
-		Value:            make([]float64, 0),
-		Difficulty:       make([]float64, 0),
-		BlockTime:        make([]float64, 0),
-		Hashrate:         make([]float64, 0),
-		UncleRate:        make([]float64, 0),
-		Profitability:    make([]float64, 0),
-		AvgProfitability: make([]float64, 0),
-		BlockCount:       make([]uint64, 0),
-		UncleCount:       make([]uint64, 0),
-		TxCount:          make([]uint64, 0),
+	for timestamp := range index {
+		if _, ok := itemsIdx[timestamp]; !ok && !timestamp.Before(startTime) {
+			itemsIdx[timestamp] = make(map[string]rangeItem)
+		}
 	}
 
-	var firstTime, lastTime time.Time
-	for _, item := range items {
-		if exists := index[item.EndTime]; !exists {
-			chart.AddPoint(item)
-			index[item.EndTime] = true
+	for timestamp, chainIdx := range itemsIdx {
+		if _, ok := index[timestamp]; !ok {
+			delete(itemsIdx, timestamp)
+			continue
+		}
 
-			if firstTime.IsZero() || item.EndTime.Before(firstTime) {
-				firstTime = item.EndTime
-			}
-			if lastTime.IsZero() || item.EndTime.Before(lastTime) {
-				lastTime = item.EndTime
+		for chain := range chainIdx {
+			if _, ok := itemsIdx[timestamp][chain]; !ok {
+				itemsIdx[timestamp][chain] = rangeItem{Timestamp: timestamp}
 			}
 		}
 	}
 
-	for timestamp, exists := range index {
-		if !exists && !timestamp.Before(firstTime) && !timestamp.After(lastTime) {
-			chart.AddPoint(&tsdb.Block{EndTime: timestamp})
-		}
+	var count int
+	timestamps := make([]time.Time, len(itemsIdx))
+	for timestamp := range itemsIdx {
+		timestamps[count] = timestamp
+		count++
 	}
 
-	sort.Sort(chart)
+	sort.Slice(timestamps, func(i, j int) bool {
+		return timestamps[i].Before(timestamps[j])
+	})
 
-	return chart, nil
+	return timestamps, chainIdx, itemsIdx
 }
+
+/* block chart */
 
 func (c *Client) GetBlockSingleMetricChart(metric types.NetworkMetric, period types.PeriodType, average bool) (*ChartSingle, error) {
 	var items []*tsdb.Block
@@ -86,73 +106,31 @@ func (c *Client) GetBlockSingleMetricChart(metric types.NetworkMetric, period ty
 		return nil, err
 	}
 
-	itemsIdx := make(map[time.Time]map[string]*tsdb.Block)
-	chainIdx := make(map[string]time.Time)
-	for _, item := range items {
-		if !c.chains[item.ChainID] {
-			continue
-		} else if _, ok := itemsIdx[item.EndTime]; !ok {
-			itemsIdx[item.EndTime] = make(map[string]*tsdb.Block)
-		}
-		itemsIdx[item.EndTime][item.ChainID] = item
-
-		if item.EndTime.After(chainIdx[item.ChainID]) {
-			chainIdx[item.ChainID] = item.EndTime
+	rangeItems := make([]rangeItem, len(items))
+	for i, item := range items {
+		rangeItems[i] = rangeItem{
+			ChainID:   item.ChainID,
+			Timestamp: item.EndTime,
+			Data:      item,
 		}
 	}
 
-	var startTime, endTime time.Time
-	for _, timestamp := range chainIdx {
-		if startTime.IsZero() || timestamp.Before(startTime) {
-			startTime = timestamp
-		}
-		if endTime.IsZero() || timestamp.Before(endTime) {
-			endTime = timestamp
-		}
-	}
-
-	if endTime.IsZero() {
-		endTime = time.Now()
-	}
-
-	index := period.GenerateRange(common.NormalizeDate(endTime, period.Rollup(), true))
-	for timestamp := range index {
-		if _, ok := itemsIdx[timestamp]; !ok && !timestamp.Before(startTime) {
-			itemsIdx[timestamp] = make(map[string]*tsdb.Block)
-		}
-	}
-
-	for timestamp, chainIdx := range itemsIdx {
-		if _, ok := index[timestamp]; !ok {
-			delete(itemsIdx, timestamp)
-			continue
-		}
-
-		for chain := range chainIdx {
-			if _, ok := itemsIdx[timestamp][chain]; !ok {
-				itemsIdx[timestamp][chain] = &tsdb.Block{EndTime: timestamp}
-			}
-		}
-	}
-
-	var count int
-	timestamps := make([]time.Time, len(itemsIdx))
-	for timestamp := range itemsIdx {
-		timestamps[count] = timestamp
-		count++
-	}
-
-	sort.Slice(timestamps, func(i, j int) bool {
-		return timestamps[i].Before(timestamps[j])
-	})
-
+	timestamps, chainIdx, rangeItemsIdx := c.normalizeRange(rangeItems, period)
 	values := make(map[string][]float64)
 	for chain := range chainIdx {
 		values[chain] = make([]float64, len(timestamps))
 	}
 
 	for i, timestamp := range timestamps {
-		for chain, item := range itemsIdx[timestamp] {
+		for chain, rangeItem := range rangeItemsIdx[timestamp] {
+			if rangeItem.Data == nil {
+				continue
+			}
+
+			item, ok := rangeItem.Data.(*tsdb.Block)
+			if !ok {
+				continue
+			}
 			var value float64
 			switch metric {
 			case types.NetworkValue, types.NetworkEmission:
@@ -253,46 +231,6 @@ func (c *Client) GetRoundChart(chain string, period types.PeriodType) (*RoundCha
 
 /* share chart */
 
-func sumShares(items []*tsdb.Share) []*tsdb.Share {
-	idx := make(map[time.Time]*tsdb.Share)
-	duplicateIdx := make(map[time.Time][]*tsdb.Share)
-	for _, item := range items {
-		if _, ok := idx[item.EndTime]; !ok {
-			idx[item.EndTime] = item
-			continue
-		} else if _, ok := duplicateIdx[item.EndTime]; !ok {
-			duplicateIdx[item.EndTime] = make([]*tsdb.Share, 0)
-		}
-
-		duplicateIdx[item.EndTime] = append(duplicateIdx[item.EndTime], item)
-	}
-
-	for timestamp, duplicateItems := range duplicateIdx {
-		for _, item := range duplicateItems {
-			idx[timestamp].Miners += item.Miners
-			idx[timestamp].Workers += item.Workers
-			idx[timestamp].AcceptedAdjustedShares += item.AcceptedAdjustedShares
-			idx[timestamp].RejectedAdjustedShares += item.RejectedAdjustedShares
-			idx[timestamp].InvalidAdjustedShares += item.InvalidAdjustedShares
-			idx[timestamp].Hashrate += item.Hashrate
-			idx[timestamp].AvgHashrate += item.AvgHashrate
-		}
-	}
-
-	var count int
-	uniqueItems := make([]*tsdb.Share, len(idx))
-	for _, item := range idx {
-		uniqueItems[count] = item
-		count++
-	}
-
-	sort.Slice(uniqueItems, func(i, j int) bool {
-		return uniqueItems[i].EndTime.Before(uniqueItems[j].EndTime)
-	})
-
-	return uniqueItems
-}
-
 func sumSharesSingle(metric types.ShareMetric, items []*tsdb.Share) ([]*tsdb.Share, error) {
 	compoundIdx := make(map[time.Time]map[string]*tsdb.Share)
 	compoundDuplicateIdx := make(map[time.Time]map[string][]*tsdb.Share)
@@ -345,78 +283,32 @@ func sumSharesSingle(metric types.ShareMetric, items []*tsdb.Share) ([]*tsdb.Sha
 }
 
 func (c *Client) getShareChartSingle(metric types.ShareMetric, items []*tsdb.Share, period types.PeriodType) (*ChartSingle, error) {
-	itemsIdx := make(map[time.Time]map[string]*tsdb.Share)
-	chainIdx := make(map[string]time.Time)
-	for _, item := range items {
-		var ok bool
-		item.ChainID, ok = c.processChainID(item.ChainID)
-		if !ok {
-			continue
-		}
-
-		if _, ok := itemsIdx[item.EndTime]; !ok {
-			itemsIdx[item.EndTime] = make(map[string]*tsdb.Share)
-		}
-		itemsIdx[item.EndTime][item.ChainID] = item
-
-		if item.EndTime.After(chainIdx[item.ChainID]) {
-			chainIdx[item.ChainID] = item.EndTime
+	rangeItems := make([]rangeItem, len(items))
+	for i, item := range items {
+		rangeItems[i] = rangeItem{
+			ChainID:   item.ChainID,
+			Timestamp: item.EndTime,
+			Data:      item,
 		}
 	}
 
-	var startTime, endTime time.Time
-	for _, timestamp := range chainIdx {
-		if startTime.IsZero() || timestamp.Before(startTime) {
-			startTime = timestamp
-		}
-		// if endTime.IsZero() || timestamp.Before(endTime) {
-		if endTime.IsZero() || timestamp.After(endTime) {
-			endTime = timestamp
-		}
-	}
-
-	if endTime.IsZero() {
-		endTime = time.Now()
-	}
-
-	index := period.GenerateRange(common.NormalizeDate(endTime, period.Rollup(), true))
-	for timestamp := range index {
-		if _, ok := itemsIdx[timestamp]; !ok && !timestamp.Before(startTime) {
-			itemsIdx[timestamp] = make(map[string]*tsdb.Share)
-		}
-	}
-
-	for timestamp, chainIdx := range itemsIdx {
-		if _, ok := index[timestamp]; !ok {
-			delete(itemsIdx, timestamp)
-			continue
-		}
-
-		for chain := range chainIdx {
-			if _, ok := itemsIdx[timestamp][chain]; !ok {
-				itemsIdx[timestamp][chain] = &tsdb.Share{EndTime: timestamp}
-			}
-		}
-	}
-
-	var count int
-	timestamps := make([]time.Time, len(itemsIdx))
-	for timestamp := range itemsIdx {
-		timestamps[count] = timestamp
-		count++
-	}
-
-	sort.Slice(timestamps, func(i, j int) bool {
-		return timestamps[i].Before(timestamps[j])
-	})
-
+	timestamps, chainIdx, rangeItemsIdx := c.normalizeRange(rangeItems, period)
 	values := make(map[string][]float64)
 	for chain := range chainIdx {
 		values[chain] = make([]float64, len(timestamps))
 	}
 
 	for i, timestamp := range timestamps {
-		for chain, item := range itemsIdx[timestamp] {
+		for chain, rangeItem := range rangeItemsIdx[timestamp] {
+			if rangeItem.Data == nil {
+				continue
+			}
+
+			item, ok := rangeItem.Data.(*tsdb.Share)
+			if !ok {
+				continue
+			}
+
 			var buffValues bool
 			var value float64
 			switch metric {
@@ -493,4 +385,118 @@ func (c *Client) GetWorkerShareSingleMetricChart(workerID uint64, metric types.S
 	}
 
 	return c.getShareChartSingle(metric, items, period)
+}
+
+/* share chart */
+
+func sumEarningsSingle(items []*tsdb.Earning) ([]*tsdb.Earning, error) {
+	compoundIdx := make(map[time.Time]map[string]*tsdb.Earning)
+	compoundDuplicateIdx := make(map[time.Time]map[string][]*tsdb.Earning)
+	for _, item := range items {
+		if _, ok := compoundIdx[item.EndTime]; !ok {
+			compoundIdx[item.EndTime] = make(map[string]*tsdb.Earning)
+			compoundDuplicateIdx[item.EndTime] = make(map[string][]*tsdb.Earning)
+		}
+
+		if _, ok := compoundIdx[item.EndTime][item.ChainID]; !ok {
+			compoundIdx[item.EndTime][item.ChainID] = item
+			continue
+		} else if _, ok := compoundDuplicateIdx[item.EndTime][item.ChainID]; !ok {
+			compoundDuplicateIdx[item.EndTime][item.ChainID] = make([]*tsdb.Earning, 0)
+		}
+
+		compoundDuplicateIdx[item.EndTime][item.ChainID] = append(compoundDuplicateIdx[item.EndTime][item.ChainID], item)
+	}
+
+	for timestamp, duplicateIdx := range compoundDuplicateIdx {
+		for chain, duplicateItems := range duplicateIdx {
+			for _, item := range duplicateItems {
+				compoundIdx[timestamp][chain].Value += item.Value
+				compoundIdx[timestamp][chain].AvgValue += item.AvgValue
+			}
+		}
+	}
+
+	uniqueItems := make([]*tsdb.Earning, 0)
+	for _, idx := range compoundIdx {
+		for _, item := range idx {
+			uniqueItems = append(uniqueItems, item)
+		}
+	}
+
+	sort.Slice(uniqueItems, func(i, j int) bool {
+		return uniqueItems[i].EndTime.Before(uniqueItems[j].EndTime)
+	})
+
+	return uniqueItems, nil
+}
+
+func (c *Client) getEarningChartSingle(items []*tsdb.Earning, period types.PeriodType) (*ChartSingle, error) {
+	rangeItems := make([]rangeItem, len(items))
+	for i, item := range items {
+		rangeItems[i] = rangeItem{
+			ChainID:   item.ChainID,
+			Timestamp: item.EndTime,
+			Data:      item,
+		}
+	}
+
+	timestamps, chainIdx, rangeItemsIdx := c.normalizeRange(rangeItems, period)
+	values := make(map[string][]float64)
+	for chain := range chainIdx {
+		values[chain] = make([]float64, len(timestamps))
+	}
+
+	for i, timestamp := range timestamps {
+		for chain, rangeItem := range rangeItemsIdx[timestamp] {
+			if rangeItem.Data == nil {
+				continue
+			}
+
+			item, ok := rangeItem.Data.(*tsdb.Earning)
+			if !ok {
+				continue
+			}
+
+			values[chain][i] = item.Value
+		}
+	}
+
+	parsedTimestamps := make([]int64, len(timestamps))
+	for i, timestamp := range timestamps {
+		parsedTimestamps[i] = timestamp.Unix()
+	}
+
+	chart := &ChartSingle{
+		Timestamps: parsedTimestamps,
+		Values:     values,
+	}
+
+	return chart, nil
+}
+
+func (c *Client) GetGlobalEarningChart(period types.PeriodType) (*ChartSingle, error) {
+	items, err := tsdb.GetGlobalEarningsSingleMetric(c.tsdb.Reader(), "value", int(period))
+	if err != nil {
+		return nil, err
+	}
+
+	return c.getEarningChartSingle(items, period)
+}
+
+func (c *Client) GetMinerEarningChart(minerIDs []uint64, period types.PeriodType) (*ChartSingle, error) {
+	items, err := tsdb.GetMinerEarningsSingleMetric(c.tsdb.Reader(), minerIDs, "value", int(period))
+	if err != nil {
+		return nil, err
+	}
+
+	// sum shares if more than one miner
+	if len(minerIDs) > 1 {
+		items, err = sumEarningsSingle(items)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return c.getEarningChartSingle(items, period)
 }

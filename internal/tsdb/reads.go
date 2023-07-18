@@ -498,6 +498,46 @@ func GetEarningMaxEndTime(q dbcl.Querier, chain string, period int) (time.Time, 
 	return dbcl.GetTime(q, query, chain, period)
 }
 
+func GetGlobalEarningsSingleMetric(q dbcl.Querier, metric string, period int) ([]*Earning, error) {
+	var query = fmt.Sprintf(`SELECT chain_id, %s, end_time
+	FROM global_earnings
+	WHERE
+		period = ?
+	AND
+		pending = FALSE;`, metric)
+
+	output := []*Earning{}
+	err := q.Select(&output, query, period)
+
+	return output, err
+}
+
+func GetMinerEarningsSingleMetric(q dbcl.Querier, minerIDs []uint64, metric string, period int) ([]*Earning, error) {
+	var rawQuery = fmt.Sprintf(`SELECT chain_id, %s, end_time
+	FROM miner_earnings
+	WHERE
+		miner_id IN (?)
+	AND
+		period = ?
+	AND
+		pending = FALSE;`, metric)
+
+	if len(minerIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(rawQuery, minerIDs, period)
+	if err != nil {
+		return nil, err
+	}
+
+	output := []*Earning{}
+	query = q.Rebind(query)
+	err = q.Select(&output, query, args...)
+
+	return output, err
+}
+
 /* averages */
 
 func GetGlobalSharesAverageFast(q dbcl.Querier, timestamp time.Time, chain string, period, windowSize int, duration time.Duration) (float64, error) {
