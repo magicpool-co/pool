@@ -19,7 +19,7 @@ var (
 func (c *Client) FetchEarningIntervals(chain string) ([]time.Time, error) {
 	lastTime, err := c.redis.GetChartEarningsLastTime(chain)
 	if err != nil || lastTime.IsZero() {
-		lastTime, err = tsdb.GetEarningMaxEndTime(c.tsdb.Reader(), chain, int(roundPeriod))
+		lastTime, err = tsdb.GetEarningMaxEndTime(c.tsdb.Reader(), chain, int(earningPeriod))
 		if err != nil {
 			return nil, err
 		}
@@ -34,7 +34,7 @@ func (c *Client) FetchEarningIntervals(chain string) ([]time.Time, error) {
 			return nil, nil
 		}
 
-		lastTime = common.NormalizeDate(lastTime, roundPeriod.Rollup(), false)
+		lastTime = common.NormalizeDate(lastTime, earningPeriod.Rollup(), false)
 	}
 
 	intervals := make([]time.Time, 0)

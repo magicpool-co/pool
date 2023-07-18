@@ -26,5 +26,5 @@ CREATE TABLE miner_earnings (
 	start_time				datetime		NOT NULL,
 	end_time				datetime		NOT NULL,
 
-	PRIMARY KEY (end_time, chain_id, period)
+	PRIMARY KEY (end_time, miner_id, chain_id, period)
 );
