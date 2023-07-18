@@ -3,6 +3,7 @@ package stats
 import (
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
@@ -197,13 +198,20 @@ func (c *Client) GetMinerDashboard(minerIdx map[uint64]string) (*Dashboard, erro
 	projectedEarningsBTC := make(map[string]float64)
 	projectedEarningsETH := make(map[string]float64)
 	for chain, hashrateValue := range hashrateInfo {
+		var ok bool
+		chain, ok = c.processChainID(chain)
+		if !ok {
+			continue
+		}
+		chain = strings.Split(chain, " ")[0]
+
 		block, ok := profitIndex[chain]
 		if ok {
 			hashrate := hashrateValue.AvgHashrate.Value
-			projectedEarningsNative[chain] = hashrate * block.AvgProfitability
-			projectedEarningsUSD[chain] = hashrate * block.AvgProfitabilityUSD
-			projectedEarningsBTC[chain] = hashrate * block.AvgProfitabilityBTC
-			projectedEarningsETH[chain] = hashrate * block.AvgProfitabilityETH
+			projectedEarningsNative[chain] += hashrate * block.AvgProfitability
+			projectedEarningsUSD[chain] += hashrate * block.AvgProfitabilityUSD
+			projectedEarningsBTC[chain] += hashrate * block.AvgProfitabilityBTC
+			projectedEarningsETH[chain] += hashrate * block.AvgProfitabilityETH
 		}
 	}
 
