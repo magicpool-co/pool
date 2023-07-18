@@ -79,6 +79,12 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		method = "GET"
 		handler = rtr.ctx.getDashboard(dashboardArgs{})
 
+	case rtr.match(path, "/global/charts/blocks"):
+		method = "GET"
+		chain := r.URL.Query().Get("chain")
+		period := r.URL.Query().Get("period")
+		handler = rtr.ctx.getBlockChart(blockChartArgs{chain: chain, period: period})
+
 	case rtr.match(path, "/global/charts/blocks/+", &metric):
 		method = "GET"
 		period := r.URL.Query().Get("period")
@@ -90,6 +96,12 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		chain := r.URL.Query().Get("chain")
 		period := r.URL.Query().Get("period")
 		handler = rtr.ctx.getRoundChart(roundChartArgs{chain: chain, period: period})
+
+	case rtr.match(path, "/global/charts/shares"):
+		method = "GET"
+		chain := r.URL.Query().Get("chain")
+		period := r.URL.Query().Get("period")
+		handler = rtr.ctx.getShareChart(shareChartArgs{chain: chain, period: period})
 
 	case rtr.match(path, "/global/charts/shares/+", &metric):
 		method = "GET"
@@ -129,6 +141,12 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case rtr.match(path, "/miner/+/dashboard", &miner):
 		method = "GET"
 		handler = rtr.ctx.getDashboard(dashboardArgs{miner: miner})
+
+	case rtr.match(path, "/miner/+/charts/shares", &miner):
+		method = "GET"
+		chain := r.URL.Query().Get("chain")
+		period := r.URL.Query().Get("period")
+		handler = rtr.ctx.getShareChart(shareChartArgs{chain: chain, period: period, miner: miner})
 
 	case rtr.match(path, "/miner/+/charts/shares/+", &miner, &metric):
 		method = "GET"
@@ -186,6 +204,12 @@ func (rtr router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case rtr.match(path, "/worker/+/+/dashboard", &miner, &worker):
 		method = "GET"
 		handler = rtr.ctx.getDashboard(dashboardArgs{miner: miner, worker: worker})
+
+	case rtr.match(path, "/worker/+/+/charts/shares", &miner, &worker):
+		method = "GET"
+		chain := r.URL.Query().Get("chain")
+		period := r.URL.Query().Get("period")
+		handler = rtr.ctx.getShareChart(shareChartArgs{chain: chain, period: period, miner: miner, worker: worker})
 
 	case rtr.match(path, "/worker/+/+/charts/shares/+", &miner, &worker, &metric):
 		method = "GET"

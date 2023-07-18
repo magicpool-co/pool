@@ -370,6 +370,33 @@ func (ctx *Context) getDashboard(args dashboardArgs) http.Handler {
 	})
 }
 
+type blockChartArgs struct {
+	chain  string
+	period string
+}
+
+func (ctx *Context) getBlockChart(args blockChartArgs) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		chain := strings.ToUpper(args.chain)
+		period, err := types.ParsePeriodType(args.period)
+		if err != nil {
+			ctx.writeErrorResponse(w, errPeriodNotFound)
+			return
+		} else if !validateMiningChain(chain) {
+			ctx.writeErrorResponse(w, errChainNotFound)
+			return
+		}
+
+		data, err := ctx.stats.GetBlockChart(chain, period)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		ctx.writeOkResponse(w, data)
+	})
+}
+
 type blockMetricChartArgs struct {
 	metric  string
 	period  string
@@ -418,6 +445,64 @@ func (ctx *Context) getRoundChart(args roundChartArgs) http.Handler {
 		}
 
 		data, err := ctx.stats.GetRoundChart(chain, period)
+		if err != nil {
+			ctx.writeErrorResponse(w, err)
+			return
+		}
+
+		ctx.writeOkResponse(w, data)
+	})
+}
+
+type shareChartArgs struct {
+	chain  string
+	period string
+	miner  string
+	worker string
+}
+
+func (ctx *Context) getShareChart(args shareChartArgs) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		chain := strings.ToUpper(args.chain)
+		period, err := types.ParsePeriodType(args.period)
+		if err != nil {
+			ctx.writeErrorResponse(w, errPeriodNotFound)
+			return
+		} else if !validateMiningChain(chain) {
+			ctx.writeErrorResponse(w, errChainNotFound)
+			return
+		}
+
+		var data interface{}
+		if args.miner == "" && args.worker != "" {
+			ctx.writeErrorResponse(w, errInvalidParameters)
+			return
+		} else if args.worker != "" {
+			minerID, _, err := ctx.getMinerID(args.miner)
+			if err != nil {
+				ctx.writeErrorResponse(w, err)
+				return
+			}
+
+			workerID, err := ctx.getWorkerID(minerID, args.worker)
+			if err != nil {
+				ctx.writeErrorResponse(w, err)
+				return
+			}
+
+			data, err = ctx.stats.GetWorkerShareChart(workerID, chain, period)
+		} else if args.miner != "" {
+			minerIDs, _, err := ctx.getMinerIDs(args.miner)
+			if err != nil {
+				ctx.writeErrorResponse(w, err)
+				return
+			}
+
+			data, err = ctx.stats.GetMinerShareChart(minerIDs, chain, period)
+		} else {
+			data, err = ctx.stats.GetGlobalShareChart(chain, period)
+		}
+
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return
