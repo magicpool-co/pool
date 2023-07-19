@@ -431,7 +431,8 @@ func (p *Pool) Serve() {
 	go p.startStratum()
 
 	if p.metrics != nil {
-		p.metrics.SetGauge("share_difficuly", p.node.GetAdjustedShareDifficulty(), p.chain)
+		p.metrics.SetGauge("share_difficulty", p.node.GetAdjustedShareDifficulty(), p.chain)
+		p.metrics.SetGauge("share_difficulty", p.node.GetAdjustedShareDifficulty(), p.soloChain)
 	}
 }
 
