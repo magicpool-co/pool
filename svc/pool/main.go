@@ -16,8 +16,9 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:     100000,
 		ExtraNonceSize: 4,
 		JobListSize:    5,
+		SoloEnabled:    true,
 		VarDiffEnabled: false,
-		StreamEnabled:  false,
+		StreamEnabled:  true,
 		PollingPeriod:  time.Millisecond * 100,
 	},
 	"CFX": &pool.Options{
@@ -25,8 +26,9 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:      100000,
 		JobListSize:     100,
 		JobListAgeLimit: -1,
+		SoloEnabled:     true,
 		VarDiffEnabled:  false,
-		StreamEnabled:   false,
+		StreamEnabled:   true,
 		PollingPeriod:   time.Millisecond * 100,
 	},
 	"CTXC": &pool.Options{
@@ -34,8 +36,9 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:      100000,
 		JobListSize:     25,
 		JobListAgeLimit: 7,
+		SoloEnabled:     true,
 		VarDiffEnabled:  false,
-		StreamEnabled:   false,
+		StreamEnabled:   true,
 		PollingPeriod:   time.Millisecond * 100,
 	},
 	"ERG": &pool.Options{
@@ -43,8 +46,9 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:           100000,
 		ExtraNonceSize:       2,
 		JobListSize:          5,
+		SoloEnabled:          true,
 		VarDiffEnabled:       false,
-		StreamEnabled:        false,
+		StreamEnabled:        true,
 		ForceErrorOnResponse: true,
 		PollingPeriod:        time.Millisecond * 100,
 		PingingPeriod:        time.Minute,
@@ -54,6 +58,7 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:      100000,
 		JobListSize:     25,
 		JobListAgeLimit: 7,
+		SoloEnabled:     true,
 		VarDiffEnabled:  false,
 		StreamEnabled:   true,
 		PollingPeriod:   time.Millisecond * 100,
@@ -63,8 +68,9 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:      2000000,
 		JobListSize:     25,
 		JobListAgeLimit: 7,
+		SoloEnabled:     true,
 		VarDiffEnabled:  false,
-		StreamEnabled:   false,
+		StreamEnabled:   true,
 		PollingPeriod:   time.Millisecond * 100,
 	},
 	"FIRO": &pool.Options{
@@ -72,8 +78,9 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:     300000,
 		ExtraNonceSize: 1,
 		JobListSize:    5,
+		SoloEnabled:    true,
 		VarDiffEnabled: false,
-		StreamEnabled:  false,
+		StreamEnabled:  true,
 		PollingPeriod:  time.Second,
 	},
 	"FLUX": &pool.Options{
@@ -81,8 +88,9 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:     100000,
 		ExtraNonceSize: 4,
 		JobListSize:    5,
+		SoloEnabled:    true,
 		VarDiffEnabled: false,
-		StreamEnabled:  false,
+		StreamEnabled:  true,
 		PollingPeriod:  time.Second,
 	},
 	"KAS": &pool.Options{
@@ -91,6 +99,7 @@ var defaultOptions = map[string]*pool.Options{
 		ExtraNonceSize:  2,
 		JobListSize:     50,
 		JobListAgeLimit: 30,
+		SoloEnabled:     true,
 		VarDiffEnabled:  true,
 		StreamEnabled:   true,
 		PollingPeriod:   time.Millisecond * 100,
@@ -101,8 +110,9 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:     150000,
 		ExtraNonceSize: 4,
 		JobListSize:    5,
+		SoloEnabled:    true,
 		VarDiffEnabled: false,
-		StreamEnabled:  false,
+		StreamEnabled:  true,
 		PollingPeriod:  time.Second,
 	},
 	"RVN": &pool.Options{
@@ -110,8 +120,9 @@ var defaultOptions = map[string]*pool.Options{
 		WindowSize:     300000,
 		ExtraNonceSize: 1,
 		JobListSize:    5,
+		SoloEnabled:    true,
 		VarDiffEnabled: false,
-		StreamEnabled:  false,
+		StreamEnabled:  true,
 		PollingPeriod:  time.Second,
 	},
 }
@@ -123,7 +134,6 @@ func main() {
 	argStandardPort := flag.Int("port", 3333, "The pool port to use")
 	argHighDiffPort := flag.Int("high-diff-port", -1, "The port for high difficulty (-1 is disabled)")
 	argExtraHighDiffPort := flag.Int("extra-high-diff-port", -1, "The port for extra high difficulty (-1 is disabled)")
-	argSoloEnabled := flag.Bool("solo-enabled", true, "Whether or not to enable solo")
 	argMetricsPort := flag.Int("metrics-port", 6060, "The metrics port to use")
 
 	flag.Parse()
@@ -144,7 +154,6 @@ func main() {
 	}
 
 	opts.PortDiffIdx = portDiffIdx
-	opts.SoloEnabled = *argSoloEnabled
 	secrets, err := svc.ParseSecrets(*argSecretVar)
 	if err != nil {
 		panic(err)

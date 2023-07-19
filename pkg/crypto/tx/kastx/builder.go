@@ -162,7 +162,6 @@ func CalculateTxID(txHex string) string {
 func CalculateTxMass(tx *protowire.RpcTransaction, txHex []byte) uint64 {
 	// calculate mass for size
 	size := uint64(len(txHex))
-	fmt.Println(size, len(tx.Inputs), len(tx.Outputs))
 	massForSize := size * defaultMassPerTxByte
 
 	// calculate mass for scriptPubKey

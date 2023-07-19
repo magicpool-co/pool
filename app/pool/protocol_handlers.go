@@ -443,7 +443,6 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 				return
 			}
 
-			p.logger.Info(fmt.Sprintf("setting vardiff for miner %s: %d -> %d", c.GetCompoundID(), c.GetDiffFactor(), newDiffFactor))
 			err = p.writeToConn(c, diffResponse)
 			if err != nil {
 				p.logger.Error(err)
