@@ -50,9 +50,9 @@ func newRound(dbRound *pooldb.Round) (*Round, error) {
 		value = value.Set(dbRound.Value.BigInt)
 	}
 
-	poolType := "PPLNS"
+	poolType := "pplns"
 	if dbRound.Solo {
-		poolType = "SOLO"
+		poolType = "solo"
 	}
 
 	roundType := "block"
