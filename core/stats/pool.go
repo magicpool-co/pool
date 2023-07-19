@@ -40,6 +40,14 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 			workers = dbShare.Workers
 		}
 
+		var hashrateSolo float64
+		var minersSolo, workersSolo uint64
+		if dbShare, ok := dbSharesIdx["S"+chain]; ok {
+			hashrateSolo = dbShare.Hashrate
+			minersSolo = dbShare.Miners
+			workersSolo = dbShare.Workers
+		}
+
 		var networkDifficulty, networkHashrate, blockReward, blockTime, profitUsd, profitBtc float64
 		var ttf time.Duration
 		if dbBlock, ok := dbBlocksIdx[chain]; ok {
@@ -70,10 +78,15 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 			Symbol:             chain,
 			Fee:                newNumberFromFloat64WithPrecision(0.01, 2, "%", false),
 			Miners:             miners,
+			MinersSolo:         minersSolo,
 			Workers:            workers,
+			WorkersSolo:        workersSolo,
 			Hashrate:           newNumberFromFloat64(hashrate, "H/s", true),
+			HashrateSolo:       newNumberFromFloat64(hashrateSolo, "H/s", true),
 			Luck:               newNumberFromFloat64(luck, "%", false),
+			LuckSolo:           newNumberFromFloat64(luck, "%", false),
 			TTF:                newNumberFromDuration(ttf),
+			TTFSolo:            newNumberFromDuration(ttf),
 			ProfitUSD:          newNumberFromFloat64WithPrecision(profitUsd, 32, " $/H/s", false),
 			ProfitBTC:          newNumberFromFloat64WithPrecision(profitBtc, 32, " BTC/H/s", false),
 			NetworkDifficulty:  newNumberFromFloat64(networkDifficulty, "", true),

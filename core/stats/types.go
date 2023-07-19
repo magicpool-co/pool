@@ -122,10 +122,15 @@ type PoolSummary struct {
 	Symbol             string `json:"symbol"`
 	Fee                Number `json:"fee"`
 	Miners             uint64 `json:"miners"`
+	MinersSolo         uint64 `json:"minersSolo"`
 	Workers            uint64 `json:"workers"`
+	WorkersSolo        uint64 `json:"workersSolo"`
 	Hashrate           Number `json:"hashrate"`
+	HashrateSolo       Number `json:"hashrateSolo"`
 	Luck               Number `json:"luck"`
+	LuckSolo           Number `json:"luckSolo"`
 	TTF                Number `json:"ttf"`
+	TTFSolo            Number `json:"ttfSolo"`
 	ProfitUSD          Number `json:"profitUsd"`
 	ProfitBTC          Number `json:"profitBtc"`
 	NetworkDifficulty  Number `json:"networkDifficulty"`
