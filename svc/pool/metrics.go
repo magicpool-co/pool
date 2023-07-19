@@ -42,7 +42,7 @@ func initMetrics(env string, port int) (*metrics.Client, error) {
 		return nil, err
 	}
 
-	err = metricsClient.NewGauge("pool", "share_difficuly", env,
+	err = metricsClient.NewGauge("pool", "share_difficulty", env,
 		"The active share difficulty", "chain")
 	if err != nil {
 		return nil, err
