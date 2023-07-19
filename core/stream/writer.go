@@ -25,7 +25,8 @@ type Writer struct {
 	debugPubsub  *redis.PubSub
 	eventStreams map[uint64]time.Time
 	debugStreams map[string]time.Time
-	mu           sync.RWMutex
+	eventMu           sync.RWMutex
+	debugMu           sync.RWMutex
 }
 
 func NewWriter(ctx context.Context, chain, path string, logger *log.Logger, redisClient *redis.Client) (*Writer, error) {
@@ -60,7 +61,7 @@ func (w *Writer) listen() {
 	defer w.logger.RecoverPanic()
 
 	eventCh := w.eventPubsub.Channel()
-	debugCh := w.eventPubsub.Channel()
+	debugCh := w.debugPubsub.Channel()
 	ticker := time.NewTicker(time.Minute)
 	for {
 		select {
@@ -69,19 +70,21 @@ func (w *Writer) listen() {
 			w.debugPubsub.Close()
 			return
 		case <-ticker.C:
-			w.mu.Lock()
+			w.eventMu.Lock()
 			for minerID, lastAck := range w.eventStreams {
 				if time.Since(lastAck) > time.Minute {
 					delete(w.eventStreams, minerID)
 				}
 			}
+			w.eventMu.Unlock()
 
+			w.debugMu.Lock()
 			for ip, lastAck := range w.debugStreams {
 				if time.Since(lastAck) > time.Minute {
 					delete(w.debugStreams, ip)
 				}
 			}
-			w.mu.Unlock()
+			w.debugMu.Unlock()
 		case msg := <-eventCh:
 			parts := strings.Split(msg.Payload, "|")
 			if len(parts) != 2 {
@@ -96,9 +99,9 @@ func (w *Writer) listen() {
 					continue
 				}
 
-				w.mu.Lock()
+				w.eventMu.Lock()
 				w.eventStreams[minerID] = time.Now()
-				w.mu.Unlock()
+				w.eventMu.Unlock()
 			}
 		case msg := <-debugCh:
 			parts := strings.Split(msg.Payload, "|")
@@ -110,42 +113,42 @@ func (w *Writer) listen() {
 			case "ack":
 				ip := parts[1]
 
-				w.mu.Lock()
+				w.debugMu.Lock()
 				w.debugStreams[ip] = time.Now()
-				w.mu.Unlock()
+				w.debugMu.Unlock()
 			}
 		}
 	}
 }
 
 func (w *Writer) getEventStream(minerID uint64) bool {
-	w.mu.RLock()
+	w.eventMu.RLock()
 	lastAck, ok := w.eventStreams[minerID]
-	w.mu.RUnlock()
+	w.eventMu.RUnlock()
 
 	if !ok || time.Since(lastAck) < time.Second*15 {
 		return ok
 	}
 
-	w.mu.Lock()
+	w.eventMu.Lock()
 	delete(w.eventStreams, minerID)
-	w.mu.Unlock()
+	w.eventMu.Unlock()
 
 	return false
 }
 
 func (w *Writer) getDebugStream(ip string) bool {
-	w.mu.RLock()
+	w.debugMu.RLock()
 	lastAck, ok := w.debugStreams[ip]
-	w.mu.RUnlock()
+	w.debugMu.RUnlock()
 
 	if !ok || time.Since(lastAck) < time.Second*15 {
 		return ok
 	}
 
-	w.mu.Lock()
+	w.debugMu.Lock()
 	delete(w.debugStreams, ip)
-	w.mu.Unlock()
+	w.debugMu.Unlock()
 
 	return false
 }
@@ -207,7 +210,7 @@ func (w *Writer) WriteDebugRequest(ip string, req *rpc.Request) {
 
 	data, err := json.Marshal(req)
 	if err != nil {
-		w.logger.Error(fmt.Errorf("failed marshaing debug request: %v", err))
+		w.logger.Error(fmt.Errorf("failed marshaling debug request: %v", err))
 		return
 	}
 
