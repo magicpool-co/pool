@@ -49,18 +49,29 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 		}
 
 		var networkDifficulty, networkHashrate, blockReward, blockTime, profitUsd, profitBtc float64
-		var ttf time.Duration
+		var ttf, ttfSolo time.Duration
 		if dbBlock, ok := dbBlocksIdx[chain]; ok {
 			networkDifficulty, networkHashrate = dbBlock.Difficulty, dbBlock.Hashrate
 			blockReward, blockTime = dbBlock.Value, dbBlock.BlockTime
 			profitUsd, profitBtc = dbBlock.AvgProfitabilityUSD, dbBlock.AvgProfitabilityBTC
 
-			if blockTime > 0 && hashrate > 0 && networkHashrate > 0 {
-				ttf = time.Duration(blockTime * (networkHashrate / hashrate) * float64(time.Second))
+			if blockTime > 0 && networkHashrate > 0 {
+				if hashrate > 0 {
+					ttf = time.Duration(blockTime * (networkHashrate / hashrate) * float64(time.Second))
+				}
+
+				if hashrateSolo > 0 {
+					ttfSolo = time.Duration(blockTime * (networkHashrate / hashrateSolo) * float64(time.Second))
+				}
 			}
 		}
 
-		luck, err := c.getRoundLuckByChain(chain)
+		luck, err := c.getRoundLuckByChain(chain, false)
+		if err != nil {
+			return nil, err
+		}
+
+		luckSolo, err := c.getRoundLuckByChain(chain, true)
 		if err != nil {
 			return nil, err
 		}
@@ -84,9 +95,9 @@ func (c *Client) GetPoolSummary(nodes []types.MiningNode) ([]*PoolSummary, error
 			Hashrate:           newNumberFromFloat64(hashrate, "H/s", true),
 			HashrateSolo:       newNumberFromFloat64(hashrateSolo, "H/s", true),
 			Luck:               newNumberFromFloat64(luck, "%", false),
-			LuckSolo:           newNumberFromFloat64(luck, "%", false),
+			LuckSolo:           newNumberFromFloat64(luckSolo, "%", false),
 			TTF:                newNumberFromDuration(ttf),
-			TTFSolo:            newNumberFromDuration(ttf),
+			TTFSolo:            newNumberFromDuration(ttfSolo),
 			ProfitUSD:          newNumberFromFloat64WithPrecision(profitUsd, 32, " $/H/s", false),
 			ProfitBTC:          newNumberFromFloat64WithPrecision(profitBtc, 32, " BTC/H/s", false),
 			NetworkDifficulty:  newNumberFromFloat64(networkDifficulty, "", true),

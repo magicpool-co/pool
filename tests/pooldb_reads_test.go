@@ -213,7 +213,7 @@ func (suite *PooldbReadsSuite) TestReadRound() {
 		suite.T().Errorf("failed: GetSumUnspentRoundValueByChain: %v", err)
 	}
 
-	_, err = pooldb.GetRoundLuckByChain(pooldbClient.Reader(), "ETC", time.Hour*24*30)
+	_, err = pooldb.GetRoundLuckByChain(pooldbClient.Reader(), "ETC", true, time.Hour*24*30)
 	if err != nil {
 		suite.T().Errorf("failed: GetRoundLuckByChain: %v", err)
 	}

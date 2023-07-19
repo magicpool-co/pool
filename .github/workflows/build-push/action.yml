@@ -88,11 +88,11 @@ runs:
         container-name: ${{ steps.set-vars.outputs.container }}
         image: ${{ steps.build-image.outputs.image }}
 
-    # - name: Deploy Amazon ECS task definition
-    #   uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-    #   with:
-    #     cluster: ${{ steps.set-vars.outputs.cluster }}
-    #     service: ${{ steps.set-vars.outputs.service }}
-    #     task-definition: ${{ steps.task-def.outputs.task-definition }}
-    #     # wait-for-service-stability: true
-    #     force-new-deployment: true
+    - name: Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        cluster: ${{ steps.set-vars.outputs.cluster }}
+        service: ${{ steps.set-vars.outputs.service }}
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        # wait-for-service-stability: true
+        force-new-deployment: true

@@ -94,21 +94,26 @@ func (c *Client) getBlocksWithProfitabilityLast() ([]*tsdb.Block, error) {
 	return blocks, err
 }
 
-func (c *Client) getRoundLuckByChain(chain string) (float64, error) {
+func (c *Client) getRoundLuckByChain(chain string, solo bool) (float64, error) {
+	soloChain := chain
+	if solo {
+		chain = "S" + chain
+	}
+
 	if c.useCache {
-		luck, err := c.redis.GetCachedLuckByChain(chain)
+		luck, err := c.redis.GetCachedLuckByChain(soloChain)
 		if err == nil && luck > 0 {
 			return luck, nil
 		}
 	}
 
-	luck, err := pooldb.GetRoundLuckByChain(c.pooldb.Reader(), chain, time.Hour*24*7)
+	luck, err := pooldb.GetRoundLuckByChain(c.pooldb.Reader(), chain, solo, time.Hour*24*7)
 	if err != nil {
 		return 0.0, err
 	}
 
 	if c.useCache {
-		go c.redis.SetCachedLuckByChain(chain, luck, cacheDuration)
+		go c.redis.SetCachedLuckByChain(soloChain, luck, cacheDuration)
 	}
 
 	return luck, err

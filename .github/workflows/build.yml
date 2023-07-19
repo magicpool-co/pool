@@ -58,19 +58,19 @@ jobs:
     strategy:
       matrix:
         app: [pool]
-        region: [us-west-2, us-east-1, eu-central-1]
+        region: [eu-central-1]
         chain: [erg, etc, nexa, kas]
-        # include:
-        #   - region: eu-west-1
-        #     app: worker
-        #   - region: eu-west-1
-        #     app: api
-        #   - region: eu-central-1
-        #     app: api
-        #   - region: us-east-1
-        #     app: api
-        #   - region: us-west-2
-        #     app: api
+        include:
+          - region: eu-west-1
+            app: worker
+          - region: eu-west-1
+            app: api
+          - region: eu-central-1
+            app: api
+          - region: us-east-1
+            app: api
+          - region: us-west-2
+            app: api
 
     steps:
       - name: Checkout Repository

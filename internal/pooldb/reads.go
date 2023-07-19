@@ -667,15 +667,17 @@ func GetSumUnspentRoundValueByChain(q dbcl.Querier, chain string) (*big.Int, err
 	return dbcl.GetBigInt(q, query, chain)
 }
 
-func GetRoundLuckByChain(q dbcl.Querier, chain string, duration time.Duration) (float64, error) {
+func GetRoundLuckByChain(q dbcl.Querier, chain string, solo bool, duration time.Duration) (float64, error) {
 	var query = fmt.Sprintf(`SELECT SUM(difficulty) / IFNULL(SUM(accepted_shares), 1)
 	FROM rounds
 	WHERE
 		chain_id = ?
 	AND
+		solo = ?
+	AND
 		created_at > DATE_SUB(CURRENT_TIMESTAMP, %s);`, dbcl.ConvertDurationToInterval(duration))
 
-	return dbcl.GetFloat64(q, query, chain)
+	return dbcl.GetFloat64(q, query, chain, solo)
 }
 
 /* Share Queries */
