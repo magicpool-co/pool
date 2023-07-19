@@ -171,7 +171,7 @@ type Worker struct {
 	Active         bool                     `json:"active"`
 	HashrateInfo   map[string]*HashrateInfo `json:"hashrateInfo"`
 	ShareInfo      map[string]*ShareInfo    `json:"shareInfo"`
-	LastDifficulty *float64                 `db:"lastDifficulty"`
+	LastDifficulty *float64                 `json:"lastDifficulty"`
 	FirstSeen      int64                    `json:"firstSeen"`
 	LastSeen       int64                    `json:"lastSeen"`
 }
