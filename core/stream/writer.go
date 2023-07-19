@@ -25,8 +25,8 @@ type Writer struct {
 	debugPubsub  *redis.PubSub
 	eventStreams map[uint64]time.Time
 	debugStreams map[string]time.Time
-	eventMu           sync.RWMutex
-	debugMu           sync.RWMutex
+	eventMu      sync.RWMutex
+	debugMu      sync.RWMutex
 }
 
 func NewWriter(ctx context.Context, chain, path string, logger *log.Logger, redisClient *redis.Client) (*Writer, error) {
