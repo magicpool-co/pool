@@ -80,7 +80,8 @@ type Worker struct {
 
 	// column not present in the table, only
 	// helpful for a specific join query (GetWorkersByMiner)
-	LastShare time.Time `db:"last_share"`
+	LastDifficulty *float64  `db:"last_difficulty"`
+	LastShare      time.Time `db:"last_share"`
 }
 
 type IPAddress struct {

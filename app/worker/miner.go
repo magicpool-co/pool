@@ -100,7 +100,7 @@ func (j *MinerJob) Run() {
 			if rawDiffFactor, ok := diffIdx[compoundID]; ok {
 				diffFactor := int(rawDiffFactor)
 				if _, ok := diffCache[diffFactor]; !ok {
-					diffCache[diffFactor] = float64(node.GetShareDifficulty(diffFactor).Value())
+					diffCache[diffFactor] = node.GetAdjustedShareDifficulty() * float64(diffFactor)
 				}
 				lastDiff = types.Float64Ptr(diffCache[diffFactor])
 			}

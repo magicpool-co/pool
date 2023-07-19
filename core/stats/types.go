@@ -167,12 +167,13 @@ type Miner struct {
 }
 
 type Worker struct {
-	Name         string                   `json:"name"`
-	Active       bool                     `json:"active"`
-	HashrateInfo map[string]*HashrateInfo `json:"hashrateInfo"`
-	ShareInfo    map[string]*ShareInfo    `json:"shareInfo"`
-	FirstSeen    int64                    `json:"firstSeen"`
-	LastSeen     int64                    `json:"lastSeen"`
+	Name           string                   `json:"name"`
+	Active         bool                     `json:"active"`
+	HashrateInfo   map[string]*HashrateInfo `json:"hashrateInfo"`
+	ShareInfo      map[string]*ShareInfo    `json:"shareInfo"`
+	LastDifficulty *float64                 `db:"lastDifficulty"`
+	FirstSeen      int64                    `json:"firstSeen"`
+	LastSeen       int64                    `json:"lastSeen"`
 }
 
 type WorkerList struct {

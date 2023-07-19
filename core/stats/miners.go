@@ -162,12 +162,13 @@ func (c *Client) GetWorkers(minerID uint64) (*WorkerList, error) {
 	inactiveWorkers := make([]*Worker, 0)
 	for _, dbWorker := range dbWorkers {
 		worker := &Worker{
-			Name:         dbWorker.Name,
-			Active:       dbWorker.Active,
-			HashrateInfo: c.processHashrateInfo(dbSharesIdx[dbWorker.ID]),
-			ShareInfo:    c.processShareInfo(sumSharesIdx[dbWorker.ID]),
-			FirstSeen:    dbWorker.CreatedAt.Unix(),
-			LastSeen:     dbWorker.LastShare.Unix(),
+			Name:           dbWorker.Name,
+			Active:         dbWorker.Active,
+			HashrateInfo:   c.processHashrateInfo(dbSharesIdx[dbWorker.ID]),
+			ShareInfo:      c.processShareInfo(sumSharesIdx[dbWorker.ID]),
+			LastDifficulty: dbWorker.LastDifficulty,
+			FirstSeen:      dbWorker.CreatedAt.Unix(),
+			LastSeen:       dbWorker.LastShare.Unix(),
 		}
 
 		if worker.Active {

@@ -218,7 +218,8 @@ func GetWorkersByMiner(q dbcl.Querier, minerID uint64) ([]*Worker, error) {
 		workers.name,
 		MAX(ip_addresses.active) active,
 		MIN(workers.created_at) created_at,
-		MAX(ip_addresses.last_share) last_share
+		MAX(ip_addresses.last_share) last_share,
+		MAX(ip_addresses.last_difficulty) last_difficulty
 	FROM workers
 	JOIN ip_addresses ON workers.id = ip_addresses.worker_id
 	WHERE
