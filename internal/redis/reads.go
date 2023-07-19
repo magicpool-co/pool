@@ -55,12 +55,16 @@ func (c *Client) getClusterChannel(key string) (*PubSub, error) {
 	return pubsub, nil
 }
 
-func (c *Client) GetStreamIndexChannel() (*PubSub, error) {
-	return c.getClusterChannel(c.getStreamIndexChannelKey())
+func (c *Client) GetStreamMinerIndexChannel() (*PubSub, error) {
+	return c.getClusterChannel(c.getStreamMinerIndexChannelKey())
 }
 
 func (c *Client) GetStreamMinerChannel(minerID uint64) (*PubSub, error) {
 	return c.getClusterChannel(c.getStreamMinerChannelKey(minerID))
+}
+
+func (c *Client) GetStreamDebugIndexChannel() (*PubSub, error) {
+	return c.getClusterChannel(c.getStreamDebugIndexChannelKey())
 }
 
 /* miners */

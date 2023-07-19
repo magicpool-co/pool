@@ -12,12 +12,12 @@ import (
 
 /* channels */
 
-func (c *Client) WriteToStreamIndexChannel(msg string) error {
+func (c *Client) WriteToStreamMinerIndexChannel(msg string) error {
 	if c.streamClusterClient == nil {
 		return nil
 	}
 
-	return c.streamClusterClient.SPublish(context.Background(), c.getStreamIndexChannelKey(), msg).Err()
+	return c.streamClusterClient.SPublish(context.Background(), c.getStreamMinerIndexChannelKey(), msg).Err()
 }
 
 func (c *Client) WriteToStreamMinerChannel(minerID uint64, msg string) error {
@@ -26,6 +26,22 @@ func (c *Client) WriteToStreamMinerChannel(minerID uint64, msg string) error {
 	}
 
 	return c.streamClusterClient.SPublish(context.Background(), c.getStreamMinerChannelKey(minerID), msg).Err()
+}
+
+func (c *Client) WriteToStreamDebugIndexChannel(msg string) error {
+	if c.streamClusterClient == nil {
+		return nil
+	}
+
+	return c.streamClusterClient.SPublish(context.Background(), c.getStreamDebugIndexChannelKey(), msg).Err()
+}
+
+func (c *Client) WriteToStreamDebugChannel(ip, msg string) error {
+	if c.streamClusterClient == nil {
+		return nil
+	}
+
+	return c.streamClusterClient.SPublish(context.Background(), c.getStreamDebugChannelKey(ip), msg).Err()
 }
 
 /* miner */

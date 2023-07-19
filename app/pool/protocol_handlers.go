@@ -401,7 +401,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 
 	// handle share streaming
 	if p.streamWriter != nil {
-		targetDiff := p.node.GetShareDifficulty(activeDiffFactor).Value()
+		targetDiff := uint64(p.node.GetAdjustedShareDifficulty() * float64(activeDiffFactor))
 		go func() {
 			status := shareStatus.String()
 			var reason string

@@ -121,7 +121,7 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 		pollingPeriod: opt.PollingPeriod,
 		pingingPeriod: opt.PingingPeriod,
 
-		jobManager: newJobManager(ctx, node, logger, opt.JobListSize, opt.JobListAgeLimit),
+		jobManager: newJobManager(ctx, node, logger, streamWriter, opt.JobListSize, opt.JobListAgeLimit),
 
 		lastShareIndex:    make(map[string]int64),
 		lastDiffIndex:     make(map[string]int64),
@@ -150,7 +150,9 @@ func (p *Pool) writeToConn(c *stratum.Conn, msg interface{}) error {
 		return err
 	}
 
-	p.logger.Debug("sending stratum response: " + string(data))
+	if p.streamWriter != nil {
+		p.streamWriter.WriteDebugResponse(c.GetIP(), data)
+	}
 
 	return c.Write(data)
 }
@@ -382,6 +384,11 @@ func (p *Pool) startStratum() {
 				p.metrics.IncrementCounter("client_disconnects", p.chain)
 			}
 		case msg := <-msgCh:
+			// handle debug
+			if p.streamWriter != nil {
+				p.streamWriter.WriteDebugRequest(msg.Conn.GetIP(), msg.Req)
+			}
+
 			handler := p.routeRequest(msg.Req)
 			if handler == nil {
 				continue

@@ -2,12 +2,14 @@ package pool
 
 import (
 	"context"
+	"fmt"
 	"runtime/debug"
 	"strconv"
 	"sync"
 
 	"github.com/goccy/go-json"
 
+	"github.com/magicpool-co/pool/core/stream"
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/stratum"
 	"github.com/magicpool-co/pool/types"
@@ -146,16 +148,18 @@ type JobManager struct {
 	ctx             context.Context
 	node            types.MiningNode
 	logger          *log.Logger
+	streamWriter    *stream.Writer
 	subscriptions   map[int]map[int]map[uint64]chan []byte
 	subscriptionsMu sync.RWMutex
 	jobList         *JobList
 }
 
-func newJobManager(ctx context.Context, node types.MiningNode, logger *log.Logger, size, ageLimit int) *JobManager {
+func newJobManager(ctx context.Context, node types.MiningNode, logger *log.Logger, streamWriter *stream.Writer, size, ageLimit int) *JobManager {
 	manager := &JobManager{
 		ctx:           ctx,
 		node:          node,
 		logger:        logger,
+		streamWriter:  streamWriter,
 		subscriptions: make(map[int]map[int]map[uint64]chan []byte),
 		jobList:       newJobList(size, ageLimit),
 	}
@@ -194,8 +198,6 @@ func (m *JobManager) update(job *types.StratumJob) (bool, error) {
 			if err != nil {
 				return cleanJobs, err
 			}
-
-			m.logger.Debug("broadcasting stratum job: " + string(data))
 
 			for _, ch := range clientSubscriptions {
 				select {
@@ -269,7 +271,12 @@ func (m *JobManager) AddConn(c *stratum.Conn) {
 
 			err := c.Write(job)
 			if err != nil {
+				m.logger.Error(fmt.Errorf("broadcast: %v", err))
 				return
+			}
+
+			if m.streamWriter != nil {
+				m.streamWriter.WriteDebugResponse(c.GetIP(), job)
 			}
 		}
 	}

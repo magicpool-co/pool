@@ -16,12 +16,20 @@ func (c *Client) getKey(args ...string) string {
 
 /* channels */
 
-func (c *Client) getStreamIndexChannelKey() string {
-	return c.getKey("strm", "idx")
+func (c *Client) getStreamMinerIndexChannelKey() string {
+	return c.getKey("strm", "mnr", "idx")
 }
 
 func (c *Client) getStreamMinerChannelKey(minerID uint64) string {
 	return c.getKey("strm", "mnr", strconv.FormatUint(minerID, 10))
+}
+
+func (c *Client) getStreamDebugIndexChannelKey() string {
+	return c.getKey("strm", "dbg", "idx")
+}
+
+func (c *Client) getStreamDebugChannelKey(ip string) string {
+	return c.getKey("strm", "dbg", ip)
 }
 
 /* miners/workers */

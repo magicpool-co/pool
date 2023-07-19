@@ -52,7 +52,7 @@ func newStream(minerID uint64, redisClient *redis.Client) (*stream, error) {
 
 func (s *stream) ackLoop(logger *log.Logger) {
 	ackMsg := fmt.Sprintf("ack|%d", s.minerID)
-	err := s.redis.WriteToStreamIndexChannel(ackMsg)
+	err := s.redis.WriteToStreamMinerIndexChannel(ackMsg)
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to ack: %v", err))
 	}
@@ -63,7 +63,7 @@ func (s *stream) ackLoop(logger *log.Logger) {
 		case <-s.ctx.Done():
 			return
 		case <-ticker.C:
-			err = s.redis.WriteToStreamIndexChannel(ackMsg)
+			err = s.redis.WriteToStreamMinerIndexChannel(ackMsg)
 			if err != nil {
 				logger.Error(fmt.Errorf("failed to ack: %v", err))
 			}

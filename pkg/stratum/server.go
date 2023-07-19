@@ -171,7 +171,6 @@ func (s *Server) Start(connTimeout time.Duration) (chan Message, chan uint64, ch
 					for scanner.Scan() {
 						var req *rpc.Request
 						msg := scanner.Bytes()
-						s.logger.Debug("recieved stratum request: " + string(msg))
 						if err := json.Unmarshal(msg, &req); err == nil {
 							messageCh <- Message{Conn: c, Req: req}
 						}
