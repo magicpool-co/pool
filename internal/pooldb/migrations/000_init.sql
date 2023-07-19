@@ -143,6 +143,7 @@ CREATE TABLE ip_addresses (
 	active			bool			NOT NULL,
 	expired			bool			NOT NULL,
 	last_share		datetime		NOT NULL,
+	last_difficulty float,
 	rtt				float,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -164,6 +165,7 @@ CREATE TABLE rounds (
 	id				int				UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	chain_id		varchar(4)		NOT NULL,
 	miner_id		int				UNSIGNED NOT NULL,
+	solo			bool			NOT NULL DEFAULT FALSE,
 
 	height			bigint			UNSIGNED NOT NULL,
 	uncle_height	bigint			UNSIGNED,

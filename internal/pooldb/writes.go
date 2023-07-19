@@ -95,8 +95,9 @@ func UpdateWorkerSetInactive(q dbcl.Querier, workerIDs []uint64) error {
 
 func InsertIPAddresses(q dbcl.Querier, objects ...*IPAddress) error {
 	const table = "ip_addresses"
-	insertCols := []string{"miner_id", "worker_id", "chain_id", "ip_address", "active", "expired", "last_share", "rtt"}
-	updateCols := []string{"active", "expired", "last_share", "rtt"}
+	insertCols := []string{"miner_id", "worker_id", "chain_id", "ip_address", "active",
+		"expired", "last_share", "last_difficulty", "rtt"}
+	updateCols := []string{"active", "expired", "last_share", "last_difficulty", "rtt"}
 
 	rawObjects := make([]interface{}, len(objects))
 	for i, object := range objects {
@@ -109,7 +110,7 @@ func InsertIPAddresses(q dbcl.Querier, objects ...*IPAddress) error {
 func InsertRound(q dbcl.Querier, obj *Round) (uint64, error) {
 	const table = "rounds"
 	cols := []string{
-		"chain_id", "miner_id", "height", "epoch_height", "uncle_height", "hash",
+		"chain_id", "miner_id", "solo", "height", "epoch_height", "uncle_height", "hash",
 		"nonce", "mix_digest", "coinbase_txid", "value", "difficulty", "luck",
 		"accepted_shares", "rejected_shares", "invalid_shares", "mature",
 		"pending", "uncle", "orphan", "spent",
