@@ -30,7 +30,7 @@ var (
 		"NEXA": new(big.Int).SetUint64(100),            // 1,000,000 NEXA
 		"RVN":  new(big.Int).SetUint64(500),            // 5,000 RVN
 	}
-	presetOutputThresholds = map[string]*big.Int{
+	outputThresholds = map[string]*big.Int{
 		"BTC": new(big.Int).SetUint64(2_500),         // 0.025 BTC
 		"ETH": new(big.Int).SetUint64(1_000_000_000), // 1 ETH
 	}
@@ -196,7 +196,7 @@ func (c *Client) calculateOutputPathsByBalanceInputs(
 		}
 	}
 
-	outputThresholds := exchange.GetOutputThresholds()
+	// outputThresholds := exchange.GetOutputThresholds()
 	prices, err := exchange.GetPrices(inputPaths)
 	if err != nil {
 		return nil, err
