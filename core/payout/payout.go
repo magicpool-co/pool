@@ -97,14 +97,14 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			balanceOutputIdx[miner.ID] = append(balanceOutputIdx[miner.ID], balanceOutput)
 		}
 
-		threshold := payoutBound.Default
-		if miner.Threshold.Valid && miner.Threshold.BigInt.Cmp(common.Big0) > 0 {
-			threshold = miner.Threshold.BigInt
-		}
+		// threshold := payoutBound.Default
+		// if miner.Threshold.Valid && miner.Threshold.BigInt.Cmp(common.Big0) > 0 {
+		// 	threshold = miner.Threshold.BigInt
+		// }
 
-		if valueSum.Cmp(threshold) < 0 {
-			return fmt.Errorf("miner %d not actually above threshold: %s < %s", miner.ID, valueSum, threshold)
-		}
+		// if valueSum.Cmp(threshold) < 0 {
+		// 	return fmt.Errorf("miner %d not actually above threshold: %s < %s", miner.ID, valueSum, threshold)
+		// }
 
 		balanceOutputSums[i] = &pooldb.BalanceOutput{
 			MinerID: miner.ID,
