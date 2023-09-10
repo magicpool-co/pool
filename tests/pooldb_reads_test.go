@@ -289,7 +289,7 @@ func (suite *PooldbReadsSuite) TestReadExchangeBatch() {
 		suite.T().Errorf("failed: GetExchangeBatch: %v", err)
 	}
 
-	_, err = pooldb.GetActiveExchangeBatches(pooldbClient.Reader())
+	_, err = pooldb.GetActiveExchangeBatches(pooldbClient.Reader(), 0)
 	if err != nil {
 		suite.T().Errorf("failed: GetActiveExchangeBatches: %v", err)
 	}
