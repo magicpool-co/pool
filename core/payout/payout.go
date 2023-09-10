@@ -250,7 +250,9 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 
 			explorerURL := node.GetAddressExplorerURL(payout.Address)
 			floatValue := common.BigIntToFloat64(payout.Value.BigInt, node.GetUnits().Big())
-			c.telegram.NotifyInitiatePayout(payoutID, payout.ChainID, payout.Address, explorerURL, floatValue)
+			if len(payouts) != maxBatchSize {
+				c.telegram.NotifyInitiatePayout(payoutID, payout.ChainID, payout.Address, explorerURL, floatValue)
+			}
 		}
 	default:
 		return nil
