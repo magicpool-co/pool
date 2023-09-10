@@ -40,9 +40,9 @@ func (j *TradeJob) Run() {
 	defer lock.Release(ctx)
 
 	client := trade.New(j.pooldb, j.redis, j.nodes, j.exchanges, j.telegram)
-	if err := client.CheckForNewBatches(); err != nil {
-		j.logger.Error(fmt.Errorf("check: %v", err))
-	}
+	// if err := client.CheckForNewBatches(); err != nil {
+	// 	j.logger.Error(fmt.Errorf("check: %v", err))
+	// }
 
 	for _, exchangeID := range []types.ExchangeID{types.KucoinID, types.MEXCGlobalID} {
 		batches, err := pooldb.GetActiveExchangeBatches(j.pooldb.Reader(), uint64(exchangeID))

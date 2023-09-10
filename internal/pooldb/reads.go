@@ -1254,6 +1254,8 @@ func GetMinersWithBalanceAboveThresholdByChain(q dbcl.Querier, chain, threshold 
 	WHERE
 		miners.chain_id = ?
 	AND
+		balance_sums.mature_value > 0
+	AND
 	    payouts.id IS NULL
 	AND
 	    miners.recipient_fee_percent IS NULL;`
