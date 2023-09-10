@@ -79,7 +79,7 @@ func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 }
 
 func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, string, error) {
-	const feePerInput uint64 = 10000
+	const feePerInput uint64 = 30000
 
 	txBytes, txMass, err := kastx.GenerateTx(node.privKey, inputs, outputs, node.prefix, feePerInput)
 	if err != nil {
