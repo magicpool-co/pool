@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	maxBatchSize = 10
+	maxBatchSize = 100
 )
 
 type Client struct {
