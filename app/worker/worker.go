@@ -173,15 +173,15 @@ func (w *Worker) Start() {
 		telegram:  w.telegram,
 	})
 
-	// w.cron.AddJob("*/5 * * * *", &PayoutJob{
-	// 	locker:   locker,
-	// 	logger:   w.logger,
-	// 	pooldb:   w.pooldb,
-	// 	redis:    w.redis,
-	// 	nodes:    w.payoutNodes,
-	// 	mailer:   w.mailer,
-	// 	telegram: w.telegram,
-	// })
+	w.cron.AddJob("*/5 * * * *", &PayoutJob{
+		locker:   locker,
+		logger:   w.logger,
+		pooldb:   w.pooldb,
+		redis:    w.redis,
+		nodes:    w.payoutNodes,
+		mailer:   w.mailer,
+		telegram: w.telegram,
+	})
 
 	w.cron.AddJob("*/5 * * * *", &BankJob{
 		locker:   locker,
