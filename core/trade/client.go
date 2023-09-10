@@ -21,20 +21,22 @@ import (
 
 var (
 	inputThresholds = map[string]*big.Int{
-		"CFX":  common.MustParseBigInt("2000000000000000000000000"), // 2,000,000 CFX
-		"CTXC": common.MustParseBigInt("5000000000000000000000000"), // 5,000,000 CTXC
-		"ERG":  new(big.Int).SetUint64(100_000_000_000),             // 100 ERG
-		"ETC":  common.MustParseBigInt("2500000000000000000"),       // 2.5 ETC
-		"KAS":  new(big.Int).SetUint64(100_000_000_000),             // 5,000 KAS
-		"FIRO": new(big.Int).SetUint64(10_000_000_000),              // 100 FIRO
-		"FLUX": new(big.Int).SetUint64(10_000_000_000),              // 100 FLUX
-		"NEXA": new(big.Int).SetUint64(100_000_000),                 // 1,000,000 NEXA
-		"RVN":  new(big.Int).SetUint64(500_000_000_000),             // 5,000 RVN
+		"CFX":  common.MustParseBigInt("2000000"),      // 2,000,000 CFX
+		"ERG":  new(big.Int).SetUint64(100_000),        // 100 ERG
+		"ETC":  common.MustParseBigInt("250000000000"), // 2.5 ETC
+		"KAS":  new(big.Int).SetUint64(100_000),        // 5,000 KAS
+		"FIRO": new(big.Int).SetUint64(10_000),         // 100 FIRO
+		"FLUX": new(big.Int).SetUint64(10_000),         // 100 FLUX
+		"NEXA": new(big.Int).SetUint64(100),            // 1,000,000 NEXA
+		"RVN":  new(big.Int).SetUint64(500),            // 5,000 RVN
+	}
+	presetOutputThresholds = map[string]*big.Int{
+		"BTC": new(big.Int).SetUint64(2_500),         // 0.025 BTC
+		"ETH": new(big.Int).SetUint64(1_000_000_000), // 1 ETH
 	}
 
 	exchangeChainMaps = map[string]types.ExchangeID{
 		"CFX":  types.KucoinID,
-		"CTXC": types.MEXCGlobalID,
 		"ERG":  types.KucoinID,
 		"ETC":  types.KucoinID,
 		"KAS":  types.MEXCGlobalID,
