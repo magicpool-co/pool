@@ -42,6 +42,12 @@ func (j *PayoutJob) Run() {
 	client := payout.New(j.pooldb, j.redis, j.telegram, j.mailer)
 
 	for _, node := range j.nodes {
+		switch node.Chain() {
+		case "ERG", "ERGO", "NEXA", "KAS":
+		default:
+			continue
+		}
+
 		if err := client.InitiatePayouts(node); err != nil {
 			j.logger.Error(fmt.Errorf("payout: initiate: %s: %v", node.Chain(), err))
 		} else if err := client.FinalizePayouts(node); err != nil {
