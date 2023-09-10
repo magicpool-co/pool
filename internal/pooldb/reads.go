@@ -849,14 +849,16 @@ func GetExchangeBatch(q dbcl.Querier, batchID uint64) (*ExchangeBatch, error) {
 	return output, nil
 }
 
-func GetActiveExchangeBatches(q dbcl.Querier) ([]*ExchangeBatch, error) {
+func GetActiveExchangeBatches(q dbcl.Querier, exchangeID uint64) ([]*ExchangeBatch, error) {
 	const query = `SELECT *
 	FROM exchange_batches
 	WHERE
-		completed_at IS NULL`
+		completed_at IS NULL
+	AND
+		exchange_id = ?;`
 
 	output := []*ExchangeBatch{}
-	err := q.Select(&output, query)
+	err := q.Select(&output, query, exchangeID)
 
 	return output, err
 }
@@ -1252,11 +1254,12 @@ func GetMinersWithBalanceAboveThresholdByChain(q dbcl.Querier, chain, threshold 
 	WHERE
 		miners.chain_id = ?
 	AND
-	    balance_sums.mature_value >= IFNULL(miners.threshold, ?)
-	AND
 	    payouts.id IS NULL
 	AND
 	    miners.recipient_fee_percent IS NULL;`
+
+	// AND
+	//     balance_sums.mature_value >= IFNULL(miners.threshold, ?)
 
 	output := []*Miner{}
 	err := q.Select(&output, query, chain, threshold)

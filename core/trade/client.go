@@ -211,7 +211,7 @@ func (c *Client) calculateOutputPathsByBalanceInputs(
 }
 
 func (c *Client) checkForNewBatch(exchange types.Exchange) error {
-	activeBatches, err := pooldb.GetActiveExchangeBatches(c.pooldb.Reader())
+	activeBatches, err := pooldb.GetActiveExchangeBatches(c.pooldb.Reader(), uint64(exchange.ID()))
 	if err != nil {
 		return err
 	} else if len(activeBatches) > 0 {

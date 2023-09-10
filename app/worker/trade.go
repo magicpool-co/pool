@@ -44,14 +44,16 @@ func (j *TradeJob) Run() {
 		j.logger.Error(fmt.Errorf("check: %v", err))
 	}
 
-	batches, err := pooldb.GetActiveExchangeBatches(j.pooldb.Reader())
-	if err != nil {
-		j.logger.Error(fmt.Errorf("fetch: %v", err))
-	}
+	for _, exchangeID := range []types.ExchangeID{types.KucoinID, types.MEXCGlobalID} {
+		batches, err := pooldb.GetActiveExchangeBatches(j.pooldb.Reader(), uint64(exchangeID))
+		if err != nil {
+			j.logger.Error(fmt.Errorf("fetch: %v", err))
+		}
 
-	for _, batch := range batches {
-		if err := client.ProcessBatch(batch.ID); err != nil {
-			j.logger.Error(fmt.Errorf("process: %d: %v", batch.ID, err))
+		for _, batch := range batches {
+			if err := client.ProcessBatch(batch.ID); err != nil {
+				j.logger.Error(fmt.Errorf("process: %d: %v", batch.ID, err))
+			}
 		}
 	}
 }
