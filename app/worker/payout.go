@@ -43,7 +43,7 @@ func (j *PayoutJob) Run() {
 
 	for _, node := range j.nodes {
 		switch node.Chain() {
-		case "ERG", "ERGO", "NEXA", "KAS":
+		case "ERG", "ERGO", "NEXA", "KAS", "ETC":
 		default:
 			continue
 		}
