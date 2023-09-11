@@ -62,6 +62,8 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 	payoutBoundStr := "1"
 	if node.Chain() == "ETH" {
 		payoutBoundStr = "1000000000000000"
+	} else if node.Chain() == "BTC" {
+		payoutBoundStr = "500"
 	}
 
 	miners, err := pooldb.GetMinersWithBalanceAboveThresholdByChain(dbTx, node.Chain(), payoutBoundStr)
