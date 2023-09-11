@@ -154,6 +154,10 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 
 	switch node.GetAccountingType() {
 	case types.AccountStructure:
+		if len(payouts) > 15 {
+			payouts = payouts[:15]
+		}
+
 		outputList := make([][]*types.TxOutput, len(payouts))
 		for i, payout := range payouts {
 			if !payout.Value.Valid {
