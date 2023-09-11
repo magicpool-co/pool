@@ -1254,7 +1254,7 @@ func GetMinersWithBalanceAboveThresholdByChain(q dbcl.Querier, chain, threshold 
 	WHERE
 		miners.chain_id = ?
 	AND
-		balance_sums.mature_value > 0
+		balance_sums.mature_value > ?
 	AND
 	    payouts.id IS NULL
 	AND
@@ -1264,7 +1264,7 @@ func GetMinersWithBalanceAboveThresholdByChain(q dbcl.Querier, chain, threshold 
 	//     balance_sums.mature_value >= IFNULL(miners.threshold, ?)
 
 	output := []*Miner{}
-	err := q.Select(&output, query, chain)
+	err := q.Select(&output, query, chain, threshold)
 
 	return output, err
 }

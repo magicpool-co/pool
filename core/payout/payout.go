@@ -54,12 +54,17 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 	}
 	defer dbTx.SafeRollback()
 
-	payoutBound, err := common.GetDefaultPayoutBounds(node.Chain())
-	if err != nil {
-		return err
+	// payoutBound, err := common.GetDefaultPayoutBounds(node.Chain())
+	// if err != nil {
+	// 	return err
+	// }
+
+	payoutBoundStr := "1"
+	if node.Chain() == "ETH" {
+		payoutBoundStr = "1000000000000000"
 	}
 
-	miners, err := pooldb.GetMinersWithBalanceAboveThresholdByChain(dbTx, node.Chain(), payoutBound.Default.String())
+	miners, err := pooldb.GetMinersWithBalanceAboveThresholdByChain(dbTx, node.Chain(), payoutBoundStr)
 	if err != nil {
 		return err
 	} else if len(miners) == 0 {
