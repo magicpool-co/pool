@@ -34,7 +34,7 @@ func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, baseFe
 
 	// maxFee = (baseFee * 2) + priorityTip
 	priorityTip := new(big.Int).SetUint64(3 * uint64(1e9))
-	maxFee := new(big.Int).Mul(baseFee, big.NewInt(2))
+	maxFee := new(big.Int).Mul(baseFee, big.NewInt(1))
 	maxFee.Add(maxFee, priorityTip)
 	fees := new(big.Int).Mul(maxFee, new(big.Int).SetUint64(gasLimit))
 	if value.Cmp(fees) <= 0 {
