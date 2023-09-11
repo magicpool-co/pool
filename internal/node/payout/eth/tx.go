@@ -180,12 +180,14 @@ func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 		// unless baseFeePerGas is greater than maxFeePerGas (which would be unlikely)
 		feeSavings := new(big.Int).Sub(maxFeePerGas, baseFeePerGas)
 		feeSavings.Sub(feeSavings, maxPriorityFeePerGas)
-		if feeSavings.Cmp(common.Big0) < 0 {
-			return nil, fmt.Errorf("invalid fee balance calc: base %s, max %s, priority %s",
-				baseFeePerGas, maxFeePerGas, maxPriorityFeePerGas)
+		if feeSavings.Cmp(common.Big0) > 0 {
+			feeSavings.Mul(feeSavings, gasUsed)
+			// return nil, fmt.Errorf("invalid fee balance calc: base %s, max %s, priority %s",
+			// baseFeePerGas, maxFeePerGas, maxPriorityFeePerGas)
+		} else {
+			feeSavings = new(big.Int)
 		}
 
-		feeSavings.Mul(feeSavings, gasUsed)
 		gasSavings := new(big.Int).Mul(maxFeePerGas, gasLeftover)
 		feeBalance = new(big.Int).Add(feeSavings, gasSavings)
 	}
