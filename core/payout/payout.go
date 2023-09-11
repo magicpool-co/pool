@@ -63,7 +63,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 	if node.Chain() == "ETH" {
 		payoutBoundStr = "2500000000000000"
 	} else if node.Chain() == "BTC" {
-		payoutBoundStr = "500"
+		payoutBoundStr = "1000"
 	}
 
 	miners, err := pooldb.GetMinersWithBalanceAboveThresholdByChain(dbTx, node.Chain(), payoutBoundStr)
@@ -261,7 +261,7 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 
 			explorerURL := node.GetAddressExplorerURL(payout.Address)
 			floatValue := common.BigIntToFloat64(payout.Value.BigInt, node.GetUnits().Big())
-			if len(payouts) != maxBatchSize {
+			if len(payouts) != maxBatchSize && false {
 				c.telegram.NotifyInitiatePayout(payoutID, payout.ChainID, payout.Address, explorerURL, floatValue)
 			}
 		}
