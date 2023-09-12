@@ -85,14 +85,14 @@ func (w *Worker) Start() {
 			metrics: w.metrics,
 		})
 
-		w.cron.AddJob("* * * * *", &NodeInstanceChangeJob{
-			env:      w.env,
-			mainnet:  w.mainnet,
-			locker:   locker,
-			logger:   w.logger,
-			aws:      w.aws,
-			telegram: w.telegram,
-		})
+		// w.cron.AddJob("* * * * *", &NodeInstanceChangeJob{
+		// 	env:      w.env,
+		// 	mainnet:  w.mainnet,
+		// 	locker:   locker,
+		// 	logger:   w.logger,
+		// 	aws:      w.aws,
+		// 	telegram: w.telegram,
+		// })
 
 		w.cron.AddJob("*/5 * * * *", &NodeCheckJob{
 			env:     w.env,
