@@ -48,8 +48,8 @@ jobs:
         with:
           go-version: '1.20'
 
-      # - name: Run Integration Tests
-      #   run: make integration
+      - name: Run Integration Tests
+        run: make integration
 
   build:
     name: Build and Push
@@ -65,12 +65,12 @@ jobs:
             app: worker
           - region: eu-west-1
             app: api
-          - region: eu-central-1
-            app: api
-          - region: us-east-1
-            app: api
-          - region: us-west-2
-            app: api
+          # - region: eu-central-1
+          #   app: api
+          # - region: us-east-1
+          #   app: api
+          # - region: us-west-2
+          #   app: api
 
     steps:
       - name: Checkout Repository
