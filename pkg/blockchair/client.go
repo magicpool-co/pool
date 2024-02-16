@@ -63,14 +63,11 @@ func (c *Client) do(method, path string, body, target interface{}) error {
 	}
 	req.Header.Add("Content-Type", "application/json")
 
-	client := http.Client{
-		Timeout: time.Duration(3 * time.Second),
-	}
+	client := http.Client{Timeout: time.Duration(3 * time.Second)}
 	res, err := client.Do(req)
 	if err != nil {
 		return redactAPIKeyFromError(url, err)
 	}
-
 	defer res.Body.Close()
 
 	return json.NewDecoder(res.Body).Decode(target)

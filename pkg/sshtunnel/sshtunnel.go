@@ -47,15 +47,8 @@ func New(user, host string, auth ssh.AuthMethod) (*SSHTunnel, error) {
 	}
 
 	tunnelConn, err := ssh.Dial("tcp", host, cfg)
-	if err != nil {
-		return nil, err
-	}
 
-	tunnel := &SSHTunnel{
-		conn: tunnelConn,
-	}
-
-	return tunnel, nil
+	return &SSHTunnel{tunnelConn}, err
 }
 
 func (tunnel *SSHTunnel) AddDestination(dest string) (string, error) {

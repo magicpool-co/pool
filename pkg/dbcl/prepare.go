@@ -20,7 +20,11 @@ func prepareNamedInsert(table string, columns []string) string {
 	return query
 }
 
-func prepareNamedInsertUpdateWithOperator(table string, insertCols, updateCols []string, operator string) string {
+func prepareNamedInsertUpdateWithOperator(
+	table string,
+	insertCols, updateCols []string,
+	operator string,
+) string {
 	names := make([]string, len(insertCols))
 	for i, col := range insertCols {
 		names[i] = ":" + col
@@ -36,12 +40,16 @@ func prepareNamedInsertUpdateWithOperator(table string, insertCols, updateCols [
 	}
 	update := strings.Join(updateParts, ", ")
 
-	query := fmt.Sprintf("INSERT INTO `%s`(%s) VALUES (%s) ON DUPLICATE KEY UPDATE %s;", table, keys, values, update)
+	query := fmt.Sprintf("INSERT INTO `%s`(%s) VALUES (%s) ON DUPLICATE KEY UPDATE %s;",
+		table, keys, values, update)
 
 	return query
 }
 
-func prepareNamedInsertUpdateOverwrite(table string, insertCols, updateCols []string) string {
+func prepareNamedInsertUpdateOverwrite(
+	table string,
+	insertCols, updateCols []string,
+) string {
 	names := make([]string, len(insertCols))
 	for i, col := range insertCols {
 		names[i] = ":" + col
@@ -57,12 +65,17 @@ func prepareNamedInsertUpdateOverwrite(table string, insertCols, updateCols []st
 	}
 	update := strings.Join(updateParts, ", ")
 
-	query := fmt.Sprintf("INSERT INTO `%s`(%s) VALUES (%s) ON DUPLICATE KEY UPDATE %s;", table, keys, values, update)
+	query := fmt.Sprintf("INSERT INTO `%s`(%s) VALUES (%s) ON DUPLICATE KEY UPDATE %s;",
+		table, keys, values, update)
 
 	return query
 }
 
-func prepareNamedUpdate(table string, updateCols, whereCols []string, updatedAt bool) string {
+func prepareNamedUpdate(
+	table string,
+	updateCols, whereCols []string,
+	updatedAt bool,
+) string {
 	updateParts := make([]string, len(updateCols))
 	for i, column := range updateCols {
 		updateParts[i] = fmt.Sprintf("%s = %s", column, ":"+column)

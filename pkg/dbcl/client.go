@@ -68,7 +68,10 @@ func initConnection(dsn string) (*sqlx.DB, error) {
 	return client, nil
 }
 
-func New(writeHost, readHost, port, name, user, pass string, migrations map[string]string) (*Client, error) {
+func New(
+	writeHost, readHost, port, name, user, pass string,
+	migrations map[string]string,
+) (*Client, error) {
 	readDSN := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s%s", user, pass, readHost, port, name, defaultQs)
 	readClient, err := initConnection(readDSN)
 	if err != nil {

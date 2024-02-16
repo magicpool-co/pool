@@ -57,25 +57,46 @@ func ExecBulkInsert(q Querier, table string, cols []string, objects []interface{
 	return execBulkInsertFromQuery(q, query, objects)
 }
 
-func ExecBulkInsertUpdateAdd(q Querier, table string, insertCols, updateCols []string, objects []interface{}) error {
+func ExecBulkInsertUpdateAdd(
+	q Querier,
+	table string,
+	insertCols, updateCols []string,
+	objects []interface{},
+) error {
 	query := prepareNamedInsertUpdateWithOperator(table, insertCols, updateCols, "+")
 
 	return execBulkInsertFromQuery(q, query, objects)
 }
 
-func ExecBulkInsertUpdateSubtract(q Querier, table string, insertCols, updateCols []string, objects []interface{}) error {
+func ExecBulkInsertUpdateSubtract(
+	q Querier,
+	table string,
+	insertCols, updateCols []string,
+	objects []interface{},
+) error {
 	query := prepareNamedInsertUpdateWithOperator(table, insertCols, updateCols, "-")
 
 	return execBulkInsertFromQuery(q, query, objects)
 }
 
-func ExecBulkInsertUpdateOverwrite(q Querier, table string, insertCols, updateCols []string, objects []interface{}) error {
+func ExecBulkInsertUpdateOverwrite(
+	q Querier,
+	table string,
+	insertCols, updateCols []string,
+	objects []interface{},
+) error {
 	query := prepareNamedInsertUpdateOverwrite(table, insertCols, updateCols)
 
 	return execBulkInsertFromQuery(q, query, objects)
 }
 
-func ExecUpdate(q Querier, table string, updateCols, whereCols []string, updatedAt bool, obj interface{}) error {
+func ExecUpdate(
+	q Querier,
+	table string,
+	updateCols, whereCols []string,
+	updatedAt bool,
+	obj interface{},
+) error {
 	query := prepareNamedUpdate(table, updateCols, whereCols, updatedAt)
 	_, err := q.NamedExec(query, obj)
 

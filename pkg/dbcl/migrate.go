@@ -1,11 +1,75 @@
 package dbcl
 
 import (
+	"embed"
 	"fmt"
+	"io/fs"
+	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 )
+
+var migrationExpr = regexp.MustCompile(`\d{3}.*\.(sql|down\.sql)`)
+
+func FetchMigrations(path string, migrationFS *embed.FS) (map[string]string, error) {
+	matches, err := fs.Glob(migrationFS, path)
+	if err != nil {
+		return nil, err
+	}
+
+	migrationIdx := make(map[string]string)
+	migrationStatusIdx := make(map[string]int)
+	for _, match := range matches {
+		dir, file := filepath.Split(match)
+		if !migrationExpr.MatchString(file) {
+			continue
+		}
+
+		slug := strings.Split(file, ".")[0]
+		isUpMigration := !strings.Contains(file, ".down.sql")
+		switch migrationStatusIdx[slug] {
+		case 0:
+			migrationStatusIdx[slug] = 1
+			if !isUpMigration {
+				migrationStatusIdx[slug] = 2
+			}
+		case 1:
+			if !isUpMigration {
+				migrationStatusIdx[slug] = 3
+			}
+		case 2:
+			if isUpMigration {
+				migrationStatusIdx[slug] = 3
+			}
+		}
+
+		data, err := migrationFS.ReadFile(filepath.Join(dir, file))
+		if err != nil {
+			return nil, err
+		} else if len(data) == 0 {
+			return nil, fmt.Errorf("empty migration for file %s", file)
+		}
+
+		migrationIdx[file] = string(data)
+	}
+
+	if len(migrationIdx) == 0 {
+		return nil, fmt.Errorf("no migrations found")
+	}
+
+	for slug, status := range migrationStatusIdx {
+		switch status {
+		case 1:
+			return nil, fmt.Errorf("no down migration for slug \"%s\"", slug)
+		case 2:
+			return nil, fmt.Errorf("no up migration for slug \"%s\"", slug)
+		}
+	}
+
+	return migrationIdx, nil
+}
 
 func (c *Client) initMigrationTable() error {
 	_, err := c.writeClient.Exec(`CREATE TABLE IF NOT EXISTS 

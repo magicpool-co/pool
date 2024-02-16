@@ -57,7 +57,8 @@ func TestPrepareNamedInsertUpdateWithOperator(t *testing.T) {
 			insertCols: []string{"aa", "bb"},
 			updateCols: []string{"aa", "bb"},
 			operator:   "+",
-			query:      "INSERT INTO `a`(`aa`, `bb`) VALUES (:aa, :bb) ON DUPLICATE KEY UPDATE aa = aa + VALUES(aa), bb = bb + VALUES(bb);",
+			query: "INSERT INTO `a`(`aa`, `bb`) VALUES (:aa, :bb) ON DUPLICATE" +
+				" KEY UPDATE aa = aa + VALUES(aa), bb = bb + VALUES(bb);",
 		},
 	}
 
@@ -86,7 +87,8 @@ func TestPrepareNamedInsertUpdateOverwrite(t *testing.T) {
 			table:      "a",
 			insertCols: []string{"aa", "bb"},
 			updateCols: []string{"aa", "bb"},
-			query:      "INSERT INTO `a`(`aa`, `bb`) VALUES (:aa, :bb) ON DUPLICATE KEY UPDATE aa = VALUES(aa), bb = VALUES(bb);",
+			query: "INSERT INTO `a`(`aa`, `bb`) VALUES (:aa, :bb) ON DUPLICATE" +
+				" KEY UPDATE aa = VALUES(aa), bb = VALUES(bb);",
 		},
 	}
 
@@ -125,7 +127,8 @@ func TestPrepareNamedUpdate(t *testing.T) {
 			updateCols: []string{"aa", "bb"},
 			whereCols:  []string{"cc", "dd"},
 			updatedAt:  true,
-			query:      "UPDATE `a` SET aa = :aa, bb = :bb, `updated_at` = CURRENT_TIMESTAMP WHERE cc = :cc AND dd = :dd;",
+			query: "UPDATE `a` SET aa = :aa, bb = :bb, `updated_at` = CURRENT_TIMESTAMP" +
+				" WHERE cc = :cc AND dd = :dd;",
 		},
 	}
 

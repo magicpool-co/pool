@@ -9,9 +9,7 @@ func (c *Client) GetAddressBTC(address string) (*RawAddress, error) {
 	err := c.do("GET", "/bitcoin/dashboards/address/"+address, nil, obj)
 	if err != nil {
 		return nil, err
-	}
-
-	if err := parseContext(obj.Context); err != nil {
+	} else if err := parseContext(obj.Context); err != nil {
 		return nil, err
 	}
 
@@ -30,9 +28,7 @@ func (c *Client) GetTxBTC(txid string) (*TxInfo, error) {
 	err := c.do("GET", "/bitcoin/dashboards/transaction/"+txid, nil, obj)
 	if err != nil {
 		return nil, err
-	}
-
-	if err := parseContext(obj.Context); err != nil {
+	} else if err := parseContext(obj.Context); err != nil {
 		return nil, err
 	}
 
@@ -50,9 +46,7 @@ func (c *Client) BroadcastTxBTC(data string) (string, error) {
 	err := c.do("POST", "/bitcoin/push/transaction", body, obj)
 	if err != nil {
 		return "", err
-	}
-
-	if err := parseContext(obj.Context); err != nil {
+	} else if err := parseContext(obj.Context); err != nil {
 		return "", err
 	} else if obj.Data == nil {
 		return "", fmt.Errorf("nil data response for %v", obj)
