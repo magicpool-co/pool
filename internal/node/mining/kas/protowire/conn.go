@@ -45,7 +45,14 @@ func newGRPCConn(url string, timeout time.Duration) (*grpc.ClientConn, error) {
 
 }
 
-func newConn(url string, timeout time.Duration, rtr *router, logger *log.Logger, disconnectHandler func(), errorHandler func(error)) (*conn, error) {
+func newConn(
+	url string,
+	timeout time.Duration,
+	rtr *router,
+	logger *log.Logger,
+	disconnectHandler func(),
+	errorHandler func(error),
+) (*conn, error) {
 	grpcConn, err := newGRPCConn(url, timeout)
 	if err != nil {
 		return nil, err

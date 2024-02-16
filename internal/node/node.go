@@ -5,9 +5,7 @@ import (
 	"strings"
 
 	"github.com/magicpool-co/pool/internal/log"
-	"github.com/magicpool-co/pool/internal/node/mining/ae"
 	"github.com/magicpool-co/pool/internal/node/mining/cfx"
-	"github.com/magicpool-co/pool/internal/node/mining/ctxc"
 	"github.com/magicpool-co/pool/internal/node/mining/erg"
 	"github.com/magicpool-co/pool/internal/node/mining/etc"
 	"github.com/magicpool-co/pool/internal/node/mining/firo"
@@ -26,14 +24,16 @@ var (
 	ErrUnsupportedChain = fmt.Errorf("unsupported chain")
 )
 
-func GetMiningNode(mainnet bool, chain, privKey string, urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (types.MiningNode, error) {
+func GetMiningNode(
+	mainnet bool,
+	chain, privKey string,
+	urls []string,
+	logger *log.Logger,
+	tunnel *sshtunnel.SSHTunnel,
+) (types.MiningNode, error) {
 	switch strings.ToUpper(chain) {
-	case "AE":
-		return ae.New(mainnet, urls, privKey, logger, tunnel)
 	case "CFX":
 		return cfx.New(mainnet, urls, privKey, logger, tunnel)
-	case "CTXC":
-		return ctxc.New(mainnet, urls, privKey, logger, tunnel)
 	case "ERG":
 		return erg.New(mainnet, urls, privKey, logger, tunnel)
 	case "ETC":

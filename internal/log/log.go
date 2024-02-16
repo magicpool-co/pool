@@ -22,7 +22,11 @@ type Logger struct {
 	Telegram  *telegram.Client
 }
 
-func New(args map[string]string, application string, telegramClient *telegram.Client) (*Logger, error) {
+func New(
+	args map[string]string,
+	application string,
+	telegramClient *telegram.Client,
+) (*Logger, error) {
 	switch args["LOG_LEVEL"] {
 	case "DEBUG":
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
@@ -40,9 +44,9 @@ func New(args map[string]string, application string, telegramClient *telegram.Cl
 	}
 
 	output := os.Stdout
-
-	var err error
-	if logPath, ok := args["LOG_PATH"]; ok {
+	logPath, ok := args["LOG_PATH"]
+	if ok {
+		var err error
 		output, err = os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 		if err != nil {
 			return nil, err
@@ -70,24 +74,38 @@ func (l *Logger) label(event *zerolog.Event, labels []string) {
 }
 
 func (l *Logger) NotifyFarm(title, body string) {
-	event := l.MainLog.Info().Str("app", "farm").Str("env", l.Env).Str("region", l.Region).Str("body", body)
+	event := l.MainLog.Info().
+		Str("app", "farm").
+		Str("env", l.Env).
+		Str("region", l.Region).
+		Str("body", body)
 	event.Msg(title)
 }
 
 func (l *Logger) Info(message string, labels ...string) {
-	event := l.MainLog.Info().Str("app", l.App).Str("region", l.Region).Str("env", l.Env)
+	event := l.MainLog.Info().
+		Str("app", l.App).
+		Str("region", l.Region).
+		Str("env", l.Env)
 	l.label(event, labels)
 	event.Msg(message)
 }
 
 func (l *Logger) Debug(message string, labels ...string) {
-	event := l.MainLog.Debug().Str("app", l.App).Str("region", l.Region).Str("env", l.Env)
+	event := l.MainLog.Debug().
+		Str("app", l.App).
+		Str("region", l.Region).
+		Str("env", l.Env)
 	l.label(event, labels)
 	event.Msg(message)
 }
 
 func (l *Logger) Error(err error, labels ...string) {
-	event := l.MainLog.Error().Stack().Err(err).Str("app", l.App).Str("env", l.Env).Str("region", l.Region)
+	event := l.MainLog.Error().Stack().
+		Err(err).
+		Str("app", l.App).
+		Str("env", l.Env).
+		Str("region", l.Region)
 	l.label(event, labels)
 	event.Msg("")
 }
@@ -97,14 +115,17 @@ func (l *Logger) Fatal(err error, labels ...string) {
 		l.Telegram.SendFatal(err.Error(), l.App, l.Env)
 	}
 
-	event := l.MainLog.WithLevel(zerolog.FatalLevel).Stack().Err(err).Str("app", l.App).Str("env", l.Env).Str("region", l.Region)
+	event := l.MainLog.WithLevel(zerolog.FatalLevel).Stack().
+		Err(err).
+		Str("app", l.App).
+		Str("env", l.Env).
+		Str("region", l.Region)
 	l.label(event, labels)
 	event.Msg("")
 }
 
 func (l *Logger) Panic(r interface{}, trace string, labels ...string) {
 	var err error
-
 	switch x := r.(type) {
 	case string:
 		err = fmt.Errorf(x)
@@ -121,7 +142,12 @@ func (l *Logger) Panic(r interface{}, trace string, labels ...string) {
 		}
 	}
 
-	event := l.MainLog.WithLevel(zerolog.PanicLevel).Stack().Err(err).Str("trace", trace).Str("app", l.App).Str("env", l.Env).Str("region", l.Region)
+	event := l.MainLog.WithLevel(zerolog.PanicLevel).Stack().
+		Err(err).
+		Str("trace", trace).
+		Str("app", l.App).
+		Str("env", l.Env).
+		Str("region", l.Region)
 	l.label(event, labels)
 	event.Msg("")
 

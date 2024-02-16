@@ -90,8 +90,8 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		return "", "", err
 	}
 
-	tx, fee, err := cfxtx.NewTx(node.privKey.ToECDSA(), output.Address, input.Data,
-		output.Value, gasPrice, gasLimit, storageLimit, nonce, node.networkID, epochNumber)
+	tx, fee, err := cfxtx.NewTx(node.privKey, output.Address, input.Data, output.Value,
+		gasPrice, gasLimit, storageLimit, nonce, node.networkID, epochNumber)
 	if err != nil {
 		return "", "", err
 	}

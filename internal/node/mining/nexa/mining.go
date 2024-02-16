@@ -11,18 +11,18 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/internal/pooldb"
 	"github.com/magicpool-co/pool/internal/tsdb"
 	"github.com/magicpool-co/pool/pkg/common"
 	"github.com/magicpool-co/pool/pkg/crypto"
+	"github.com/magicpool-co/pool/pkg/crypto/schnorr"
 	"github.com/magicpool-co/pool/pkg/crypto/wire"
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 	"github.com/magicpool-co/pool/types"
-
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
 const (
@@ -225,14 +225,18 @@ func nexapow(headerCommitment, nonce []byte) ([]byte, error) {
 	signMsg := crypto.Sha256(miningHash)
 
 	key := secp256k1.PrivKeyFromBytes(miningHash)
-	sig := crypto.SchnorrSignBCH(key, signMsg)
+	sig := schnorr.SignBCH(key, signMsg)
 	final := crypto.Sha256(sig.Serialize())
 	final = crypto.ReverseBytes(final)
 
 	return final, nil
 }
 
-func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diffFactor int) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
+func (node Node) SubmitWork(
+	job *types.StratumJob,
+	work *types.StratumWork,
+	diffFactor int,
+) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
 	jobID, err := new(types.Number).SetFromHex(job.ID)
 	if err != nil {
 		return types.InvalidShare, nil, nil, nil
@@ -325,7 +329,12 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 	return work, nil
 }
 
-func (node Node) MarshalJob(id interface{}, job *types.StratumJob, cleanJobs bool, clientType, diffFactor int) (interface{}, error) {
+func (node Node) MarshalJob(
+	id interface{},
+	job *types.StratumJob,
+	cleanJobs bool,
+	clientType, diffFactor int,
+) (interface{}, error) {
 	var result []interface{}
 	switch clientType {
 	case standardMinerClientID, bzMinerClientID:

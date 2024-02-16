@@ -19,7 +19,11 @@ var (
 	addressPrefix = []byte{0x01}
 )
 
-func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
+func generateHost(
+	urls []string,
+	logger *log.Logger,
+	tunnel *sshtunnel.SSHTunnel,
+) (*hostpool.HTTPPool, error) {
 	var (
 		port        = 9053
 		hostOptions = &hostpool.HTTPHostOptions{
@@ -70,7 +74,13 @@ func (node Node) initWallets() error {
 	return nil
 }
 
-func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
+func New(
+	mainnet bool,
+	urls []string,
+	rawPriv string,
+	logger *log.Logger,
+	tunnel *sshtunnel.SSHTunnel,
+) (*Node, error) {
 	httpHost, err := generateHost(urls, logger, tunnel)
 	if err != nil {
 		return nil, err

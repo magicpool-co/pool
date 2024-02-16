@@ -319,7 +319,12 @@ func (node Node) getEpochNumber() (uint64, error) {
 	return common.HexToUint64(hexEpochNumber)
 }
 
-func (node Node) sendEstimateGas(from, to string, data []byte, amount, gasPrice *big.Int, nonce uint64) (uint64, uint64, error) {
+func (node Node) sendEstimateGas(
+	from, to string,
+	data []byte,
+	amount, gasPrice *big.Int,
+	nonce uint64,
+) (uint64, uint64, error) {
 	var res *rpc.Response
 	var err error
 	if node.mocked {

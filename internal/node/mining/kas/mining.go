@@ -326,7 +326,11 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *ty
 	return jobCh
 }
 
-func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diffFactor int) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
+func (node Node) SubmitWork(
+	job *types.StratumJob,
+	work *types.StratumWork,
+	diffFactor int,
+) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
 	template, ok := job.Data.(*Block)
 	if !ok {
 		return types.InvalidShare, nil, nil, fmt.Errorf("unable to cast job data as block")
@@ -416,7 +420,12 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 	return work, nil
 }
 
-func (node Node) MarshalJob(id interface{}, job *types.StratumJob, cleanJobs bool, clientType, diffFactor int) (interface{}, error) {
+func (node Node) MarshalJob(
+	id interface{},
+	job *types.StratumJob,
+	cleanJobs bool,
+	clientType, diffFactor int,
+) (interface{}, error) {
 	result := []interface{}{job.ID}
 	switch clientType {
 	case standardMinerClientID:

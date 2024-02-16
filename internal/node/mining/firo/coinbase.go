@@ -13,7 +13,14 @@ import (
 
 const txVersion uint32 = 0x50003
 
-func GenerateCoinbase(addresses []string, amounts []uint64, blockHeight, nTime uint64, extraData []byte, extraPayload string, prefixP2PKH, prefixP2SH []byte) ([]byte, []byte, error) {
+func GenerateCoinbase(
+	addresses []string,
+	amounts []uint64,
+	blockHeight, nTime uint64,
+	extraData []byte,
+	extraPayload string,
+	prefixP2PKH, prefixP2SH []byte,
+) ([]byte, []byte, error) {
 	if len(addresses) != len(amounts) {
 		return nil, nil, fmt.Errorf("address and amount length mismatch")
 	} else if len(addresses) == 0 {

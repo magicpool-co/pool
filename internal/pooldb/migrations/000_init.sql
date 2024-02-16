@@ -10,10 +10,8 @@ CREATE TABLE chains (
 );
 
 INSERT INTO chains (id, mineable, switchable, payable) VALUES 
-	("AE", true, false, false),
 	("BTC", false, false, true),
 	("CFX", true, true, false),
-	("CTXC", true, true, false),
 	("ERG", true, false, false),
 	("ETH", false, false, true),
 	("ETC", true, true, false),
@@ -40,10 +38,6 @@ CREATE TABLE nodes (
 
 	needs_backup	bool			NOT NULL DEFAULT FALSE,
 	pending_backup	bool			NOT NULL DEFAULT FALSE,
-	needs_update	bool			NOT NULL DEFAULT FALSE,
-	pending_update	bool			NOT NULL DEFAULT FALSE,
-	needs_resize	bool			NOT NULL DEFAULT FALSE,
-	pending_resize	bool			NOT NULL DEFAULT FALSE,
 
 	created_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -58,8 +52,6 @@ CREATE TABLE nodes (
 
 INSERT INTO nodes (url, chain_id, region, mainnet, enabled, backup, active, synced, height) VALUES 
 	("node-0.cfx.eu-west-1.privatemagicpool.co", "CFX", "eu-west-1", true, true, true, false, false, 0),
-
-	("node-0.ctxc.eu-west-1.privatemagicpool.co", "CTXC", "eu-west-1", true, true, true, false, false, 0),
 
 	("node-0.erg.eu-west-1.privatemagicpool.co", "ERG", "eu-west-1", true, true, true, false, false, 0),
 	("node-0.erg.eu-central-1.privatemagicpool.co", "ERG", "eu-central-1", true, true, false, false, false, 0),
@@ -136,7 +128,7 @@ CREATE TABLE workers (
 
 CREATE TABLE ip_addresses (
 	miner_id		int				UNSIGNED NOT NULL,
-	worker_id		int				NOT NULL,
+	worker_id		int				UNSIGNED NOT NULL,
 	chain_id		varchar(4)		NOT NULL,
 	ip_address		varchar(40)		NOT NULL,
 
@@ -153,12 +145,15 @@ CREATE TABLE ip_addresses (
 	FOREIGN KEY (chain_id)			REFERENCES	chains(id),
 	CONSTRAINT fk_ip_addresses_miner_id
 	FOREIGN KEY (miner_id)			REFERENCES	miners(id),
+	CONSTRAINT fk_ip_addresses_worker_id
+	FOREIGN KEY (worker_id)			REFERENCES	workers(id),
 
 	PRIMARY KEY (miner_id, worker_id, chain_id, ip_address),
+
 	INDEX idx_ip_addresses_chain_id (chain_id),
 	INDEX idx_ip_addresses_miner_id (miner_id),
-	INDEX idx_ip_addresses_last_share (last_share),
-	INDEX idx_ip_addresses_active (active)
+	INDEX idx_ip_addresses_worker_id (worker_id),
+	INDEX idx_ip_addresses_miner_id_worker_id (miner_id, worker_id)
 );
 
 CREATE TABLE rounds (
@@ -455,14 +450,16 @@ CREATE TABLE balance_outputs (
 	chain_id		varchar(4)		NOT NULL,
 	miner_id		int				UNSIGNED NOT NULL,
 
-	in_batch_id		bigint			UNSIGNED,
-	in_deposit_id	bigint			UNSIGNED,
-	in_payout_id	bigint			UNSIGNED,
-	out_payout_id	bigint			UNSIGNED,
+	in_batch_id					bigint			UNSIGNED,
+	in_deposit_id				bigint			UNSIGNED,
+	in_payout_id				bigint			UNSIGNED,
+	out_payout_id				bigint			UNSIGNED,
+	out_merge_transaction_id 	bigint 			UNSIGNED,
 
 	value			decimal(25,0)	NOT NULL,
 	pool_fees		decimal(25,0)	NOT NULL,
 	exchange_fees	decimal(25,0)	NOT NULL,
+	tx_fees 		decimal(25,0),
 	mature 			bool	 		NOT NULL,
 	spent			bool			NOT NULL,
 
@@ -470,21 +467,24 @@ CREATE TABLE balance_outputs (
 	updated_at		datetime		NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
 	CONSTRAINT fk_balance_outputs_chain_id
-	FOREIGN KEY (chain_id)			REFERENCES	chains(id),
+	FOREIGN KEY (chain_id)					REFERENCES	chains(id),
 	CONSTRAINT fk_balance_outputs_miner_id
-	FOREIGN KEY (miner_id)			REFERENCES	miners(id),
-	CONSTRAINT fk_balance_inputs_in_deposit_id
-	FOREIGN KEY (in_deposit_id)		REFERENCES	exchange_deposits(id),
-	CONSTRAINT fk_balance_inputs_in_payout_id
-	FOREIGN KEY (in_payout_id)		REFERENCES	payouts(id),
-	CONSTRAINT fk_balance_inputs_out_payout_id
-	FOREIGN KEY (out_payout_id)		REFERENCES	payouts(id),
+	FOREIGN KEY (miner_id)					REFERENCES	miners(id),
+	CONSTRAINT fk_balance_outputs_in_deposit_id
+	FOREIGN KEY (in_deposit_id)				REFERENCES	exchange_deposits(id),
+	CONSTRAINT fk_balance_outputs_in_payout_id
+	FOREIGN KEY (in_payout_id)				REFERENCES	payouts(id),
+	CONSTRAINT fk_balance_outputs_out_payout_id
+	FOREIGN KEY (out_payout_id)				REFERENCES	payouts(id),
+	CONSTRAINT fk_balance_outputs_out_merge_transaction_id 
+	FOREIGN KEY (out_merge_transaction_id) 	REFERENCES transactions(id),
 
 	INDEX idx_balance_outputs_chain_id (chain_id),
 	INDEX idx_balance_outputs_miner_id (miner_id),
-	INDEX idx_balance_inputs_in_deposit_id (in_deposit_id),
-	INDEX idx_balance_inputs_in_payout_id (in_payout_id),
-	INDEX idx_balance_inputs_out_payout_id (out_payout_id)
+	INDEX idx_balance_outputs_in_deposit_id (in_deposit_id),
+	INDEX idx_balance_outputs_in_payout_id (in_payout_id),
+	INDEX idx_balance_outputs_out_payout_id (out_payout_id),
+	INDEX idx_balance_outputs_out_merge_transaction_id (out_merge_transaction_id)
 );
 
 CREATE TABLE balance_inputs (

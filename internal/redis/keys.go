@@ -70,7 +70,8 @@ func (c *Client) getShareIndexKey(chain string) string {
 }
 
 func (c *Client) getUniqueSharesKey(chain string, height uint64) string {
-	return c.getKey("pool", strings.ToLower(chain), "ush", strconv.FormatUint(height, 10))
+	heightStr := strconv.FormatUint(height, 10)
+	return c.getKey("pool", strings.ToLower(chain), "ush", heightStr)
 }
 
 /* rounds */
@@ -84,7 +85,8 @@ func (c *Client) getRoundAcceptedSharesKey(chain string) string {
 }
 
 func (c *Client) getRoundSoloAcceptedSharesKey(chain string, minerID uint64) string {
-	return c.getKey("pool", strings.ToLower(chain), "ash", "solo", strconv.FormatUint(minerID, 10))
+	minerIDStr := strconv.FormatUint(minerID, 10)
+	return c.getKey("pool", strings.ToLower(chain), "ash", "solo", minerIDStr)
 }
 
 func (c *Client) getRoundRejectedSharesKey(chain string) string {
@@ -92,7 +94,8 @@ func (c *Client) getRoundRejectedSharesKey(chain string) string {
 }
 
 func (c *Client) getRoundSoloRejectedSharesKey(chain string, minerID uint64) string {
-	return c.getKey("pool", strings.ToLower(chain), "rsh", "solo", strconv.FormatUint(minerID, 10))
+	minerIDStr := strconv.FormatUint(minerID, 10)
+	return c.getKey("pool", strings.ToLower(chain), "rsh", "solo", minerIDStr)
 }
 
 func (c *Client) getRoundInvalidSharesKey(chain string) string {
@@ -100,7 +103,8 @@ func (c *Client) getRoundInvalidSharesKey(chain string) string {
 }
 
 func (c *Client) getRoundSoloInvalidSharesKey(chain string, minerID uint64) string {
-	return c.getKey("pool", strings.ToLower(chain), "ish", "solo", strconv.FormatUint(minerID, 10))
+	minerIDStr := strconv.FormatUint(minerID, 10)
+	return c.getKey("pool", strings.ToLower(chain), "ish", "solo", minerIDStr)
 }
 
 /* intervals */

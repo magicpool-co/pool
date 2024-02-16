@@ -129,7 +129,8 @@ func (c *Client) baseZRangeWithScores(key string) (map[string]float64, error) {
 		Stop:  -1,
 	}
 
-	results, err := c.readClient.ZRangeArgsWithScores(context.Background(), args).Result()
+	ctx := context.Background()
+	results, err := c.readClient.ZRangeArgsWithScores(ctx, args).Result()
 	if err == redis.Nil {
 		return nil, nil
 	} else if err != nil {
@@ -232,7 +233,8 @@ func (c *Client) baseZAddBatch(key string, members []redis.Z) error {
 			end = count
 		}
 
-		_, err := c.writeClient.ZAdd(context.Background(), key, members[start:end]...).Result()
+		ctx := context.Background()
+		_, err := c.writeClient.ZAdd(ctx, key, members[start:end]...).Result()
 		if err != nil {
 			return err
 		}

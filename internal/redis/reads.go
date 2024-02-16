@@ -40,7 +40,7 @@ func (c *Client) getClusterChannel(key string) (*PubSub, error) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	rawPubsub := c.streamClusterClient.SSubscribe(ctx, key)
+	rawPubsub := c.streamClusterClient.Subscribe(ctx, key)
 	_, err := rawPubsub.Receive(ctx)
 	if err != nil {
 		return nil, err
@@ -154,7 +154,10 @@ func (c *Client) GetRoundSoloShares(chain string, minerID uint64) (uint64, error
 	return c.baseGetUint64(c.getRoundSoloAcceptedSharesKey(chain, minerID))
 }
 
-func (c *Client) GetRoundShareCounts(chain string, soloMinerID uint64) (uint64, uint64, uint64, error) {
+func (c *Client) GetRoundShareCounts(chain string, soloMinerID uint64) (
+	uint64, uint64, uint64,
+	error,
+) {
 	var acceptedKey, rejectedKey, invalidKey string
 	if soloMinerID == 0 {
 		acceptedKey = c.getRoundAcceptedSharesKey(chain)
@@ -182,21 +185,33 @@ func (c *Client) GetRoundShareCounts(chain string, soloMinerID uint64) (uint64, 
 		return 0, 0, 0, err
 	}
 
-	var acceptedStr, rejectedStr, invalidStr string
-	if acceptedStr, err = acceptedRaw.Result(); err != nil && err != redis.Nil {
-		return 0, 0, 0, err
-	} else if rejectedStr, err = rejectedRaw.Result(); err != nil && err != redis.Nil {
-		return 0, 0, 0, err
-	} else if invalidStr, err = invalidRaw.Result(); err != nil && err != redis.Nil {
+	acceptedStr, err := acceptedRaw.Result()
+	if err != nil && err != redis.Nil {
 		return 0, 0, 0, err
 	}
 
-	var accepted, rejected, invalid uint64
-	if accepted, err = strconv.ParseUint(acceptedStr, 10, 64); err != nil && acceptedStr != "" {
+	accepted, err := strconv.ParseUint(acceptedStr, 10, 64)
+	if err != nil && acceptedStr != "" {
 		return 0, 0, 0, err
-	} else if rejected, err = strconv.ParseUint(rejectedStr, 10, 64); err != nil && rejectedStr != "" {
+	}
+
+	rejectedStr, err := rejectedRaw.Result()
+	if err != nil && err != redis.Nil {
 		return 0, 0, 0, err
-	} else if invalid, err = strconv.ParseUint(invalidStr, 10, 64); err != nil && invalidStr != "" {
+	}
+
+	rejected, err := strconv.ParseUint(rejectedStr, 10, 64)
+	if err != nil && rejectedStr != "" {
+		return 0, 0, 0, err
+	}
+
+	invalidStr, err := invalidRaw.Result()
+	if err != nil && err != redis.Nil {
+		return 0, 0, 0, err
+	}
+
+	invalid, err := strconv.ParseUint(invalidStr, 10, 64)
+	if err != nil && invalidStr != "" {
 		return 0, 0, 0, err
 	}
 
@@ -209,27 +224,19 @@ func (c *Client) GetIntervals(chain string) ([]string, error) {
 	return c.baseSMembers(c.getIntervalsKey(chain))
 }
 
-func (c *Client) GetIntervalAcceptedShares(chain, interval string) (map[string]uint64, map[string]uint64, error) {
-	raw, err := c.baseZRangeWithScoresUint64(c.getIntervalAcceptedSharesKey(chain, interval))
+func (c *Client) GetIntervalAcceptedShares(chain, interval string) (
+	map[string]uint64,
+	map[string]uint64,
+	error,
+) {
+	key := c.getIntervalAcceptedSharesKey(chain, interval)
+	raw, err := c.baseZRangeWithScoresUint64(key)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	adjusted, err := c.baseZRangeWithScoresUint64(c.getIntervalAcceptedAdjustedSharesKey(chain, interval))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return raw, adjusted, nil
-}
-
-func (c *Client) GetIntervalRejectedShares(chain, interval string) (map[string]uint64, map[string]uint64, error) {
-	raw, err := c.baseZRangeWithScoresUint64(c.getIntervalRejectedSharesKey(chain, interval))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	adjusted, err := c.baseZRangeWithScoresUint64(c.getIntervalRejectedAdjustedSharesKey(chain, interval))
+	key = c.getIntervalAcceptedAdjustedSharesKey(chain, interval)
+	adjusted, err := c.baseZRangeWithScoresUint64(key)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -237,13 +244,39 @@ func (c *Client) GetIntervalRejectedShares(chain, interval string) (map[string]u
 	return raw, adjusted, nil
 }
 
-func (c *Client) GetIntervalInvalidShares(chain, interval string) (map[string]uint64, map[string]uint64, error) {
-	raw, err := c.baseZRangeWithScoresUint64(c.getIntervalInvalidSharesKey(chain, interval))
+func (c *Client) GetIntervalRejectedShares(chain, interval string) (
+	map[string]uint64,
+	map[string]uint64,
+	error,
+) {
+	key := c.getIntervalRejectedSharesKey(chain, interval)
+	raw, err := c.baseZRangeWithScoresUint64(key)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	adjusted, err := c.baseZRangeWithScoresUint64(c.getIntervalInvalidAdjustedSharesKey(chain, interval))
+	key = c.getIntervalRejectedAdjustedSharesKey(chain, interval)
+	adjusted, err := c.baseZRangeWithScoresUint64(key)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return raw, adjusted, nil
+}
+
+func (c *Client) GetIntervalInvalidShares(chain, interval string) (
+	map[string]uint64,
+	map[string]uint64,
+	error,
+) {
+	key := c.getIntervalInvalidSharesKey(chain, interval)
+	raw, err := c.baseZRangeWithScoresUint64(key)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	key = c.getIntervalInvalidAdjustedSharesKey(chain, interval)
+	adjusted, err := c.baseZRangeWithScoresUint64(key)
 	if err != nil {
 		return nil, nil, err
 	}

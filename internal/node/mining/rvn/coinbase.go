@@ -10,7 +10,12 @@ import (
 
 const txVersion = 0x1
 
-func GenerateCoinbase(address string, blockReward, blockHeight uint64, extraData, defaultWitness string, prefixP2PKH []byte) ([]byte, []byte, error) {
+func GenerateCoinbase(
+	address string,
+	blockReward, blockHeight uint64,
+	extraData, defaultWitness string,
+	prefixP2PKH []byte,
+) ([]byte, []byte, error) {
 	tx := btctx.NewTransaction(txVersion, 0, prefixP2PKH, nil, false)
 
 	blockHeightSerialBytes, lengthBytes, err := crypto.SerializeBlockHeight(blockHeight)

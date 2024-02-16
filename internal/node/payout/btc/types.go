@@ -1,10 +1,10 @@
 package btc
 
 import (
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 
 	"github.com/magicpool-co/pool/pkg/crypto"
-	"github.com/magicpool-co/pool/pkg/crypto/base58"
+	"github.com/magicpool-co/pool/pkg/crypto/tx/btctx"
 )
 
 var (
@@ -26,14 +26,10 @@ func New(mainnet bool, rawPriv, blockchairKey string) (*Node, error) {
 	obscuredPriv, err := crypto.ObscureHex(rawPriv)
 	if err != nil {
 		return nil, err
-	} else if err := crypto.ValidateSecp256k1PrivateKey(obscuredPriv); err != nil {
-		return nil, err
 	}
 
 	privKey := secp256k1.PrivKeyFromBytes(obscuredPriv)
-	pubKeyBytes := privKey.PubKey().SerializeUncompressed()
-	pubKeyHash := crypto.Ripemd160(crypto.Sha256(pubKeyBytes))
-	address := base58.CheckEncode(prefixP2PKH, pubKeyHash)
+	address := btctx.PrivKeyToAddress(privKey, prefixP2PKH)
 
 	node := &Node{
 		prefixP2PKH:   prefixP2PKH,

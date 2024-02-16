@@ -85,9 +85,7 @@ func (node Node) CalculateHashrate(blockTime, difficulty float64) float64 {
 
 func ValidateAddress(address string) bool {
 	parsedAddress, err := cfxAddress.NewFromBase32(address)
-	if err != nil {
-		return false
-	} else if parsedAddress.GetNetworkID() != uint32(mainnetChainID) {
+	if err != nil || parsedAddress.GetNetworkID() != uint32(mainnetChainID) {
 		return false
 	}
 

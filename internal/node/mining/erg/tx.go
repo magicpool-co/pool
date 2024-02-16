@@ -48,7 +48,10 @@ func (node Node) GetTx(txid string) (*types.TxResponse, error) {
 	return res, nil
 }
 
-func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (string, string, error) {
+func (node Node) CreateTx(
+	inputs []*types.TxInput,
+	outputs []*types.TxOutput,
+) (string, string, error) {
 	if len(outputs) == 0 {
 		return "", "", fmt.Errorf("need at least one output")
 	}

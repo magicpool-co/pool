@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/crypto"
@@ -41,8 +41,6 @@ func New(mainnet bool, url, rawPriv string, logger *log.Logger) (*Node, error) {
 
 	obscuredPriv, err := crypto.ObscureHex(rawPriv)
 	if err != nil {
-		return nil, err
-	} else if err := crypto.ValidateSecp256k1PrivateKey(obscuredPriv); err != nil {
 		return nil, err
 	}
 

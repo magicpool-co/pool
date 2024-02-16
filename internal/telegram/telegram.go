@@ -115,7 +115,8 @@ func (t *Client) sendMessage(msg string, chatID int64) error {
 		if err := execPOST(url, obj); err != nil {
 			return err
 		} else if !obj.Ok {
-			return fmt.Errorf("telegram responded with not ok: (%d) %s", obj.ErrorCode, obj.Description)
+			return fmt.Errorf("telegram responded with not ok: (%d) %s",
+				obj.ErrorCode, obj.Description)
 		}
 	}
 
@@ -125,25 +126,29 @@ func (t *Client) sendMessage(msg string, chatID int64) error {
 /* error channel */
 
 func (t *Client) SendFatal(err, app, env string) error {
-	msg := fmt.Sprintf("Fatal error on `%s`:`%s` - `%s`", app, env, err)
+	msg := fmt.Sprintf("Fatal error on `%s`:`%s` - `%s`",
+		app, env, err)
 
 	return t.sendMessage(msg, t.ErrorChatID)
 }
 
 func (t *Client) SendPanic(err, app, env string) error {
-	msg := fmt.Sprintf("Panic on `%s`:`%s` - `%s`", app, env, err)
+	msg := fmt.Sprintf("Panic on `%s`:`%s` - `%s`",
+		app, env, err)
 
 	return t.sendMessage(msg, t.ErrorChatID)
 }
 
 func (t *Client) NotifyNewHost(host, env string) error {
-	msg := fmt.Sprintf("new stratum host on `%s` [%s]", host, env)
+	msg := fmt.Sprintf("new stratum host on `%s` [%s]",
+		host, env)
 
 	return t.sendMessage(msg, t.ErrorChatID)
 }
 
 func (t *Client) NotifyNodeInstanceLaunched(chain, region, ip string) error {
-	msg := fmt.Sprintf("node instance launched for `%s` in %s", chain, region)
+	msg := fmt.Sprintf("node instance launched for `%s` in %s",
+		chain, region)
 	if ip != "" {
 		msg += ": \\(`" + ip + "`\\)"
 	}
@@ -152,7 +157,8 @@ func (t *Client) NotifyNodeInstanceLaunched(chain, region, ip string) error {
 }
 
 func (t *Client) NotifyNodeInstanceTerminated(chain, region, ip string) error {
-	msg := fmt.Sprintf("node instance terminated for `%s` in %s", chain, region)
+	msg := fmt.Sprintf("node instance terminated for `%s` in %s",
+		chain, region)
 	if ip != "" {
 		msg += ": \\(`" + ip + "`\\)"
 	}
@@ -162,7 +168,11 @@ func (t *Client) NotifyNodeInstanceTerminated(chain, region, ip string) error {
 
 /* info channel */
 
-func (t *Client) NotifyNewBlockCandidate(chain, explorerURL string, height uint64, luck float64) error {
+func (t *Client) NotifyNewBlockCandidate(
+	chain, explorerURL string,
+	height uint64,
+	luck float64,
+) error {
 	msg := fmt.Sprintf("found %s block candidate with %.1f%% luck at [%d](%s)",
 		strings.ToUpper(chain), luck, height, explorerURL)
 
@@ -175,8 +185,13 @@ func (t *Client) NotifyInitiateExchangeBatch(id uint64) error {
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyInitiateDeposit(id uint64, chain string, value float64) error {
-	msg := fmt.Sprintf("initated exchange deposit %d for %.4f %s", id, value, chain)
+func (t *Client) NotifyInitiateDeposit(
+	id uint64,
+	chain string,
+	value float64,
+) error {
+	msg := fmt.Sprintf("initated exchange deposit %d for %.4f %s",
+		id, value, chain)
 
 	return t.sendMessage(msg, t.InfoChatID)
 }
@@ -187,7 +202,12 @@ func (t *Client) NotifyFinalizeDeposit(id uint64) error {
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyInitiateTrade(id uint64, pathID, stageID int, market, direction string, value float64) error {
+func (t *Client) NotifyInitiateTrade(
+	id uint64,
+	pathID, stageID int,
+	market, direction string,
+	value float64,
+) error {
 	msg := fmt.Sprintf("initated exchange trade %d \\(path: %d, stage: %d\\) for %s %.4f %s",
 		id, pathID, stageID, direction, value, market)
 
@@ -200,8 +220,13 @@ func (t *Client) NotifyFinalizeTrade(id uint64) error {
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyInitiateWithdrawal(id uint64, chain string, value float64) error {
-	msg := fmt.Sprintf("initated exchange withdrawal %d for %.4f %s", id, value, chain)
+func (t *Client) NotifyInitiateWithdrawal(
+	id uint64,
+	chain string,
+	value float64,
+) error {
+	msg := fmt.Sprintf("initated exchange withdrawal %d for %.4f %s",
+		id, value, chain)
 
 	return t.sendMessage(msg, t.InfoChatID)
 }
@@ -218,8 +243,13 @@ func (t *Client) NotifyFinalizeExchangeBatch(id uint64) error {
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyInitiatePayout(id uint64, chain, address, explorerURL string, value float64) error {
-	msg := fmt.Sprintf("initated payout %d for %.4f %s to [%s](%s)", id, value, chain, address, explorerURL)
+func (t *Client) NotifyInitiatePayout(
+	id uint64,
+	chain, address, explorerURL string,
+	value float64,
+) error {
+	msg := fmt.Sprintf("initated payout %d for %.4f %s to [%s](%s)",
+		id, value, chain, address, explorerURL)
 
 	return t.sendMessage(msg, t.InfoChatID)
 }
@@ -230,8 +260,13 @@ func (t *Client) NotifyConfirmPayout(id uint64) error {
 	return t.sendMessage(msg, t.InfoChatID)
 }
 
-func (t *Client) NotifyTransactionSent(id uint64, chain, txid, explorerURL string, value float64) error {
-	msg := fmt.Sprintf("sent transaction %d for %.4f %s at [%s](%s)", id, value, chain, txid, explorerURL)
+func (t *Client) NotifyTransactionSent(
+	id uint64,
+	chain, txid, explorerURL string,
+	value float64,
+) error {
+	msg := fmt.Sprintf("sent transaction %d for %.4f %s at [%s](%s)",
+		id, value, chain, txid, explorerURL)
 
 	return t.sendMessage(msg, t.InfoChatID)
 }

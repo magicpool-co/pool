@@ -10,7 +10,6 @@ import (
 var (
 	DefaultInputThresholds = map[string]*big.Int{
 		"CFX":  common.MustParseBigInt("2000000000000000000000"),  // 2,000 CFX
-		"CTXC": common.MustParseBigInt("500000000000000000000"),   // 500 CTXC
 		"ERG":  new(big.Int).SetUint64(10_000_000_000),            // 10 ERG
 		"ETC":  new(big.Int).SetUint64(3_000_000_000_000_000_000), // 3 ETC
 		"FIRO": new(big.Int).SetUint64(10_000_000_000),            // 100 FIRO
@@ -25,7 +24,10 @@ var (
 	}
 )
 
-func reverseMap(input map[string]map[string]*big.Int, prices map[string]map[string]float64) (map[string]map[string]*big.Int, error) {
+func reverseMap(
+	input map[string]map[string]*big.Int,
+	prices map[string]map[string]float64,
+) (map[string]map[string]*big.Int, error) {
 	output := make(map[string]map[string]*big.Int)
 	for from, toIdx := range input {
 		for to, value := range toIdx {
@@ -82,7 +84,11 @@ func sumMap(input map[string]map[string]*big.Int) map[string]*big.Int {
 	return output
 }
 
-func CalculateExchangePaths(inputPaths map[string]map[string]*big.Int, inputThresholds, outputThresholds map[string]*big.Int, prices map[string]map[string]float64) (map[string]map[string]*big.Int, error) {
+func CalculateExchangePaths(
+	inputPaths map[string]map[string]*big.Int,
+	inputThresholds, outputThresholds map[string]*big.Int,
+	prices map[string]map[string]float64,
+) (map[string]map[string]*big.Int, error) {
 	for {
 		var hasChanges bool
 		if len(inputPaths) == 0 {
@@ -95,8 +101,6 @@ func CalculateExchangePaths(inputPaths map[string]map[string]*big.Int, inputThre
 		}
 
 		inputSum := sumMap(inputPaths)
-		outputSum := sumMap(outputPaths)
-
 		for input, value := range inputSum {
 			threshold, ok := inputThresholds[input]
 			if !ok {
@@ -107,6 +111,7 @@ func CalculateExchangePaths(inputPaths map[string]map[string]*big.Int, inputThre
 			}
 		}
 
+		outputSum := sumMap(outputPaths)
 		for output, value := range outputSum {
 			threshold, ok := outputThresholds[output]
 			if !ok {
@@ -133,7 +138,10 @@ func CalculateExchangePaths(inputPaths map[string]map[string]*big.Int, inputThre
 	return inputPaths, nil
 }
 
-func CalculateProportionalValues[K string | uint64](value, fee *big.Int, proportions map[K]*big.Int) (map[K]*big.Int, map[K]*big.Int, error) {
+func CalculateProportionalValues[K string | uint64](
+	value, fee *big.Int,
+	proportions map[K]*big.Int,
+) (map[K]*big.Int, map[K]*big.Int, error) {
 	if value.Cmp(common.Big0) <= 0 {
 		return nil, nil, fmt.Errorf("input value is not positive")
 	}

@@ -33,10 +33,6 @@ type Node struct {
 
 	NeedsBackup   bool `db:"needs_backup"`
 	PendingBackup bool `db:"pending_backup"`
-	NeedsUpdate   bool `db:"needs_update"`
-	PendingUpdate bool `db:"pending_update"`
-	NeedsResize   bool `db:"needs_resize"`
-	PendingResize bool `db:"pending_resize"`
 
 	CreatedAt time.Time  `db:"created_at"`
 	UpdatedAt time.Time  `db:"updated_at"`
@@ -79,7 +75,7 @@ type Worker struct {
 	UpdatedAt time.Time `db:"updated_at"`
 
 	// column not present in the table, only
-	// helpful for a specific join query (GetWorkersByMiner)
+	// helpful for a specific join query (GetWorkersByMinerID)
 	LastDifficulty *float64  `db:"last_difficulty"`
 	LastShare      time.Time `db:"last_share"`
 }
@@ -150,22 +146,7 @@ type Share struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
-/* utxo */
-
-type UTXO struct {
-	ID            uint64  `db:"id"`
-	ChainID       string  `db:"chain_id"`
-	TransactionID *uint64 `db:"transaction_id"`
-
-	Value  dbcl.NullBigInt `db:"value"`
-	TxID   string          `db:"txid"`
-	Index  uint32          `db:"idx"`
-	Active bool            `db:"active"`
-	Spent  bool            `db:"spent"`
-
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
-}
+/* transaction */
 
 type Transaction struct {
 	ID      uint64 `db:"id"`
@@ -184,6 +165,21 @@ type Transaction struct {
 	Spent        bool            `db:"spent"`
 	Confirmed    bool            `db:"confirmed"`
 	Failed       bool            `db:"failed"`
+
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+type UTXO struct {
+	ID            uint64  `db:"id"`
+	ChainID       string  `db:"chain_id"`
+	TransactionID *uint64 `db:"transaction_id"`
+
+	Value  dbcl.NullBigInt `db:"value"`
+	TxID   string          `db:"txid"`
+	Index  uint32          `db:"idx"`
+	Active bool            `db:"active"`
+	Spent  bool            `db:"spent"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
@@ -290,6 +286,29 @@ type ExchangeWithdrawal struct {
 
 /* balance */
 
+type Payout struct {
+	ID      uint64 `db:"id"`
+	ChainID string `db:"chain_id"`
+	MinerID uint64 `db:"miner_id"`
+	Address string `db:"address"`
+
+	TransactionID *uint64 `db:"transaction_id"`
+	TxID          string  `db:"txid"`
+	Height        *uint64 `db:"height"`
+
+	Value        dbcl.NullBigInt `db:"value"`
+	FeeBalance   dbcl.NullBigInt `db:"fee_balance"`
+	PoolFees     dbcl.NullBigInt `db:"pool_fees"`
+	ExchangeFees dbcl.NullBigInt `db:"exchange_fees"`
+	TxFees       dbcl.NullBigInt `db:"tx_fees"`
+	Pending      bool            `db:"pending"`
+	Confirmed    bool            `db:"confirmed"`
+	Failed       bool            `db:"failed"`
+
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
 type BalanceInput struct {
 	ID      uint64 `db:"id"`
 	RoundID uint64 `db:"round_id"`
@@ -341,29 +360,6 @@ type BalanceSum struct {
 
 	ImmatureValue dbcl.NullBigInt `db:"immature_value"`
 	MatureValue   dbcl.NullBigInt `db:"mature_value"`
-
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
-}
-
-type Payout struct {
-	ID      uint64 `db:"id"`
-	ChainID string `db:"chain_id"`
-	MinerID uint64 `db:"miner_id"`
-	Address string `db:"address"`
-
-	TransactionID *uint64 `db:"transaction_id"`
-	TxID          string  `db:"txid"`
-	Height        *uint64 `db:"height"`
-
-	Value        dbcl.NullBigInt `db:"value"`
-	FeeBalance   dbcl.NullBigInt `db:"fee_balance"`
-	PoolFees     dbcl.NullBigInt `db:"pool_fees"`
-	ExchangeFees dbcl.NullBigInt `db:"exchange_fees"`
-	TxFees       dbcl.NullBigInt `db:"tx_fees"`
-	Pending      bool            `db:"pending"`
-	Confirmed    bool            `db:"confirmed"`
-	Failed       bool            `db:"failed"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`

@@ -56,6 +56,7 @@ func (node Node) GetUnits() *types.Number {
 
 func (node Node) GetShareDifficulty(diffFactor int) *types.Difficulty {
 	if diffFactor > 1 {
+		// @TODO: this wont work properly, value will be zero on diff mul
 		return shareDiff.Mul(int64(diffFactor))
 	}
 	return shareDiff

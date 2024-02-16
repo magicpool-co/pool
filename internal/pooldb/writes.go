@@ -28,8 +28,11 @@ func UpdateNode(q dbcl.Querier, obj *Node, updateCols []string) error {
 
 func InsertMiner(q dbcl.Querier, obj *Miner) (uint64, error) {
 	const table = "miners"
-	cols := []string{"chain_id", "address", "email", "threshold",
-		"active", "enabled_worker_notifications", "enabled_payout_notifications"}
+	cols := []string{
+		"chain_id", "address", "email", "threshold",
+		"active", "enabled_worker_notifications",
+		"enabled_payout_notifications",
+	}
 
 	return dbcl.ExecInsert(q, table, cols, obj)
 }
@@ -95,8 +98,10 @@ func UpdateWorkerSetInactive(q dbcl.Querier, workerIDs []uint64) error {
 
 func InsertIPAddresses(q dbcl.Querier, objects ...*IPAddress) error {
 	const table = "ip_addresses"
-	insertCols := []string{"miner_id", "worker_id", "chain_id", "ip_address", "active",
-		"expired", "last_share", "last_difficulty", "rtt"}
+	insertCols := []string{
+		"miner_id", "worker_id", "chain_id", "ip_address", "active",
+		"expired", "last_share", "last_difficulty", "rtt",
+	}
 	updateCols := []string{"active", "expired", "last_share", "last_difficulty", "rtt"}
 
 	rawObjects := make([]interface{}, len(objects))
@@ -110,9 +115,9 @@ func InsertIPAddresses(q dbcl.Querier, objects ...*IPAddress) error {
 func InsertRound(q dbcl.Querier, obj *Round) (uint64, error) {
 	const table = "rounds"
 	cols := []string{
-		"chain_id", "miner_id", "solo", "height", "epoch_height", "uncle_height", "hash",
-		"nonce", "mix_digest", "coinbase_txid", "value", "difficulty", "luck",
-		"accepted_shares", "rejected_shares", "invalid_shares", "mature",
+		"chain_id", "miner_id", "solo", "height", "epoch_height", "uncle_height",
+		"hash", "nonce", "mix_digest", "coinbase_txid", "value", "difficulty",
+		"luck", "accepted_shares", "rejected_shares", "invalid_shares", "mature",
 		"pending", "uncle", "orphan", "spent",
 	}
 
@@ -224,8 +229,9 @@ func InsertExchangeInputs(q dbcl.Querier, objects ...*ExchangeInput) error {
 func InsertExchangeDeposit(q dbcl.Querier, obj *ExchangeDeposit) (uint64, error) {
 	const table = "exchange_deposits"
 	cols := []string{
-		"batch_id", "chain_id", "network_id", "transaction_id", "deposit_txid",
-		"exchange_txid", "exchange_deposit_id", "value", "fees", "registered", "confirmed",
+		"batch_id", "chain_id", "network_id", "transaction_id",
+		"deposit_txid", "exchange_txid", "exchange_deposit_id",
+		"value", "fees", "registered", "confirmed",
 	}
 
 	return dbcl.ExecInsert(q, table, cols, obj)
@@ -243,9 +249,10 @@ func InsertExchangeTrades(q dbcl.Querier, objects ...*ExchangeTrade) error {
 	cols := []string{
 		"batch_id", "path_id", "stage_id", "step_id", "is_market_order",
 		"trade_strategy", "exchange_trade_id", "initial_chain_id",
-		"from_chain_id", "to_chain_id", "market", "direction", "value", "proceeds",
-		"trade_fees", "cumulative_deposit_fees", "cumulative_trade_fees", "order_price",
-		"fill_price", "cumulative_fill_price", "slippage", "initiated", "confirmed",
+		"from_chain_id", "to_chain_id", "market", "direction", "value",
+		"proceeds", "trade_fees", "cumulative_deposit_fees",
+		"cumulative_trade_fees", "order_price", "fill_price",
+		"cumulative_fill_price", "slippage", "initiated", "confirmed",
 	}
 
 	rawObjects := make([]interface{}, len(objects))
@@ -287,7 +294,8 @@ func InsertBalanceInputs(q dbcl.Querier, objects ...*BalanceInput) error {
 	const table = "balance_inputs"
 	cols := []string{
 		"round_id", "chain_id", "miner_id", "out_chain_id",
-		"balance_output_id", "batch_id", "value", "pool_fees", "mature", "pending",
+		"balance_output_id", "batch_id", "value",
+		"pool_fees", "mature", "pending",
 	}
 
 	rawObjects := make([]interface{}, len(objects))
@@ -329,8 +337,9 @@ func DeleteBalanceInputsByRound(q dbcl.Querier, roundID uint64) error {
 func InsertBalanceOutput(q dbcl.Querier, obj *BalanceOutput) (uint64, error) {
 	const table = "balance_outputs"
 	cols := []string{
-		"chain_id", "miner_id", "in_batch_id", "in_deposit_id", "in_payout_id", "out_payout_id",
-		"out_merge_transaction_id", "value", "pool_fees", "exchange_fees", "tx_fees", "mature", "spent",
+		"chain_id", "miner_id", "in_batch_id", "in_deposit_id",
+		"in_payout_id", "out_payout_id", "out_merge_transaction_id",
+		"value", "pool_fees", "exchange_fees", "tx_fees", "mature", "spent",
 	}
 
 	return dbcl.ExecInsert(q, table, cols, obj)
@@ -339,8 +348,9 @@ func InsertBalanceOutput(q dbcl.Querier, obj *BalanceOutput) (uint64, error) {
 func InsertBalanceOutputs(q dbcl.Querier, objects ...*BalanceOutput) error {
 	const table = "balance_outputs"
 	cols := []string{
-		"chain_id", "miner_id", "in_batch_id", "in_deposit_id", "in_payout_id", "out_payout_id",
-		"out_merge_transaction_id", "value", "pool_fees", "exchange_fees", "tx_fees", "mature", "spent",
+		"chain_id", "miner_id", "in_batch_id", "in_deposit_id", "in_payout_id",
+		"out_payout_id", "out_merge_transaction_id", "value", "pool_fees",
+		"exchange_fees", "tx_fees", "mature", "spent",
 	}
 
 	rawObjects := make([]interface{}, len(objects))
@@ -440,8 +450,9 @@ func InsertSubtractBalanceSums(q dbcl.Querier, objects ...*BalanceSum) error {
 func InsertPayout(q dbcl.Querier, obj *Payout) (uint64, error) {
 	const table = "payouts"
 	cols := []string{
-		"chain_id", "miner_id", "address", "transaction_id", "txid", "height", "value",
-		"fee_balance", "pool_fees", "exchange_fees", "tx_fees", "pending", "confirmed", "failed",
+		"chain_id", "miner_id", "address", "transaction_id", "txid",
+		"height", "value", "fee_balance", "pool_fees", "exchange_fees",
+		"tx_fees", "pending", "confirmed", "failed",
 	}
 
 	return dbcl.ExecInsert(q, table, cols, obj)

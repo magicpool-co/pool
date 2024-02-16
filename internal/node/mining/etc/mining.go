@@ -18,6 +18,10 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
+func stringsEqualInsensitive(a, b string) bool {
+	return strings.ToLower(a) == strings.ToLower(b)
+}
+
 func (node Node) GetBlockExplorerURL(round *pooldb.Round) string {
 	if node.mainnet {
 		return fmt.Sprintf("https://blockscout.com/etc/mainnet/block/%d", round.Height)
@@ -192,7 +196,11 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *ty
 	return jobCh
 }
 
-func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diffFactor int) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
+func (node Node) SubmitWork(
+	job *types.StratumJob,
+	work *types.StratumWork,
+	diffFactor int,
+) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
 	mixDigest, digest, err := node.pow.Compute(work.Hash.Bytes(), job.Height.Value(), work.Nonce.Value())
 	if err != nil {
 		return types.InvalidShare, nil, nil, err
@@ -268,7 +276,12 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 	return work, nil
 }
 
-func (node Node) MarshalJob(rawID interface{}, job *types.StratumJob, cleanJobs bool, clientType, diffFactor int) (interface{}, error) {
+func (node Node) MarshalJob(
+	rawID interface{},
+	job *types.StratumJob,
+	cleanJobs bool,
+	clientType, diffFactor int,
+) (interface{}, error) {
 	id, err := json.Marshal(rawID)
 	if err != nil {
 		return nil, err
@@ -386,7 +399,7 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 		block, err := node.getBlockByNumber(checkHeight)
 		if err != nil {
 			return err
-		} else if common.StringsEqualInsensitive(block.Miner, node.address) {
+		} else if stringsEqualInsensitive(block.Miner, node.address) {
 			nonce, err := common.HexToUint64(block.Nonce)
 			if err != nil {
 				return err
@@ -416,7 +429,7 @@ func (node Node) UnlockRound(round *pooldb.Round) error {
 			uncle, err := node.getUncleByNumberAndIndex(checkHeight, uint64(uncleIndex))
 			if err != nil {
 				return err
-			} else if common.StringsEqualInsensitive(uncle.Miner, node.address) {
+			} else if stringsEqualInsensitive(uncle.Miner, node.address) {
 				nonce, err := common.HexToUint64(uncle.Nonce)
 				if err != nil {
 					return err
@@ -476,7 +489,7 @@ func (node Node) MatureRound(round *pooldb.Round) ([]*pooldb.UTXO, error) {
 			uncle, err := node.getUncleByNumberAndIndex(height, uint64(uncleIndex))
 			if err != nil {
 				return nil, err
-			} else if !common.StringsEqualInsensitive(uncle.Miner, node.address) {
+			} else if !stringsEqualInsensitive(uncle.Miner, node.address) {
 				continue
 			}
 

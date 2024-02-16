@@ -1,3 +1,0 @@
-ALTER TABLE balance_outputs DROP CONSTRAINT fk_balance_outputs_out_merge_transaction_id;
-ALTER TABLE balance_outputs DROP INDEX idx_balance_outputs_out_merge_transaction_id;
-ALTER TABLE balance_outputs DROP COLUMN out_merge_transaction_id;

@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/goccy/go-json"
 
 	"github.com/magicpool-co/pool/internal/log"
@@ -21,7 +21,11 @@ var (
 	testnetPrefix = "nexatest"
 )
 
-func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
+func generateHost(
+	urls []string,
+	logger *log.Logger,
+	tunnel *sshtunnel.SSHTunnel,
+) (*hostpool.HTTPPool, error) {
 	var (
 		port        = 7227
 		hostOptions = &hostpool.HTTPHostOptions{
@@ -51,7 +55,13 @@ func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel
 	return host, nil
 }
 
-func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
+func New(
+	mainnet bool,
+	urls []string,
+	rawPriv string,
+	logger *log.Logger,
+	tunnel *sshtunnel.SSHTunnel,
+) (*Node, error) {
 	prefix := mainnetPrefix
 	if !mainnet {
 		prefix = testnetPrefix
@@ -64,8 +74,6 @@ func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel
 
 	obscuredPriv, err := crypto.ObscureHex(rawPriv)
 	if err != nil {
-		return nil, err
-	} else if err := crypto.ValidateSecp256k1PrivateKey(obscuredPriv); err != nil {
 		return nil, err
 	}
 

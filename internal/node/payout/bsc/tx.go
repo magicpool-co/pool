@@ -106,7 +106,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		return "", "", err
 	}
 
-	tx, fee, err := ethtx.NewLegacyTx(node.privKey.ToECDSA(), output.Address, input.Data,
+	tx, fee, err := ethtx.NewLegacyTx(node.privKey, output.Address, input.Data,
 		output.Value, gasPrice, gasLimit, nonce, chainID)
 	if err != nil {
 		return "", "", err

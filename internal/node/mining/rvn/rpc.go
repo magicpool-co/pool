@@ -96,7 +96,7 @@ func (node Node) getBlockHashMany(heights []uint64) ([]string, error) {
 		if err != nil {
 			return nil, err
 		} else if len(responses) != len(reqs) {
-			return nil, fmt.Errorf("request and response length mismatch: %d and %d", len(responses), len(reqs))
+			return nil, fmt.Errorf("req and res length mismatch: %d and %d", len(responses), len(reqs))
 		}
 	}
 
@@ -149,7 +149,7 @@ func (node Node) getBlockMany(hashes []string) ([]*Block, error) {
 		if err != nil {
 			return nil, err
 		} else if len(responses) != len(reqs) {
-			return nil, fmt.Errorf("request and response length mismatch: %d and %d", len(responses), len(reqs))
+			return nil, fmt.Errorf("req and res length mismatch: %d and %d", len(responses), len(reqs))
 		}
 	}
 

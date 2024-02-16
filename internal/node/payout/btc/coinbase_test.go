@@ -52,10 +52,11 @@ func TestGenerateCoinbase(t *testing.T) {
 				"486174686c54c2ab958d73fc32f074013197302232563e05f3bb53c636d314ea002739d7",
 				"52534b424c4f434b3ade8cc5626137b40827a3644dcc85f2956fa5df881947804685e23d2c0042918c",
 			},
-			amount:      625000000,
-			height:      739399,
-			nTime:       1654425552,
-			extraData:   "HMined by AntPool861mm(/(oALƝViA,wx1",
+			amount: 625000000,
+			height: 739399,
+			nTime:  1654425552,
+			extraData: `HMined by AntPool861` +
+				`mm(/(oALƝViA,wx1`,
 			prefixP2PKH: mainnetPrefixP2PKH,
 			prefixP2SH:  mainnetPrefixP2SH,
 			coinbaseHex: []byte{

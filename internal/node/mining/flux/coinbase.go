@@ -15,7 +15,13 @@ const (
 	expiryHeight   uint32 = 0
 )
 
-func GenerateCoinbase(addresses []string, amounts []uint64, blockHeight uint64, extraData string, prefixP2PKH, prefixP2SH []byte) ([]byte, []byte, error) {
+func GenerateCoinbase(
+	addresses []string,
+	amounts []uint64,
+	blockHeight uint64,
+	extraData string,
+	prefixP2PKH, prefixP2SH []byte,
+) ([]byte, []byte, error) {
 	if len(addresses) != len(amounts) {
 		return nil, nil, fmt.Errorf("address and amount length mismatch")
 	} else if len(addresses) == 0 {

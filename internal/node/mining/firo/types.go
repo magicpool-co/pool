@@ -4,13 +4,13 @@ import (
 	"context"
 	"net/http"
 
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/goccy/go-json"
 	"github.com/sencha-dev/powkit/firopow"
 
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/crypto"
-	"github.com/magicpool-co/pool/pkg/crypto/base58"
+	"github.com/magicpool-co/pool/pkg/crypto/tx/btctx"
 	"github.com/magicpool-co/pool/pkg/hostpool"
 	"github.com/magicpool-co/pool/pkg/sshtunnel"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
@@ -28,7 +28,11 @@ var (
 	testnetDevWalletAmounts   = []uint64{62500000, 93750000}
 )
 
-func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
+func generateHost(
+	urls []string,
+	logger *log.Logger,
+	tunnel *sshtunnel.SSHTunnel,
+) (*hostpool.HTTPPool, error) {
 	var (
 		port        = 8888
 		hostOptions = &hostpool.HTTPHostOptions{
@@ -58,7 +62,13 @@ func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel
 	return host, nil
 }
 
-func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
+func New(
+	mainnet bool,
+	urls []string,
+	rawPriv string,
+	logger *log.Logger,
+	tunnel *sshtunnel.SSHTunnel,
+) (*Node, error) {
 	devWalletAddresses := mainnetDevWalletAddresses
 	devWalletAmounts := mainnetDevWalletAmounts
 	prefixP2PKH := mainnetPrefixP2PKH
@@ -78,14 +88,10 @@ func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel
 	obscuredPriv, err := crypto.ObscureHex(rawPriv)
 	if err != nil {
 		return nil, err
-	} else if err := crypto.ValidateSecp256k1PrivateKey(obscuredPriv); err != nil {
-		return nil, err
 	}
 
 	privKey := secp256k1.PrivKeyFromBytes(obscuredPriv)
-	pubKeyBytes := privKey.PubKey().SerializeUncompressed()
-	pubKeyHash := crypto.Ripemd160(crypto.Sha256(pubKeyBytes))
-	address := base58.CheckEncode(prefixP2PKH, pubKeyHash)
+	address := btctx.PrivKeyToAddress(privKey, prefixP2PKH)
 
 	node := &Node{
 		mocked:             host == nil,

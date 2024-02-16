@@ -9,7 +9,10 @@ import (
 
 // splits a value according to the proportional total for each value in the index,
 // along with calculating the remainder and verifying it is positive
-func splitValue(value *big.Int, idx map[uint64]uint64) (map[uint64]*big.Int, *big.Int, error) {
+func splitValue(
+	value *big.Int,
+	idx map[uint64]uint64,
+) (map[uint64]*big.Int, *big.Int, error) {
 	if value.Cmp(common.Big0) == 0 {
 		return nil, new(big.Int), nil
 	}
@@ -40,7 +43,10 @@ func splitValue(value *big.Int, idx map[uint64]uint64) (map[uint64]*big.Int, *bi
 
 // credits a round based off of the share index and the fee recipient distributions. the output is a merged
 // map of miners and recipients since we can safely assume that miner ids and recipient ids are globally unique.
-func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) (map[uint64]*big.Int, map[uint64]*big.Int, error) {
+func CreditRound(
+	roundValue *big.Int,
+	minerIdx, recipientIdx map[uint64]uint64,
+) (map[uint64]*big.Int, map[uint64]*big.Int, error) {
 	if roundValue == nil {
 		return nil, nil, fmt.Errorf("empty round value")
 	} else if len(minerIdx) == 0 {
@@ -119,7 +125,11 @@ func CreditRound(roundValue *big.Int, minerIdx, recipientIdx map[uint64]uint64) 
 
 // given a miner's round distributions, check to see if any fee balance is needed and, if so,
 // return the estimated needed fee balance
-func ProcessFeeBalance(roundChain, minerChain string, value, poolFee, feeBalance *big.Int, price float64) (*big.Int, *big.Int, error) {
+func ProcessFeeBalance(
+	roundChain, minerChain string,
+	value, poolFee, feeBalance *big.Int,
+	price float64,
+) (*big.Int, *big.Int, error) {
 	// specify the minumum fee balance required for the given chain,
 	// throw an error if the chain doesn't exist
 	var minFeeBalance *big.Int

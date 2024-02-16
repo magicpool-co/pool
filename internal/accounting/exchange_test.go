@@ -15,11 +15,6 @@ var (
 			"ETH":  0.00003344,
 			"USDC": 0.04897981,
 		},
-		"CTXC": map[string]float64{
-			"BTC":  0.00000603,
-			"ETH":  0.00008286,
-			"USDC": 0.121389,
-		},
 		"ERG": map[string]float64{
 			"BTC":  0.00020660,
 			"ETH":  0.00283834,
@@ -61,11 +56,6 @@ func TestReverseMap(t *testing.T) {
 					"BTC":  common.MustParseBigInt("2000000000000000000000"),
 					"USDC": common.MustParseBigInt("2000000000000000000000"),
 				},
-				"CTXC": map[string]*big.Int{
-					"ETH":  common.MustParseBigInt("500000000000000000000"),
-					"BTC":  common.MustParseBigInt("500000000000000000000"),
-					"USDC": common.MustParseBigInt("500000000000000000000"),
-				},
 				"ERG": map[string]*big.Int{
 					"ETH":  new(big.Int).SetUint64(10_000_000_000),
 					"BTC":  new(big.Int).SetUint64(10_000_000_000),
@@ -96,7 +86,6 @@ func TestReverseMap(t *testing.T) {
 			output: map[string]map[string]*big.Int{
 				"BTC": map[string]*big.Int{
 					"CFX":  new(big.Int).SetUint64(486000),
-					"CTXC": new(big.Int).SetUint64(301500),
 					"ERG":  new(big.Int).SetUint64(206600),
 					"ETC":  new(big.Int).SetUint64(513525),
 					"FIRO": new(big.Int).SetUint64(1488200),
@@ -105,7 +94,6 @@ func TestReverseMap(t *testing.T) {
 				},
 				"ETH": map[string]*big.Int{
 					"CFX":  new(big.Int).SetUint64(66880000000000000),
-					"CTXC": new(big.Int).SetUint64(41430000000000000),
 					"ERG":  new(big.Int).SetUint64(28383400000000000),
 					"ETC":  new(big.Int).SetUint64(70600620000000000),
 					"FIRO": new(big.Int).SetUint64(204601000000000000),
@@ -114,7 +102,6 @@ func TestReverseMap(t *testing.T) {
 				},
 				"USDC": map[string]*big.Int{
 					"CFX":  new(big.Int).SetUint64(97958000),
-					"CTXC": new(big.Int).SetUint64(60694500),
 					"ERG":  new(big.Int).SetUint64(41600000),
 					"ETC":  new(big.Int).SetUint64(103380000),
 					"FIRO": new(big.Int).SetUint64(300000000),
@@ -227,11 +214,6 @@ func TestCalculateExchangePaths(t *testing.T) {
 					"BTC":  common.MustParseBigInt("2000000000000000000000"),
 					"USDC": common.MustParseBigInt("2000000000000000000000"),
 				},
-				"CTXC": map[string]*big.Int{
-					"ETH":  common.MustParseBigInt("500000000000000000000"),
-					"BTC":  common.MustParseBigInt("500000000000000000000"),
-					"USDC": common.MustParseBigInt("500000000000000000000"),
-				},
 				"ERG": map[string]*big.Int{
 					"ETH":  new(big.Int).SetUint64(39_049_076_512_513),
 					"BTC":  new(big.Int).SetUint64(241_000_423_000_312),
@@ -270,11 +252,6 @@ func TestCalculateExchangePaths(t *testing.T) {
 					"ETH":  common.MustParseBigInt("2000000000000000000000"),
 					"BTC":  common.MustParseBigInt("2000000000000000000000"),
 					"USDC": common.MustParseBigInt("2000000000000000000000"),
-				},
-				"CTXC": map[string]*big.Int{
-					"ETH":  common.MustParseBigInt("500000000000000000000"),
-					"BTC":  common.MustParseBigInt("500000000000000000000"),
-					"USDC": common.MustParseBigInt("500000000000000000000"),
 				},
 				"ERG": map[string]*big.Int{
 					"ETH":  new(big.Int).SetUint64(39_049_076_512_513),
@@ -315,7 +292,6 @@ func TestCalculateExchangePaths(t *testing.T) {
 			},
 			inputThresholds: map[string]*big.Int{
 				"CFX":  common.MustParseBigInt("2000000000000000000000000"),
-				"CTXC": common.MustParseBigInt("5000000000000000000000000"),
 				"ERG":  new(big.Int).SetUint64(100_000_000_000),
 				"ETC":  common.MustParseBigInt("25000000000000000000"),
 				"KAS":  new(big.Int).SetUint64(100_000_000_000),
@@ -350,11 +326,13 @@ func TestCalculateExchangePaths(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		finalPaths, err := CalculateExchangePaths(tt.inputPaths, tt.inputThresholds, tt.outputThresholds, tt.prices)
+		finalPaths, err := CalculateExchangePaths(tt.inputPaths,
+			tt.inputThresholds, tt.outputThresholds, tt.prices)
 		if err != nil {
 			t.Errorf("failed on %d: %v", i, err)
 		} else if !reflect.DeepEqual(finalPaths, tt.finalPaths) {
-			t.Errorf("failed on %d: final paths mismatch: have %v, want %v", i, finalPaths, tt.finalPaths)
+			t.Errorf("failed on %d: final paths mismatch: have %v, want %v",
+				i, finalPaths, tt.finalPaths)
 		}
 	}
 }
@@ -481,13 +459,15 @@ func TestCalculateProportionalValues(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		proportionalValues, proportionalFees, err := CalculateProportionalValues(tt.value, tt.fee, tt.proportions)
+		values, fees, err := CalculateProportionalValues(tt.value, tt.fee, tt.proportions)
 		if err != nil {
 			t.Errorf("failed on %d: %v", i, err)
-		} else if !common.DeepEqualMapBigInt1D(proportionalValues, tt.proportionalValues) {
-			t.Errorf("failed on %d: proportional values mismatch: have %v, want %v", i, proportionalValues, tt.proportionalValues)
-		} else if !common.DeepEqualMapBigInt1D(proportionalFees, tt.proportionalFees) {
-			t.Errorf("failed on %d: proportional fees mismatch: have %v, want %v", i, proportionalFees, tt.proportionalFees)
+		} else if !common.DeepEqualMapBigInt1D(values, tt.proportionalValues) {
+			t.Errorf("failed on %d: proportional values mismatch: have %v, want %v",
+				i, values, tt.proportionalValues)
+		} else if !common.DeepEqualMapBigInt1D(fees, tt.proportionalFees) {
+			t.Errorf("failed on %d: proportional fees mismatch: have %v, want %v",
+				i, fees, tt.proportionalFees)
 		}
 	}
 }

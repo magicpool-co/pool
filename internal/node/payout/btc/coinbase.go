@@ -15,7 +15,13 @@ var (
 	addressPrefixP2SH  = []byte{0x05}
 )
 
-func GenerateCoinbase(version, lockTime uint32, address string, amount, blockHeight, nTime uint64, extraData, defaultWitness string, prefixP2PKH, prefixP2SH []byte) ([]byte, []byte, error) {
+func GenerateCoinbase(
+	version, lockTime uint32,
+	address string,
+	amount, blockHeight, nTime uint64,
+	extraData, defaultWitness string,
+	prefixP2PKH, prefixP2SH []byte,
+) ([]byte, []byte, error) {
 	tx := btctx.NewTransaction(version, lockTime, addressPrefixP2PKH, addressPrefixP2PKH, true)
 
 	var buf bytes.Buffer

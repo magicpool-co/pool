@@ -58,10 +58,13 @@ func (c *Client) AddHandler(path string, handler http.HandlerFunc) {
 
 func (c *Client) NewHistogram(namespace, name, env, help string, labels ...string) error {
 	histogram := promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace:   namespace,
-		Name:        name,
-		Help:        help,
-		Buckets:     []float64{.01, .1, .5, 1, 2.5, 5, 10, 15, 25, 50, 100, 500, 1000},
+		Namespace: namespace,
+		Name:      name,
+		Help:      help,
+		Buckets: []float64{
+			.01, .1, .5, 1, 2.5, 5, 10,
+			15, 25, 50, 100, 500, 1000,
+		},
 		ConstLabels: prometheus.Labels{"env": env},
 	}, labels)
 

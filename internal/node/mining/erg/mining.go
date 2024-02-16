@@ -223,7 +223,11 @@ func (node Node) JobNotify(ctx context.Context, interval time.Duration) chan *ty
 	return jobCh
 }
 
-func (node Node) SubmitWork(job *types.StratumJob, work *types.StratumWork, diffFactor int) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
+func (node Node) SubmitWork(
+	job *types.StratumJob,
+	work *types.StratumWork,
+	diffFactor int,
+) (types.ShareStatus, *types.Hash, *pooldb.Round, error) {
 	digest, err := node.pow.Compute(job.Header.Bytes(), job.Height.Value(), work.Nonce.Value())
 	if err != nil {
 		return types.InvalidShare, nil, nil, err
@@ -287,7 +291,12 @@ func (node Node) ParseWork(data []json.RawMessage, extraNonce string) (*types.St
 	return work, nil
 }
 
-func (node Node) MarshalJob(id interface{}, job *types.StratumJob, cleanJobs bool, clientType, diffFactor int) (interface{}, error) {
+func (node Node) MarshalJob(
+	id interface{},
+	job *types.StratumJob,
+	cleanJobs bool,
+	clientType, diffFactor int,
+) (interface{}, error) {
 	result := []interface{}{
 		job.ID,
 		job.Height.Value(),

@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"net/http"
 
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/goccy/go-json"
 	"github.com/sencha-dev/powkit/equihash"
 
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/crypto/base58"
+	"github.com/magicpool-co/pool/pkg/crypto/tx/btctx"
 	"github.com/magicpool-co/pool/pkg/hostpool"
 	"github.com/magicpool-co/pool/pkg/sshtunnel"
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
@@ -27,7 +28,19 @@ var (
 	testnetDevWalletAmounts = []uint64{562500000, 937500000, 2250000000}
 )
 
-func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
+func privKeyToWIFUncompressed(privKey *secp256k1.PrivateKey) string {
+	wif := append([]byte{0x80}, privKey.Serialize()...)
+	checksum := crypto.Sha256d(wif)[:4]
+	wif = append(wif, checksum...)
+
+	return base58.Encode(wif)
+}
+
+func generateHost(
+	urls []string,
+	logger *log.Logger,
+	tunnel *sshtunnel.SSHTunnel,
+) (*hostpool.HTTPPool, error) {
 	var (
 		port        = 16124
 		hostOptions = &hostpool.HTTPHostOptions{
@@ -57,7 +70,13 @@ func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel
 	return host, nil
 }
 
-func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
+func New(
+	mainnet bool,
+	urls []string,
+	rawPriv string,
+	logger *log.Logger,
+	tunnel *sshtunnel.SSHTunnel,
+) (*Node, error) {
 	prefixP2PKH := mainnetPrefixP2PKH
 	prefixP2SH := mainnetPrefixP2SH
 	devWalletAmounts := mainnetDevWalletAmounts
@@ -75,14 +94,11 @@ func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel
 	obscuredPriv, err := crypto.ObscureHex(rawPriv)
 	if err != nil {
 		return nil, err
-	} else if err := crypto.ValidateSecp256k1PrivateKey(obscuredPriv); err != nil {
-		return nil, err
 	}
 
 	privKey := secp256k1.PrivKeyFromBytes(obscuredPriv)
-	pubKeyBytes := privKey.PubKey().SerializeUncompressed()
-	pubKeyHash := crypto.Ripemd160(crypto.Sha256(pubKeyBytes))
-	address := base58.CheckEncode(prefixP2PKH, pubKeyHash)
+	address := btctx.PrivKeyToAddress(privKey, prefixP2PKH)
+	wif := privKeyToWIFUncompressed(privKey)
 
 	node := &Node{
 		mocked:           host == nil,
@@ -91,7 +107,7 @@ func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel
 		prefixP2SH:       prefixP2SH,
 		devWalletAmounts: devWalletAmounts,
 		address:          address,
-		wif:              crypto.PrivKeyToWIFUncompressed(privKey),
+		wif:              wif,
 		privKey:          privKey,
 		rpcHost:          host,
 		pow:              equihash.NewFlux(),

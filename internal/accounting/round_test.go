@@ -311,9 +311,11 @@ func TestCreditRound(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed on %d: %v", i, err)
 		} else if !reflect.DeepEqual(outputValues, tt.outputValues) {
-			t.Errorf("failed on %d: output values mismatch: have %v, want %v", i, outputValues, tt.outputValues)
+			t.Errorf("failed on %d: output values mismatch: have %v, want %v",
+				i, outputValues, tt.outputValues)
 		} else if !reflect.DeepEqual(outputFees, tt.outputFees) {
-			t.Errorf("failed on %d: output fees mismatch: have %v, want %v", i, outputFees, tt.outputFees)
+			t.Errorf("failed on %d: output fees mismatch: have %v, want %v",
+				i, outputFees, tt.outputFees)
 		}
 	}
 }
@@ -372,13 +374,16 @@ func TestProcessFeeBalance(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		outputValue, outputFee, err := ProcessFeeBalance(tt.roundChain, tt.minerChain, tt.value, tt.fee, tt.feeBalance, tt.price)
+		outputValue, outputFee, err := ProcessFeeBalance(tt.roundChain,
+			tt.minerChain, tt.value, tt.fee, tt.feeBalance, tt.price)
 		if err != nil {
 			t.Errorf("failed on %d: %v", i, err)
 		} else if outputValue.Cmp(tt.outputValue) != 0 {
-			t.Errorf("failed on %d: fee balance value mismatch: have %s, want %s", i, outputValue, tt.outputValue)
+			t.Errorf("failed on %d: fee balance value mismatch: have %s, want %s",
+				i, outputValue, tt.outputValue)
 		} else if outputFee.Cmp(tt.outputFee) != 0 {
-			t.Errorf("failed on %d: fee balance fee mismatch: have %s, want %s", i, outputFee, tt.outputFee)
+			t.Errorf("failed on %d: fee balance fee mismatch: have %s, want %s",
+				i, outputFee, tt.outputFee)
 		}
 	}
 }

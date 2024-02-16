@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/sencha-dev/powkit/ethash"
 
 	"github.com/magicpool-co/pool/internal/log"
@@ -23,7 +23,12 @@ const (
 	ETHW
 )
 
-func generateHost(ethType EthType, urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, error) {
+func generateHost(
+	ethType EthType,
+	urls []string,
+	logger *log.Logger,
+	tunnel *sshtunnel.SSHTunnel,
+) (*hostpool.HTTPPool, error) {
 	var port int
 	switch ethType {
 	case ETC:
@@ -56,7 +61,14 @@ func generateHost(ethType EthType, urls []string, logger *log.Logger, tunnel *ss
 	return host, nil
 }
 
-func New(ethType EthType, mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
+func New(
+	ethType EthType,
+	mainnet bool,
+	urls []string,
+	rawPriv string,
+	logger *log.Logger,
+	tunnel *sshtunnel.SSHTunnel,
+) (*Node, error) {
 	switch ethType {
 	case ETC, ETHW:
 	default:

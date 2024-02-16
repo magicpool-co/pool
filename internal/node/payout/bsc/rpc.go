@@ -98,7 +98,12 @@ func (node Node) getPendingNonce(address string) (uint64, error) {
 	return common.HexToUint64(hexNonce)
 }
 
-func (node Node) sendEstimateGas(from, to string, data []byte, amount, gasPrice *big.Int, nonce uint64) (uint64, error) {
+func (node Node) sendEstimateGas(
+	from, to string,
+	data []byte,
+	amount, gasPrice *big.Int,
+	nonce uint64,
+) (uint64, error) {
 	tx := map[string]interface{}{
 		"from":     from,
 		"to":       to,

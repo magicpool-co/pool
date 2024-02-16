@@ -251,7 +251,7 @@ func (node Node) CreateTx(inputs []*types.TxInput, outputs []*types.TxOutput) (s
 		return "", "", err
 	}
 
-	tx, fee, err := ethtx.NewTx(node.privKey.ToECDSA(), toAddress, data, value, baseFee, gasLimit, nonce, chainID)
+	tx, fee, err := ethtx.NewTx(node.privKey, toAddress, data, value, baseFee, gasLimit, nonce, chainID)
 	if err != nil {
 		return "", "", err
 	} else if node.erc20 != nil && (input.FeeBalance == nil || input.FeeBalance.Cmp(fee) > 0) {

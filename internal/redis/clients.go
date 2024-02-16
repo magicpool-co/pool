@@ -3,7 +3,6 @@ package redis
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/bsm/redislock"
@@ -15,7 +14,7 @@ type Client struct {
 	env                 string
 	readClient          *redis.Client
 	writeClient         *redis.Client
-	streamClusterClient *redis.ClusterClient
+	streamClusterClient *redis.Client
 }
 
 func newClient(addr string) *redis.Client {
@@ -64,20 +63,11 @@ func New(args map[string]string) (*Client, error) {
 	readHost := args["REDIS_READ_HOST"]
 	port := args["REDIS_PORT"]
 
-	var streamClusterClient *redis.ClusterClient
-	if streamHosts, ok := args["REDIS_STREAM_HOSTS"]; ok {
-		addrs := strings.Split(streamHosts, ",")
-		for i := range addrs {
-			addrs[i] += ":" + port
-		}
-		streamClusterClient = newClusterClient(addrs)
-	}
-
 	client := &Client{
 		env:                 env,
 		readClient:          newClient(readHost + ":" + port),
 		writeClient:         newClient(writeHost + ":" + port),
-		streamClusterClient: streamClusterClient,
+		streamClusterClient: newClient(readHost + ":" + port),
 	}
 
 	return client, client.Ping()
@@ -93,13 +83,7 @@ func (c *Client) Ping() error {
 	err = c.readClient.Ping(ctx).Err()
 	if err != nil {
 		return err
-	} else if c.streamClusterClient == nil {
-		return nil
 	}
-
-	err = c.streamClusterClient.ForEachShard(ctx, func(ctx context.Context, shard *redis.Client) error {
-		return shard.Ping(ctx).Err()
-	})
 
 	return err
 }

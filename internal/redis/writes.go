@@ -13,35 +13,23 @@ import (
 /* channels */
 
 func (c *Client) WriteToStreamMinerIndexChannel(msg string) error {
-	if c.streamClusterClient == nil {
-		return nil
-	}
-
-	return c.streamClusterClient.SPublish(context.Background(), c.getStreamMinerIndexChannelKey(), msg).Err()
+	key := c.getStreamMinerIndexChannelKey()
+	return c.streamClusterClient.Publish(context.Background(), key, msg).Err()
 }
 
 func (c *Client) WriteToStreamMinerChannel(minerID uint64, msg string) error {
-	if c.streamClusterClient == nil {
-		return nil
-	}
-
-	return c.streamClusterClient.SPublish(context.Background(), c.getStreamMinerChannelKey(minerID), msg).Err()
+	key := c.getStreamMinerChannelKey(minerID)
+	return c.streamClusterClient.Publish(context.Background(), key, msg).Err()
 }
 
 func (c *Client) WriteToStreamDebugIndexChannel(msg string) error {
-	if c.streamClusterClient == nil {
-		return nil
-	}
-
-	return c.streamClusterClient.SPublish(context.Background(), c.getStreamDebugIndexChannelKey(), msg).Err()
+	key := c.getStreamDebugIndexChannelKey()
+	return c.streamClusterClient.Publish(context.Background(), key, msg).Err()
 }
 
 func (c *Client) WriteToStreamDebugChannel(ip, msg string) error {
-	if c.streamClusterClient == nil {
-		return nil
-	}
-
-	return c.streamClusterClient.SPublish(context.Background(), c.getStreamDebugChannelKey(ip), msg).Err()
+	key := c.getStreamDebugChannelKey(ip)
+	return c.streamClusterClient.Publish(context.Background(), key, msg).Err()
 }
 
 /* miner */
@@ -163,7 +151,12 @@ func (c *Client) AddUniqueShare(chain string, height uint64, hash string) (bool,
 
 /* rounds */
 
-func (c *Client) AddAcceptedShare(chain, interval, compoundID string, soloMinerID uint64, count int, window int64) error {
+func (c *Client) AddAcceptedShare(
+	chain, interval, compoundID string,
+	soloMinerID uint64,
+	count int,
+	window int64,
+) error {
 	if count <= 0 {
 		return nil
 	}
@@ -192,7 +185,11 @@ func (c *Client) AddAcceptedShare(chain, interval, compoundID string, soloMinerI
 	return err
 }
 
-func (c *Client) AddRejectedShare(chain, interval, compoundID string, soloMinerID uint64, count int) error {
+func (c *Client) AddRejectedShare(
+	chain, interval, compoundID string,
+	soloMinerID uint64,
+	count int,
+) error {
 	ctx := context.Background()
 	pipe := c.writeClient.Pipeline()
 
@@ -210,7 +207,11 @@ func (c *Client) AddRejectedShare(chain, interval, compoundID string, soloMinerI
 	return err
 }
 
-func (c *Client) AddInvalidShare(chain, interval, compoundID string, soloMinerID uint64, count int) error {
+func (c *Client) AddInvalidShare(
+	chain, interval, compoundID string,
+	soloMinerID uint64,
+	count int,
+) error {
 	ctx := context.Background()
 	pipe := c.writeClient.Pipeline()
 

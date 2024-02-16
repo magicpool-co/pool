@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/goccy/go-json"
 	"github.com/sencha-dev/powkit/octopus"
 
@@ -28,7 +28,11 @@ const (
 	testnetURL            = "http://test.confluxrpc.com"
 )
 
-func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*hostpool.HTTPPool, *hostpool.TCPPool, error) {
+func generateHost(
+	urls []string,
+	logger *log.Logger,
+	tunnel *sshtunnel.SSHTunnel,
+) (*hostpool.HTTPPool, *hostpool.TCPPool, error) {
 	var (
 		rpcPort            = 12537
 		rpcHostHealthCheck = &hostpool.HTTPHealthCheck{
@@ -72,7 +76,13 @@ func generateHost(urls []string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel
 	return rpcHost, tcpHost, nil
 }
 
-func New(mainnet bool, urls []string, rawPriv string, logger *log.Logger, tunnel *sshtunnel.SSHTunnel) (*Node, error) {
+func New(
+	mainnet bool,
+	urls []string,
+	rawPriv string,
+	logger *log.Logger,
+	tunnel *sshtunnel.SSHTunnel,
+) (*Node, error) {
 	networkID := mainnetChainID
 	networkPrefix := mainnetPrefix
 	fallbackURL := mainnetURL

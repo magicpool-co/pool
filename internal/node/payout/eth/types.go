@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 
 	"github.com/magicpool-co/pool/internal/log"
 	"github.com/magicpool-co/pool/pkg/crypto"
@@ -34,7 +34,12 @@ func generateHost(url string, logger *log.Logger) (*hostpool.HTTPPool, error) {
 	return host, err
 }
 
-func New(mainnet bool, url, rawPriv string, erc20 *ERC20, logger *log.Logger) (*Node, error) {
+func New(
+	mainnet bool,
+	url, rawPriv string,
+	erc20 *ERC20,
+	logger *log.Logger,
+) (*Node, error) {
 	host, err := generateHost(url, logger)
 	if err != nil {
 		return nil, err

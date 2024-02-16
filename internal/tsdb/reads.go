@@ -137,22 +137,6 @@ func GetBlocksWithProfitabilityLast(q dbcl.Querier, period int) ([]*Block, error
 	return output, err
 }
 
-func GetRounds(q dbcl.Querier, chain string, period int) ([]*Round, error) {
-	const query = `SELECT *
-	FROM rounds
-	WHERE
-		chain_id = ?
-	AND
-		period = ?
-	AND
-		pending = FALSE;`
-
-	output := []*Round{}
-	err := q.Select(&output, query, chain, period)
-
-	return output, err
-}
-
 func GetGlobalShares(q dbcl.Querier, chain string, period int) ([]*Share, error) {
 	const query = `SELECT *
 	FROM global_shares
@@ -183,7 +167,12 @@ func GetGlobalSharesSingleMetric(q dbcl.Querier, metric string, period int) ([]*
 	return output, err
 }
 
-func GetPendingGlobalSharesByEndTime(q dbcl.Querier, timestamp time.Time, chain string, period int) ([]*Share, error) {
+func GetPendingGlobalSharesByEndTime(
+	q dbcl.Querier,
+	timestamp time.Time,
+	chain string,
+	period int,
+) ([]*Share, error) {
 	const query = `SELECT
 		chain_id, hashrate, count, period, start_time, end_time
 	FROM global_shares
@@ -230,7 +219,12 @@ func GetMinerShares(q dbcl.Querier, minerIDs []uint64, chain string, period int)
 	return output, err
 }
 
-func GetMinerSharesSingleMetric(q dbcl.Querier, minerIDs []uint64, metric string, period int) ([]*Share, error) {
+func GetMinerSharesSingleMetric(
+	q dbcl.Querier,
+	minerIDs []uint64,
+	metric string,
+	period int,
+) ([]*Share, error) {
 	var rawQuery = fmt.Sprintf(`SELECT chain_id, %s, end_time
 	FROM miner_shares
 	WHERE
@@ -256,7 +250,11 @@ func GetMinerSharesSingleMetric(q dbcl.Querier, minerIDs []uint64, metric string
 	return output, err
 }
 
-func GetPendingMinerSharesByEndTime(q dbcl.Querier, timestamp time.Time, chain string, period int) ([]*Share, error) {
+func GetPendingMinerSharesByEndTime(
+	q dbcl.Querier,
+	timestamp time.Time,
+	chain string, period int,
+) ([]*Share, error) {
 	const query = `SELECT
 		chain_id, miner_id, hashrate, count, period, start_time, end_time
 	FROM miner_shares
@@ -275,7 +273,13 @@ func GetPendingMinerSharesByEndTime(q dbcl.Querier, timestamp time.Time, chain s
 	return output, err
 }
 
-func GetMinerSharesByEndTime(q dbcl.Querier, timestamp time.Time, minerIDs []uint64, chain string, period int) ([]*Share, error) {
+func GetMinerSharesByEndTime(
+	q dbcl.Querier,
+	timestamp time.Time,
+	minerIDs []uint64,
+	chain string,
+	period int,
+) ([]*Share, error) {
 	const rawQuery = `SELECT
 		miner_id,
 		chain_id,
@@ -307,7 +311,12 @@ func GetMinerSharesByEndTime(q dbcl.Querier, timestamp time.Time, minerIDs []uin
 	return output, err
 }
 
-func GetWorkerShares(q dbcl.Querier, workerID uint64, chain string, period int) ([]*Share, error) {
+func GetWorkerShares(
+	q dbcl.Querier,
+	workerID uint64,
+	chain string,
+	period int,
+) ([]*Share, error) {
 	const query = `SELECT *
 	FROM worker_shares 
 	WHERE
@@ -325,7 +334,12 @@ func GetWorkerShares(q dbcl.Querier, workerID uint64, chain string, period int) 
 	return output, err
 }
 
-func GetWorkerSharesSingleMetric(q dbcl.Querier, workerID uint64, metric string, period int) ([]*Share, error) {
+func GetWorkerSharesSingleMetric(
+	q dbcl.Querier,
+	workerID uint64,
+	metric string,
+	period int,
+) ([]*Share, error) {
 	var query = fmt.Sprintf(`SELECT chain_id, %s, end_time
 	FROM worker_shares
 	WHERE
@@ -341,7 +355,11 @@ func GetWorkerSharesSingleMetric(q dbcl.Querier, workerID uint64, metric string,
 	return output, err
 }
 
-func GetPendingWorkerSharesByEndTime(q dbcl.Querier, timestamp time.Time, chain string, period int) ([]*Share, error) {
+func GetPendingWorkerSharesByEndTime(
+	q dbcl.Querier,
+	timestamp time.Time,
+	chain string, period int,
+) ([]*Share, error) {
 	const query = `SELECT
 		chain_id, worker_id, hashrate, count, period, start_time, end_time
 	FROM worker_shares
@@ -360,7 +378,12 @@ func GetPendingWorkerSharesByEndTime(q dbcl.Querier, timestamp time.Time, chain 
 	return output, err
 }
 
-func GetWorkerSharesAllChainsByEndTime(q dbcl.Querier, timestamp time.Time, workerIDs []uint64, period int) ([]*Share, error) {
+func GetWorkerSharesAllChainsByEndTime(
+	q dbcl.Querier,
+	timestamp time.Time,
+	workerIDs []uint64,
+	period int,
+) ([]*Share, error) {
 	const rawQuery = `SELECT
 		worker_id,
 		chain_id,
@@ -388,17 +411,6 @@ func GetWorkerSharesAllChainsByEndTime(q dbcl.Querier, timestamp time.Time, work
 	err = q.Select(&output, query, args...)
 
 	return output, err
-}
-
-func GetGlobalShareMaxEndTime(q dbcl.Querier, chain string, period int) (time.Time, error) {
-	const query = `SELECT MAX(end_time)
-	FROM global_shares 
-	WHERE
-		chain_id = ?
-	AND
-		period = ?;`
-
-	return dbcl.GetTime(q, query, chain, period)
 }
 
 func GetRawBlockMaxTimestamp(q dbcl.Querier, chain string) (time.Time, error) {
@@ -471,25 +483,12 @@ func GetRawBlockRollup(q dbcl.Querier, chain string, start, end time.Time) (*Blo
 	return output, err
 }
 
-func GetPendingRoundsAtEndTime(q dbcl.Querier, timestamp time.Time, chain string, period int) ([]*Round, error) {
-	const query = `SELECT *
-	FROM rounds
-	WHERE
-		end_time = ?
-	AND
-		chain_id = ?
-	AND
-		period = ?
-	AND
-		pending = true;`
-
-	output := []*Round{}
-	err := q.Select(&output, query, timestamp, chain, period)
-
-	return output, err
-}
-
-func GetPendingBlocksAtEndTime(q dbcl.Querier, timestamp time.Time, chain string, period int) ([]*Block, error) {
+func GetPendingBlocksAtEndTime(
+	q dbcl.Querier,
+	timestamp time.Time,
+	chain string,
+	period int,
+) ([]*Block, error) {
 	const query = `SELECT *
 	FROM blocks
 	WHERE
@@ -538,17 +537,6 @@ func GetRawBlockMaxTimestampBeforeTime(q dbcl.Querier, chain string, timestamp t
 	return dbcl.GetTime(q, query, timestamp, chain)
 }
 
-func GetRoundMaxEndTime(q dbcl.Querier, chain string, period int) (time.Time, error) {
-	const query = `SELECT MAX(end_time) 
-	FROM rounds 
-	WHERE
-		chain_id = ?
-	AND
-		period = ?;`
-
-	return dbcl.GetTime(q, query, chain, period)
-}
-
 func GetEarningMaxEndTime(q dbcl.Querier, chain string, period int) (time.Time, error) {
 	const query = `SELECT MAX(end_time)
 	FROM global_earnings
@@ -574,7 +562,12 @@ func GetGlobalEarningsSingleMetric(q dbcl.Querier, metric string, period int) ([
 	return output, err
 }
 
-func GetMinerEarningsSingleMetric(q dbcl.Querier, minerIDs []uint64, metric string, period int) ([]*Earning, error) {
+func GetMinerEarningsSingleMetric(
+	q dbcl.Querier,
+	minerIDs []uint64,
+	metric string,
+	period int,
+) ([]*Earning, error) {
 	var rawQuery = fmt.Sprintf(`SELECT chain_id, %s, end_time
 	FROM miner_earnings
 	WHERE
@@ -602,116 +595,13 @@ func GetMinerEarningsSingleMetric(q dbcl.Querier, minerIDs []uint64, metric stri
 
 /* averages */
 
-func GetGlobalSharesAverageFast(q dbcl.Querier, timestamp time.Time, chain string, period, windowSize int, duration time.Duration) (float64, error) {
-	var query = fmt.Sprintf(`WITH last AS (
-    	SELECT hashrate, avg_hashrate
-	    FROM global_shares
-	    WHERE
-	    	end_time = ?
-		AND
-			chain_id = ?
-		AND
-			period = ?
-	), first as (
-		SELECT hashrate
-		FROM global_shares
-		WHERE
-			end_time = DATE_SUB(?, %s)
-		AND
-			chain_id = ?
-		AND
-			period = ?
-	) SELECT
-		((last.avg_hashrate * ?) - first.hashrate + last.hashrate) / ? as avg_hashrate
-	FROM last
-	JOIN first;`, dbcl.ConvertDurationToInterval(duration))
-
-	return dbcl.GetFloat64(q, query, timestamp, chain, period, timestamp, chain, period, windowSize, windowSize)
-}
-
-func GetMinerSharesAverageFast(q dbcl.Querier, timestamp time.Time, chain string, period, windowSize int, duration time.Duration) (map[uint64]float64, error) {
-	var query = fmt.Sprintf(`WITH last AS (
-    	SELECT miner_id, hashrate, avg_hashrate
-	    FROM miner_shares
-	    WHERE
-	    	end_time = ?
-		AND
-			chain_id = ?
-		AND
-			period = ?
-	), first as (
-		SELECT miner_id, hashrate
-		FROM miner_shares
-		WHERE
-			end_time = DATE_SUB(?, %s)
-		AND
-			chain_id = ?
-		AND
-			period = ?
-	) SELECT
-		last.miner_id, 
-		((last.avg_hashrate * ?) - first.hashrate + last.hashrate) / ? as avg_hashrate
-	FROM last
-	JOIN first ON last.miner_id = first.miner_id;`, dbcl.ConvertDurationToInterval(duration))
-
-	items := []*Share{}
-	err := q.Select(&items, query, timestamp, chain, period, timestamp, chain, period, windowSize, windowSize)
-	if err != nil {
-		return nil, err
-	}
-
-	output := make(map[uint64]float64, len(items))
-	for _, item := range items {
-		if item.MinerID != nil {
-			output[*item.MinerID] = item.AvgHashrate
-		}
-	}
-
-	return output, err
-}
-
-func GetWorkerSharesAverageFast(q dbcl.Querier, timestamp time.Time, chain string, period, windowSize int, duration time.Duration) (map[uint64]float64, error) {
-	var query = fmt.Sprintf(`WITH last AS (
-    	SELECT worker_id, hashrate, avg_hashrate
-	    FROM worker_shares
-	    WHERE
-	    	end_time = ?
-		AND
-			chain_id = ?
-		AND
-			period = ?
-	), first as (
-		SELECT worker_id, hashrate
-		FROM worker_shares
-		WHERE
-			end_time = DATE_SUB(?, %s)
-		AND
-			chain_id = ?
-		AND
-			period = ?
-	) SELECT
-		last.worker_id, 
-		((last.avg_hashrate * ?) - first.hashrate + last.hashrate) / ? as avg_hashrate
-	FROM last
-	JOIN first ON last.worker_id = first.worker_id;`, dbcl.ConvertDurationToInterval(duration))
-
-	items := []*Share{}
-	err := q.Select(&items, query, timestamp, chain, period, timestamp, chain, period, windowSize, windowSize)
-	if err != nil {
-		return nil, err
-	}
-
-	output := make(map[uint64]float64, len(items))
-	for _, item := range items {
-		if item.WorkerID != nil {
-			output[*item.WorkerID] = item.AvgHashrate
-		}
-	}
-
-	return output, err
-}
-
-func GetBlocksAverageSlow(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (float64, error) {
+func GetBlocksAverageSlow(
+	q dbcl.Querier,
+	timestamp time.Time,
+	chain string,
+	period int,
+	duration time.Duration,
+) (float64, error) {
 	var query = fmt.Sprintf(`SELECT IFNULL(AVG(profitability), 0)
 	FROM blocks
     WHERE
@@ -724,33 +614,13 @@ func GetBlocksAverageSlow(q dbcl.Querier, timestamp time.Time, chain string, per
 	return dbcl.GetFloat64(q, query, timestamp, timestamp, chain, period)
 }
 
-func GetRoundsAverageLuckSlow(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (float64, error) {
-	var query = fmt.Sprintf(`SELECT IFNULL(AVG(luck), 0)
-	FROM rounds
-    WHERE
-    	end_time BETWEEN DATE_SUB(?, %s) AND ?
-	AND
-		chain_id = ?
-	AND
-		period = ?;`, dbcl.ConvertDurationToInterval(duration))
-
-	return dbcl.GetFloat64(q, query, timestamp, timestamp, chain, period)
-}
-
-func GetRoundsAverageProfitabilitySlow(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (float64, error) {
-	var query = fmt.Sprintf(`SELECT IFNULL(AVG(profitability), 0)
-	FROM rounds
-    WHERE
-    	end_time BETWEEN DATE_SUB(?, %s) AND ?
-	AND
-		chain_id = ?
-	AND
-		period = ?;`, dbcl.ConvertDurationToInterval(duration))
-
-	return dbcl.GetFloat64(q, query, timestamp, timestamp, chain, period)
-}
-
-func GetGlobalSharesAverage(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (float64, error) {
+func GetGlobalSharesAverage(
+	q dbcl.Querier,
+	timestamp time.Time,
+	chain string,
+	period int,
+	duration time.Duration,
+) (float64, error) {
 	var query = fmt.Sprintf(`SELECT IFNULL(AVG(hashrate), 0)
 	FROM global_shares
     WHERE
@@ -763,20 +633,13 @@ func GetGlobalSharesAverage(q dbcl.Querier, timestamp time.Time, chain string, p
 	return dbcl.GetFloat64(q, query, timestamp, timestamp, chain, period)
 }
 
-func GetGlobalSharesAverageSlow(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (float64, error) {
-	var query = fmt.Sprintf(`SELECT IFNULL(AVG(hashrate), 0)
-	FROM global_shares
-    WHERE
-    	end_time BETWEEN DATE_SUB(?, %s) AND ?
-	AND
-		chain_id = ?
-	AND
-		period = ?;`, dbcl.ConvertDurationToInterval(duration))
-
-	return dbcl.GetFloat64(q, query, timestamp, timestamp, chain, period)
-}
-
-func GetMinerSharesAverage(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (map[uint64]float64, error) {
+func GetMinerSharesAverage(
+	q dbcl.Querier,
+	timestamp time.Time,
+	chain string,
+	period int,
+	duration time.Duration,
+) (map[uint64]float64, error) {
 	var query = fmt.Sprintf(`SELECT miner_id, IFNULL(AVG(hashrate), 0) avg_hashrate
 	FROM miner_shares
     WHERE
@@ -804,22 +667,13 @@ func GetMinerSharesAverage(q dbcl.Querier, timestamp time.Time, chain string, pe
 	return output, err
 }
 
-func GetMinerSharesAverageSlow(q dbcl.Querier, minerID uint64, timestamp time.Time, chain string, period int, duration time.Duration) (float64, error) {
-	var query = fmt.Sprintf(`SELECT IFNULL(AVG(hashrate), 0)
-	FROM miner_shares
-    WHERE
-    	end_time BETWEEN DATE_SUB(?, %s) AND ?
-	AND
-		miner_id = ?
-	AND
-		chain_id = ?
-	AND
-		period = ?;`, dbcl.ConvertDurationToInterval(duration))
-
-	return dbcl.GetFloat64(q, query, timestamp, timestamp, minerID, chain, period)
-}
-
-func GetWorkerSharesAverage(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (map[uint64]float64, error) {
+func GetWorkerSharesAverage(
+	q dbcl.Querier,
+	timestamp time.Time,
+	chain string,
+	period int,
+	duration time.Duration,
+) (map[uint64]float64, error) {
 	var query = fmt.Sprintf(`SELECT worker_id, IFNULL(AVG(hashrate), 0) avg_hashrate
 	FROM worker_shares
     WHERE
@@ -847,22 +701,13 @@ func GetWorkerSharesAverage(q dbcl.Querier, timestamp time.Time, chain string, p
 	return output, err
 }
 
-func GetWorkerSharesAverageSlow(q dbcl.Querier, workerID uint64, timestamp time.Time, chain string, period int, duration time.Duration) (float64, error) {
-	var query = fmt.Sprintf(`SELECT IFNULL(AVG(hashrate), 0)
-	FROM worker_shares
-    WHERE
-    	end_time BETWEEN DATE_SUB(?, %s) AND ?
-	AND
-		worker_id = ?
-	AND
-		chain_id = ?
-	AND
-		period = ?;`, dbcl.ConvertDurationToInterval(duration))
-
-	return dbcl.GetFloat64(q, query, timestamp, timestamp, workerID, chain, period)
-}
-
-func GetGlobalEarningsAverage(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (float64, error) {
+func GetGlobalEarningsAverage(
+	q dbcl.Querier,
+	timestamp time.Time,
+	chain string,
+	period int,
+	duration time.Duration,
+) (float64, error) {
 	var query = fmt.Sprintf(`SELECT IFNULL(AVG(value), 0) avg_value
 	FROM global_earnings
 	WHERE
@@ -875,7 +720,13 @@ func GetGlobalEarningsAverage(q dbcl.Querier, timestamp time.Time, chain string,
 	return dbcl.GetFloat64(q, query, timestamp, timestamp, chain, period)
 }
 
-func GetMinerEarningsAverage(q dbcl.Querier, timestamp time.Time, chain string, period int, duration time.Duration) (map[uint64]float64, error) {
+func GetMinerEarningsAverage(
+	q dbcl.Querier,
+	timestamp time.Time,
+	chain string,
+	period int,
+	duration time.Duration,
+) (map[uint64]float64, error) {
 	var query = fmt.Sprintf(`SELECT miner_id, IFNULL(AVG(value), 0) avg_value
 	FROM miner_earnings
 	WHERE
@@ -905,25 +756,6 @@ func GetMinerEarningsAverage(q dbcl.Querier, timestamp time.Time, chain string, 
 
 /* sums */
 
-func GetGlobalSharesSum(q dbcl.Querier, period int, duration time.Duration) ([]*Share, error) {
-	var query = fmt.Sprintf(`SELECT
-		chain_id,
-		IFNULL(SUM(accepted_adjusted_shares), 0) accepted_adjusted_shares,
-		IFNULL(SUM(rejected_adjusted_shares), 0) rejected_adjusted_shares,
-		IFNULL(SUM(invalid_adjusted_shares), 0) invalid_adjusted_shares
-	FROM global_shares
-    WHERE
-		end_time BETWEEN DATE_SUB(CURRENT_TIMESTAMP, %s) AND CURRENT_TIMESTAMP
-	AND
-		period = ?
-	GROUP BY chain_id`, dbcl.ConvertDurationToInterval(duration))
-
-	output := []*Share{}
-	err := q.Select(&output, query, period)
-
-	return output, err
-}
-
 func GetGlobalSharesLast(q dbcl.Querier, period int) ([]*Share, error) {
 	const query = `SELECT
 		chain_id,
@@ -948,7 +780,12 @@ func GetGlobalSharesLast(q dbcl.Querier, period int) ([]*Share, error) {
 	return output, err
 }
 
-func GetMinersSharesSum(q dbcl.Querier, minerIDs []uint64, period int, duration time.Duration) ([]*Share, error) {
+func GetMinersSharesSum(
+	q dbcl.Querier,
+	minerIDs []uint64,
+	period int,
+	duration time.Duration,
+) ([]*Share, error) {
 	var rawQuery = fmt.Sprintf(`SELECT
 		chain_id,
 		IFNULL(SUM(accepted_adjusted_shares), 0) accepted_adjusted_shares,
@@ -979,7 +816,11 @@ func GetMinersSharesSum(q dbcl.Querier, minerIDs []uint64, period int, duration 
 	return output, err
 }
 
-func GetMinersSharesLast(q dbcl.Querier, minerIDs []uint64, period int) ([]*Share, error) {
+func GetMinersSharesLast(
+	q dbcl.Querier,
+	minerIDs []uint64,
+	period int,
+) ([]*Share, error) {
 	const rawQuery = `SELECT
 		chain_id,
 		IFNULL(SUM(hashrate), 0) hashrate,
@@ -1016,7 +857,12 @@ func GetMinersSharesLast(q dbcl.Querier, minerIDs []uint64, period int) ([]*Shar
 	return output, err
 }
 
-func GetWorkerSharesSum(q dbcl.Querier, workerIDs []uint64, period int, duration time.Duration) ([]*Share, error) {
+func GetWorkerSharesSum(
+	q dbcl.Querier,
+	workerIDs []uint64,
+	period int,
+	duration time.Duration,
+) ([]*Share, error) {
 	var rawQuery = fmt.Sprintf(`SELECT
 		worker_id,
 		chain_id,

@@ -58,30 +58,6 @@ type Price struct {
 	Timestamp time.Time `db:"timestamp"`
 }
 
-type Round struct {
-	ChainID string `db:"chain_id"`
-
-	Value            float64 `db:"value"`
-	Difficulty       float64 `db:"difficulty"`
-	RoundTime        float64 `db:"round_time"`
-	AcceptedShares   float64 `db:"accepted_shares"`
-	RejectedShares   float64 `db:"rejected_shares"`
-	InvalidShares    float64 `db:"invalid_shares"`
-	Hashrate         float64 `db:"hashrate"`
-	UncleRate        float64 `db:"uncle_rate"`
-	Luck             float64 `db:"luck"`
-	AvgLuck          float64 `db:"avg_luck"`
-	Profitability    float64 `db:"profitability"`
-	AvgProfitability float64 `db:"avg_profitability"`
-
-	Pending    bool      `db:"pending"`
-	Count      uint64    `db:"count"`
-	UncleCount uint64    `db:"uncle_count"`
-	Period     int       `db:"period"`
-	StartTime  time.Time `db:"start_time"`
-	EndTime    time.Time `db:"end_time"`
-}
-
 type Share struct {
 	ChainID  string  `db:"chain_id"`
 	MinerID  *uint64 `db:"miner_id"`
