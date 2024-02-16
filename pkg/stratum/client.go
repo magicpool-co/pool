@@ -47,7 +47,11 @@ type Client struct {
 	waitingErr      chan error
 }
 
-func NewClient(ctx context.Context, host string, timeout, reconnect time.Duration) *Client {
+func NewClient(
+	ctx context.Context,
+	host string,
+	timeout, reconnect time.Duration,
+) *Client {
 	client := &Client{
 		ctx:             ctx,
 		quit:            make(chan struct{}),
@@ -66,7 +70,12 @@ func (c *Client) URL() string {
 	return c.host
 }
 
-func (c *Client) connect(handshakeReqs []*rpc.Request, reqCh chan *rpc.Request, resCh chan *rpc.Response, errCh chan error) {
+func (c *Client) connect(
+	handshakeReqs []*rpc.Request,
+	reqCh chan *rpc.Request,
+	resCh chan *rpc.Response,
+	errCh chan error,
+) {
 	var err error
 	c.connMu.Lock()
 	c.conn, err = net.Dial("tcp", c.host)
@@ -145,7 +154,11 @@ func (c *Client) sendHandshake(reqs []*rpc.Request) error {
 	return nil
 }
 
-func (c *Client) Start(handshakeReqs []*rpc.Request) (chan *rpc.Request, chan *rpc.Response, chan error) {
+func (c *Client) Start(handshakeReqs []*rpc.Request) (
+	chan *rpc.Request,
+	chan *rpc.Response,
+	chan error,
+) {
 	reqCh := make(chan *rpc.Request)
 	resCh := make(chan *rpc.Response)
 	errCh := make(chan error)
@@ -155,7 +168,8 @@ func (c *Client) Start(handshakeReqs []*rpc.Request) (chan *rpc.Request, chan *r
 
 		c.connect(handshakeReqs, reqCh, resCh, errCh)
 		ticker := time.NewTicker(c.reconnect)
-		// @TODO: this is just reconnecting immediately since the server read deadline is 1m
+		// @TODO: this is just reconnecting immediately
+		// since the server read deadline is 1m
 		for {
 			select {
 			case <-c.ctx.Done():
@@ -193,7 +207,11 @@ func (c *Client) WaitForHandshake(timeout time.Duration) error {
 	}
 }
 
-func (c *Client) registerRequest(req *rpc.Request) (string, chan *rpc.Response, error) {
+func (c *Client) registerRequest(req *rpc.Request) (
+	string,
+	chan *rpc.Response,
+	error,
+) {
 	c.requestsMu.Lock()
 	defer c.requestsMu.Unlock()
 
@@ -245,7 +263,10 @@ func (c *Client) WriteRequest(req *rpc.Request) (*rpc.Response, error) {
 	return c.WriteRequestWithTimeout(req, c.timeout)
 }
 
-func (c *Client) WriteRequestWithTimeout(req *rpc.Request, timeout time.Duration) (*rpc.Response, error) {
+func (c *Client) WriteRequestWithTimeout(
+	req *rpc.Request,
+	timeout time.Duration,
+) (*rpc.Response, error) {
 	hexID, ch, err := c.registerRequest(req)
 	if err != nil {
 		return nil, err

@@ -77,11 +77,7 @@ type Error struct {
 }
 
 func (err *Error) Error() string {
-	if err.Message == "" {
-		return fmt.Sprintf("rpc error %d", err.Code)
-	}
-
-	return err.Message
+	return fmt.Sprintf("RPC Error %d: %s: %s", err.Code, err.Message, err.Data)
 }
 
 type Response struct {
@@ -210,7 +206,7 @@ func ExecRPC(url string, req *Request) (*Response, error) {
 	if err != nil {
 		return nil, err
 	} else if res.Error != nil {
-		return nil, fmt.Errorf("RPC Error %d: %s: %s", res.Error.Code, res.Error.Message, res.Error.Data)
+		return nil, res.Error
 	}
 
 	return res, nil
@@ -247,7 +243,7 @@ func ExecRPCBulk(url string, requests []*Request) ([]*Response, error) {
 
 	for _, res := range responses {
 		if res.Error != nil {
-			return nil, fmt.Errorf("RPC Error %d: %s: %s", res.Error.Code, res.Error.Message, res.Error.Data)
+			return nil, res.Error
 		}
 	}
 

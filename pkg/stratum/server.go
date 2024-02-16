@@ -37,7 +37,12 @@ type Server struct {
 	conns          map[uint64]*Conn
 }
 
-func NewServer(ctx context.Context, logger *log.Logger, enableVarDiff bool, ports ...int) (*Server, error) {
+func NewServer(
+	ctx context.Context,
+	logger *log.Logger,
+	enableVarDiff bool,
+	ports ...int,
+) (*Server, error) {
 	sort.Ints(ports)
 	if len(ports) == 0 {
 		return nil, fmt.Errorf("no ports defined")
@@ -103,7 +108,13 @@ func (s *Server) GetConn(id uint64) (*Conn, error) {
 	return nil, ErrConnNotFound
 }
 
-func (s *Server) Start(connTimeout time.Duration) (chan Message, chan uint64, chan *Conn, chan error, error) {
+func (s *Server) Start(connTimeout time.Duration) (
+	chan Message,
+	chan uint64,
+	chan *Conn,
+	chan error,
+	error,
+) {
 	messageCh := make(chan Message)
 	connectCh := make(chan uint64)
 	disconnectCh := make(chan *Conn)
