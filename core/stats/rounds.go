@@ -17,12 +17,8 @@ func getBlockExplorerURL(chain, hash string, height uint64) (string, error) {
 	var explorerURL string
 	var err error
 	switch chain {
-	case "AE":
-		explorerURL = "https://explorer.aeternity.io/generations/" + heightStr
 	case "CFX":
 		explorerURL = "https://www.confluxscan.io/block/" + hash
-	case "CTXC":
-		explorerURL = "https://cerebro.cortexlabs.ai/#/block/" + heightStr
 	case "ERG":
 		explorerURL = "https://explorer.ergoplatform.com/en/blocks/" + hash
 	case "ETC":
@@ -78,7 +74,9 @@ func newRound(dbRound *pooldb.Round) (*Round, error) {
 
 		var minerPercentage float64
 		if value.Cmp(common.Big0) > 0 {
-			minerPercentage = 100 * (common.BigIntToFloat64(dbRound.MinerValue.BigInt, common.Big10) / common.BigIntToFloat64(value, common.Big10))
+			numerator := common.BigIntToFloat64(dbRound.MinerValue.BigInt, common.Big10)
+			denominator := common.BigIntToFloat64(value, common.Big10)
+			minerPercentage = 100 * (numerator / denominator)
 		}
 
 		parsedMinerPercentage = newNumberFromFloat64Ptr(minerPercentage, "%", false)
@@ -140,7 +138,10 @@ func (c *Client) GetGlobalRounds(page, size uint64) ([]*Round, uint64, error) {
 	return rounds, count, nil
 }
 
-func (c *Client) GetGlobalRoundsByChain(chain string, page, size uint64) ([]*Round, uint64, error) {
+func (c *Client) GetGlobalRoundsByChain(
+	chain string,
+	page, size uint64,
+) ([]*Round, uint64, error) {
 	count, err := pooldb.GetRoundsByChainCount(c.pooldb.Reader(), chain)
 	if err != nil {
 		return nil, 0, err
@@ -162,17 +163,20 @@ func (c *Client) GetGlobalRoundsByChain(chain string, page, size uint64) ([]*Rou
 	return rounds, count, nil
 }
 
-func (c *Client) GetMinerRounds(minerIDs []uint64, page, size uint64) ([]*Round, uint64, error) {
+func (c *Client) GetMinerRounds(
+	minerIDs []uint64,
+	page, size uint64,
+) ([]*Round, uint64, error) {
 	if len(minerIDs) == 0 {
 		return nil, 0, nil
 	}
 
-	count, err := pooldb.GetRoundsByMinersCount(c.pooldb.Reader(), minerIDs)
+	count, err := pooldb.GetRoundsByMinerIDsCount(c.pooldb.Reader(), minerIDs)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	dbRounds, err := pooldb.GetRoundsByMiners(c.pooldb.Reader(), minerIDs, page, size)
+	dbRounds, err := pooldb.GetRoundsByMinerIDs(c.pooldb.Reader(), minerIDs, page, size)
 	if err != nil {
 		return nil, 0, err
 	}

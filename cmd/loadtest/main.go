@@ -44,7 +44,7 @@ func main() {
 		handshakeReqs = btcStratumHandshake
 	case "CFX":
 		handshakeReqs = cfxStratumHandshake
-	case "ETC", "CTXC":
+	case "ETC":
 		handshakeReqs = ethStratumHandshake
 	default:
 		log.Fatalf("chain not supported")

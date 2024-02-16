@@ -29,9 +29,7 @@ func (c *Client) processHashrateInfo(shares []*tsdb.Share) map[string]*HashrateI
 		var units string
 		switch share.ChainID {
 		case "FLUX":
-			units = "S/s"
-		case "AE", "CTXC":
-			units = "Gps"
+			units = "Sol/s"
 		default:
 			units = "H/s"
 		}
@@ -55,11 +53,12 @@ func (c *Client) processShareInfo(shares []*tsdb.Share) map[string]*ShareInfo {
 		}
 
 		var acceptedRate, rejectedRate, invalidRate float64
-		sumShares := float64(share.AcceptedAdjustedShares + share.RejectedAdjustedShares + share.InvalidAdjustedShares)
-		if sumShares > 0 {
-			acceptedRate = 100 * float64(share.AcceptedAdjustedShares) / sumShares
-			rejectedRate = 100 * float64(share.RejectedAdjustedShares) / sumShares
-			invalidRate = 100 * float64(share.InvalidAdjustedShares) / sumShares
+		sumShares := share.AcceptedAdjustedShares + share.RejectedAdjustedShares + share.InvalidAdjustedShares
+		sumSharesFloat := float64(sumShares)
+		if sumSharesFloat > 0 {
+			acceptedRate = 100 * float64(share.AcceptedAdjustedShares) / sumSharesFloat
+			rejectedRate = 100 * float64(share.RejectedAdjustedShares) / sumSharesFloat
+			invalidRate = 100 * float64(share.InvalidAdjustedShares) / sumSharesFloat
 		}
 
 		idx[share.ChainID] = &ShareInfo{
@@ -99,14 +98,8 @@ func (c *Client) GetMinerDashboard(minerIdx map[uint64]string) (*Dashboard, erro
 		return nil, err
 	}
 
-	// fetch sum active workers
-	activeWorkers, err := pooldb.GetActiveWorkersByMinersCount(c.pooldb.Reader(), minerIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	// fetch sum inactive workers
-	inactiveWorkers, err := pooldb.GetInactiveWorkersByMinersCount(c.pooldb.Reader(), minerIDs)
+	// fetch sum active/inactive workers
+	activeWorkers, inactiveWorkers, err := pooldb.GetWorkerCountByMinerIDs(c.pooldb.Reader(), minerIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +220,8 @@ func (c *Client) GetMinerDashboard(minerIdx map[uint64]string) (*Dashboard, erro
 }
 
 func (c *Client) GetWorkerDashboard(workerID uint64) (*Dashboard, error) {
-	sumShares, err := tsdb.GetWorkerSharesSum(c.tsdb.Reader(), []uint64{workerID}, dashboardAggPeriod, dashboardAggDuration)
+	sumShares, err := tsdb.GetWorkerSharesSum(c.tsdb.Reader(),
+		[]uint64{workerID}, dashboardAggPeriod, dashboardAggDuration)
 	if err != nil {
 		return nil, err
 	}

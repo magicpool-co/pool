@@ -146,7 +146,11 @@ func (c *Client) GetBlockChart(chain string, period types.PeriodType) (*BlockCha
 	return chart, nil
 }
 
-func (c *Client) GetBlockSingleMetricChart(metric types.NetworkMetric, period types.PeriodType, average bool) (*ChartSingle, error) {
+func (c *Client) GetBlockSingleMetricChart(
+	metric types.NetworkMetric,
+	period types.PeriodType,
+	average bool,
+) (*ChartSingle, error) {
 	var items []*tsdb.Block
 	var err error
 	switch metric {
@@ -224,64 +228,6 @@ func (c *Client) GetBlockSingleMetricChart(metric types.NetworkMetric, period ty
 		Timestamps: parsedTimestamps,
 		Values:     values,
 	}
-
-	return chart, nil
-}
-
-/* round chart */
-
-func (c *Client) GetRoundChart(chain string, period types.PeriodType) (*RoundChart, error) {
-	items, err := tsdb.GetRounds(c.tsdb.Reader(), chain, int(period))
-	if err != nil {
-		return nil, err
-	}
-
-	var endTime time.Time
-	if len(items) == 0 {
-		endTime = time.Now()
-	} else {
-		endTime = items[0].EndTime
-		if newEndTime := items[len(items)-1].EndTime; newEndTime.After(endTime) {
-			endTime = newEndTime
-		}
-	}
-
-	index := period.GenerateRange(common.NormalizeDate(endTime, period.Rollup(), true))
-	chart := &RoundChart{
-		Timestamp:        make([]int64, 0),
-		Value:            make([]float64, 0),
-		Difficulty:       make([]float64, 0),
-		RoundTime:        make([]float64, 0),
-		Hashrate:         make([]float64, 0),
-		UncleRate:        make([]float64, 0),
-		Luck:             make([]float64, 0),
-		AvgLuck:          make([]float64, 0),
-		Profitability:    make([]float64, 0),
-		AvgProfitability: make([]float64, 0),
-	}
-
-	var firstTime, lastTime time.Time
-	for _, item := range items {
-		if exists := index[item.EndTime]; !exists {
-			chart.AddPoint(item)
-			index[item.EndTime] = true
-
-			if firstTime.IsZero() || item.EndTime.Before(firstTime) {
-				firstTime = item.EndTime
-			}
-			if lastTime.IsZero() || item.EndTime.Before(lastTime) {
-				lastTime = item.EndTime
-			}
-		}
-	}
-
-	for timestamp, exists := range index {
-		if !exists && !timestamp.Before(firstTime) && !timestamp.After(lastTime) {
-			chart.AddPoint(&tsdb.Round{EndTime: timestamp})
-		}
-	}
-
-	sort.Sort(chart)
 
 	return chart, nil
 }
@@ -384,7 +330,11 @@ func getShareChart(items []*tsdb.Share, period types.PeriodType) *ShareChart {
 	return chart
 }
 
-func (c *Client) getShareChartSingle(metric types.ShareMetric, items []*tsdb.Share, period types.PeriodType) (*ChartSingle, error) {
+func (c *Client) getShareChartSingle(
+	metric types.ShareMetric,
+	items []*tsdb.Share,
+	period types.PeriodType,
+) (*ChartSingle, error) {
 	rangeItems := make([]rangeItem, len(items))
 	for i, item := range items {
 		rangeItems[i] = rangeItem{
@@ -454,7 +404,10 @@ func (c *Client) getShareChartSingle(metric types.ShareMetric, items []*tsdb.Sha
 	return chart, nil
 }
 
-func (c *Client) GetGlobalShareChart(chain string, period types.PeriodType) (*ShareChart, error) {
+func (c *Client) GetGlobalShareChart(
+	chain string,
+	period types.PeriodType,
+) (*ShareChart, error) {
 	items, err := tsdb.GetGlobalShares(c.tsdb.Reader(), chain, int(period))
 	if err != nil {
 		return nil, err
@@ -463,7 +416,10 @@ func (c *Client) GetGlobalShareChart(chain string, period types.PeriodType) (*Sh
 	return getShareChart(items, period), nil
 }
 
-func (c *Client) GetGlobalShareSingleMetricChart(metric types.ShareMetric, period types.PeriodType) (*ChartSingle, error) {
+func (c *Client) GetGlobalShareSingleMetricChart(
+	metric types.ShareMetric,
+	period types.PeriodType,
+) (*ChartSingle, error) {
 	items, err := tsdb.GetGlobalSharesSingleMetric(c.tsdb.Reader(), string(metric), int(period))
 	if err != nil {
 		return nil, err
@@ -472,7 +428,11 @@ func (c *Client) GetGlobalShareSingleMetricChart(metric types.ShareMetric, perio
 	return c.getShareChartSingle(metric, items, period)
 }
 
-func (c *Client) GetMinerShareChart(minerIDs []uint64, chain string, period types.PeriodType) (*ShareChart, error) {
+func (c *Client) GetMinerShareChart(
+	minerIDs []uint64,
+	chain string,
+	period types.PeriodType,
+) (*ShareChart, error) {
 	items, err := tsdb.GetMinerShares(c.tsdb.Reader(), minerIDs, chain, int(period))
 	if err != nil {
 		return nil, err
@@ -486,7 +446,11 @@ func (c *Client) GetMinerShareChart(minerIDs []uint64, chain string, period type
 	return getShareChart(items, period), nil
 }
 
-func (c *Client) GetMinerShareSingleMetricChart(minerIDs []uint64, metric types.ShareMetric, period types.PeriodType) (*ChartSingle, error) {
+func (c *Client) GetMinerShareSingleMetricChart(
+	minerIDs []uint64,
+	metric types.ShareMetric,
+	period types.PeriodType,
+) (*ChartSingle, error) {
 	items, err := tsdb.GetMinerSharesSingleMetric(c.tsdb.Reader(), minerIDs, string(metric), int(period))
 	if err != nil {
 		return nil, err
@@ -500,7 +464,11 @@ func (c *Client) GetMinerShareSingleMetricChart(minerIDs []uint64, metric types.
 	return c.getShareChartSingle(metric, items, period)
 }
 
-func (c *Client) GetWorkerShareChart(workerID uint64, chain string, period types.PeriodType) (*ShareChart, error) {
+func (c *Client) GetWorkerShareChart(
+	workerID uint64,
+	chain string,
+	period types.PeriodType,
+) (*ShareChart, error) {
 	items, err := tsdb.GetWorkerShares(c.tsdb.Reader(), workerID, chain, int(period))
 	if err != nil {
 		return nil, err
@@ -509,7 +477,11 @@ func (c *Client) GetWorkerShareChart(workerID uint64, chain string, period types
 	return getShareChart(items, period), nil
 }
 
-func (c *Client) GetWorkerShareSingleMetricChart(workerID uint64, metric types.ShareMetric, period types.PeriodType) (*ChartSingle, error) {
+func (c *Client) GetWorkerShareSingleMetricChart(
+	workerID uint64,
+	metric types.ShareMetric,
+	period types.PeriodType,
+) (*ChartSingle, error) {
 	items, err := tsdb.GetWorkerSharesSingleMetric(c.tsdb.Reader(), workerID, string(metric), int(period))
 	if err != nil {
 		return nil, err
@@ -562,7 +534,10 @@ func sumEarnings(items []*tsdb.Earning) ([]*tsdb.Earning, error) {
 	return uniqueItems, nil
 }
 
-func (c *Client) getEarningChartSingle(items []*tsdb.Earning, period types.PeriodType) (*ChartSingle, error) {
+func (c *Client) getEarningChartSingle(
+	items []*tsdb.Earning,
+	period types.PeriodType,
+) (*ChartSingle, error) {
 	rangeItems := make([]rangeItem, len(items))
 	for i, item := range items {
 		rangeItems[i] = rangeItem{
@@ -615,7 +590,11 @@ func (c *Client) GetGlobalEarningChart(period types.PeriodType) (*ChartSingle, e
 	return c.getEarningChartSingle(items, period)
 }
 
-func (c *Client) GetMinerEarningChart(minerIDs []uint64, metric types.EarningMetric, period types.PeriodType) (*ChartSingle, error) {
+func (c *Client) GetMinerEarningChart(
+	minerIDs []uint64,
+	metric types.EarningMetric,
+	period types.PeriodType,
+) (*ChartSingle, error) {
 	items, err := tsdb.GetMinerEarningsSingleMetric(c.tsdb.Reader(), minerIDs, string(metric), int(period))
 	if err != nil {
 		return nil, err

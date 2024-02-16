@@ -29,7 +29,12 @@ type Writer struct {
 	debugMu      sync.RWMutex
 }
 
-func NewWriter(ctx context.Context, chain, path string, logger *log.Logger, redisClient *redis.Client) (*Writer, error) {
+func NewWriter(
+	ctx context.Context,
+	chain, path string,
+	logger *log.Logger,
+	redisClient *redis.Client,
+) (*Writer, error) {
 	eventPubsub, err := redisClient.GetStreamMinerIndexChannel()
 	if err != nil {
 		return nil, err
@@ -153,7 +158,13 @@ func (w *Writer) getDebugStream(ip string) bool {
 	return false
 }
 
-func (w *Writer) writeEvent(minerID uint64, chain, eventType, worker, client string, port int, solo bool, data map[string]interface{}) {
+func (w *Writer) writeEvent(
+	minerID uint64,
+	chain, eventType, worker, client string,
+	port int,
+	solo bool,
+	data map[string]interface{},
+) {
 	if !w.getEventStream(minerID) {
 		return
 	}
@@ -182,23 +193,49 @@ func (w *Writer) writeEvent(minerID uint64, chain, eventType, worker, client str
 	}
 }
 
-func (w *Writer) WriteConnectEvent(minerID uint64, worker, client string, port int, solo bool) {
+func (w *Writer) WriteConnectEvent(
+	minerID uint64,
+	worker, client string,
+	port int, solo bool,
+) {
 	w.writeEvent(minerID, w.chain, "connect", worker, client, port, solo, nil)
 }
 
-func (w *Writer) WriteDisconnectEvent(minerID uint64, worker, client string, port int, solo bool) {
+func (w *Writer) WriteDisconnectEvent(
+	minerID uint64,
+	worker, client string,
+	port int,
+	solo bool,
+) {
 	w.writeEvent(minerID, w.chain, "disconnect", worker, client, port, solo, nil)
 }
 
-func (w *Writer) WriteShareEvent(minerID uint64, worker, client string, port int, solo bool, status, reason string, shareDiff, targetDiff uint64) {
-	data := map[string]interface{}{"status": status, "share_diff": shareDiff, "target_diff": targetDiff}
+func (w *Writer) WriteShareEvent(
+	minerID uint64,
+	worker, client string,
+	port int,
+	solo bool,
+	status, reason string,
+	shareDiff, targetDiff uint64,
+) {
+	data := map[string]interface{}{
+		"status":      status,
+		"share_diff":  shareDiff,
+		"target_diff": targetDiff,
+	}
 	if len(reason) > 0 {
 		data["reason"] = reason
 	}
 	w.writeEvent(minerID, w.chain, "share", worker, client, port, solo, data)
 }
 
-func (w *Writer) WriteRetargetEvent(minerID uint64, worker, client string, port int, solo bool, oldDiff, newDiff uint64) {
+func (w *Writer) WriteRetargetEvent(
+	minerID uint64,
+	worker, client string,
+	port int,
+	solo bool,
+	oldDiff, newDiff uint64,
+) {
 	data := map[string]interface{}{"old_diff": oldDiff, "new_diff": newDiff}
 	w.writeEvent(minerID, w.chain, "retarget", worker, client, port, solo, data)
 }

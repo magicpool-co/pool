@@ -46,7 +46,12 @@ func newNumberFromUint64Ptr(value uint64) *Number {
 	return &n
 }
 
-func newNumberFromFloat64WithPrecision(value float64, precision int, units string, scaleUnits bool) Number {
+func newNumberFromFloat64WithPrecision(
+	value float64,
+	precision int,
+	units string,
+	scaleUnits bool,
+) Number {
 	formattedValue := value
 	if scaleUnits {
 		scale, scaledValue := common.GetDefaultUnitScale(value)
@@ -291,55 +296,6 @@ func (chart *BlockChart) AddPoint(block *tsdb.Block) {
 	chart.BlockCount = append(chart.BlockCount, block.Count)
 	chart.UncleCount = append(chart.UncleCount, block.UncleCount)
 	chart.TxCount = append(chart.TxCount, block.TxCount)
-}
-
-/* round chart */
-
-type RoundChart struct {
-	Timestamp        []int64   `json:"timestamp"`
-	Value            []float64 `json:"value"`
-	Difficulty       []float64 `json:"difficulty"`
-	RoundTime        []float64 `json:"roundTime"`
-	Hashrate         []float64 `json:"hashrate"`
-	UncleRate        []float64 `json:"uncleRate"`
-	Luck             []float64 `json:"luck"`
-	AvgLuck          []float64 `json:"avgLuck"`
-	Profitability    []float64 `json:"profitability"`
-	AvgProfitability []float64 `json:"avgProfitability"`
-}
-
-func (chart *RoundChart) Len() int {
-	return len(chart.Timestamp)
-}
-
-func (chart *RoundChart) Swap(i, j int) {
-	chart.Timestamp[i], chart.Timestamp[j] = chart.Timestamp[j], chart.Timestamp[i]
-	chart.Value[i], chart.Value[j] = chart.Value[j], chart.Value[i]
-	chart.Difficulty[i], chart.Difficulty[j] = chart.Difficulty[j], chart.Difficulty[i]
-	chart.RoundTime[i], chart.RoundTime[j] = chart.RoundTime[j], chart.RoundTime[i]
-	chart.Hashrate[i], chart.Hashrate[j] = chart.Hashrate[j], chart.Hashrate[i]
-	chart.UncleRate[i], chart.UncleRate[j] = chart.UncleRate[j], chart.UncleRate[i]
-	chart.Luck[i], chart.Luck[j] = chart.Luck[j], chart.Luck[i]
-	chart.AvgLuck[i], chart.AvgLuck[j] = chart.AvgLuck[j], chart.AvgLuck[i]
-	chart.Profitability[i], chart.Profitability[j] = chart.Profitability[j], chart.Profitability[i]
-	chart.AvgProfitability[i], chart.AvgProfitability[j] = chart.AvgProfitability[j], chart.AvgProfitability[i]
-}
-
-func (chart *RoundChart) Less(i, j int) bool {
-	return chart.Timestamp[i] < chart.Timestamp[j]
-}
-
-func (chart *RoundChart) AddPoint(round *tsdb.Round) {
-	chart.Timestamp = append(chart.Timestamp, round.EndTime.Unix())
-	chart.Value = append(chart.Value, common.SafeRoundedFloat(round.Value, 3))
-	chart.Difficulty = append(chart.Difficulty, common.SafeRoundedFloat(round.Difficulty, 3))
-	chart.RoundTime = append(chart.RoundTime, common.SafeRoundedFloat(round.RoundTime, 3))
-	chart.Hashrate = append(chart.Hashrate, common.SafeRoundedFloat(round.Hashrate, 3))
-	chart.UncleRate = append(chart.UncleRate, common.SafeRoundedFloat(round.UncleRate, 3))
-	chart.Luck = append(chart.Luck, common.SafeRoundedFloat(round.Luck, 3))
-	chart.AvgLuck = append(chart.AvgLuck, common.SafeRoundedFloat(round.AvgLuck, 3))
-	chart.Profitability = append(chart.Profitability, common.SafeRoundedFloat(round.Profitability, 3))
-	chart.AvgProfitability = append(chart.AvgProfitability, common.SafeRoundedFloat(round.AvgProfitability, 3))
 }
 
 /* share chart */

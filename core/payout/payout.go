@@ -54,10 +54,10 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 	}
 	defer dbTx.SafeRollback()
 
-	// payoutBound, err := common.GetDefaultPayoutBounds(node.Chain())
-	// if err != nil {
-	// 	return err
-	// }
+	payoutBound, err := common.GetDefaultPayoutBounds(node.Chain())
+	if err != nil {
+		return err
+	}
 
 	payoutBoundStr := "1"
 	if node.Chain() == "ETH" {
@@ -83,7 +83,8 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			return fmt.Errorf("no balance outputs found for miner %d", miner.ID)
 		}
 
-		valueSum, poolFeesSum, exchangeFeesSum, txFeesSum := new(big.Int), new(big.Int), new(big.Int), new(big.Int)
+		valueSum, poolFeesSum := new(big.Int), new(big.Int)
+		exchangeFeesSum, txFeesSum := new(big.Int), new(big.Int)
 		balanceOutputIdx[miner.ID] = make([]*pooldb.BalanceOutput, 0)
 		for _, balanceOutput := range balanceOutputs {
 			if !balanceOutput.Value.Valid {
@@ -104,14 +105,15 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			balanceOutputIdx[miner.ID] = append(balanceOutputIdx[miner.ID], balanceOutput)
 		}
 
-		// threshold := payoutBound.Default
-		// if miner.Threshold.Valid && miner.Threshold.BigInt.Cmp(common.Big0) > 0 {
-		// 	threshold = miner.Threshold.BigInt
-		// }
+		threshold := payoutBound.Default
+		if miner.Threshold.Valid && miner.Threshold.BigInt.Cmp(common.Big0) > 0 {
+			threshold = miner.Threshold.BigInt
+		}
 
-		// if valueSum.Cmp(threshold) < 0 {
-		// 	return fmt.Errorf("miner %d not actually above threshold: %s < %s", miner.ID, valueSum, threshold)
-		// }
+		if valueSum.Cmp(threshold) < 0 {
+			return fmt.Errorf("miner %d not actually above threshold: %s < %s",
+				miner.ID, valueSum, threshold)
+		}
 
 		balanceOutputSums[i] = &pooldb.BalanceOutput{
 			MinerID: miner.ID,
@@ -205,7 +207,8 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 
 			explorerURL := node.GetAddressExplorerURL(payout.Address)
 			floatValue := common.BigIntToFloat64(payout.Value.BigInt, node.GetUnits().Big())
-			c.telegram.NotifyInitiatePayout(payout.ID, payout.ChainID, payout.Address, explorerURL, floatValue)
+			c.telegram.NotifyInitiatePayout(payout.ID,
+				payout.ChainID, payout.Address, explorerURL, floatValue)
 		}
 	case types.UTXOStructure:
 		if len(payouts) > maxBatchSize {
@@ -262,7 +265,8 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 			explorerURL := node.GetAddressExplorerURL(payout.Address)
 			floatValue := common.BigIntToFloat64(payout.Value.BigInt, node.GetUnits().Big())
 			if len(payouts) != maxBatchSize && false {
-				c.telegram.NotifyInitiatePayout(payoutID, payout.ChainID, payout.Address, explorerURL, floatValue)
+				c.telegram.NotifyInitiatePayout(payoutID,
+					payout.ChainID, payout.Address, explorerURL, floatValue)
 			}
 		}
 	default:
@@ -272,7 +276,11 @@ func (c *Client) InitiatePayouts(node types.PayoutNode) error {
 	return dbTx.SafeCommit()
 }
 
-func (c *Client) finalizePayout(node types.PayoutNode, payout *pooldb.Payout, miner, emailAddress string) error {
+func (c *Client) finalizePayout(
+	node types.PayoutNode,
+	payout *pooldb.Payout,
+	miner, emailAddress string,
+) error {
 	if payout.TransactionID == nil {
 		return fmt.Errorf("no transaction id for payout %d", payout.ID)
 	}
@@ -401,7 +409,8 @@ func (c *Client) finalizePayout(node types.PayoutNode, payout *pooldb.Payout, mi
 		valueStr := strconv.FormatFloat(valueFloat, 'f', decimals, 64) + " " + payout.ChainID
 
 		explorerURL := node.GetTxExplorerURL(payout.TxID)
-		err = c.mailer.SendEmailForPayout(emailAddress, miner, payout.TxID, explorerURL, valueStr, payout.CreatedAt)
+		err = c.mailer.SendEmailForPayout(emailAddress, miner,
+			payout.TxID, explorerURL, valueStr, payout.CreatedAt)
 		if err != nil {
 			return err
 		}

@@ -98,7 +98,8 @@ func UnlockRounds(node types.MiningNode, pooldbClient *dbcl.Client) error {
 		return err
 	}
 
-	pendingRounds, err := pooldb.GetPendingRoundsByChain(pooldbClient.Reader(), node.Chain(), height-node.GetImmatureDepth())
+	pendingRounds, err := pooldb.GetPendingRoundsByChain(pooldbClient.Reader(),
+		node.Chain(), height-node.GetImmatureDepth())
 	if err != nil {
 		return err
 	}
@@ -109,15 +110,18 @@ func UnlockRounds(node types.MiningNode, pooldbClient *dbcl.Client) error {
 			return err
 		}
 
-		cols := []string{"uncle", "orphan", "pending", "mature", "spent", "height",
-			"epoch_height", "uncle_height", "hash", "coinbase_txid", "value", "created_at"}
+		cols := []string{
+			"uncle", "orphan", "pending", "mature", "spent", "height", "epoch_height",
+			"uncle_height", "hash", "coinbase_txid", "value", "created_at",
+		}
 		err = pooldb.UpdateRound(pooldbClient.Writer(), round, cols)
 		if err != nil {
 			return err
 		}
 	}
 
-	immatureRounds, err := pooldb.GetImmatureRoundsByChain(pooldbClient.Reader(), node.Chain(), height-node.GetMatureDepth())
+	immatureRounds, err := pooldb.GetImmatureRoundsByChain(pooldbClient.Reader(),
+		node.Chain(), height-node.GetMatureDepth())
 	if err != nil {
 		return err
 	}

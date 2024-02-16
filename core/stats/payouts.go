@@ -13,14 +13,10 @@ func getTxExplorerURL(chain, hash string) (string, error) {
 	var explorerURL string
 	var err error
 	switch chain {
-	case "AE":
-		explorerURL = "https://explorer.aeternity.io/transactions/" + hash
 	case "BTC":
 		explorerURL = "https://blockchair.com/bitcoin/transaction/" + hash
 	case "CFX":
 		explorerURL = "https://www.confluxscan.io/tx/" + hash
-	case "CTXC":
-		explorerURL = "https://cerebro.cortexlabs.ai/#/tx/" + hash
 	case "ERG":
 		explorerURL = "https://explorer.ergoplatform.com/en/transactions/" + hash
 	case "ETC":
@@ -46,7 +42,10 @@ func getTxExplorerURL(chain, hash string) (string, error) {
 	return explorerURL, err
 }
 
-func newPayout(dbPayout *pooldb.Payout, dbBalanceInputSums []*pooldb.BalanceInput) (*Payout, error) {
+func newPayout(
+	dbPayout *pooldb.Payout,
+	dbBalanceInputSums []*pooldb.BalanceInput,
+) (*Payout, error) {
 	if !dbPayout.Value.Valid {
 		return nil, fmt.Errorf("no value for payout %d", dbPayout.ID)
 	} else if !dbPayout.PoolFees.Valid {
@@ -158,17 +157,20 @@ func (c *Client) GetGlobalPayouts(page, size uint64) ([]*Payout, uint64, error) 
 	return payouts, count, nil
 }
 
-func (c *Client) GetMinerPayouts(minerIDs []uint64, page, size uint64) ([]*Payout, uint64, error) {
+func (c *Client) GetMinerPayouts(
+	minerIDs []uint64,
+	page, size uint64,
+) ([]*Payout, uint64, error) {
 	if len(minerIDs) == 0 {
 		return nil, 0, nil
 	}
 
-	count, err := pooldb.GetPayoutsByMinersCount(c.pooldb.Reader(), minerIDs)
+	count, err := pooldb.GetPayoutsByMinerIDsCount(c.pooldb.Reader(), minerIDs)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	dbPayouts, err := pooldb.GetPayoutsByMiners(c.pooldb.Reader(), minerIDs, page, size)
+	dbPayouts, err := pooldb.GetPayoutsByMinerIDs(c.pooldb.Reader(), minerIDs, page, size)
 	if err != nil {
 		return nil, 0, err
 	}

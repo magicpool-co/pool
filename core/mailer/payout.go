@@ -26,7 +26,10 @@ func (c *Client) generateEmailForPayout(templateData payoutPage) ([]byte, error)
 	return buf.Bytes(), err
 }
 
-func (c *Client) SendEmailForPayout(emailAddress, miner, txid, explorerURL, value string, timestamp time.Time) error {
+func (c *Client) SendEmailForPayout(
+	emailAddress, miner, txid, explorerURL, value string,
+	timestamp time.Time,
+) error {
 	subject := "A payout has been sent"
 
 	templateData := payoutPage{

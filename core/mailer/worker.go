@@ -24,7 +24,10 @@ type workerPage struct {
 	Workers []worker
 }
 
-func (c *Client) generateEmailForWorkers(miner string, workerIdx map[string]time.Time) ([]byte, error) {
+func (c *Client) generateEmailForWorkers(
+	miner string,
+	workerIdx map[string]time.Time,
+) ([]byte, error) {
 	if len(workerIdx) == 0 {
 		return nil, fmt.Errorf("empty worker list for template")
 	}
@@ -51,7 +54,10 @@ func (c *Client) generateEmailForWorkers(miner string, workerIdx map[string]time
 	return buf.Bytes(), err
 }
 
-func (c *Client) SendEmailForWorkers(emailAddress, miner string, workerIdx map[string]time.Time) error {
+func (c *Client) SendEmailForWorkers(
+	emailAddress, miner string,
+	workerIdx map[string]time.Time,
+) error {
 	subject := "1 worker has gone down"
 	if len(workerIdx) > 1 {
 		subject = strconv.Itoa(len(workerIdx)) + " workers have gone down"
