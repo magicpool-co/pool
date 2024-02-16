@@ -16,8 +16,9 @@ func SafeRoundedFloat(value float64, decimals int) float64 {
 	}
 
 	exp := math.Pow(10, float64(decimals))
+	value = math.Round(value*exp) / exp
 
-	return math.Round(value*exp) / exp
+	return value
 }
 
 func FloorFloatByIncrement(value float64, incr, exp int) float64 {
@@ -27,7 +28,6 @@ func FloorFloatByIncrement(value float64, incr, exp int) float64 {
 
 	intIncr := new(big.Int).SetUint64(uint64(exp / incr))
 	intExp := new(big.Int).SetUint64(uint64(exp))
-
 	intVal := Float64ToBigInt(value, intExp)
 	rem := new(big.Int).Mod(intVal, intIncr)
 	intVal.Sub(intVal, rem)
@@ -36,10 +36,11 @@ func FloorFloatByIncrement(value float64, incr, exp int) float64 {
 }
 
 func SplitBigPercentage(input *big.Int, numerator, denominator uint64) *big.Int {
-	output := new(big.Int)
-	output.Mul(input, new(big.Int).SetUint64(numerator))
+	numeratorBig := new(big.Int).SetUint64(numerator)
+	output := new(big.Int).Mul(input, numeratorBig)
 	if denominator > 0 {
-		output.Div(output, new(big.Int).SetUint64(denominator))
+		denominatorBig := new(big.Int).SetUint64(denominator)
+		output.Div(output, denominatorBig)
 	}
 
 	return output

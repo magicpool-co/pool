@@ -1,11 +1,11 @@
 package common
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -19,6 +19,46 @@ var (
 	Big10 = new(big.Int).SetUint64(10)
 )
 
+/* date */
+
+func processDateComponent(component, value int, backwards bool) int {
+	offset := component % value
+	if backwards {
+		return component - offset
+	}
+
+	return component + (value - offset)
+}
+
+func NormalizeDate(date time.Time, period time.Duration, backwards bool) time.Time {
+	date = date.UTC()
+	d, h, m, s := date.Day(), date.Hour(), date.Minute(), date.Second()
+
+	switch period := period; {
+	case period >= (time.Hour * 24):
+		value := int(period) / int(time.Hour*24)
+		d = processDateComponent(date.Day(), value, backwards)
+		h, m, s = 0, 0, 0
+	case period >= time.Hour:
+		value := int(period) / int(time.Hour)
+		h = processDateComponent(date.Hour(), value, backwards)
+		m, s = 0, 0
+	case period >= time.Minute:
+		value := int(period) / int(time.Minute)
+		m = processDateComponent(date.Minute(), value, backwards)
+		s = 0
+	case period >= time.Second:
+		value := int(period) / int(time.Second)
+		s = processDateComponent(date.Second(), value, backwards)
+	}
+
+	newDate := time.Date(date.Year(), date.Month(), d, h, m, s, 0, time.UTC)
+
+	return newDate
+}
+
+/* numerical */
+
 func HexToBig(str string) (*big.Int, error) {
 	if len(str) >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X') {
 		str = str[2:]
@@ -26,7 +66,6 @@ func HexToBig(str string) (*big.Int, error) {
 
 	val := new(big.Int)
 	val.SetString(str, 16)
-
 	if len(str) > 0 && str != zeroHex1 && str != zeroHex256 {
 		if val.Cmp(big.NewInt(0)) <= 0 {
 			return nil, fmt.Errorf("negative hex string")
@@ -47,18 +86,6 @@ func HexToUint64(str string) (uint64, error) {
 	}
 
 	return uint64(val), nil
-}
-
-func HexToBytes(str string) ([]byte, error) {
-	if len(str) >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X') {
-		str = str[2:]
-	}
-
-	if len(str)%2 == 1 {
-		str = "0" + str
-	}
-
-	return hex.DecodeString(str)
 }
 
 func Uint64ToHex(inp uint64) string {

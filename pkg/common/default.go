@@ -33,7 +33,7 @@ func GetDefaultUnits(chain string) (*big.Int, error) {
 		units = 1e2
 	case "BTC", "FIRO", "FLUX", "KAS", "RVN":
 		units = 1e8
-	case "CFX", "CTXC", "ETC", "ETH":
+	case "CFX", "ETC", "ETH":
 		units = 1e18
 	case "ERG":
 		units = 1e9
@@ -77,14 +77,6 @@ func GetDefaultPayoutBounds(chain string) (*PayoutBounds, error) {
 			Min:       MustParseBigInt("10000000000000000000"),
 			Default:   MustParseBigInt("50000000000000000000"),
 			Max:       MustParseBigInt("1000000000000000000000000"),
-			Precision: 1,
-			Units:     18,
-		}
-	case "CTXC":
-		bounds = &PayoutBounds{
-			Min:       MustParseBigInt("5000000000000000000"),
-			Default:   MustParseBigInt("25000000000000000000"),
-			Max:       MustParseBigInt("250000000000000000000000"),
 			Precision: 1,
 			Units:     18,
 		}
