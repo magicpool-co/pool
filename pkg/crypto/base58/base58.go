@@ -7,137 +7,104 @@ package base58
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"fmt"
 	"math/big"
 	"strings"
 
 	"golang.org/x/crypto/ripemd160"
+
+	"github.com/magicpool-co/pool/pkg/crypto"
 )
 
-func hashSha256(b []byte) []byte {
-	d := sha256.Sum256(b)
-	return d[:]
-}
+const (
+	base58Table = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+)
 
-// b58encode encodes a byte slice b into a base-58 encoded string.
-func Encode(b []byte) (s string) {
-	/* See https://en.bitcoin.it/wiki/Base58Check_encoding */
+var (
+	big0  = new(big.Int)
+	big58 = new(big.Int).SetUint64(58)
+)
 
-	const BITCOIN_BASE58_TABLE = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+// Encode encodes a byte slice into a base-58 encoded string
+func Encode(decoded []byte) string {
+	value := new(big.Int).SetBytes(decoded)
+	rem := new(big.Int)
 
-	/* Convert big endian bytes to big int */
-	x := new(big.Int).SetBytes(b)
-
-	/* Initialize */
-	r := new(big.Int)
-	m := big.NewInt(58)
-	zero := big.NewInt(0)
-	s = ""
-
-	/* Convert big int to string */
-	for x.Cmp(zero) > 0 {
-		/* x, r = (x / 58, x % 58) */
-		x.QuoRem(x, m, r)
-		/* Prepend ASCII character */
-		s = string(BITCOIN_BASE58_TABLE[r.Int64()]) + s
+	var encoded string
+	for value.Cmp(big0) > 0 {
+		value.QuoRem(value, big58, rem)
+		encoded = string(base58Table[rem.Int64()]) + encoded
 	}
 
-	return s
+	return encoded
 }
 
-// b58decode decodes a base-58 encoded string into a byte slice b.
-func Decode(s string) (b []byte, err error) {
-	/* See https://en.bitcoin.it/wiki/Base58Check_encoding */
-
-	const BITCOIN_BASE58_TABLE = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-
-	/* Initialize */
-	x := big.NewInt(0)
-	m := big.NewInt(58)
-
-	/* Convert string to big int */
-	for i := 0; i < len(s); i++ {
-		b58index := strings.IndexByte(BITCOIN_BASE58_TABLE, s[i])
-		if b58index == -1 {
-			return nil, fmt.Errorf("Invalid base-58 character encountered: '%c', index %d.", s[i], i)
+// Decode decodes a base-58 encoded string into a byte slice
+func Decode(encoded string) ([]byte, error) {
+	value := big.NewInt(0)
+	for i := 0; i < len(encoded); i++ {
+		b58Idx := strings.IndexByte(base58Table, encoded[i])
+		if b58Idx == -1 {
+			return nil, fmt.Errorf("invalid base58 character")
 		}
-		b58value := big.NewInt(int64(b58index))
-		x.Mul(x, m)
-		x.Add(x, b58value)
+
+		value.Mul(value, big58)
+		value.Add(value, new(big.Int).SetInt64(int64(b58Idx)))
 	}
 
-	/* Convert big int to big endian bytes */
-	b = x.Bytes()
-
-	return b, nil
+	return value.Bytes(), nil
 }
 
-// b58checkencode encodes version ver and byte slice b into a base-58 check encoded string.
-func CheckEncode(ver, b []byte) (s string) {
-	/* Prepend version */
-	bcpy := append(ver, b...)
+// CheckEncode encodes a version and a byte slice into a base-58 check encoded string.
+// Version is a slice, not a byte, to handle for multi-length prefixes (ZCash).
+func CheckEncode(version, decoded []byte) string {
+	checkDecoded := append(version, decoded...)
+	checksum := crypto.Sha256d(checkDecoded)
+	checkDecoded = append(checkDecoded, checksum[0:4]...)
+	checkEncoded := Encode(checkDecoded)
 
-	hash1 := hashSha256(bcpy)
-	hash2 := hashSha256(hash1)
-
-	/* Append first four bytes of hash */
-	bcpy = append(bcpy, hash2[0:4]...)
-
-	/* Encode base58 string */
-	s = Encode(bcpy)
-
-	/* For number of leading 0's in bytes, prepend 1 */
-	for _, v := range bcpy {
+	for _, v := range checkDecoded {
 		if v != 0 {
 			break
 		}
-		s = "1" + s
+		checkEncoded = "1" + checkEncoded
 	}
 
-	return s
+	return checkEncoded
 }
 
-// b58checkdecode decodes base-58 check encoded string s into a version ver and byte slice b.
-func CheckDecode(s string) (ver, b []byte, err error) {
-	/* Decode base58 string */
-	b, err = Decode(s)
+// CheckDecode decodes a base-58 check encoded string into a version and a byte slice.
+// Version is a slice, not a byte, to handle for multi-length prefixes (ZCash).
+func CheckDecode(checkEncoded string) ([]byte, []byte, error) {
+	checkDecoded, err := Decode(checkEncoded)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	/* Add leading zero bytes */
-	for i := 0; i < len(s); i++ {
-		if s[i] != '1' {
+	for i := 0; i < len(checkEncoded); i++ {
+		if checkEncoded[i] != '1' {
 			break
 		}
-		b = append([]byte{0x00}, b...)
+		checkDecoded = append([]byte{0x00}, checkDecoded...)
 	}
 
-	/* Verify checksum */
-	if len(b) < 5 {
-		return nil, nil, fmt.Errorf("Invalid base-58 check string: missing checksum.")
+	if len(checkDecoded) < 5 {
+		return nil, nil, fmt.Errorf("missing checksum")
 	}
 
-	hash1 := hashSha256(b[:len(b)-4])
-	hash2 := hashSha256(hash1)
-
-	/* Compare checksum */
-	if bytes.Compare(hash2[0:4], b[len(b)-4:]) != 0 {
-		return nil, nil, fmt.Errorf("Invalid base-58 check string: invalid checksum.")
+	checksum := crypto.Sha256d(checkDecoded[:len(checkDecoded)-4])
+	if bytes.Compare(checksum[0:4], checkDecoded[len(checkDecoded)-4:]) != 0 {
+		return nil, nil, fmt.Errorf("invalid checksum")
 	}
+	checkDecoded = checkDecoded[:len(checkDecoded)-4]
 
-	/* Strip checksum bytes */
-	b = b[:len(b)-4]
-
-	prefixLength := len(b) - ripemd160.Size
+	prefixLength := len(checkDecoded) - ripemd160.Size
 	if prefixLength < 0 {
-		return nil, nil, fmt.Errorf("Invalid address: unknown length")
+		return nil, nil, fmt.Errorf("invalid prefix length")
 	}
 
-	/* Extract and strip version */
-	ver = b[:prefixLength]
-	b = b[prefixLength:]
+	version := checkDecoded[:prefixLength]
+	decoded := checkDecoded[prefixLength:]
 
-	return ver, b, nil
+	return version, decoded, nil
 }

@@ -8,7 +8,15 @@ import (
 	"github.com/magicpool-co/pool/pkg/crypto/wire"
 )
 
-func SerializeKaspaBlockHeader(version uint16, parents [][]string, hashMerkleRoot, acceptedIDMerkleRoot, utxoCommitment string, timestamp int64, bits uint32, nonce, daaScore, blueScore uint64, blueWork, pruningPoint string) ([]byte, error) {
+func SerializeKaspaBlockHeader(
+	version uint16,
+	parents [][]string,
+	hashMerkleRoot, acceptedIDMerkleRoot, utxoCommitment string,
+	timestamp int64,
+	bits uint32,
+	nonce, daaScore, blueScore uint64,
+	blueWork, pruningPoint string,
+) ([]byte, error) {
 	padding := len(blueWork) + (len(blueWork) % 2)
 	for len(blueWork) < padding {
 		blueWork = "0" + blueWork
@@ -16,12 +24,9 @@ func SerializeKaspaBlockHeader(version uint16, parents [][]string, hashMerkleRoo
 
 	var buf bytes.Buffer
 	var order = binary.LittleEndian
-
 	if err := wire.WriteElement(&buf, order, version); err != nil {
 		return nil, err
-	}
-
-	if err := wire.WriteElement(&buf, order, uint64(len(parents))); err != nil {
+	} else if err := wire.WriteElement(&buf, order, uint64(len(parents))); err != nil {
 		return nil, err
 	}
 

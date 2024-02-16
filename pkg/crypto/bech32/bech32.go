@@ -1,6 +1,11 @@
+// Copyright 2019 Conflux Foundation. All rights reserved.
+// Conflux is free software and distributed under GNU General Public License.
+// See http://www.gnu.org/licenses/
+
 package bech32
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
@@ -12,7 +17,6 @@ const (
 )
 
 func encodeToBase32(charset string, data []byte) string {
-	// build body string from alphabet
 	builder := strings.Builder{}
 	for _, v := range data {
 		builder.WriteRune(rune(charset[v]))
@@ -25,7 +29,7 @@ func decodeFromBase32(charset, encoded string) ([]byte, error) {
 	decoded := make([]byte, 0, len(encoded))
 	for i := 0; i < len(encoded); i++ {
 		index := strings.IndexByte(charset, encoded[i])
-		if index < 0 {
+		if index == -1 {
 			return nil, fmt.Errorf("invalid bech32 character")
 		}
 		decoded = append(decoded, byte(index))
@@ -59,51 +63,47 @@ func polymod(v []byte) uint64 {
 }
 
 func calcChecksum(prefix string, body []byte) ([]byte, error) {
-	var lower5bitsNettype []byte
+	var prefixAdjusted []byte
 	for _, v := range prefix {
-		lower5bitsNettype = append(lower5bitsNettype, byte(v)&0x1f)
+		prefixAdjusted = append(prefixAdjusted, byte(v)&0x1f)
 	}
 
-	template := [8]byte{}
+	checksumInput := bytes.Join([][]byte{
+		prefixAdjusted,
+		[]byte{0x00},
+		body,
+		make([]byte, 8),
+	}, nil)
 
-	checksumInput := append(lower5bitsNettype, 0x00)
-	checksumInput = append(checksumInput, body[:]...)
-	checksumInput = append(checksumInput, template[:]...)
-
-	uint64Chc := polymod(checksumInput)
-
-	low40BitsChc := make([]byte, 8)
+	checksumPolymod := polymod(checksumInput)
+	checksumAdjusted := make([]byte, 8)
 	for i := 0; i < 8; i++ {
-		low40BitsChc[7-i] = byte(uint64Chc >> uint(i*8))
-	}
-	low40BitsChc = low40BitsChc[3:]
-
-	checksumIn5Bits, err := bech32.ConvertBits(low40BitsChc, 8, 5, true)
-	if err != nil {
-		return nil, err
+		checksumAdjusted[7-i] = byte(checksumPolymod >> uint(i*8))
 	}
 
-	return checksumIn5Bits, nil
+	return bech32.ConvertBits(checksumAdjusted[3:], 8, 5, true)
 }
 
 func EncodeBCH(charset, prefix string, version byte, body []byte) (string, error) {
-	data := make([]byte, len(body)+1)
-	data[0] = version
-	copy(data[1:], body)
+	data := bytes.Join([][]byte{
+		[]byte{version},
+		body,
+	}, nil)
 
-	converted, err := bech32.ConvertBits(data, 8, 5, true)
+	decoded, err := bech32.ConvertBits(data, 8, 5, true)
 	if err != nil {
 		return "", err
 	}
 
-	checksum, err := calcChecksum(prefix, converted)
+	checksum, err := calcChecksum(prefix, decoded)
 	if err != nil {
 		return "", err
 	}
 
-	address := encodeToBase32(charset, append(converted, checksum...))
+	decoded = append(decoded, checksum...)
+	encoded := encodeToBase32(charset, decoded)
 
-	return prefix + ":" + address, nil
+	return prefix + ":" + encoded, nil
 }
 
 func DecodeBCH(charset, encoded string) (string, byte, []byte, error) {
@@ -117,25 +117,24 @@ func DecodeBCH(charset, encoded string) (string, byte, []byte, error) {
 		}
 	}
 
-	lower := strings.ToLower(encoded)
-	upper := strings.ToUpper(encoded)
-	if encoded != lower && encoded != upper {
+	encodedLower := strings.ToLower(encoded)
+	encodedUpper := strings.ToUpper(encoded)
+	if encoded != encodedLower && encoded != encodedUpper {
 		return "", 0, nil, fmt.Errorf("string not all lowercase or all uppercase")
 	}
 
-	encoded = lower
-	colonIndex := strings.LastIndexByte(encoded, ':')
-	if colonIndex < 1 || colonIndex+checksumLength+1 > len(encoded) {
+	colonIdx := strings.LastIndexByte(encodedLower, ':')
+	if colonIdx < 1 || colonIdx+checksumLength+1 > len(encodedLower) {
 		return "", 0, nil, fmt.Errorf("invalid index of ':'")
 	}
+	prefix := encodedLower[:colonIdx]
 
-	prefix := encoded[:colonIndex]
-	decoded, err := decodeFromBase32(charset, encoded[colonIndex+1:])
+	decoded, err := decodeFromBase32(charset, encodedLower[colonIdx+1:])
 	if err != nil {
 		return "", 0, nil, err
 	}
+	checksum := encodedLower[len(encodedLower)-checksumLength:]
 
-	checksum := encoded[len(encoded)-checksumLength:]
 	calculated, err := calcChecksum(prefix, decoded[:len(decoded)-checksumLength])
 	if err != nil {
 		return "", 0, nil, err

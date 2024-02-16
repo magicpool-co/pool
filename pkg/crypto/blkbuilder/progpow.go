@@ -17,11 +17,15 @@ type ProgPowBuilder struct {
 	txHexes    [][]byte
 }
 
-func NewProgPowBuilder(version, nTime, height uint32, bits, prevHash string, txHashes, txHexes [][]byte) (*ProgPowBuilder, error) {
+func NewProgPowBuilder(
+	version, nTime, height uint32,
+	bits, prevHash string,
+	txHashes, txHexes [][]byte,
+) (*ProgPowBuilder, error) {
+	merkleRoot := merkle.CalculateRoot(txHashes)
+
 	var buf bytes.Buffer
 	var order = binary.BigEndian
-
-	merkleRoot := merkle.CalculateRoot(txHashes)
 	if err := wire.WriteElement(&buf, order, height); err != nil {
 		return nil, err
 	} else if err := wire.WriteHexString(&buf, order, bits); err != nil {
@@ -38,7 +42,6 @@ func NewProgPowBuilder(version, nTime, height uint32, bits, prevHash string, txH
 
 	header := crypto.ReverseBytes(buf.Bytes())
 	headerHash := crypto.ReverseBytes(crypto.Sha256d(header))
-
 	builder := &ProgPowBuilder{
 		header:     header,
 		headerHash: headerHash,
@@ -61,7 +64,6 @@ func (b *ProgPowBuilder) SerializeBlock(work *types.StratumWork) ([]byte, error)
 
 	var buf bytes.Buffer
 	var order = binary.BigEndian
-
 	if err := wire.WriteElement(&buf, order, b.header); err != nil {
 		return nil, err
 	} else if err := wire.WriteElement(&buf, order, crypto.ReverseBytes(work.Nonce.BytesBE())); err != nil {

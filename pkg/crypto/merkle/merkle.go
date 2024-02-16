@@ -10,9 +10,8 @@ type Node struct {
 	Data  []byte
 }
 
-func NewNode(left, right *Node, data []byte) *Node {
+func newNode(left, right *Node, data []byte) *Node {
 	node := Node{}
-
 	if left == nil && right == nil {
 		node.Data = crypto.ReverseBytes(data)
 	} else {
@@ -25,32 +24,30 @@ func NewNode(left, right *Node, data []byte) *Node {
 	return &node
 }
 
-func CalculateRoot(data [][]byte) []byte {
-	if len(data) == 1 {
-		return data[0]
+func CalculateRoot(items [][]byte) []byte {
+	if len(items) == 1 {
+		// if there is one item, return that
+		return items[0]
+	} else if len(items)%2 != 0 {
+		// if there are an odd number of items, duplicate the final item
+		items = append(items, items[len(items)-1])
 	}
 
-	var nodes []Node
-
-	if len(data)%2 != 0 {
-		data = append(data, data[len(data)-1])
+	var nodes []*Node
+	for _, item := range items {
+		node := newNode(nil, nil, item)
+		nodes = append(nodes, node)
 	}
 
-	for _, dat := range data {
-		node := NewNode(nil, nil, dat)
-		nodes = append(nodes, *node)
-	}
-
-	for i := 0; i < len(data)/2; i++ {
-		var level []Node
-
+	for i := 0; i < len(items)/2; i++ {
+		var level []*Node
 		for j := 0; j < len(nodes); j += 2 {
 			if len(nodes) < j+2 {
 				nodes = append(nodes, nodes[j])
 			}
 
-			node := NewNode(&nodes[j], &nodes[j+1], nil)
-			level = append(level, *node)
+			node := newNode(nodes[j], nodes[j+1], nil)
+			level = append(level, node)
 		}
 
 		nodes = level

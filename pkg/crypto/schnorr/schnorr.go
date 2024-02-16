@@ -3,7 +3,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package crypto
+package schnorr
 
 import (
 	"bytes"
@@ -11,8 +11,8 @@ import (
 	"hash"
 	"math/big"
 
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
-	schnorr "github.com/decred/dcrd/dcrec/secp256k1/v4/schnorr"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4/schnorr"
 )
 
 var (
@@ -240,7 +240,7 @@ func padIntBytes(val *big.Int) []byte {
 	return append(pad, b...)
 }
 
-func SchnorrSignBCH(privKey *secp256k1.PrivateKey, hash []byte) *schnorr.Signature {
+func SignBCH(privKey *secp256k1.PrivateKey, hash []byte) *schnorr.Signature {
 	var extraData = []byte{'S', 'c', 'h', 'n', 'o', 'r', 'r', '+', 'S', 'H', 'A', '2', '5', '6', ' ', ' '}
 	nonce := nonceRFC6979BCH(privKey.ToECDSA().D.Bytes(), hash, extraData)
 
@@ -272,7 +272,7 @@ func SchnorrSignBCH(privKey *secp256k1.PrivateKey, hash []byte) *schnorr.Signatu
 	return sig
 }
 
-func SchnorrVerifyBCH(sig *schnorr.Signature, pubKey *secp256k1.PublicKey, hash []byte) bool {
+func VerifyBCH(sig *schnorr.Signature, pubKey *secp256k1.PublicKey, hash []byte) bool {
 	const (
 		signatureSize = 64
 	)

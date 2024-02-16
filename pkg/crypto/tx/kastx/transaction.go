@@ -63,11 +63,11 @@ func calculateOutputsHash(order binary.ByteOrder, outputs []*protowire.RpcTransa
 		scriptPubKey, err := hex.DecodeString(output.ScriptPublicKey.ScriptPublicKey)
 		if err != nil {
 			return nil, err
-		} else if err := wire.WriteElement(&buf, order, output.Amount); err != nil { // output.Amount
+		} else if err := wire.WriteElement(&buf, order, output.Amount); err != nil {
 			return nil, err
-		} else if err := wire.WriteElement(&buf, order, uint16(output.ScriptPublicKey.Version)); err != nil { // output.ScriptPublicKey.Version
+		} else if err := wire.WriteElement(&buf, order, uint16(output.ScriptPublicKey.Version)); err != nil {
 			return nil, err
-		} else if err := wire.WritePrefixedBytes(&buf, order, scriptPubKey); err != nil { // output.ScriptPublicKey.ScriptPublicKey
+		} else if err := wire.WritePrefixedBytes(&buf, order, scriptPubKey); err != nil {
 			return nil, err
 		}
 	}

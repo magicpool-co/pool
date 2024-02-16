@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	secp256k1signer "github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 	"google.golang.org/protobuf/proto"
 
@@ -28,7 +28,11 @@ func privKeyToAddress(privKey *secp256k1.PrivateKey, prefix string) (string, err
 	return bech32.EncodeBCH(addressCharset, prefix, pubKeyECDSAAddrID, pubKeyBytes)
 }
 
-func generateUnsignedTx(inputs []*types.TxInput, outputs []*types.TxOutput, prefix string) (*protowire.RpcTransaction, error) {
+func generateUnsignedTx(
+	inputs []*types.TxInput,
+	outputs []*types.TxOutput,
+	prefix string,
+) (*protowire.RpcTransaction, error) {
 	txInputs := make([]*protowire.RpcTransactionInput, len(inputs))
 	for i, input := range inputs {
 		txInputs[i] = &protowire.RpcTransactionInput{
@@ -71,7 +75,12 @@ func generateUnsignedTx(inputs []*types.TxInput, outputs []*types.TxOutput, pref
 	return unsignedTx, nil
 }
 
-func signTx(privKey *secp256k1.PrivateKey, tx *protowire.RpcTransaction, inputs []*types.TxInput, prefix string) (*protowire.RpcTransaction, error) {
+func signTx(
+	privKey *secp256k1.PrivateKey,
+	tx *protowire.RpcTransaction,
+	inputs []*types.TxInput,
+	prefix string,
+) (*protowire.RpcTransaction, error) {
 	address, err := privKeyToAddress(privKey, prefix)
 	if err != nil {
 		return nil, err

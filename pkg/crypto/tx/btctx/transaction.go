@@ -1,3 +1,7 @@
+// Copyright (c) 2013-2017 The btcsuite developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
 package btctx
 
 import (
@@ -21,7 +25,11 @@ type Transaction struct {
 	Outputs        []*output
 }
 
-func NewTransaction(version, lockTime uint32, prefixP2PKH, prefixP2SH []byte, segwitEnabled bool) *Transaction {
+func NewTransaction(
+	version, lockTime uint32,
+	prefixP2PKH, prefixP2SH []byte,
+	segwitEnabled bool,
+) *Transaction {
 	tx := &Transaction{
 		PrefixP2PKH:   prefixP2PKH,
 		PrefixP2SH:    prefixP2SH,
@@ -126,10 +134,6 @@ func (tx *Transaction) hasWitnesses() bool {
 }
 
 func (tx *Transaction) ShallowCopy() *Transaction {
-	// As an additional memory optimization, use contiguous backing arrays
-	// for the copied inputs and outputs and point the final slice of
-	// pointers into the contiguous arrays.  This avoids a lot of small
-	// allocations.
 	txCopy := &Transaction{
 		PrefixP2PKH:    tx.PrefixP2PKH,
 		PrefixP2SH:     tx.PrefixP2SH,
@@ -224,7 +228,8 @@ func (tx *Transaction) Serialize(extraPayload []byte) ([]byte, error) {
 	if tx.ExpiryHeight != nil {
 		if err := wire.WriteElement(&buf, order, *tx.ExpiryHeight); err != nil {
 			return nil, err
-		} else if err := wire.WriteElement(&buf, order, make([]byte, 11)); err != nil { // @TODO: no idea why this is needed
+		} else if err := wire.WriteElement(&buf, order, make([]byte, 11)); err != nil {
+			// @TODO: no idea why this ^ is needed
 			return nil, err
 		}
 	}

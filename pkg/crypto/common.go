@@ -6,14 +6,22 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
+	"fmt"
+	"math/big"
 
 	"github.com/dchest/blake2b"
 	blake2bStd "golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/magicpool-co/pool/pkg/common"
 )
 
-// standard
+var (
+	secp256k1Limit = common.MustParseBigHex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364140")
+)
+
+/* hash functions */
 
 func Sha256(b []byte) []byte {
 	d := sha256.Sum256(b)
@@ -77,7 +85,18 @@ func HmacSha512(key, data string) []byte {
 	return d.Sum(nil)
 }
 
-// custom
+/* byte helpers */
+
+func ReverseBytes(a []byte) []byte {
+	b := make([]byte, len(a))
+	copy(b, a)
+
+	for i, j := 0, len(b)-1; i < j; i, j = i+1, j-1 {
+		b[i], b[j] = b[j], b[i]
+	}
+
+	return b
+}
 
 func EthashSeedHash(height, epochLength uint64) []byte {
 	epoch := height / epochLength
@@ -107,5 +126,45 @@ func ObscureHex(input string) ([]byte, error) {
 
 	final := Sha256(obscured)
 
+	// validate that key is within secp256k1 range
+	value := new(big.Int).SetBytes(final)
+	if secp256k1Limit.Cmp(value) < 0 {
+		return nil, fmt.Errorf("input too big")
+	} else if value.Cmp(common.Big0) <= 0 {
+		return nil, fmt.Errorf("input too small")
+	}
+
 	return final, nil
+}
+
+/* block helpers */
+
+func divideIntCeil(x, y int) int {
+	return (x + y - 1) / y
+}
+
+func SerializeBlockHeight(blockHeight uint64) ([]byte, []byte, error) {
+	blockHeightSerial := fmt.Sprintf("%x", blockHeight)
+	if len(blockHeightSerial)%2 == 1 {
+		blockHeightSerial = "0" + blockHeightSerial
+	}
+
+	height := divideIntCeil(len(fmt.Sprintf("%b", (blockHeight<<1))), 8)
+	lengthDiff := len(blockHeightSerial)/2 - height
+	for i := 0; i < lengthDiff; i++ {
+		blockHeightSerial += "00"
+	}
+
+	blockHeightSerialBytes, err := hex.DecodeString(blockHeightSerial)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	length := fmt.Sprintf("0%d", height)
+	lengthBytes, err := hex.DecodeString(length)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return blockHeightSerialBytes, lengthBytes, nil
 }

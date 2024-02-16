@@ -4,10 +4,11 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 
 	"github.com/magicpool-co/pool/pkg/crypto"
 	"github.com/magicpool-co/pool/pkg/crypto/bech32"
+	"github.com/magicpool-co/pool/pkg/crypto/schnorr"
 	txCommon "github.com/magicpool-co/pool/pkg/crypto/tx"
 	"github.com/magicpool-co/pool/pkg/crypto/tx/btctx"
 	"github.com/magicpool-co/pool/types"
@@ -19,7 +20,12 @@ func privKeyToAddress(privKey *secp256k1.PrivateKey, prefix string) (string, err
 	return bech32.EncodeBCH(charset, prefix, pubKeyAddrID, pubKeyHash)
 }
 
-func GenerateRawTx(baseTx *Transaction, inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64) (*Transaction, error) {
+func GenerateRawTx(
+	baseTx *Transaction,
+	inputs []*types.TxInput,
+	outputs []*types.TxOutput,
+	fee uint64,
+) (*Transaction, error) {
 	tx := baseTx.ShallowCopy()
 	err := txCommon.DistributeFees(inputs, outputs, fee, true)
 	if err != nil {
@@ -45,7 +51,13 @@ func GenerateRawTx(baseTx *Transaction, inputs []*types.TxInput, outputs []*type
 	return tx, nil
 }
 
-func GenerateSignedTx(privKey *secp256k1.PrivateKey, baseTx *Transaction, inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64) (*Transaction, error) {
+func GenerateSignedTx(
+	privKey *secp256k1.PrivateKey,
+	baseTx *Transaction,
+	inputs []*types.TxInput,
+	outputs []*types.TxOutput,
+	fee uint64,
+) (*Transaction, error) {
 	rawTx, err := GenerateRawTx(baseTx, inputs, outputs, fee)
 	if err != nil {
 		return nil, err
@@ -68,7 +80,7 @@ func GenerateSignedTx(privKey *secp256k1.PrivateKey, baseTx *Transaction, inputs
 			return nil, err
 		}
 
-		inputSig := crypto.SchnorrSignBCH(privKey, inputHash).Serialize()
+		inputSig := schnorr.SignBCH(privKey, inputHash).Serialize()
 		scriptSig := btctx.GenerateScriptSig(inputSig, privKey.PubKey().SerializeUncompressed())
 
 		err = signedTx.AddInput(inp.Hash, inp.Index, 0xFFFFFFFF, scriptSig, inp.Value.Uint64())
@@ -89,7 +101,13 @@ func GenerateSignedTx(privKey *secp256k1.PrivateKey, baseTx *Transaction, inputs
 	return signedTx, nil
 }
 
-func GenerateTx(privKey *secp256k1.PrivateKey, baseTx *Transaction, inputs []*types.TxInput, outputs []*types.TxOutput, feePerByte uint64) ([]byte, error) {
+func GenerateTx(
+	privKey *secp256k1.PrivateKey,
+	baseTx *Transaction,
+	inputs []*types.TxInput,
+	outputs []*types.TxOutput,
+	feePerByte uint64,
+) ([]byte, error) {
 	// generate the tx once to calculate the fee based off of its size
 	initialTx, err := GenerateSignedTx(privKey, baseTx, inputs, outputs, 0)
 	if err != nil {

@@ -15,7 +15,12 @@ var (
 	ErrTxTooBig                  = fmt.Errorf("tx too big")
 )
 
-func DistributeFees(inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64, strict bool) error {
+func DistributeFees(
+	inputs []*types.TxInput,
+	outputs []*types.TxOutput,
+	fee uint64,
+	strict bool,
+) error {
 	var sumInputAmount uint64
 	for _, inp := range inputs {
 		sumInputAmount += inp.Value.Uint64()

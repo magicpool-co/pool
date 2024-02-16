@@ -106,8 +106,5 @@ func (node Node) BroadcastTx(txHex string) (string, error) {
 		return "", err
 	}
 
-	t, _ := json.Marshal(tx)
-	fmt.Println(string(t))
-
 	return node.submitTransaction(tx)
 }

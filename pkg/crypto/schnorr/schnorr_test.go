@@ -1,4 +1,4 @@
-package crypto
+package schnorr
 
 import (
 	"bytes"
@@ -7,8 +7,10 @@ import (
 	"crypto/sha256"
 	"testing"
 
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
-	schnorr "github.com/decred/dcrd/dcrec/secp256k1/v4/schnorr"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4/schnorr"
+
+	"github.com/magicpool-co/pool/pkg/crypto"
 )
 
 func TestNonceRFC6979BCH(t *testing.T) {
@@ -101,7 +103,9 @@ func TestNonceRFC6979BCH(t *testing.T) {
 				0x2c, 0x76, 0xc1, 0x67, 0xba, 0xc1, 0xcb, 0x01,
 				0x3f, 0x6f, 0x10, 0x13, 0x98, 0x04, 0x55, 0xc2,
 			},
-			msg: "There is a computer disease that anybody who works with computers knows about. It's a very serious disease and it interferes completely with the work. The trouble with computers is that you 'play' with them!",
+			msg: "There is a computer disease that anybody who works with computers knows about." +
+				" It's a very serious disease and it interferes completely with the work." +
+				" The trouble with computers is that you 'play' with them!",
 			nonce: []byte{
 				0x1f, 0x4b, 0x84, 0xc2, 0x3a, 0x86, 0xa2, 0x21,
 				0xd2, 0x33, 0xf2, 0x52, 0x1b, 0xe0, 0x18, 0xd9,
@@ -121,7 +125,7 @@ func TestNonceRFC6979BCH(t *testing.T) {
 	}
 }
 
-func TestSchnorrSignBCH(t *testing.T) {
+func TesSignBCH(t *testing.T) {
 	tests := []struct {
 		privKey []byte
 		hash    []byte
@@ -179,14 +183,14 @@ func TestSchnorrSignBCH(t *testing.T) {
 
 	for i, tt := range tests {
 		privKey := secp256k1.PrivKeyFromBytes(tt.privKey)
-		sig := SchnorrSignBCH(privKey, tt.hash)
+		sig := SignBCH(privKey, tt.hash)
 		if !bytes.Equal(sig.Serialize(), tt.sig) {
 			t.Errorf("failed on %d: have %x, want %x", i, sig.Serialize(), tt.sig)
 		}
 	}
 }
 
-func TestSchnorrVerifyBCH(t *testing.T) {
+func TestVerifyBCH(t *testing.T) {
 	// test vectors are from:
 	// https://gitlab.com/nexa/nexa/-/blob/nexa1.1.0.0/src/secp256k1/src/modules/schnorr/tests_impl.h
 	tests := []struct {
@@ -564,14 +568,14 @@ func TestSchnorrVerifyBCH(t *testing.T) {
 			continue
 		}
 
-		valid := SchnorrVerifyBCH(sig, pubKey, tt.hash)
+		valid := VerifyBCH(sig, pubKey, tt.hash)
 		if valid != tt.valid {
 			t.Errorf("failed on %d: have %t, want %t", i, valid, tt.valid)
 		}
 	}
 }
 
-func TestSchnorrEndToEndBCH(t *testing.T) {
+func TestEndToEndBCH(t *testing.T) {
 	const iterations = 32
 
 	for i := 0; i < iterations; i++ {
@@ -589,10 +593,10 @@ func TestSchnorrEndToEndBCH(t *testing.T) {
 		}
 
 		privKey := secp256k1.PrivKeyFromBytes(rawPriv.D.Bytes())
-		hash := Sha256(msg)
+		hash := crypto.Sha256(msg)
 
-		sig := SchnorrSignBCH(privKey, hash)
-		if !SchnorrVerifyBCH(sig, privKey.PubKey(), hash) {
+		sig := SignBCH(privKey, hash)
+		if !VerifyBCH(sig, privKey.PubKey(), hash) {
 			t.Errorf("failed on %d: have false, want true", i)
 		}
 	}

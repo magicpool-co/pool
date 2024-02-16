@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"testing"
 
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 
 	"github.com/magicpool-co/pool/types"
 )

@@ -1,3 +1,7 @@
+// Copyright (c) 2013-2017 The btcsuite developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
 package btctx
 
 import (
@@ -8,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcd/btcutil/bech32"
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 
 	"github.com/magicpool-co/pool/pkg/crypto/base58"
 )
@@ -142,13 +146,13 @@ func EncodeScriptData(data []byte) []byte {
 	return data
 }
 
-func AddressToScript(addr string, p2pkhPrefix, p2shPrefix []byte, segwit bool) ([]byte, error) {
+func AddressToScript(addr string, p2pkhPrefix, p2shPrefix []byte, segwitEnabled bool) ([]byte, error) {
 	// segwit (P2WPKH or P2WSH)
 	oneIndex := strings.LastIndexByte(addr, '1')
 	if oneIndex > 1 {
 		prefix := addr[:oneIndex+1]
 		if strings.ToLower(prefix) == "bc1" {
-			if !segwit {
+			if !segwitEnabled {
 				return nil, fmt.Errorf("segwit not supported")
 			}
 

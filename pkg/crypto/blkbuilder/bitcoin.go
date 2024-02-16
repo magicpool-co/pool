@@ -9,11 +9,15 @@ import (
 	"github.com/magicpool-co/pool/pkg/crypto/wire"
 )
 
-func SerializeBitcoinBlockHeader(nonce, nTime, version uint32, bits, prevHash string, txHashes [][]byte) ([]byte, []byte, error) {
+func SerializeBitcoinBlockHeader(
+	nonce, nTime, version uint32,
+	bits, prevHash string,
+	txHashes [][]byte,
+) ([]byte, []byte, error) {
+	merkleRoot := merkle.CalculateRoot(txHashes)
+
 	var buf bytes.Buffer
 	var order = binary.BigEndian
-
-	merkleRoot := merkle.CalculateRoot(txHashes)
 	if err := wire.WriteElement(&buf, order, nonce); err != nil {
 		return nil, nil, err
 	} else if err := wire.WriteHexString(&buf, order, bits); err != nil {

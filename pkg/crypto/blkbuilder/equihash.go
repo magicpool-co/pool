@@ -19,11 +19,15 @@ type EquihashBuilder struct {
 	txHexes       [][]byte
 }
 
-func NewEquihashBuilder(version, nTime uint32, bits, prevHash, saplingRoot string, txHashes, txHexes [][]byte) (*EquihashBuilder, error) {
+func NewEquihashBuilder(
+	version, nTime uint32,
+	bits, prevHash, saplingRoot string,
+	txHashes, txHexes [][]byte,
+) (*EquihashBuilder, error) {
+	merkleRoot := merkle.CalculateRoot(txHashes)
+
 	var buf bytes.Buffer
 	var order = binary.BigEndian
-
-	merkleRoot := merkle.CalculateRoot(txHashes)
 	if err := wire.WriteHexString(&buf, order, bits); err != nil {
 		return nil, err
 	} else if err := wire.WriteElement(&buf, order, nTime); err != nil {
@@ -73,7 +77,6 @@ func (b *EquihashBuilder) SerializeBlock(work *types.StratumWork) ([]byte, error
 
 	var buf bytes.Buffer
 	var order = binary.BigEndian
-
 	if err := wire.WriteElement(&buf, order, b.header); err != nil {
 		return nil, err
 	} else if err := wire.WriteElement(&buf, order, work.EquihashSolution); err != nil {

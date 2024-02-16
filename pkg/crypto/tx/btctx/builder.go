@@ -1,9 +1,13 @@
+// Copyright (c) 2013-2017 The btcsuite developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
 package btctx
 
 import (
 	"encoding/hex"
 
-	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	secp256k1signer "github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 
 	"github.com/magicpool-co/pool/pkg/crypto"
@@ -12,15 +16,20 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
-func privKeyToAddress(privKey *secp256k1.PrivateKey, prefixP2PKH []byte) string {
+func PrivKeyToAddress(privKey *secp256k1.PrivateKey, version []byte) string {
 	pubKeyBytes := privKey.PubKey().SerializeUncompressed()
 	pubKeyHash := crypto.Ripemd160(crypto.Sha256(pubKeyBytes))
-	address := base58.CheckEncode(prefixP2PKH, pubKeyHash)
+	address := base58.CheckEncode(version, pubKeyHash)
 
 	return address
 }
 
-func GenerateRawTx(baseTx *Transaction, inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64) (*Transaction, error) {
+func GenerateRawTx(
+	baseTx *Transaction,
+	inputs []*types.TxInput,
+	outputs []*types.TxOutput,
+	fee uint64,
+) (*Transaction, error) {
 	tx := baseTx.ShallowCopy()
 	err := txCommon.DistributeFees(inputs, outputs, fee, true)
 	if err != nil {
@@ -45,14 +54,20 @@ func GenerateRawTx(baseTx *Transaction, inputs []*types.TxInput, outputs []*type
 	return tx, nil
 }
 
-func GenerateSignedTx(privKey *secp256k1.PrivateKey, baseTx *Transaction, inputs []*types.TxInput, outputs []*types.TxOutput, fee uint64) (*Transaction, error) {
+func GenerateSignedTx(
+	privKey *secp256k1.PrivateKey,
+	baseTx *Transaction,
+	inputs []*types.TxInput,
+	outputs []*types.TxOutput,
+	fee uint64,
+) (*Transaction, error) {
 	rawTx, err := GenerateRawTx(baseTx, inputs, outputs, fee)
 	if err != nil {
 		return nil, err
 	}
 	signedTx := baseTx.ShallowCopy()
 
-	address := privKeyToAddress(privKey, signedTx.PrefixP2PKH)
+	address := PrivKeyToAddress(privKey, signedTx.PrefixP2PKH)
 	inputScript, err := AddressToScript(address, signedTx.PrefixP2PKH, signedTx.PrefixP2SH, signedTx.SegwitEnabled)
 	if err != nil {
 		return nil, err
@@ -85,7 +100,13 @@ func GenerateSignedTx(privKey *secp256k1.PrivateKey, baseTx *Transaction, inputs
 	return signedTx, nil
 }
 
-func GenerateTx(privKey *secp256k1.PrivateKey, baseTx *Transaction, inputs []*types.TxInput, outputs []*types.TxOutput, feePerByte uint64) ([]byte, error) {
+func GenerateTx(
+	privKey *secp256k1.PrivateKey,
+	baseTx *Transaction,
+	inputs []*types.TxInput,
+	outputs []*types.TxOutput,
+	feePerByte uint64,
+) ([]byte, error) {
 	// generate the tx once to calculate the fee based off of its size
 	initialTx, err := GenerateSignedTx(privKey, baseTx, inputs, outputs, 0)
 	if err != nil {

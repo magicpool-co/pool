@@ -3,25 +3,18 @@ package ethtx
 import (
 	"fmt"
 
-	"crypto/ecdsa"
 	"encoding/hex"
 	"math/big"
 
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	ethCommon "github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
-	"golang.org/x/crypto/sha3"
 
 	"github.com/magicpool-co/pool/pkg/crypto"
 )
 
 func GenerateContractData(function string, args ...[]byte) []byte {
-	transferFnSignature := []byte(function)
-	hash := sha3.NewLegacyKeccak256()
-	hash.Write(transferFnSignature)
-	methodID := hash.Sum(nil)[:4]
-
-	var data []byte
-	data = append(data, methodID...)
+	data := crypto.Keccak256([]byte(function))[:4]
 	for _, arg := range args {
 		data = append(data, ethCommon.LeftPadBytes(arg, 32)...)
 	}
@@ -29,7 +22,13 @@ func GenerateContractData(function string, args ...[]byte) []byte {
 	return data
 }
 
-func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, baseFee *big.Int, gasLimit, nonce, chainID uint64) (string, *big.Int, error) {
+func NewTx(
+	privKey *secp256k1.PrivateKey,
+	address string,
+	data []byte,
+	value, baseFee *big.Int,
+	gasLimit, nonce, chainID uint64,
+) (string, *big.Int, error) {
 	toAddress := ethCommon.HexToAddress(address)
 
 	// maxFee = (baseFee * 2) + priorityTip
@@ -54,7 +53,7 @@ func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, baseFe
 		Data:      data,
 	})
 
-	signedTx, err := ethTypes.SignTx(tx, signer, privKey)
+	signedTx, err := ethTypes.SignTx(tx, signer, privKey.ToECDSA())
 	if err != nil {
 		return "", nil, err
 	}
@@ -71,7 +70,12 @@ func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, baseFe
 	return string(encodedTx), fees, nil
 }
 
-func NewLegacyTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, gasPrice *big.Int, gasLimit, nonce, chainID uint64) (string, *big.Int, error) {
+func NewLegacyTx(
+	privKey *secp256k1.PrivateKey,
+	address string,
+	data []byte,
+	value, gasPrice *big.Int, gasLimit, nonce, chainID uint64,
+) (string, *big.Int, error) {
 	toAddress := ethCommon.HexToAddress(address)
 
 	fees := new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gasLimit))
@@ -90,7 +94,7 @@ func NewLegacyTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, 
 		Data:     data,
 	})
 
-	signedTx, err := ethTypes.SignTx(tx, signer, privKey)
+	signedTx, err := ethTypes.SignTx(tx, signer, privKey.ToECDSA())
 	if err != nil {
 		return "", nil, err
 	}

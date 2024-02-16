@@ -3,19 +3,37 @@ package cfxtx
 import (
 	"fmt"
 
-	"crypto/ecdsa"
 	"encoding/hex"
 	"math/big"
 
 	cfxTypes "github.com/Conflux-Chain/go-conflux-sdk/types"
 	cfxAddress "github.com/Conflux-Chain/go-conflux-sdk/types/cfxaddress"
-	ethCrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	secp256k1signer "github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 
 	"github.com/magicpool-co/pool/pkg/crypto"
 )
 
-func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, gasPrice *big.Int, gasLimit, storageLimit, nonce, chainID, epochNumber uint64) (string, *big.Int, error) {
-	fromAddress, err := cfxAddress.NewFromBytes(ethCrypto.PubkeyToAddress(privKey.PublicKey).Bytes())
+func signSecp256k1ETH(privKey *secp256k1.PrivateKey, msg []byte) []byte {
+	const RecoveryIDOffset = 64
+
+	sig := secp256k1signer.SignCompact(privKey, msg, false)
+	v := sig[0] - 27
+	copy(sig, sig[1:])
+	sig[RecoveryIDOffset] = v
+
+	return sig
+}
+
+func NewTx(
+	privKey *secp256k1.PrivateKey,
+	address string,
+	data []byte,
+	value, gasPrice *big.Int,
+	gasLimit, storageLimit, nonce, chainID, epochNumber uint64,
+) (string, *big.Int, error) {
+	pubKeyBytes := privKey.PubKey().SerializeUncompressed()
+	fromAddress, err := cfxAddress.NewFromBytes(crypto.Keccak256(pubKeyBytes[1:])[12:])
 	if err != nil {
 		return "", nil, err
 	}
@@ -56,11 +74,7 @@ func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, gasPri
 		return "", nil, err
 	}
 
-	sig, err := ethCrypto.Sign(txHash, privKey)
-	if err != nil {
-		return "", nil, err
-	}
-
+	sig := signSecp256k1ETH(privKey, txHash)
 	txBin, err := tx.EncodeWithSignature(sig[64], sig[0:32], sig[32:64])
 	if err != nil {
 		return "", nil, err
@@ -74,6 +88,10 @@ func NewTx(privKey *ecdsa.PrivateKey, address string, data []byte, value, gasPri
 }
 
 func CalculateTxID(tx string) string {
+	if len(tx) > 2 && tx[:2] == "0x" {
+		tx = tx[2:]
+	}
+
 	txBytes, err := hex.DecodeString(tx)
 	if err != nil {
 		return ""
