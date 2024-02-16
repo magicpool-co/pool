@@ -27,24 +27,9 @@ func (suite *PooldbReadsSuite) TestReadNode() {
 		suite.T().Errorf("failed: GetEnabledNodes: %v", err)
 	}
 
-	_, err = pooldb.GetBackupNodes(pooldbClient.Reader(), true)
-	if err != nil {
-		suite.T().Errorf("failed: GetBackupNodes: %v", err)
-	}
-
 	_, err = pooldb.GetPendingBackupNodes(pooldbClient.Reader(), true)
 	if err != nil {
 		suite.T().Errorf("failed: GetPendingBackupNodes: %v", err)
-	}
-
-	_, err = pooldb.GetPendingUpdateNodes(pooldbClient.Reader(), true)
-	if err != nil {
-		suite.T().Errorf("failed: GetPendingUpdateNodes: %v", err)
-	}
-
-	_, err = pooldb.GetPendingResizeNodes(pooldbClient.Reader(), true)
-	if err != nil {
-		suite.T().Errorf("failed: GetPendingResizeNodes: %v", err)
 	}
 }
 
@@ -56,9 +41,9 @@ func (suite *PooldbReadsSuite) TestReadMiner() {
 		suite.T().Errorf("failed: GetMiner: %v", err)
 	}
 
-	_, err = pooldb.GetMinerID(pooldbClient.Reader(), "0x", "ETH")
+	_, err = pooldb.GetMinerIDByChainAddress(pooldbClient.Reader(), "0x", "ETH")
 	if err != nil {
-		suite.T().Errorf("failed: GetMinerID: %v", err)
+		suite.T().Errorf("failed: GetMinerIDByChainAddress: %v", err)
 	}
 
 	_, err = pooldb.GetMinerAddress(pooldbClient.Reader(), 1)
@@ -75,6 +60,10 @@ func (suite *PooldbReadsSuite) TestReadMiner() {
 	if err != nil {
 		suite.T().Errorf("failed: GetMinersWithLastShares: %v", err)
 	}
+}
+
+func (suite *PooldbReadsSuite) TestReadRecipient() {
+	var err error
 
 	_, err = pooldb.GetRecipients(pooldbClient.Reader())
 	if err != nil {
@@ -95,24 +84,19 @@ func (suite *PooldbReadsSuite) TestReadWorker() {
 		suite.T().Errorf("failed: GetWorkerID: %v", err)
 	}
 
-	_, err = pooldb.GetWorkersByMiner(pooldbClient.Reader(), 0)
+	_, err = pooldb.GetWorkersByMinerID(pooldbClient.Reader(), 0)
 	if err != nil {
-		suite.T().Errorf("failed: GetWorkersByMiner: %v", err)
-	}
-
-	_, err = pooldb.GetActiveWorkersByMinersCount(pooldbClient.Reader(), []uint64{0, 1})
-	if err != nil {
-		suite.T().Errorf("failed: GetActiveWorkersByMinersCount: %v", err)
-	}
-
-	_, err = pooldb.GetInactiveWorkersByMinersCount(pooldbClient.Reader(), []uint64{0, 1})
-	if err != nil {
-		suite.T().Errorf("failed: GetInactiveWorkersByMinersCount: %v", err)
+		suite.T().Errorf("failed: GetWorkersByMinerID: %v", err)
 	}
 
 	_, err = pooldb.GetWorkersWithLastShares(pooldbClient.Reader(), []uint64{0, 1})
 	if err != nil {
 		suite.T().Errorf("failed: GetWorkersWithLastShares: %v", err)
+	}
+
+	_, _, err = pooldb.GetWorkerCountByMinerIDs(pooldbClient.Reader(), []uint64{0, 1})
+	if err != nil {
+		suite.T().Errorf("failed: GetWorkerCountByMinerIDs: %v", err)
 	}
 }
 
@@ -138,16 +122,6 @@ func (suite *PooldbReadsSuite) TestReadRound() {
 		suite.T().Errorf("failed: GetRound: %v", err)
 	}
 
-	_, err = pooldb.GetLastRoundBeforeTime(pooldbClient.Reader(), "ETH", time.Now())
-	if err != nil {
-		suite.T().Errorf("failed: GetLastRoundBeforeTime: %v", err)
-	}
-
-	_, err = pooldb.GetRoundMinTimestamp(pooldbClient.Reader(), "ETH")
-	if err != nil {
-		suite.T().Errorf("failed: GetRoundMinTimestamp: %v", err)
-	}
-
 	_, err = pooldb.GetRounds(pooldbClient.Reader(), 0, 10)
 	if err != nil {
 		suite.T().Errorf("failed: GetRounds: %v", err)
@@ -168,19 +142,14 @@ func (suite *PooldbReadsSuite) TestReadRound() {
 		suite.T().Errorf("failed: GetRoundsByChainCount: %v", err)
 	}
 
-	_, err = pooldb.GetRoundsByMiners(pooldbClient.Reader(), []uint64{0, 1}, 0, 10)
+	_, err = pooldb.GetRoundsByMinerIDs(pooldbClient.Reader(), []uint64{0, 1}, 0, 10)
 	if err != nil {
-		suite.T().Errorf("failed: GetRoundsByMiners: %v", err)
+		suite.T().Errorf("failed: GetRoundsByMinerIDs: %v", err)
 	}
 
-	_, err = pooldb.GetRoundsByMinersCount(pooldbClient.Reader(), []uint64{0, 1})
+	_, err = pooldb.GetRoundsByMinerIDsCount(pooldbClient.Reader(), []uint64{0, 1})
 	if err != nil {
-		suite.T().Errorf("failed: GetRoundsByMinersCount: %v", err)
-	}
-
-	_, err = pooldb.GetRoundsBetweenTime(pooldbClient.Reader(), "ETH", time.Now(), time.Now())
-	if err != nil {
-		suite.T().Errorf("failed: GetRoundsBetweenTime: %v", err)
+		suite.T().Errorf("failed: GetRoundsByMinerIDsCount: %v", err)
 	}
 
 	_, err = pooldb.GetPendingRoundsByChain(pooldbClient.Reader(), "ETH", 100000)
@@ -188,29 +157,14 @@ func (suite *PooldbReadsSuite) TestReadRound() {
 		suite.T().Errorf("failed: GetPendingRoundsByChain: %v", err)
 	}
 
-	_, err = pooldb.GetPendingRoundCountBetweenTime(pooldbClient.Reader(), "ETH", time.Now(), time.Now())
-	if err != nil {
-		suite.T().Errorf("failed: GetPendingRoundCountBetweenTime: %v", err)
-	}
-
 	_, err = pooldb.GetImmatureRoundsByChain(pooldbClient.Reader(), "ETH", 100000)
 	if err != nil {
 		suite.T().Errorf("failed: GetImmatureRoundsByChain: %v", err)
 	}
 
-	_, err = pooldb.GetUnspentRounds(pooldbClient.Reader(), "ETH")
+	_, err = pooldb.GetUnspentRoundsByChain(pooldbClient.Reader(), "ETH")
 	if err != nil {
-		suite.T().Errorf("failed: GetUnspentRounds: %v", err)
-	}
-
-	_, err = pooldb.GetSumImmatureRoundValueByChain(pooldbClient.Reader(), "ETH")
-	if err != nil {
-		suite.T().Errorf("failed: GetSumImmatureRoundValueByChain: %v", err)
-	}
-
-	_, err = pooldb.GetSumUnspentRoundValueByChain(pooldbClient.Reader(), "ETH")
-	if err != nil {
-		suite.T().Errorf("failed: GetSumUnspentRoundValueByChain: %v", err)
+		suite.T().Errorf("failed: GetUnspentRoundsByChain: %v", err)
 	}
 
 	_, err = pooldb.GetRoundLuckByChain(pooldbClient.Reader(), "ETC", true, time.Hour*24*30)
@@ -466,14 +420,14 @@ func (suite *PooldbReadsSuite) TestReadPayout() {
 		suite.T().Errorf("failed: GetPayouts: %v", err)
 	}
 
-	_, err = pooldb.GetPayoutsByMiners(pooldbClient.Reader(), []uint64{0, 1}, 10, 10)
+	_, err = pooldb.GetPayoutsByMinerIDs(pooldbClient.Reader(), []uint64{0, 1}, 10, 10)
 	if err != nil {
-		suite.T().Errorf("failed: GetPayoutsByMiners: %v", err)
+		suite.T().Errorf("failed: GetPayoutsByMinerIDs: %v", err)
 	}
 
-	_, err = pooldb.GetPayoutsByMinersCount(pooldbClient.Reader(), []uint64{0, 1})
+	_, err = pooldb.GetPayoutsByMinerIDsCount(pooldbClient.Reader(), []uint64{0, 1})
 	if err != nil {
-		suite.T().Errorf("failed: GetPayoutsByMinersCount: %v", err)
+		suite.T().Errorf("failed: GetPayoutsByMinerIDsCount: %v", err)
 	}
 
 	_, err = pooldb.GetPayoutBalanceInputSums(pooldbClient.Reader(), []uint64{0, 1})

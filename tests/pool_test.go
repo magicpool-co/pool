@@ -18,6 +18,73 @@ import (
 	"github.com/magicpool-co/pool/pkg/stratum/rpc"
 )
 
+func testPoolServer(
+	server *pool.Pool,
+	handshake, requests []*rpc.Request,
+	responses [][]byte,
+) error {
+	if len(requests) != len(responses) {
+		return fmt.Errorf("mismatch on request and response count")
+	}
+
+	go server.Serve()
+	defer server.Stop()
+
+	// use cancellable so client server stops at end of function
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// have to wait for server to start to properly instantiate port
+	// since it's unknown (it's as zero and go chooses it)
+	time.Sleep(time.Millisecond * 100)
+	url := fmt.Sprintf("localhost:%d", server.Port(0))
+	client := stratum.NewClient(ctx, url, time.Second*5, time.Second)
+	reqCh, resCh, errCh := client.Start(handshake)
+	time.Sleep(time.Millisecond * 100)
+
+	done := make(chan struct{})
+	timer := time.NewTimer(time.Second * 5)
+	var started bool
+	for {
+		select {
+		case <-done:
+			return nil
+		case <-timer.C:
+			return fmt.Errorf("never ran test requests")
+		case err := <-errCh:
+			return fmt.Errorf("recieved err: %v", err)
+		case <-reqCh:
+			if started {
+				continue
+			}
+		case <-resCh:
+			if started {
+				continue
+			}
+		}
+
+		started = true
+		go func() {
+			for j, req := range requests {
+				res, err := client.WriteRequest(req)
+				if err != nil {
+					err = fmt.Errorf("can't write request: %s: %v", req.Method, err)
+				} else if bytes.Compare(res.Result, responses[j]) != 0 {
+					err = fmt.Errorf("response mismatch: have %s, want %s", res.Result, responses[j])
+				} else {
+					continue
+				}
+
+				errCh <- err
+				return
+			}
+			done <- struct{}{}
+		}()
+	}
+
+	return nil
+}
+
 type PoolSuite struct {
 	suite.Suite
 }
@@ -31,83 +98,6 @@ func (suite *PoolSuite) TestPool() {
 		requests  []*rpc.Request
 		responses [][]byte
 	}{
-		{
-			chain: "AE",
-			priv: "03620b2ed304234abe4f02e4f95ece19626989351487c0f93821e4827ed1301e" +
-				"03620b2ed304234abe4f02e4f95ece19626989351487c0f93821e4827ed1301e",
-			opts: &pool.Options{
-				Chain:          "AE",
-				PortDiffIdx:    map[int]int{0: 1},
-				WindowSize:     100000,
-				ExtraNonceSize: 4,
-				JobListSize:    5,
-				PollingPeriod:  time.Millisecond * 100,
-			},
-			handshake: []*rpc.Request{
-				rpc.MustNewRequest("mining.subscribe"),
-				rpc.MustNewRequest("mining.authorize",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
-					"x",
-				),
-			},
-			requests: []*rpc.Request{
-				rpc.MustNewRequest("eth_submitHashrate",
-					"0x000000000000000000000000025fc9f3",
-					"0x8f4c405730375083a74b95eee0ff1ab1d472f176a13f115af1d553408a9add5d",
-				),
-				// a submission consists of:
-				//	- worker id
-				// 	- job id
-				// 	- nonce
-				//	- solution
-				rpc.MustNewRequest("mining.submit",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
-					"000001",
-					"356d5470",
-					[]string{
-						"01b89053", "01efc0e9", "01f007ae", "020a865c", "02e319c3", "0321d72a", "03e5f0a5", "04cbc625",
-						"04fd1335", "0933185b", "09e1705b", "0c0008f7", "0c9ab2da", "0ecac105", "0f91a91a", "0fdba4a7",
-						"1050b77d", "12a7cafd", "12adcca2", "1307ebfa", "145a0a29", "146a9b6b", "14b60e33", "152c4cf0",
-						"156de5e0", "162ef9d1", "17487854", "19a5e13e", "1a8472ce", "1a8bee7d", "1aee1532", "1af23b43",
-						"1c58d6db", "1c9a36d4", "1c9f5132", "1cbe6475", "1d89a910", "1e521b5c", "1e58619c", "1e5b84fe",
-						"1e7afe96", "1f919ada",
-					},
-				),
-				rpc.MustNewRequest("mining.submit",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
-					"000001",
-					"85f9d18d",
-					[]string{
-						"01ffbd0b", "020072a2", "02b29b0c", "02ee4a27", "03f7a537", "0471bf13", "04806cd5", "0535b8ae",
-						"062d5562", "064d8a83", "07a35c79", "081e5c37", "08a1f0b2", "08b21c7e", "09b25d57", "0a65d2dc",
-						"0ae0572e", "0c9797e3", "0da570ea", "0e4a54e6", "1029f3c3", "103ce7a4", "118bb092", "11a84da4",
-						"11d7df84", "13bf2ab3", "1487c882", "14f26ac7", "15357fa0", "157d6931", "15eaf0fe", "16541e8b",
-						"1720ca3f", "17d30f85", "18226043", "18d4ed48", "191decd8", "19383ff0", "1974cae9", "1a90f244",
-						"1cd82e94", "1f614b02",
-					},
-				),
-				// test duplicate share
-				rpc.MustNewRequest("mining.submit",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
-					"000001",
-					"85f9d18d",
-					[]string{
-						"01ffbd0b", "020072a2", "02b29b0c", "02ee4a27", "03f7a537", "0471bf13", "04806cd5", "0535b8ae",
-						"062d5562", "064d8a83", "07a35c79", "081e5c37", "08a1f0b2", "08b21c7e", "09b25d57", "0a65d2dc",
-						"0ae0572e", "0c9797e3", "0da570ea", "0e4a54e6", "1029f3c3", "103ce7a4", "118bb092", "11a84da4",
-						"11d7df84", "13bf2ab3", "1487c882", "14f26ac7", "15357fa0", "157d6931", "15eaf0fe", "16541e8b",
-						"1720ca3f", "17d30f85", "18226043", "18d4ed48", "191decd8", "19383ff0", "1974cae9", "1a90f244",
-						"1cd82e94", "1f614b02",
-					},
-				),
-			},
-			responses: [][]byte{
-				common.MustMarshalJSON(true),
-				common.MustMarshalJSON(true),
-				common.MustMarshalJSON(true),
-				common.MustMarshalJSON(false),
-			},
-		},
 		{
 			chain: "CFX",
 			priv:  "03620b2ed304234abe4f02e4f95ece19626989351487c0f93821e4827ed1301e",
@@ -157,67 +147,6 @@ func (suite *PoolSuite) TestPool() {
 			},
 		},
 		{
-			chain: "CTXC",
-			priv:  "03620b2ed304234abe4f02e4f95ece19626989351487c0f93821e4827ed1301e",
-			opts: &pool.Options{
-				Chain:         "CTXC",
-				PortDiffIdx:   map[int]int{0: 1},
-				WindowSize:    100000,
-				JobListSize:   10,
-				PollingPeriod: time.Millisecond * 100,
-			},
-			handshake: []*rpc.Request{
-				rpc.MustNewRequest("ctxc_submitLogin",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
-					"x",
-				),
-			},
-			requests: []*rpc.Request{
-				rpc.MustNewRequest("ctxc_submitHashrate",
-					"0x000000000000000000000000025fc9f3",
-					"0x8f4c405730375083a74b95eee0ff1ab1d472f176a13f115af1d553408a9add5d",
-				),
-				// a submission consists of:
-				// 	- nonce
-				//	- header hash
-				// 	- solution
-				rpc.MustNewRequest("ctxc_submitWork",
-					"0x100600000e6e4271",
-					"0x3f62b7a620e9695597115ab1d5a219162136e7af6f187796b1a244793d27175d",
-					"0x006695680524339d06262207067d42b707e9b7b1095dda3209a093390a4a4c2f0a88ba7c"+
-						"0ab640eb0b7a3f820fdb43221018a35010a4be9613de7587151a4b78175247c719"+
-						"5e191b1a9f9dc71ab585e7204acf8e2097713b212dc8c922a34ba5238d7e5423d7"+
-						"6ae223e7589424062629240b63ab244d715927dbff102dfa4cf3332f58d83335f1"+
-						"5f335149223599a0d23741a46d3936957e39839dc33b31a90f3c300d663f30870d",
-				),
-				rpc.MustNewRequest("ctxc_submitWork",
-					"0x620600000e6e4271",
-					"0x3f62b7a620e9695597115ab1d5a219162136e7af6f187796b1a244793d27175d",
-					"0x0111504002d2191e02f87224048ab2e505ba0220087586cd08fb9667090137370b476013"+
-						"0c34c0340c8a8ae90e90fe5a0e969ce90ec3e6681053873e105ab58d1288012f12"+
-						"f1fd2714a3870d14f9c50c150afc73152a13ed15fdd43e162482961a46093d1c26"+
-						"9c781ccb7cae1d42aacd1e3d381f2422df922448e69c2706079e27391d08277522"+
-						"572a6679c13123b50132b9256e355ad16e387856523b8c56043b97bcc93dcd9484",
-				),
-				// test duplicate share
-				rpc.MustNewRequest("ctxc_submitWork",
-					"0x620600000e6e4271",
-					"0x3f62b7a620e9695597115ab1d5a219162136e7af6f187796b1a244793d27175d",
-					"0x0111504002d2191e02f87224048ab2e505ba0220087586cd08fb9667090137370b476013"+
-						"0c34c0340c8a8ae90e90fe5a0e969ce90ec3e6681053873e105ab58d1288012f12"+
-						"f1fd2714a3870d14f9c50c150afc73152a13ed15fdd43e162482961a46093d1c26"+
-						"9c781ccb7cae1d42aacd1e3d381f2422df922448e69c2706079e27391d08277522"+
-						"572a6679c13123b50132b9256e355ad16e387856523b8c56043b97bcc93dcd9484",
-				),
-			},
-			responses: [][]byte{
-				common.MustMarshalJSON(true),
-				common.MustMarshalJSON(true),
-				common.MustMarshalJSON(true),
-				common.MustMarshalJSON(false),
-			},
-		},
-		{
 			chain: "ERG",
 			priv:  "",
 			opts: &pool.Options{
@@ -232,7 +161,7 @@ func (suite *PoolSuite) TestPool() {
 			handshake: []*rpc.Request{
 				rpc.MustNewRequest("mining.subscribe"),
 				rpc.MustNewRequest("mining.authorize",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"x",
 				),
 			},
@@ -244,14 +173,22 @@ func (suite *PoolSuite) TestPool() {
 				//	- unused
 				// 	- full nonce
 				rpc.MustNewRequest("mining.submit",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"39132c4ae81f",
 					"00000000",
 					"ffff39132c4ae81f",
 				),
 				rpc.MustNewRequest("mining.submit",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
+					"000001",
+					"39132f884e11",
+					"00000000",
+					"ffff39132f884e11",
+				),
+				// test duplicate share
+				rpc.MustNewRequest("mining.submit",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"39132f884e11",
 					"00000000",
@@ -261,7 +198,7 @@ func (suite *PoolSuite) TestPool() {
 			responses: [][]byte{
 				common.MustMarshalJSON(true),
 				common.MustMarshalJSON(true),
-				common.MustMarshalJSON(true),
+				common.MustMarshalJSON(false),
 			},
 		},
 		{
@@ -276,7 +213,7 @@ func (suite *PoolSuite) TestPool() {
 			},
 			handshake: []*rpc.Request{
 				rpc.MustNewRequest("eth_submitLogin",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"x",
 				),
 			},
@@ -327,7 +264,7 @@ func (suite *PoolSuite) TestPool() {
 			handshake: []*rpc.Request{
 				rpc.MustNewRequest("mining.subscribe"),
 				rpc.MustNewRequest("mining.authorize",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"x",
 				),
 			},
@@ -343,7 +280,7 @@ func (suite *PoolSuite) TestPool() {
 				//	- header hash
 				// 	- mix digest
 				rpc.MustNewRequest("mining.submit",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"0xff00000049466d8c",
 					"0x93f52026533c86a3797637f6b82c96b99c90ce68b4649cac0d5af649df20c410",
@@ -351,7 +288,7 @@ func (suite *PoolSuite) TestPool() {
 				),
 				// test duplicate share
 				rpc.MustNewRequest("mining.submit",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"0xff00000049466d8c",
 					"0x93f52026533c86a3797637f6b82c96b99c90ce68b4649cac0d5af649df20c410",
@@ -378,7 +315,7 @@ func (suite *PoolSuite) TestPool() {
 			handshake: []*rpc.Request{
 				rpc.MustNewRequest("mining.subscribe"),
 				rpc.MustNewRequest("mining.authorize",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"x",
 				),
 			},
@@ -394,14 +331,14 @@ func (suite *PoolSuite) TestPool() {
 				//	- nonce
 				// 	- solution
 				rpc.MustNewRequest("mining.submit",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"bde70e63",
 					"000000000000000000000000000000000000000000000000cd000000",
 					"3412083e673b31323c60778f6bad22dde2e8c45ce9179603a4e625273da579a61de2c052c5ef509527b2b99d36f1f460e509eae779",
 				),
 				rpc.MustNewRequest("mining.submit",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"bde70e63",
 					"0000000000000000000000000000000000000000000000002e200000",
@@ -409,7 +346,7 @@ func (suite *PoolSuite) TestPool() {
 				),
 				// test duplicate share
 				rpc.MustNewRequest("mining.submit",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"bde70e63",
 					"0000000000000000000000000000000000000000000000002e200000",
@@ -559,7 +496,7 @@ func (suite *PoolSuite) TestPool() {
 			handshake: []*rpc.Request{
 				rpc.MustNewRequest("mining.subscribe"),
 				rpc.MustNewRequest("mining.authorize",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"x",
 				),
 			},
@@ -575,14 +512,14 @@ func (suite *PoolSuite) TestPool() {
 				//	- header hash
 				// 	- mix digest
 				rpc.MustNewRequest("mining.submit",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"0xff5af6135c7d5d01",
 					"0x6fc2495aa1c4e6a90d7f5639c67dc3334647b8c41ef42a1a1cd690e49fe9e7f1",
 					"0xf0587f05a6dfbac45f1d2d39fd2f3eb43639555e42224e9173757618baa2329f",
 				),
 				rpc.MustNewRequest("mining.submit",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"0xff5af611df410db8",
 					"0x6fc2495aa1c4e6a90d7f5639c67dc3334647b8c41ef42a1a1cd690e49fe9e7f1",
@@ -590,7 +527,7 @@ func (suite *PoolSuite) TestPool() {
 				),
 				// test duplicate share
 				rpc.MustNewRequest("mining.submit",
-					"ETH:0x0000000000000000000000000000000000000000.worker",
+					"eth:0x0000000000000000000000000000000000000000.worker",
 					"000001",
 					"0xff5af611df410db8",
 					"0x6fc2495aa1c4e6a90d7f5639c67dc3334647b8c41ef42a1a1cd690e49fe9e7f1",
@@ -616,6 +553,7 @@ func (suite *PoolSuite) TestPool() {
 		miningNode, err := node.GetMiningNode(true, tt.chain, tt.priv, nil, logger, nil)
 		if err != nil {
 			suite.T().Errorf("failed to create node: %d: %s: %v", i, tt.chain, err)
+			continue
 		}
 
 		server, err := pool.New(miningNode, pooldbClient, redisClient, logger, nil, nil, tt.opts)
@@ -624,59 +562,9 @@ func (suite *PoolSuite) TestPool() {
 			continue
 		}
 
-		func() {
-			go server.Serve()
-			defer server.Stop()
-
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
-			// have to wait for server to start to properly instantiate port
-			// since it's unknown (it's as zero and go chooses it)
-			time.Sleep(time.Millisecond * 100)
-			client := stratum.NewClient(ctx, fmt.Sprintf("localhost:%d", server.Port(0)), time.Second*5, time.Second)
-			reqCh, resCh, errCh := client.Start(tt.handshake)
-			time.Sleep(time.Millisecond * 100)
-
-			var ready, started, completed bool
-			for {
-				if completed {
-					return
-				}
-
-				select {
-				case <-time.After(time.Second * 6):
-					if !completed {
-						suite.T().Errorf("failed on %d: %s: never ran test requests", i, tt.chain)
-					}
-					return
-				case <-reqCh:
-					ready = true
-				case <-resCh:
-					ready = true
-				case err := <-errCh:
-					suite.T().Errorf("received error: %d: %s: %v", i, tt.chain, err)
-				}
-
-				if !ready || started {
-					continue
-				}
-				started = true
-
-				go func() {
-					for j, req := range tt.requests {
-						res, err := client.WriteRequest(req)
-						if err != nil {
-							suite.T().Errorf("failed to write request: %d: %s: %s: %v", i, tt.chain, req.Method, err)
-							continue
-						} else if bytes.Compare(res.Result, tt.responses[j]) != 0 {
-							suite.T().Errorf("failed on response: mismatch: %d: %s: have %s, want %s",
-								i, tt.chain, res.Result, tt.responses[j])
-						}
-					}
-					completed = true
-				}()
-			}
-		}()
+		err = testPoolServer(server, tt.handshake, tt.requests, tt.responses)
+		if err != nil {
+			suite.T().Errorf("failed to test server: %d: %s: %v", i, tt.chain, err)
+		}
 	}
 }

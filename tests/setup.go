@@ -62,13 +62,13 @@ func newTestPooldb(retryInterval, timeoutInterval time.Duration) (*dbcl.Client, 
 		case <-retry.C:
 			client, err = pooldb.New(pooldbArgs)
 			if err == nil {
-				// needs to create tsdb since multiple databases on start is annoying for docker mysql
+				// needs to create tsdb since multiple databases is annoying for docker mysql
 				client.Writer().Exec("CREATE DATABASE IF NOT EXISTS tsdb;")
 				return client, nil
 			}
 		case <-quit.C:
 			retry.Stop()
-			return nil, fmt.Errorf("unable to connect to test pooldb")
+			return nil, fmt.Errorf("unable to connect to test pooldb: %v", err)
 		}
 	}
 }
@@ -89,7 +89,7 @@ func newTestTsdb(retryInterval, timeoutInterval time.Duration) (*dbcl.Client, er
 			}
 		case <-quit.C:
 			retry.Stop()
-			return nil, fmt.Errorf("unable to connect to tsdb")
+			return nil, fmt.Errorf("unable to connect to tsdb: %v", err)
 		}
 	}
 }
@@ -110,7 +110,7 @@ func newTestRedis(retryInterval, timeoutInterval time.Duration) (*redis.Client, 
 			}
 		case <-quit.C:
 			retry.Stop()
-			return nil, fmt.Errorf("unable to connect to test redis")
+			return nil, fmt.Errorf("unable to connect to test redis: %v", err)
 		}
 	}
 }

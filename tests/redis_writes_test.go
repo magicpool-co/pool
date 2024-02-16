@@ -162,27 +162,27 @@ func (suite *RedisWritesSuite) TestWriteCharts() {
 func (suite *RedisWritesSuite) TestWriteCachedStats() {
 	var err error
 
-	err = redisClient.SetCachedGlobalLastShares([]*tsdb.Share{&tsdb.Share{}}, 1)
+	err = redisClient.SetCachedGlobalLastShares([]*tsdb.Share{&tsdb.Share{}}, time.Second)
 	if err != nil {
 		suite.T().Errorf("failed: SetCachedGlobalLastShares: %v", err)
 	}
 
-	err = redisClient.SetCachedGlobalLastProfits([]*tsdb.Block{&tsdb.Block{}}, 1)
+	err = redisClient.SetCachedGlobalLastProfits([]*tsdb.Block{&tsdb.Block{}}, time.Second)
 	if err != nil {
 		suite.T().Errorf("failed: SetCachedGlobalLastProfits: %v", err)
 	}
 
-	err = redisClient.SetCachedLuckByChain("ETH", 0.1, 1)
+	err = redisClient.SetCachedLuckByChain("ETH", 0.1, time.Second)
 	if err != nil {
 		suite.T().Errorf("failed: SetCachedLuckByChain: %v", err)
 	}
 
-	err = redisClient.SetCachedMinersByChain("ETH", 9, 1)
+	err = redisClient.SetCachedMinersByChain("ETH", 9, time.Second)
 	if err != nil {
 		suite.T().Errorf("failed: SetCachedMinersByChain: %v", err)
 	}
 
-	err = redisClient.SetCachedWorkersByChain("ETH", 9, 1)
+	err = redisClient.SetCachedWorkersByChain("ETH", 9, time.Second)
 	if err != nil {
 		suite.T().Errorf("failed: SetCachedWorkersByChain: %v", err)
 	}

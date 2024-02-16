@@ -102,42 +102,6 @@ func (suite *TsdbWritesSuite) TestWriteBlock() {
 	}
 }
 
-func (suite *TsdbWritesSuite) TestWriteRound() {
-	tests := []struct {
-		round *tsdb.Round
-	}{
-		{
-			round: &tsdb.Round{
-				StartTime: time.Now(),
-				EndTime:   time.Now(),
-			},
-		},
-	}
-
-	var err error
-	for i, tt := range tests {
-		err = tsdb.InsertRounds(tsdbClient.Writer(), tt.round)
-		if err != nil {
-			suite.T().Errorf("failed on %d: InsertRounds: %v", i, err)
-		}
-
-		err = tsdb.InsertPartialRounds(tsdbClient.Writer(), tt.round)
-		if err != nil {
-			suite.T().Errorf("failed on %d: InsertPartialRounds: %v", i, err)
-		}
-
-		err = tsdb.InsertFinalRounds(tsdbClient.Writer(), tt.round)
-		if err != nil {
-			suite.T().Errorf("failed on %d: InsertFinalRounds: %v", i, err)
-		}
-
-		err = tsdb.DeleteRoundsBeforeEndTime(tsdbClient.Writer(), time.Now(), "ETH", 1)
-		if err != nil {
-			suite.T().Errorf("failed on %d: DeleteRoundsBeforeEndTime: %v", i, err)
-		}
-	}
-}
-
 func (suite *TsdbWritesSuite) TestWriteEarning() {
 	tests := []struct {
 		earning *tsdb.Earning

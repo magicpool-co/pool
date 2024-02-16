@@ -103,30 +103,6 @@ func (suite *TsdbReadsSuite) TestReadBlocks() {
 	}
 }
 
-func (suite *TsdbReadsSuite) TestReadRounds() {
-	var err error
-
-	_, err = tsdb.GetRounds(tsdbClient.Reader(), "ETH", 1)
-	if err != nil {
-		suite.T().Errorf("failed: GetRounds: %v", err)
-	}
-
-	_, err = tsdb.GetPendingRoundsAtEndTime(tsdbClient.Reader(), time.Now(), "ETH", 1)
-	if err != nil {
-		suite.T().Errorf("failed: GetPendingRoundsAtEndTime: %v", err)
-	}
-
-	_, err = tsdb.GetRoundsAverageLuckSlow(tsdbClient.Reader(), time.Now(), "ETH", 1, time.Hour)
-	if err != nil {
-		suite.T().Errorf("failed: GetRoundsAverageLuckSlow: %v", err)
-	}
-
-	_, err = tsdb.GetRoundsAverageProfitabilitySlow(tsdbClient.Reader(), time.Now(), "ETH", 1, time.Hour)
-	if err != nil {
-		suite.T().Errorf("failed: GetRoundsAverageProfitabilitySlow: %v", err)
-	}
-}
-
 func (suite *TsdbReadsSuite) TestReadEarnings() {
 	var err error
 	metrics := []string{"value", "avg_value"}
@@ -138,12 +114,12 @@ func (suite *TsdbReadsSuite) TestReadEarnings() {
 
 	_, err = tsdb.GetGlobalEarningsAverage(tsdbClient.Reader(), time.Now(), "ETH", 1, time.Hour)
 	if err != nil {
-		suite.T().Errorf("failed: GetRoundsAverageLuckSlow: %v", err)
+		suite.T().Errorf("failed: GetGlobalEarningsAverage: %v", err)
 	}
 
 	_, err = tsdb.GetMinerEarningsAverage(tsdbClient.Reader(), time.Now(), "ETH", 1, time.Hour)
 	if err != nil {
-		suite.T().Errorf("failed: GetRoundsAverageProfitabilitySlow: %v", err)
+		suite.T().Errorf("failed: GetMinerEarningsAverage: %v", err)
 	}
 
 	for _, metric := range metrics {
@@ -233,54 +209,19 @@ func (suite *TsdbReadsSuite) TestReadSharesAverage() {
 		suite.T().Errorf("failed: GetGlobalSharesAverage: %v", err)
 	}
 
-	_, err = tsdb.GetGlobalSharesAverageFast(tsdbClient.Reader(), time.Now(), "ETH", 1, 24, time.Hour*24)
-	if err != nil {
-		suite.T().Errorf("failed: GetGlobalSharesAverageFast: %v", err)
-	}
-
-	_, err = tsdb.GetGlobalSharesAverageSlow(tsdbClient.Reader(), time.Now(), "ETH", 1, time.Hour)
-	if err != nil {
-		suite.T().Errorf("failed: GetGlobalSharesAverageSlow: %v", err)
-	}
-
 	_, err = tsdb.GetMinerSharesAverage(tsdbClient.Reader(), time.Now(), "ETH", 1, time.Minute)
 	if err != nil {
 		suite.T().Errorf("failed: GetMinerSharesAverage: %v", err)
-	}
-
-	_, err = tsdb.GetMinerSharesAverageFast(tsdbClient.Reader(), time.Now(), "ETH", 1, 24, time.Minute)
-	if err != nil {
-		suite.T().Errorf("failed: GetMinerSharesAverageFast: %v", err)
-	}
-
-	_, err = tsdb.GetMinerSharesAverageSlow(tsdbClient.Reader(), 1, time.Now(), "ETH", 1, time.Second)
-	if err != nil {
-		suite.T().Errorf("failed: GetMinerSharesAverageSlow: %v", err)
 	}
 
 	_, err = tsdb.GetWorkerSharesAverage(tsdbClient.Reader(), time.Now(), "ETH", 1, time.Second)
 	if err != nil {
 		suite.T().Errorf("failed: GetWorkerSharesAverage: %v", err)
 	}
-
-	_, err = tsdb.GetWorkerSharesAverageFast(tsdbClient.Reader(), time.Now(), "ETH", 1, 24, time.Second)
-	if err != nil {
-		suite.T().Errorf("failed: GetWorkerSharesAverageFast: %v", err)
-	}
-
-	_, err = tsdb.GetWorkerSharesAverageSlow(tsdbClient.Reader(), 1, time.Now(), "ETH", 1, time.Second)
-	if err != nil {
-		suite.T().Errorf("failed: GetWorkerSharesAverageSlow: %v", err)
-	}
 }
 
 func (suite *TsdbReadsSuite) TestReadSharesSumLast() {
 	var err error
-
-	_, err = tsdb.GetGlobalSharesSum(tsdbClient.Reader(), 1, time.Hour*24)
-	if err != nil {
-		suite.T().Errorf("failed: GetGlobalSharesSum: %v", err)
-	}
 
 	_, err = tsdb.GetGlobalSharesLast(tsdbClient.Reader(), 1)
 	if err != nil {

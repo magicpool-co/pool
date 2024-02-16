@@ -34,8 +34,7 @@ func (suite *PooldbWritesSuite) TestWriteNode() {
 			suite.T().Errorf("failed on %d: insert: %v", i, err)
 		}
 
-		cols := []string{"active", "synced", "height", "needs_backup", "pending_backup",
-			"needs_update", "pending_update", "needs_resize", "pending_resize", "backup_at"}
+		cols := []string{"active", "synced", "height", "needs_backup", "pending_backup", "backup_at"}
 		err = pooldb.UpdateNode(pooldbClient.Writer(), tt.node, cols)
 		if err != nil {
 			suite.T().Errorf("failed on %d: update: %v", i, err)
@@ -128,8 +127,14 @@ func (suite *PooldbWritesSuite) TestWriteIPAddress() {
 		suite.T().Errorf("failed on preliminary miner insert: %v", err)
 	}
 
+	workerID, err := pooldb.InsertWorker(pooldbClient.Writer(), &pooldb.Worker{MinerID: minerID})
+	if err != nil {
+		suite.T().Errorf("failed on preliminary worker insert: %v", err)
+	}
+
 	for i, tt := range tests {
 		tt.address.MinerID = minerID
+		tt.address.WorkerID = workerID
 		err = pooldb.InsertIPAddresses(pooldbClient.Writer(), tt.address)
 		if err != nil {
 			suite.T().Errorf("failed on %d: insert: %v", i, err)
