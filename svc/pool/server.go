@@ -38,7 +38,12 @@ func initTunnel(secrets map[string]string) (*sshtunnel.SSHTunnel, error) {
 	return tunnel, nil
 }
 
-func newPool(secrets map[string]string, mainnet bool, opts *pool.Options, metricsClient *metrics.Client) (*pool.Pool, *log.Logger, error) {
+func newPool(
+	secrets map[string]string,
+	mainnet bool,
+	opts *pool.Options,
+	metricsClient *metrics.Client,
+) (*pool.Pool, *log.Logger, error) {
 	telegramClient, err := telegram.New(secrets)
 	if err != nil {
 		return nil, nil, err
@@ -79,7 +84,8 @@ func newPool(secrets map[string]string, mainnet bool, opts *pool.Options, metric
 		}
 	}
 
-	miningNode, err := node.GetMiningNode(mainnet, opts.Chain, secrets[opts.Chain+"_PRIVATE_KEY"], urls, logger, tunnel)
+	secret := secrets[opts.Chain+"_PRIVATE_KEY"]
+	miningNode, err := node.GetMiningNode(mainnet, opts.Chain, secret, urls, logger, tunnel)
 	if err != nil {
 		return nil, nil, err
 	} else if metricsClient != nil {

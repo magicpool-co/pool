@@ -17,7 +17,7 @@ type ProtocolHandler func(*stratum.Conn, *rpc.Request) error
 
 func (p *Pool) routeRequest(req *rpc.Request) ProtocolHandler {
 	switch p.chain {
-	case "AE", "ERG", "FIRO", "FLUX", "KAS", "NEXA", "RVN":
+	case "ERG", "FIRO", "FLUX", "KAS", "NEXA", "RVN":
 		switch req.Method {
 		case "mining.subscribe":
 			return p.subscribe
@@ -48,17 +48,6 @@ func (p *Pool) routeRequest(req *rpc.Request) ProtocolHandler {
 		case "eth_submitHashrate":
 			return p.submitHashrate
 		case "eth_getWork":
-			return p.getWork
-		}
-	case "CTXC":
-		switch req.Method {
-		case "ctxc_submitLogin", "eth_submitLogin":
-			return p.login
-		case "ctxc_submitWork", "eth_submitWork":
-			return p.submit
-		case "ctxc_submitHashrate", "eth_submitHashrate":
-			return p.submitHashrate
-		case "ctxc_getWork", "eth_getWork":
 			return p.getWork
 		}
 	}

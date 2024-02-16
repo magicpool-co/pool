@@ -22,16 +22,14 @@ type AuditJob struct {
 
 func (j *AuditJob) Run() {
 	defer j.logger.RecoverPanic()
-
-	ctx := context.Background()
-	lock, err := j.locker.Obtain(ctx, "cron:audit", time.Minute*5, nil)
-	if err != nil {
-		if err != redislock.ErrNotObtained {
+	lock, err := retrieveLock("cron:audit", time.Minute*5, j.locker)
+	if lock == nil {
+		if err != nil {
 			j.logger.Error(err)
 		}
 		return
 	}
-	defer lock.Release(ctx)
+	defer lock.Release(context.Background())
 
 	for _, node := range j.nodes {
 		if err := audit.CheckWallet(j.pooldb, node); err != nil {

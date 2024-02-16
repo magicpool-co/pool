@@ -23,16 +23,14 @@ type BlockUnlockJob struct {
 
 func (j *BlockUnlockJob) Run() {
 	defer j.logger.RecoverPanic()
-
-	ctx := context.Background()
-	lock, err := j.locker.Obtain(ctx, "cron:blkunlock", time.Minute*5, nil)
-	if err != nil {
-		if err != redislock.ErrNotObtained {
+	lock, err := retrieveLock("cron:blkunlock", time.Minute*5, j.locker)
+	if lock == nil {
+		if err != nil {
 			j.logger.Error(err)
 		}
 		return
 	}
-	defer lock.Release(ctx)
+	defer lock.Release(context.Background())
 
 	for _, node := range j.nodes {
 		if err := credit.UnlockRounds(node, j.pooldb); err != nil {
@@ -40,7 +38,7 @@ func (j *BlockUnlockJob) Run() {
 			continue
 		}
 
-		rounds, err := pooldb.GetUnspentRounds(j.pooldb.Reader(), node.Chain())
+		rounds, err := pooldb.GetUnspentRoundsByChain(j.pooldb.Reader(), node.Chain())
 		if err != nil {
 			j.logger.Error(fmt.Errorf("unlock: fetch unspent ounds: %s: %v", node.Chain(), err))
 			continue

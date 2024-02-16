@@ -18,6 +18,8 @@ import (
 	"github.com/magicpool-co/pool/types"
 )
 
+/* handler helpers */
+
 func generateExtraNonce(size int, mocked bool) string {
 	if mocked {
 		var extraNonce1 string
@@ -50,6 +52,282 @@ func (p *Pool) validateAddress(chain, address string) (bool, bool) {
 	return false, false
 }
 
+func (p *Pool) getMinerID(compoundName, chain, address string) uint64 {
+	// fetch minerID from redis
+	minerID, err := p.redis.GetMinerID(compoundName)
+	if err != nil || minerID == 0 {
+		if err != nil {
+			p.logger.Error(err)
+		}
+
+		// check the writer db directly
+		minerID, err = pooldb.GetMinerIDByChainAddress(p.db.Writer(), chain, address)
+		if err != nil || minerID == 0 {
+			if err != nil {
+				p.logger.Error(err)
+			}
+
+			miner := &pooldb.Miner{
+				ChainID: chain,
+				Address: address,
+				Active:  false,
+			}
+
+			// attempt to insert the minerID
+			minerID, err = pooldb.InsertMiner(p.db.Writer(), miner)
+			if err != nil {
+				p.logger.Error(err)
+				return 0
+			}
+		}
+
+		// set the minerID in redis
+		if err := p.redis.SetMinerID(compoundName, minerID); err != nil {
+			p.logger.Error(err)
+		}
+	}
+
+	return minerID
+}
+
+func (p *Pool) getWorkerID(compoundName string, minerID uint64, workerName string) uint64 {
+	workerID, err := p.redis.GetWorkerID(minerID, workerName)
+	if err != nil || workerID == 0 {
+		if err != nil {
+			p.logger.Error(err, compoundName)
+		}
+
+		// check the writer db directly
+		workerID, err = pooldb.GetWorkerID(p.db.Writer(), minerID, workerName)
+		if err != nil || workerID == 0 {
+			if err != nil {
+				p.logger.Error(err, compoundName)
+			}
+
+			worker := &pooldb.Worker{
+				MinerID: minerID,
+				Name:    workerName,
+				Active:  false,
+			}
+
+			// attempt to insert the workerID
+			workerID, err = pooldb.InsertWorker(p.db.Writer(), worker)
+			if err != nil {
+				p.logger.Error(err, compoundName)
+				return 0
+			}
+		}
+
+		// set the workerID in redis
+		if err := p.redis.SetWorkerID(minerID, workerName, workerID); err != nil {
+			p.logger.Error(err, compoundName)
+		}
+	}
+
+	return workerID
+}
+
+func (p *Pool) submitRound(c *stratum.Conn, chain string, soloMinerID uint64, round *pooldb.Round) {
+	// runs as goroutine
+	defer p.logger.RecoverPanic()
+
+	p.wg.Add(1)
+	defer p.wg.Done()
+
+	compoundID := c.GetCompoundID()
+	round.Solo = c.GetIsSolo()
+	if round.Solo {
+		p.logger.Info("found valid solo block")
+	} else {
+		p.logger.Info("found valid block")
+	}
+
+	sharesIdx := make(map[uint64]uint64)
+	var err error
+	if soloMinerID == 0 {
+		sharesIdx, err = p.redis.GetRoundShares(chain)
+	} else {
+		sharesIdx[c.GetMinerID()], err = p.redis.GetRoundSoloShares(chain, soloMinerID)
+	}
+	if err != nil {
+		p.logger.Error(err, compoundID)
+		return
+	}
+
+	// number of accepted, rejected, and invalid shares since last block (not PPLNS share number)
+	round.AcceptedShares, round.RejectedShares, round.InvalidShares, err = p.redis.GetRoundShareCounts(chain, soloMinerID)
+	if err != nil {
+		p.logger.Error(err, compoundID)
+		return
+	}
+
+	shareDiff := float64(p.node.GetShareDifficulty(1).Value())
+	if p.chain == "NEXA" {
+		shareDiff = 0.2
+	} else if shareDiff == 0 {
+		shareDiff = 1
+	}
+
+	roundDiff := round.Difficulty
+	if roundDiff == 0 {
+		roundDiff = 1
+	}
+
+	minedDiff := shareDiff * float64(round.AcceptedShares+1)
+	round.Luck = 100 * (float64(roundDiff) / float64(minedDiff))
+	round.MinerID = c.GetMinerID()
+	roundID, err := pooldb.InsertRound(p.db.Writer(), round)
+	if err != nil {
+		p.logger.Error(err, compoundID)
+		return
+	}
+
+	shares := make([]*pooldb.Share, 0)
+	for minerID, shareCount := range sharesIdx {
+		share := &pooldb.Share{
+			RoundID: roundID,
+			MinerID: minerID,
+			Count:   shareCount,
+		}
+
+		shares = append(shares, share)
+	}
+
+	if err := pooldb.InsertShares(p.db.Writer(), shares...); err != nil {
+		p.logger.Error(err, compoundID)
+		return
+	}
+
+	if p.telegram != nil {
+		explorerURL := p.node.GetBlockExplorerURL(round)
+		p.telegram.NotifyNewBlockCandidate(p.chain, explorerURL, round.Height, round.Luck)
+	}
+}
+
+func (p *Pool) pushShareToStream(
+	c *stratum.Conn,
+	hash *types.Hash,
+	shareStatus types.ShareStatus,
+	jobExists, activeShare bool,
+	targetDiff uint64,
+) {
+	// runs as goroutine
+	defer p.logger.RecoverPanic()
+
+	status := shareStatus.String()
+	var reason string
+	if shareStatus == types.RejectedShare {
+		if !jobExists {
+			reason = "job not found"
+		} else if !activeShare {
+			reason = "job too old"
+		} else {
+			reason = "difficulty too low"
+		}
+	}
+
+	var shareDiff uint64
+	if hash != nil {
+		shareDiff = hash.Difficulty(p.node.GetMaxDifficulty())
+	}
+
+	p.streamWriter.WriteShareEvent(c.GetMinerID(), c.GetWorker(), c.GetClient(),
+		c.GetPort(), c.GetIsSolo(), status, reason, shareDiff, targetDiff)
+}
+
+func (p *Pool) retargetVardiff(c *stratum.Conn, submitTime time.Time) {
+	// runs as goroutine
+	defer p.logger.RecoverPanic()
+
+	newDiffFactor := c.SetLastShareAt(submitTime)
+	if newDiffFactor == -1 {
+		return
+	}
+
+	diffResponse, err := p.node.GetSetDifficultyResponse(newDiffFactor)
+	if err != nil {
+		p.logger.Error(err)
+		return
+	} else if diffResponse == nil {
+		return
+	}
+
+	err = p.writeToConn(c, diffResponse)
+	if err != nil {
+		p.logger.Error(err)
+		return
+	}
+
+	oldDiff := p.node.GetShareDifficulty(c.GetDiffFactor()).Value()
+	newDiff := p.node.GetShareDifficulty(newDiffFactor).Value()
+	c.SetDiffFactor(newDiffFactor)
+
+	// handle retarget streaming
+	if p.streamWriter != nil {
+		p.streamWriter.WriteRetargetEvent(c.GetMinerID(), c.GetWorker(),
+			c.GetClient(), c.GetPort(), c.GetIsSolo(), oldDiff, newDiff)
+	}
+}
+
+func (p *Pool) submitShare(
+	c *stratum.Conn,
+	chain string,
+	soloMinerID uint64,
+	shareStatus types.ShareStatus,
+	submitTime time.Time,
+	activeDiffFactor int,
+) {
+	// runs as goroutine
+	defer p.logger.RecoverPanic()
+
+	p.wg.Add(1)
+	defer p.wg.Done()
+
+	interval := p.getCurrentInterval(false)
+	switch shareStatus {
+	case types.AcceptedShare:
+		err := p.redis.AddAcceptedShare(chain, interval, c.GetCompoundID(), soloMinerID, activeDiffFactor, p.windowSize)
+		if err != nil {
+			p.logger.Error(err, c.GetCompoundID())
+			return
+		}
+
+		if p.metrics != nil {
+			p.metrics.AddCounter("accepted_shares_total", float64(activeDiffFactor), chain)
+		}
+
+		// need to replace ":" with "|" for IPv6 compatibility
+		ip := strings.ReplaceAll(c.GetIP(), ":", "|")
+		id := c.GetCompoundID() + ":" + ip
+		latency, _ := c.GetLatency()
+
+		p.minerStatsMu.Lock()
+		p.lastShareIndex[id] = submitTime.Unix()
+		p.lastDiffIndex[id] = int64(activeDiffFactor)
+		if latency > 0 {
+			p.latencyValueIndex[id] += int64(latency)
+			p.latencyCountIndex[id]++
+		}
+		p.minerStatsMu.Unlock()
+	case types.RejectedShare:
+		err := p.redis.AddRejectedShare(chain, interval, c.GetCompoundID(), soloMinerID, activeDiffFactor)
+		if err != nil {
+			p.logger.Error(err, c.GetCompoundID())
+		} else if p.metrics != nil {
+			p.metrics.AddCounter("rejected_shares_total", float64(activeDiffFactor), chain)
+		}
+	case types.InvalidShare:
+		err := p.redis.AddInvalidShare(chain, interval, c.GetCompoundID(), soloMinerID, activeDiffFactor)
+		if err != nil {
+			p.logger.Error(err, c.GetCompoundID())
+		} else if p.metrics != nil {
+			p.metrics.AddCounter("invalid_shares_total", float64(activeDiffFactor), chain)
+		}
+	}
+}
+
+/* actual handlers */
+
 func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 	if c.GetAuthorized() {
 		return errInvalidAuthRequest(req.ID)
@@ -62,7 +340,7 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		return errInvalidAuthRequest(req.ID)
 	}
 
-	var workerName string
+	workerName := "default"
 	args := strings.Split(username, ".")
 	if len(args) > 1 {
 		workerName = args[1]
@@ -70,15 +348,11 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		workerName = req.Worker
 	}
 
-	if workerName == "" {
-		workerName = "default"
-	}
-
 	// address formatting is chain:address for standard,
 	// solo:chain:address for solo mining (if enabled)
 	var isSolo bool
-	addressChain := args[0]
-	partial := strings.Split(addressChain, ":")
+	compoundName := args[0]
+	partial := strings.Split(compoundName, ":")
 	switch len(partial) {
 	case 2:
 	case 3:
@@ -116,38 +390,14 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		return errWorkerNameTooLong(req.ID)
 	}
 
-	// fetch minerID from redis
-	minerID, err := p.redis.GetMinerID(addressChain)
-	if err != nil || minerID == 0 {
-		if err != nil {
-			p.logger.Error(err)
-		}
+	minerID := p.getMinerID(compoundName, chain, address)
+	if minerID == 0 {
+		return nil
+	}
 
-		// check the writer db directly
-		minerID, err = pooldb.GetMinerID(p.db.Writer(), chain, address)
-		if err != nil || minerID == 0 {
-			if err != nil {
-				p.logger.Error(err)
-			}
-
-			miner := &pooldb.Miner{
-				ChainID: chain,
-				Address: address,
-				Active:  false,
-			}
-
-			// attempt to insert the minerID
-			minerID, err = pooldb.InsertMiner(p.db.Writer(), miner)
-			if err != nil {
-				p.logger.Error(err)
-				return nil
-			}
-		}
-
-		// set the minerID in redis
-		if err := p.redis.SetMinerID(addressChain, minerID); err != nil {
-			p.logger.Error(err)
-		}
+	workerID := p.getWorkerID(compoundName, minerID, workerName)
+	if workerID == 0 {
+		return nil
 	}
 
 	port := c.GetPort()
@@ -156,54 +406,19 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		diffFactor = 1
 	}
 
-	c.SetMiner(addressChain)
+	c.SetMiner(compoundName)
 	c.SetMinerID(minerID)
 	c.SetSubscribed(true)
 	c.SetAuthorized(true)
 	c.SetDiffFactor(diffFactor)
 	c.SetIsSolo(isSolo)
 	c.SetReadDeadline(time.Time{})
-
-	var workerID uint64
-	workerID, err = p.redis.GetWorkerID(minerID, workerName)
-	if err != nil || workerID == 0 {
-		if err != nil {
-			p.logger.Error(err, c.GetCompoundID())
-		}
-
-		// check the writer db directly
-		workerID, err = pooldb.GetWorkerID(p.db.Writer(), minerID, workerName)
-		if err != nil || workerID == 0 {
-			if err != nil {
-				p.logger.Error(err, c.GetCompoundID())
-			}
-
-			worker := &pooldb.Worker{
-				MinerID: minerID,
-				Name:    workerName,
-				Active:  false,
-			}
-
-			// attempt to insert the workerID
-			workerID, err = pooldb.InsertWorker(p.db.Writer(), worker)
-			if err != nil {
-				p.logger.Error(err, c.GetCompoundID())
-				return nil
-			}
-		}
-
-		// set the workerID in redis
-		if err := p.redis.SetWorkerID(minerID, workerName, workerID); err != nil {
-			p.logger.Error(err, c.GetCompoundID())
-		}
-	}
 	c.SetWorker(workerName)
 	c.SetWorkerID(workerID)
 
 	// handle connect streaming
 	if p.streamWriter != nil {
-		p.streamWriter.WriteConnectEvent(c.GetMinerID(), c.GetWorker(),
-			c.GetClient(), c.GetPort(), c.GetIsSolo())
+		p.streamWriter.WriteConnectEvent(minerID, workerName, c.GetClient(), port, isSolo)
 	}
 
 	var msgs []interface{}
@@ -225,9 +440,9 @@ func (p *Pool) handleLogin(c *stratum.Conn, req *rpc.Request) []interface{} {
 		msg, err := p.node.MarshalJob(0, job, true, c.GetClientType(), c.GetDiffFactor())
 		if err != nil {
 			p.logger.Error(err, c.GetCompoundID())
-			return msgs
+		} else {
+			msgs = append(msgs, msg)
 		}
-		msgs = append(msgs, msg)
 	}
 
 	go p.jobManager.AddConn(c)
@@ -309,81 +524,7 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 
 	// handle round
 	if round != nil {
-		go func() {
-			defer p.recoverPanic()
-
-			p.wg.Add(1)
-			defer p.wg.Done()
-
-			compoundID := c.GetCompoundID()
-			round.Solo = c.GetIsSolo()
-			if round.Solo {
-				p.logger.Info("found valid solo block")
-			} else {
-				p.logger.Info("found valid block")
-			}
-
-			sharesIdx := make(map[uint64]uint64)
-			var err error
-			if soloMinerID == 0 {
-				sharesIdx, err = p.redis.GetRoundShares(chain)
-			} else {
-				sharesIdx[c.GetMinerID()], err = p.redis.GetRoundSoloShares(chain, soloMinerID)
-			}
-			if err != nil {
-				p.logger.Error(err, compoundID)
-				return
-			}
-
-			// number of accepted, rejected, and invalid shares since last block (not PPLNS share number)
-			round.AcceptedShares, round.RejectedShares, round.InvalidShares, err = p.redis.GetRoundShareCounts(chain, soloMinerID)
-			if err != nil {
-				p.logger.Error(err, compoundID)
-				return
-			}
-
-			shareDiff := float64(p.node.GetShareDifficulty(1).Value())
-			if p.chain == "NEXA" {
-				shareDiff = 0.2
-			} else if shareDiff == 0 {
-				shareDiff = 1
-			}
-
-			roundDiff := round.Difficulty
-			if roundDiff == 0 {
-				roundDiff = 1
-			}
-
-			minedDiff := shareDiff * float64(round.AcceptedShares+1)
-			round.Luck = 100 * (float64(roundDiff) / float64(minedDiff))
-			round.MinerID = c.GetMinerID()
-			roundID, err := pooldb.InsertRound(p.db.Writer(), round)
-			if err != nil {
-				p.logger.Error(err, compoundID)
-				return
-			}
-
-			shares := make([]*pooldb.Share, 0)
-			for minerID, shareCount := range sharesIdx {
-				share := &pooldb.Share{
-					RoundID: roundID,
-					MinerID: minerID,
-					Count:   shareCount,
-				}
-
-				shares = append(shares, share)
-			}
-
-			if err := pooldb.InsertShares(p.db.Writer(), shares...); err != nil {
-				p.logger.Error(err, compoundID)
-				return
-			}
-
-			if p.telegram != nil {
-				explorerURL := p.node.GetBlockExplorerURL(round)
-				p.telegram.NotifyNewBlockCandidate(p.chain, explorerURL, round.Height, round.Luck)
-			}
-		}()
+		go p.submitRound(c, chain, soloMinerID, round)
 	}
 
 	if shareStatus == types.AcceptedShare {
@@ -402,114 +543,16 @@ func (p *Pool) handleSubmit(c *stratum.Conn, req *rpc.Request) (bool, error) {
 	// handle share streaming
 	if p.streamWriter != nil {
 		targetDiff := uint64(p.node.GetAdjustedShareDifficulty() * float64(activeDiffFactor))
-		go func() {
-			status := shareStatus.String()
-			var reason string
-			if shareStatus == types.RejectedShare {
-				if job == nil {
-					reason = "job not found"
-				} else if !activeShare {
-					reason = "job too old"
-				} else {
-					reason = "difficulty too low"
-				}
-			}
-
-			var shareDiff uint64
-			if hash != nil {
-				shareDiff = hash.Difficulty(p.node.GetMaxDifficulty())
-			}
-
-			p.streamWriter.WriteShareEvent(c.GetMinerID(), c.GetWorker(), c.GetClient(),
-				c.GetPort(), c.GetIsSolo(), status, reason, shareDiff, targetDiff)
-		}()
+		go p.pushShareToStream(c, hash, shareStatus, job != nil, activeShare, targetDiff)
 	}
 
 	// handle vardiff
 	if p.varDiffEnabled && shareStatus != types.InvalidShare {
-		go func() {
-			defer p.recoverPanic()
-
-			newDiffFactor := c.SetLastShareAt(submitTime)
-			if newDiffFactor == -1 {
-				return
-			}
-
-			diffResponse, err := p.node.GetSetDifficultyResponse(newDiffFactor)
-			if err != nil {
-				p.logger.Error(err)
-				return
-			} else if diffResponse == nil {
-				return
-			}
-
-			err = p.writeToConn(c, diffResponse)
-			if err != nil {
-				p.logger.Error(err)
-				return
-			}
-
-			oldDiff := p.node.GetShareDifficulty(c.GetDiffFactor()).Value()
-			newDiff := p.node.GetShareDifficulty(newDiffFactor).Value()
-			c.SetDiffFactor(newDiffFactor)
-
-			// handle retarget streaming
-			if p.streamWriter != nil {
-				p.streamWriter.WriteRetargetEvent(c.GetMinerID(), c.GetWorker(),
-					c.GetClient(), c.GetPort(), c.GetIsSolo(), oldDiff, newDiff)
-			}
-		}()
+		go p.retargetVardiff(c, submitTime)
 	}
 
 	// handle share
-	go func() {
-		defer p.recoverPanic()
-
-		p.wg.Add(1)
-		defer p.wg.Done()
-
-		interval := p.getCurrentInterval(false)
-		switch shareStatus {
-		case types.AcceptedShare:
-			err := p.redis.AddAcceptedShare(chain, interval, c.GetCompoundID(), soloMinerID, activeDiffFactor, p.windowSize)
-			if err != nil {
-				p.logger.Error(err, c.GetCompoundID())
-				return
-			}
-
-			if p.metrics != nil {
-				p.metrics.AddCounter("accepted_shares_total", float64(activeDiffFactor), chain)
-			}
-
-			// need to replace ":" with "|" for IPv6 compatibility
-			ip := strings.ReplaceAll(c.GetIP(), ":", "|")
-			id := c.GetCompoundID() + ":" + ip
-			latency, _ := c.GetLatency()
-
-			p.minerStatsMu.Lock()
-			p.lastShareIndex[id] = submitTime.Unix()
-			p.lastDiffIndex[id] = int64(activeDiffFactor)
-			if latency > 0 {
-				p.latencyValueIndex[id] += int64(latency)
-				p.latencyCountIndex[id]++
-			}
-			p.minerStatsMu.Unlock()
-		case types.RejectedShare:
-			err := p.redis.AddRejectedShare(chain, interval, c.GetCompoundID(), soloMinerID, activeDiffFactor)
-			if err != nil {
-				p.logger.Error(err, c.GetCompoundID())
-			} else if p.metrics != nil {
-				p.metrics.AddCounter("rejected_shares_total", float64(activeDiffFactor), chain)
-			}
-		case types.InvalidShare:
-			err := p.redis.AddInvalidShare(chain, interval, c.GetCompoundID(), soloMinerID, activeDiffFactor)
-			if err != nil {
-				p.logger.Error(err, c.GetCompoundID())
-			} else if p.metrics != nil {
-				p.metrics.AddCounter("invalid_shares_total", float64(activeDiffFactor), chain)
-			}
-		}
-	}()
+	go p.submitShare(c, chain, soloMinerID, shareStatus, submitTime, activeDiffFactor)
 
 	return shareStatus == types.AcceptedShare, nil
 }

@@ -2,8 +2,6 @@ package pool
 
 import (
 	"context"
-	"fmt"
-	"runtime/debug"
 	"strconv"
 	"sync"
 
@@ -46,7 +44,6 @@ func (l *JobList) Size() int {
 
 func (l *JobList) nextCounter() string {
 	l.counter++
-
 	if l.counter%0xffffffffff == 0 {
 		l.counter = 1
 	}
@@ -154,7 +151,13 @@ type JobManager struct {
 	jobList         *JobList
 }
 
-func newJobManager(ctx context.Context, node types.MiningNode, logger *log.Logger, streamWriter *stream.Writer, size, ageLimit int) *JobManager {
+func newJobManager(
+	ctx context.Context,
+	node types.MiningNode,
+	logger *log.Logger,
+	streamWriter *stream.Writer,
+	size, ageLimit int,
+) *JobManager {
 	manager := &JobManager{
 		ctx:           ctx,
 		node:          node,
@@ -165,12 +168,6 @@ func newJobManager(ctx context.Context, node types.MiningNode, logger *log.Logge
 	}
 
 	return manager
-}
-
-func (m *JobManager) recoverPanic() {
-	if r := recover(); r != nil {
-		m.logger.Panic(r, string(debug.Stack()))
-	}
 }
 
 func (m *JobManager) update(job *types.StratumJob) (bool, error) {
@@ -199,6 +196,7 @@ func (m *JobManager) update(job *types.StratumJob) (bool, error) {
 				return cleanJobs, err
 			}
 
+			// thanks FlexPool :P
 			for _, ch := range clientSubscriptions {
 				select {
 				case <-ch:
@@ -239,7 +237,8 @@ func (m *JobManager) isExpiredHeight(height uint64) bool {
 }
 
 func (m *JobManager) AddConn(c *stratum.Conn) {
-	defer m.recoverPanic()
+	// runs as goroutine
+	defer m.logger.RecoverPanic()
 
 	jobs := make(chan []byte)
 	defer func() {
@@ -271,7 +270,6 @@ func (m *JobManager) AddConn(c *stratum.Conn) {
 
 			err := c.Write(job)
 			if err != nil {
-				m.logger.Error(fmt.Errorf("broadcast: %v", err))
 				return
 			}
 
@@ -283,7 +281,8 @@ func (m *JobManager) AddConn(c *stratum.Conn) {
 }
 
 func (m *JobManager) RemoveConn(id uint64) {
-	defer m.recoverPanic()
+	// runs as goroutine
+	defer m.logger.RecoverPanic()
 
 	m.subscriptionsMu.RLock()
 	defer m.subscriptionsMu.RUnlock()

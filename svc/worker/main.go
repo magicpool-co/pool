@@ -49,7 +49,11 @@ func initTunnel(secrets map[string]string) (*sshtunnel.SSHTunnel, error) {
 	return tunnel, nil
 }
 
-func newWorker(secrets map[string]string, mainnet bool, metricsClient *metrics.Client) (*worker.Worker, *log.Logger, error) {
+func newWorker(
+	secrets map[string]string,
+	mainnet bool,
+	metricsClient *metrics.Client,
+) (*worker.Worker, *log.Logger, error) {
 	telegramClient, err := telegram.New(secrets)
 	if err != nil {
 		return nil, nil, err
@@ -94,7 +98,6 @@ func newWorker(secrets map[string]string, mainnet bool, metricsClient *metrics.C
 	if err != nil {
 		return nil, nil, err
 	}
-
 	exchanges := []types.Exchange{kucoin, mexc}
 
 	tunnel, err := initTunnel(secrets)

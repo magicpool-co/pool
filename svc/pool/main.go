@@ -11,31 +11,11 @@ import (
 )
 
 var defaultOptions = map[string]*pool.Options{
-	"AE": &pool.Options{
-		Chain:          "AE",
-		WindowSize:     100000,
-		ExtraNonceSize: 4,
-		JobListSize:    5,
-		SoloEnabled:    true,
-		VarDiffEnabled: false,
-		StreamEnabled:  true,
-		PollingPeriod:  time.Millisecond * 100,
-	},
 	"CFX": &pool.Options{
 		Chain:           "CFX",
 		WindowSize:      100000,
 		JobListSize:     100,
 		JobListAgeLimit: -1,
-		SoloEnabled:     true,
-		VarDiffEnabled:  false,
-		StreamEnabled:   true,
-		PollingPeriod:   time.Millisecond * 100,
-	},
-	"CTXC": &pool.Options{
-		Chain:           "CTXC",
-		WindowSize:      100000,
-		JobListSize:     25,
-		JobListAgeLimit: 7,
 		SoloEnabled:     true,
 		VarDiffEnabled:  false,
 		StreamEnabled:   true,

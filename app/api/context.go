@@ -43,7 +43,6 @@ func NewContext(
 ) *Context {
 	statsChains := []string{
 		"CFX",
-		"CTXC",
 		"ERG",
 		"ETC",
 		"FIRO",
@@ -150,7 +149,7 @@ func (ctx *Context) getMinerIDs(rawMiner string) ([]uint64, []string, error) {
 				ctx.logger.Error(err)
 			}
 
-			minerIDs[i], err = pooldb.GetMinerID(ctx.pooldb.Reader(), chains[i], address)
+			minerIDs[i], err = pooldb.GetMinerIDByChainAddress(ctx.pooldb.Reader(), chains[i], address)
 			if err != nil {
 				return nil, nil, err
 			} else if minerIDs[i] == 0 {
@@ -418,33 +417,6 @@ func (ctx *Context) getBlockMetricChart(args blockMetricChartArgs) http.Handler 
 		}
 
 		data, err := ctx.stats.GetBlockSingleMetricChart(metric, period, args.average)
-		if err != nil {
-			ctx.writeErrorResponse(w, err)
-			return
-		}
-
-		ctx.writeOkResponse(w, data)
-	})
-}
-
-type roundChartArgs struct {
-	chain  string
-	period string
-}
-
-func (ctx *Context) getRoundChart(args roundChartArgs) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		chain := strings.ToUpper(args.chain)
-		period, err := types.ParsePeriodType(args.period)
-		if err != nil {
-			ctx.writeErrorResponse(w, errPeriodNotFound)
-			return
-		} else if !validateMiningChain(chain) {
-			ctx.writeErrorResponse(w, errChainNotFound)
-			return
-		}
-
-		data, err := ctx.stats.GetRoundChart(chain, period)
 		if err != nil {
 			ctx.writeErrorResponse(w, err)
 			return

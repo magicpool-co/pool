@@ -3,15 +3,24 @@ package api
 import (
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
+)
+
+var (
+	corsAllowHeaders = strings.Join([]string{
+		"Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token",
+		"Authorization", "accept", "origin", "Cache-Control", "X-Requested-With",
+	}, ", ")
+	corsAllowMethods = "POST, OPTIONS, GET, PUT, PATCH, DELETE"
 )
 
 func corsMiddleware(ctx *Context, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", corsAllowHeaders)
+		w.Header().Set("Access-Control-Allow-Methods", corsAllowMethods)
 
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(204)

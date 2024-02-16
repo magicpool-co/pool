@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/magicpool-co/pool/internal/node/mining/cfx"
-	"github.com/magicpool-co/pool/internal/node/mining/ctxc"
 	"github.com/magicpool-co/pool/internal/node/mining/erg"
 	"github.com/magicpool-co/pool/internal/node/mining/etc"
 	"github.com/magicpool-co/pool/internal/node/mining/firo"
@@ -18,7 +17,7 @@ import (
 
 func validateMiningChain(chain string) bool {
 	switch strings.ToUpper(chain) {
-	case "CFX", "CTXC", "ERG", "ETC", "ETHW", "FIRO", "FLUX", "KAS", "NEXA", "RVN":
+	case "CFX", "ERG", "ETC", "ETHW", "FIRO", "FLUX", "KAS", "NEXA", "RVN":
 		return true
 	default:
 		return false
@@ -71,8 +70,6 @@ func ValidateAddress(chain, address string) bool {
 		return btc.ValidateAddress(address)
 	case "CFX":
 		return cfx.ValidateAddress(address)
-	case "CTXC":
-		return ctxc.ValidateAddress(address)
 	case "ERG":
 		return erg.ValidateAddress(address)
 	case "ETC", "ETHW":

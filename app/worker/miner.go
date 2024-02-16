@@ -50,16 +50,14 @@ type MinerJob struct {
 
 func (j *MinerJob) Run() {
 	defer j.logger.RecoverPanic()
-
-	ctx := context.Background()
-	lock, err := j.locker.Obtain(ctx, "cron:miner", time.Minute*5, nil)
-	if err != nil {
-		if err != redislock.ErrNotObtained {
+	lock, err := retrieveLock("cron:miner", time.Minute*5, j.locker)
+	if lock == nil {
+		if err != nil {
 			j.logger.Error(err)
 		}
 		return
 	}
-	defer lock.Release(ctx)
+	defer lock.Release(context.Background())
 
 	for _, node := range j.nodes {
 		ipAddressIdx, err := j.redis.GetMinerIPAddresses(node.Chain())
@@ -211,16 +209,14 @@ func (j *MinerNotifyJob) notifyMiner(miner *pooldb.Miner, workers []*pooldb.Work
 
 func (j *MinerNotifyJob) Run() {
 	defer j.logger.RecoverPanic()
-
-	ctx := context.Background()
-	lock, err := j.locker.Obtain(ctx, "cron:minerntfy", time.Minute*5, nil)
-	if err != nil {
-		if err != redislock.ErrNotObtained {
+	lock, err := retrieveLock("cron:minerntfy", time.Minute*5, j.locker)
+	if lock == nil {
+		if err != nil {
 			j.logger.Error(err)
 		}
 		return
 	}
-	defer lock.Release(ctx)
+	defer lock.Release(context.Background())
 
 	inactiveIpAddressIdx := make(map[string]bool)
 	for _, node := range j.nodes {

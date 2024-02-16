@@ -3,7 +3,6 @@ package pool
 import (
 	"context"
 	"fmt"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -80,7 +79,15 @@ type Pool struct {
 	metrics  *metrics.Client
 }
 
-func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client, logger *log.Logger, telegramClient *telegram.Client, metricsClient *metrics.Client, opt *Options) (*Pool, error) {
+func New(
+	node types.MiningNode,
+	dbClient *dbcl.Client,
+	redisClient *redis.Client,
+	logger *log.Logger,
+	telegramClient *telegram.Client,
+	metricsClient *metrics.Client,
+	opt *Options,
+) (*Pool, error) {
 	ports := make([]int, 0)
 	for port := range opt.PortDiffIdx {
 		ports = append(ports, port)
@@ -138,12 +145,6 @@ func New(node types.MiningNode, dbClient *dbcl.Client, redisClient *redis.Client
 	return pool, nil
 }
 
-func (p *Pool) recoverPanic() {
-	if r := recover(); r != nil {
-		p.logger.Panic(r, string(debug.Stack()))
-	}
-}
-
 func (p *Pool) writeToConn(c *stratum.Conn, msg interface{}) error {
 	data, err := json.Marshal(msg)
 	if err != nil {
@@ -189,11 +190,12 @@ func (p *Pool) getCurrentInterval(reset bool) string {
 }
 
 func (p *Pool) startPingHosts() {
+	// runs as goroutine
+	defer p.logger.RecoverPanic()
+
 	if p.pingingPeriod == 0 {
 		return
 	}
-
-	defer p.recoverPanic()
 
 	ticker := time.NewTicker(p.pingingPeriod)
 	for {
@@ -207,7 +209,8 @@ func (p *Pool) startPingHosts() {
 }
 
 func (p *Pool) startJobNotify() {
-	defer p.recoverPanic()
+	// runs as goroutine
+	defer p.logger.RecoverPanic()
 
 	timer := time.NewTimer(time.Minute * 10)
 	jobCh := p.node.JobNotify(p.ctx, p.pollingPeriod)
@@ -222,20 +225,24 @@ func (p *Pool) startJobNotify() {
 				p.logger.Error(err)
 			}
 
-			if isNew {
-				timer.Reset(time.Minute * 10)
+			if !isNew {
+				continue
+			}
 
-				err = p.redis.AddShareIndexHeight(p.chain, job.Height.Value())
-				if err != nil {
-					p.logger.Error(err)
-				}
+			timer.Reset(time.Minute * 10)
 
-				if p.soloEnabled {
-					err = p.redis.AddShareIndexHeight(p.soloChain, job.Height.Value())
-					if err != nil {
-						p.logger.Error(err)
-					}
-				}
+			err = p.redis.AddShareIndexHeight(p.chain, job.Height.Value())
+			if err != nil {
+				p.logger.Error(err)
+			}
+
+			if !p.soloEnabled {
+				continue
+			}
+
+			err = p.redis.AddShareIndexHeight(p.soloChain, job.Height.Value())
+			if err != nil {
+				p.logger.Error(err)
 			}
 		case <-timer.C:
 			timer.Reset(time.Minute * 10)
@@ -257,7 +264,8 @@ func (p *Pool) startJobNotify() {
 }
 
 func (p *Pool) startShareIndexClearer() {
-	defer p.recoverPanic()
+	// runs as goroutine
+	defer p.logger.RecoverPanic()
 
 	ticker := time.NewTicker(time.Minute * 5)
 	for {
@@ -297,7 +305,8 @@ func (p *Pool) startShareIndexClearer() {
 }
 
 func (p *Pool) startMinerStatsPusher() {
-	defer p.recoverPanic()
+	// runs as goroutine
+	defer p.logger.RecoverPanic()
 
 	ticker := time.NewTicker(time.Minute)
 	for {
@@ -353,7 +362,8 @@ func (p *Pool) startMinerStatsPusher() {
 }
 
 func (p *Pool) startStratum() {
-	defer p.recoverPanic()
+	// runs as goroutine
+	defer p.logger.RecoverPanic()
 
 	msgCh, connectCh, disconnectCh, errCh, err := p.server.Start(time.Minute)
 	if err != nil {
@@ -395,7 +405,7 @@ func (p *Pool) startStratum() {
 			}
 
 			go func() {
-				defer p.recoverPanic()
+				defer p.logger.RecoverPanic()
 
 				if p.metrics != nil {
 					startTime := time.Now()

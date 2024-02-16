@@ -1,6 +1,10 @@
 package worker
 
 import (
+	"context"
+	"time"
+
+	"github.com/bsm/redislock"
 	"github.com/robfig/cron/v3"
 
 	"github.com/magicpool-co/pool/core/mailer"
@@ -12,6 +16,23 @@ import (
 	"github.com/magicpool-co/pool/pkg/dbcl"
 	"github.com/magicpool-co/pool/types"
 )
+
+func retrieveLock(
+	name string,
+	timeout time.Duration,
+	locker *redislock.Client,
+) (*redislock.Lock, error) {
+	ctx := context.Background()
+	lock, err := locker.Obtain(ctx, name, timeout, nil)
+	if err != nil {
+		if err != redislock.ErrNotObtained {
+			return nil, err
+		}
+		return nil, nil
+	}
+
+	return lock, nil
+}
 
 type Worker struct {
 	env         string
@@ -104,24 +125,6 @@ func (w *Worker) Start() {
 		})
 
 		w.cron.AddJob("*/5 * * * *", &NodeBackupJob{
-			env:     w.env,
-			mainnet: w.mainnet,
-			locker:  locker,
-			logger:  w.logger,
-			aws:     w.aws,
-			pooldb:  w.pooldb,
-		})
-
-		w.cron.AddJob("*/5 * * * *", &NodeUpdateJob{
-			env:     w.env,
-			mainnet: w.mainnet,
-			locker:  locker,
-			logger:  w.logger,
-			aws:     w.aws,
-			pooldb:  w.pooldb,
-		})
-
-		w.cron.AddJob("*/5 * * * *", &NodeResizeJob{
 			env:     w.env,
 			mainnet: w.mainnet,
 			locker:  locker,
