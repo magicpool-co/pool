@@ -57,7 +57,13 @@ type GRPCHealthCheck struct {
 //
 // The GRPCHealthCheck is not required, but without it the pool has little purpose. The
 // health check interval defaults to one minute, the timeout defaults to
-func NewGRPCPool(ctx context.Context, factory GRPCClientFactory, logger *log.Logger, healthCheck *GRPCHealthCheck, tunnel *sshtunnel.SSHTunnel) *GRPCPool {
+func NewGRPCPool(
+	ctx context.Context,
+	factory GRPCClientFactory,
+	logger *log.Logger,
+	healthCheck *GRPCHealthCheck,
+	tunnel *sshtunnel.SSHTunnel,
+) *GRPCPool {
 	if healthCheck.Interval == 0 {
 		healthCheck.Interval = time.Second * 30
 	}
@@ -144,7 +150,8 @@ func (p *GRPCPool) AddHost(url string, port int) error {
 	return nil
 }
 
-// Disables a host from being used for requests, though the host is not deleted (and can be enabled again).
+// Disables a host from being used for requests,
+// though the host is not deleted (and can be enabled again).
 func (p *GRPCPool) DisableHost(id string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -174,9 +181,13 @@ func (p *GRPCPool) SetHostSyncStatus(id string, synced bool) {
 	}
 }
 
-// Executes a HTTP call to a specific host. If the host is not healthy, ErrNoHealthyHosts is returned.
-// If the host is healthy, the error is returned.
-func (p *GRPCPool) exec(hostID string, req interface{}, needsSynced bool) (interface{}, string, error) {
+// Executes a HTTP call to a specific host. If the host is not healthy,
+// ErrNoHealthyHosts is returned. If the host is healthy, the error is returned.
+func (p *GRPCPool) exec(
+	hostID string,
+	req interface{},
+	needsSynced bool,
+) (interface{}, string, error) {
 	// iterate through all host connections until no healthy connections
 	// are left or a valid response is returned
 	var res interface{}
@@ -252,33 +263,24 @@ func (p *GRPCPool) getConn(hostID string, count int, needsSynced bool) *grpcConn
 // run a healthcheck to update healthiness and reorder based on latency
 func (p *GRPCPool) runHealthCheck() {
 	p.mu.RLock()
-	if len(p.order) == 0 {
-		p.mu.RUnlock()
+	healthCheckIdx := make(map[string]HealthCheckFunc)
+	for id, gc := range p.index {
+		healthCheckIdx[id] = func() int {
+			return gc.healthCheck(p.healthCheck, p.logger)
+		}
+	}
+	p.mu.RUnlock()
+
+	if len(healthCheckIdx) == 0 {
 		return
 	}
 
 	// find the current best connection and the latency of all connections
-	var latencyWg sync.WaitGroup
-	var latencyMu sync.Mutex
-	latencies := make(map[string]int, len(p.index))
-	for id, gc := range p.index {
-		latencyWg.Add(1)
-		go func(id string, gc *grpcConn) {
-			defer p.logger.RecoverPanic()
-			defer latencyWg.Done()
-
-			latency := gc.healthCheck(p.healthCheck, p.logger)
-			latencyMu.Lock()
-			latencies[id] = latency
-			latencyMu.Unlock()
-		}(id, gc)
-	}
-
-	p.mu.RUnlock()
-	latencyWg.Wait()
+	latencies := runHealthcheck(healthCheckIdx, p.logger)
+	order := processHealthCheck(p.order[0], latencies, nil)
 
 	p.mu.Lock()
-	p.order = processHealthCheck(p.order[0], latencies, nil)
+	p.order = order
 	p.latencyIdx = latencies
 	p.mu.Unlock()
 }

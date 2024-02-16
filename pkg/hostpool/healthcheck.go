@@ -2,9 +2,42 @@ package hostpool
 
 import (
 	"sort"
+	"sync"
+
+	"github.com/magicpool-co/pool/internal/log"
 )
 
-func processHealthCheck(currentBest string, latency, counts map[string]int) []string {
+type HealthCheckFunc func() int
+
+func runHealthcheck(
+	index map[string]HealthCheckFunc,
+	logger *log.Logger,
+) map[string]int {
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	latencies := make(map[string]int, len(index))
+	for id, healthCheckFunc := range index {
+		wg.Add(1)
+		go func(id string, healthCheckFunc HealthCheckFunc) {
+			defer logger.RecoverPanic()
+			defer wg.Done()
+
+			latency := healthCheckFunc()
+			mu.Lock()
+			latencies[id] = latency
+			mu.Unlock()
+		}(id, healthCheckFunc)
+	}
+
+	wg.Wait()
+
+	return latencies
+}
+
+func processHealthCheck(
+	currentBest string,
+	latency, counts map[string]int,
+) []string {
 	if len(latency) == 0 {
 		return nil
 	}

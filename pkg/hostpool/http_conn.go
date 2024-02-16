@@ -49,7 +49,10 @@ func (hc *httpConn) usable(needsSynced bool) bool {
 
 // Executes the healthcheck and measures the latency for the connection.
 // The host's healthiness is automatically updated according to the outcome.
-func (hc *httpConn) healthCheck(healthCheck *HTTPHealthCheck, logger *log.Logger) int {
+func (hc *httpConn) healthCheck(
+	healthCheck *HTTPHealthCheck,
+	logger *log.Logger,
+) int {
 	var unit = time.Nanosecond
 	var maxLatency = int(healthCheck.Timeout/unit) * 2
 
@@ -99,7 +102,11 @@ func (hc *httpConn) markSynced(synced bool) {
 
 // Base call to execute an HTTP call. If the request succeeeds, but the status code
 // is non-2xx and not 300, a HTTPError is returned.
-func (hc *httpConn) exec(ctx context.Context, method, path string, msg interface{}) ([]byte, string, error) {
+func (hc *httpConn) exec(
+	ctx context.Context,
+	method, path string,
+	msg interface{},
+) ([]byte, string, error) {
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return nil, "", err

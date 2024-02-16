@@ -44,7 +44,12 @@ type TCPPool struct {
 	reqChs map[string]chan *rpc.Request
 }
 
-func NewTCPPool(ctx context.Context, logger *log.Logger, healthCheck *TCPHealthCheck, tunnel *sshtunnel.SSHTunnel) *TCPPool {
+func NewTCPPool(
+	ctx context.Context,
+	logger *log.Logger,
+	healthCheck *TCPHealthCheck,
+	tunnel *sshtunnel.SSHTunnel,
+) *TCPPool {
 	if healthCheck.Interval == 0 {
 		healthCheck.Interval = time.Minute
 	}
@@ -249,33 +254,24 @@ func (p *TCPPool) getConn(hostID string, needsSynced bool) *tcpConn {
 // run a healthcheck to update healthiness and reorder based on latency
 func (p *TCPPool) runHealthCheck() {
 	p.mu.RLock()
-	if len(p.order) == 0 {
-		p.mu.RUnlock()
+	healthCheckIdx := make(map[string]HealthCheckFunc)
+	for id, tc := range p.index {
+		healthCheckIdx[id] = func() int {
+			return tc.healthCheck(p.healthCheck, p.logger)
+		}
+	}
+	p.mu.RUnlock()
+
+	if len(healthCheckIdx) == 0 {
 		return
 	}
 
 	// find the current best connection and the latency of all connections
-	var latencyWg sync.WaitGroup
-	var latencyMu sync.Mutex
-	latencies := make(map[string]int, len(p.index))
-	for id, tc := range p.index {
-		latencyWg.Add(1)
-		go func(id string, tc *tcpConn) {
-			defer p.logger.RecoverPanic()
-			defer latencyWg.Done()
-
-			latency := tc.healthCheck(p.healthCheck, p.logger)
-			latencyMu.Lock()
-			latencies[id] = latency
-			latencyMu.Unlock()
-		}(id, tc)
-	}
-
-	p.mu.RUnlock()
-	latencyWg.Wait()
+	latencies := runHealthcheck(healthCheckIdx, p.logger)
+	order := processHealthCheck(p.order[0], latencies, p.counts)
 
 	p.mu.Lock()
-	p.order = processHealthCheck(p.order[0], latencies, p.counts)
+	p.order = order
 	p.counts = make(map[string]int)
 	p.latencyIdx = latencies
 	p.mu.Unlock()
