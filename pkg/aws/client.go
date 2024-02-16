@@ -28,13 +28,6 @@ func NewSession(region, profile string) (*Client, error) {
 	}
 
 	sess, err := session.NewSession(cfg)
-	if err != nil {
-		return nil, err
-	}
 
-	client := &Client{
-		session: sess,
-	}
-
-	return client, nil
+	return &Client{sess}, err
 }

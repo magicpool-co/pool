@@ -1,4 +1,4 @@
-package autoscaling
+package ec2
 
 import (
 	"fmt"
@@ -12,11 +12,12 @@ import (
 
 func GetGroupInstanceIPs(client *aws.Client, name string) ([]string, error) {
 	asgSvc := autoscaling.New(client.Session())
-	res, err := asgSvc.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{
-		AutoScalingGroupNames: []*string{
-			types.StringPtr(name),
-		},
-	})
+	res, err := asgSvc.DescribeAutoScalingGroups(
+		&autoscaling.DescribeAutoScalingGroupsInput{
+			AutoScalingGroupNames: []*string{
+				types.StringPtr(name),
+			},
+		})
 	if err != nil {
 		return nil, err
 	} else if len(res.AutoScalingGroups) != 1 {
