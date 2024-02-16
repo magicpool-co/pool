@@ -33,7 +33,12 @@ func parseInterval(interval string) (time.Time, error) {
 	return timestamp, nil
 }
 
-func getInitialShareAverages(q dbcl.Querier, ts time.Time, chain string, period types.PeriodType) (float64, map[uint64]float64, map[uint64]float64, error) {
+func getInitialShareAverages(
+	q dbcl.Querier,
+	ts time.Time,
+	chain string,
+	period types.PeriodType,
+) (float64, map[uint64]float64, map[uint64]float64, error) {
 	globalAvg, err := tsdb.GetGlobalSharesAverage(q, ts, chain, int(period), period.Average())
 	if err != nil {
 		return 0, nil, nil, err
@@ -78,7 +83,8 @@ func (c *Client) rollupShares(chain string, node types.MiningNode, interval stri
 	if err != nil {
 		return err
 	}
-	globalAvg, minerAvg, workerAvg, err := getInitialShareAverages(c.tsdb.Reader(), endTime, chain, sharePeriod)
+	globalAvg, minerAvg, workerAvg, err := getInitialShareAverages(c.tsdb.Reader(),
+		endTime, chain, sharePeriod)
 	if err != nil {
 		return err
 	}
@@ -188,7 +194,8 @@ func (c *Client) rollupShares(chain string, node types.MiningNode, interval stri
 	if len(minerSharesIdx) != 0 {
 		minerShares := make([]*tsdb.Share, 0)
 		for _, minerShare := range minerSharesIdx {
-			minerShare.Hashrate = float64(minerShare.AcceptedShares) * node.GetAdjustedShareDifficulty() / float64(shareSeconds)
+			minerShare.Hashrate = float64(minerShare.AcceptedShares) * node.GetAdjustedShareDifficulty()
+			minerShare.Hashrate /= float64(shareSeconds)
 			minerShares = append(minerShares, minerShare)
 
 			// sum all miner values for global share
@@ -203,7 +210,8 @@ func (c *Client) rollupShares(chain string, node types.MiningNode, interval stri
 
 		workerShares := make([]*tsdb.Share, 0)
 		for _, workerShare := range workerSharesIdx {
-			workerShare.Hashrate = float64(workerShare.AcceptedShares) * node.GetAdjustedShareDifficulty() / float64(shareSeconds)
+			workerShare.Hashrate = float64(workerShare.AcceptedShares) * node.GetAdjustedShareDifficulty()
+			workerShare.Hashrate /= float64(shareSeconds)
 			workerShares = append(workerShares, workerShare)
 		}
 
@@ -296,15 +304,18 @@ func finalizeShare(share *tsdb.Share) {
 func (c *Client) finalizeShares(chain string, endTime time.Time) error {
 	for _, rollupPeriod := range shareRollupPeriods {
 		// finalize summed statistics
-		globalShares, err := tsdb.GetPendingGlobalSharesByEndTime(c.tsdb.Reader(), endTime, chain, int(rollupPeriod))
+		globalShares, err := tsdb.GetPendingGlobalSharesByEndTime(c.tsdb.Reader(),
+			endTime, chain, int(rollupPeriod))
 		if err != nil {
 			return err
 		}
-		minerShares, err := tsdb.GetPendingMinerSharesByEndTime(c.tsdb.Reader(), endTime, chain, int(rollupPeriod))
+		minerShares, err := tsdb.GetPendingMinerSharesByEndTime(c.tsdb.Reader(),
+			endTime, chain, int(rollupPeriod))
 		if err != nil {
 			return err
 		}
-		workerShares, err := tsdb.GetPendingWorkerSharesByEndTime(c.tsdb.Reader(), endTime, chain, int(rollupPeriod))
+		workerShares, err := tsdb.GetPendingWorkerSharesByEndTime(c.tsdb.Reader(),
+			endTime, chain, int(rollupPeriod))
 		if err != nil {
 			return err
 		}
@@ -319,16 +330,22 @@ func (c *Client) finalizeShares(chain string, endTime time.Time) error {
 			finalizeShare(workerShare)
 		}
 
-		if err := tsdb.InsertFinalGlobalShares(c.tsdb.Writer(), globalShares...); err != nil {
+		err = tsdb.InsertFinalGlobalShares(c.tsdb.Writer(), globalShares...)
+		if err != nil {
 			return err
-		} else if err := tsdb.InsertFinalMinerShares(c.tsdb.Writer(), minerShares...); err != nil {
+		}
+		err = tsdb.InsertFinalMinerShares(c.tsdb.Writer(), minerShares...)
+		if err != nil {
 			return err
-		} else if err := tsdb.InsertFinalWorkerShares(c.tsdb.Writer(), workerShares...); err != nil {
+		}
+		err = tsdb.InsertFinalWorkerShares(c.tsdb.Writer(), workerShares...)
+		if err != nil {
 			return err
 		}
 
 		// finalize averages after updated statistics
-		globalAvg, minerAvg, workerAvg, err := getInitialShareAverages(c.tsdb.Reader(), endTime, chain, rollupPeriod)
+		globalAvg, minerAvg, workerAvg, err := getInitialShareAverages(c.tsdb.Reader(),
+			endTime, chain, rollupPeriod)
 		if err != nil {
 			return err
 		}
@@ -344,11 +361,16 @@ func (c *Client) finalizeShares(chain string, endTime time.Time) error {
 
 		}
 
-		if err := tsdb.InsertFinalGlobalShares(c.tsdb.Writer(), globalShares...); err != nil {
+		err = tsdb.InsertFinalGlobalShares(c.tsdb.Writer(), globalShares...)
+		if err != nil {
 			return err
-		} else if err := tsdb.InsertFinalMinerShares(c.tsdb.Writer(), minerShares...); err != nil {
+		}
+		err = tsdb.InsertFinalMinerShares(c.tsdb.Writer(), minerShares...)
+		if err != nil {
 			return err
-		} else if err := tsdb.InsertFinalWorkerShares(c.tsdb.Writer(), workerShares...); err != nil {
+		}
+		err = tsdb.InsertFinalWorkerShares(c.tsdb.Writer(), workerShares...)
+		if err != nil {
 			return err
 		}
 	}
@@ -359,11 +381,19 @@ func (c *Client) finalizeShares(chain string, endTime time.Time) error {
 func (c *Client) truncateShares(chain string, endTime time.Time) error {
 	for _, rollupPeriod := range append([]types.PeriodType{sharePeriod}, shareRollupPeriods...) {
 		timestamp := endTime.Add(rollupPeriod.Retention() * -1)
-		if err := tsdb.DeleteGlobalSharesBeforeEndTime(c.tsdb.Writer(), timestamp, chain, int(rollupPeriod)); err != nil {
+		err := tsdb.DeleteGlobalSharesBeforeEndTime(c.tsdb.Writer(),
+			timestamp, chain, int(rollupPeriod))
+		if err != nil {
 			return err
-		} else if err := tsdb.DeleteMinerSharesBeforeEndTime(c.tsdb.Writer(), timestamp, chain, int(rollupPeriod)); err != nil {
+		}
+		err = tsdb.DeleteMinerSharesBeforeEndTime(c.tsdb.Writer(),
+			timestamp, chain, int(rollupPeriod))
+		if err != nil {
 			return err
-		} else if err := tsdb.DeleteWorkerSharesBeforeEndTime(c.tsdb.Writer(), timestamp, chain, int(rollupPeriod)); err != nil {
+		}
+		err = tsdb.DeleteWorkerSharesBeforeEndTime(c.tsdb.Writer(),
+			timestamp, chain, int(rollupPeriod))
+		if err != nil {
 			return err
 		}
 	}

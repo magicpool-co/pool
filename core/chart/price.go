@@ -251,8 +251,6 @@ func (c *Client) ProcessPrices(chain string) error {
 	switch chain {
 	case "CFX":
 		idx, err = getBinanceNativeAllExceptETH("CFX", startTime, endTime)
-	case "CTXC":
-		idx, err = getBinanceNativeAllExceptETH("CTXC", startTime, endTime)
 	case "ERG":
 		idx, err = getKucoinNativeAllExceptETH("ERG", startTime, endTime)
 		if err == kucoin.ErrTooManyRequests {

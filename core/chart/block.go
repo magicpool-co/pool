@@ -45,7 +45,8 @@ func (c *Client) rollupBlocks(node types.MiningNode, endTime time.Time) error {
 	if block.Hashrate > 0 {
 		block.Profitability = (block.Value / block.BlockTime) / block.Hashrate
 	}
-	block.AvgProfitability, err = tsdb.GetBlocksAverageSlow(c.tsdb.Reader(), block.EndTime, node.Chain(), int(blockPeriod), blockPeriod.Average())
+	block.AvgProfitability, err = tsdb.GetBlocksAverageSlow(c.tsdb.Reader(),
+		block.EndTime, node.Chain(), int(blockPeriod), blockPeriod.Average())
 	if err != nil {
 		return err
 	}
@@ -86,7 +87,8 @@ func (c *Client) rollupBlocks(node types.MiningNode, endTime time.Time) error {
 func (c *Client) finalizeBlocks(node types.MiningNode, endTime time.Time) error {
 	for _, rollupPeriod := range blockRollupPeriods {
 		// finalize summed statistics
-		blocks, err := tsdb.GetPendingBlocksAtEndTime(c.tsdb.Reader(), endTime, node.Chain(), int(rollupPeriod))
+		blocks, err := tsdb.GetPendingBlocksAtEndTime(c.tsdb.Reader(),
+			endTime, node.Chain(), int(rollupPeriod))
 		if err != nil {
 			return err
 		}
@@ -181,8 +183,6 @@ func (c *Client) CollectBlocks(node types.MiningNode) error {
 			switch node.Chain() {
 			case "CFX":
 				lastHeight = 53100000
-			case "CTXC":
-				lastHeight = 6840000
 			case "ERG":
 				lastHeight = 828630
 			case "ETC":
@@ -209,7 +209,7 @@ func (c *Client) CollectBlocks(node types.MiningNode) error {
 			if currentHeight-lastHeight > 2000 {
 				currentHeight = lastHeight + 2000
 			}
-		case "CTXC", "ETC", "ETHW":
+		case "ETC", "ETHW":
 			if currentHeight-lastHeight > 250 {
 				currentHeight = lastHeight + 250
 			}

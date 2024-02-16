@@ -64,7 +64,8 @@ func (c *Client) rollupEarnings(node types.MiningNode, endTime time.Time) error 
 	}
 
 	startTime := endTime.Add(earningPeriod.Rollup() * -1)
-	balanceInputSums, err := pooldb.GetBalanceInputSumFromRange(c.pooldb.Reader(), node.Chain(), startTime, endTime)
+	balanceInputSums, err := pooldb.GetBalanceInputSumFromRange(c.pooldb.Reader(),
+		node.Chain(), startTime, endTime)
 	if err != nil {
 		return err
 	}
