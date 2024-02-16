@@ -55,7 +55,8 @@ func (c *Client) PrepareOutgoingTxs(
 	// check for empty, negative, and over spends
 	remainder := new(big.Int).Sub(totalInputUTXOSum, totalTxOutputSum)
 	if remainder.Cmp(common.Big0) < 0 {
-		return txs, fmt.Errorf("%s overspend: %s < %s", node.Chain(), totalInputUTXOSum, totalTxOutputSum)
+		return txs, fmt.Errorf("%s overspend: %s < %s",
+			node.Chain(), totalInputUTXOSum, totalTxOutputSum)
 	}
 
 	for i, txOutputs := range txOutputList {
@@ -370,11 +371,14 @@ func (c *Client) spendTx(node types.PayoutNode, tx *pooldb.Transaction) error {
 	} else if !tx.Fee.Valid {
 		return fmt.Errorf("no fee for tx %d", tx.ID)
 	} else if inputUTXOSum.Cmp(tx.Value.BigInt) < 0 {
-		return fmt.Errorf("overspend on tx %d: have %s, want %s", tx.ID, inputUTXOSum, tx.Value.BigInt)
+		return fmt.Errorf("overspend on tx %d: have %s, want %s",
+			tx.ID, inputUTXOSum, tx.Value.BigInt)
 	}
 
 	switch tx.Type {
-	case int(types.DepositTx): // verify the tx is the same as the value of all unregistered deposits
+	case int(types.DepositTx):
+		// verify the tx is the same as the
+		// value of all unregistered deposits
 		deposits, err := pooldb.GetUnregisteredExchangeDepositsByChain(dbTx, node.Chain())
 		if err != nil {
 			return err
@@ -392,9 +396,12 @@ func (c *Client) spendTx(node types.PayoutNode, tx *pooldb.Transaction) error {
 		}
 
 		if depositSum.Cmp(tx.Value.BigInt) != 0 {
-			return fmt.Errorf("deposit sum and tx value mismatch: have %s, want %s", depositSum, tx.Value.BigInt)
+			return fmt.Errorf("deposit sum and tx value mismatch: have %s, want %s",
+				depositSum, tx.Value.BigInt)
 		}
-	case int(types.PayoutTx): // verify balance output sum to make sure the correct amount the miner is owed is being spent
+	case int(types.PayoutTx):
+		// verify balance output sum to make sure the
+		// correct amount the miner is owed is being spent
 		balanceOutputs, err := pooldb.GetBalanceOutputsByPayoutTransaction(dbTx, tx.ID)
 		if err != nil {
 			return err
@@ -412,7 +419,8 @@ func (c *Client) spendTx(node types.PayoutNode, tx *pooldb.Transaction) error {
 
 		balanceOutputSum.Sub(balanceOutputSum, tx.Fee.BigInt)
 		if balanceOutputSum.Cmp(tx.Value.BigInt) != 0 {
-			return fmt.Errorf("balance output sum and tx value mismatch: have %s, want %s", balanceOutputSum, tx.Value.BigInt)
+			return fmt.Errorf("balance output sum and tx value mismatch: have %s, want %s",
+				balanceOutputSum, tx.Value.BigInt)
 		}
 	}
 
@@ -446,7 +454,8 @@ func (c *Client) spendTx(node types.PayoutNode, tx *pooldb.Transaction) error {
 	}
 
 	floatValue := common.BigIntToFloat64(tx.Value.BigInt, node.GetUnits().Big())
-	c.telegram.NotifyTransactionSent(tx.ID, node.Chain(), tx.TxID, node.GetTxExplorerURL(tx.TxID), floatValue)
+	c.telegram.NotifyTransactionSent(tx.ID, node.Chain(),
+		tx.TxID, node.GetTxExplorerURL(tx.TxID), floatValue)
 
 	return dbTx.SafeCommit()
 }

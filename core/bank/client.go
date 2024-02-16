@@ -20,7 +20,11 @@ type Client struct {
 	telegram *telegram.Client
 }
 
-func New(pooldbClient *dbcl.Client, redisClient *redis.Client, telegramClient *telegram.Client) *Client {
+func New(
+	pooldbClient *dbcl.Client,
+	redisClient *redis.Client,
+	telegramClient *telegram.Client,
+) *Client {
 	client := &Client{
 		pooldb:   pooldbClient,
 		redis:    redisClient,
