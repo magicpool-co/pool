@@ -112,7 +112,11 @@ func (c *Client) GetRate(market string) (float64, error) {
 	return strconv.ParseFloat(obj.Price, 64)
 }
 
-func (c *Client) GetHistoricalRates(market string, startTime, endTime time.Time, invert bool) (map[time.Time]float64, error) {
+func (c *Client) GetHistoricalRates(
+	market string,
+	startTime, endTime time.Time,
+	invert bool,
+) (map[time.Time]float64, error) {
 	const maxResults = 1000
 
 	diff := endTime.Sub(startTime)
@@ -167,7 +171,9 @@ func (c *Client) GetOutputThresholds() map[string]*big.Int {
 	return presetOutputThresholds
 }
 
-func (c *Client) GetPrices(inputPaths map[string]map[string]*big.Int) (map[string]map[string]float64, error) {
+func (c *Client) GetPrices(
+	inputPaths map[string]map[string]*big.Int,
+) (map[string]map[string]float64, error) {
 	prices := make(map[string]map[string]float64)
 
 	for fromChain, outputPaths := range inputPaths {

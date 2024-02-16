@@ -43,7 +43,11 @@ func (c *Client) GetRate(market string) (float64, error) {
 	return strconv.ParseFloat(obj.LastTradeRate, 64)
 }
 
-func (c *Client) GetHistoricalRates(market string, startTime, endTime time.Time, invert bool) (map[time.Time]float64, error) {
+func (c *Client) GetHistoricalRates(
+	market string,
+	startTime, endTime time.Time,
+	invert bool,
+) (map[time.Time]float64, error) {
 	path := "/markets/" + market + "/candles/MINUTE_5"
 	if time.Since(startTime) < time.Hour*24 {
 		path += "/recent"
@@ -254,7 +258,11 @@ func (c *Client) GenerateTradePath(fromChain, toChain string) ([]*types.Trade, e
 	return trades, nil
 }
 
-func (c *Client) CreateTrade(market string, direction types.TradeDirection, quantity float64) (string, error) {
+func (c *Client) CreateTrade(
+	market string,
+	direction types.TradeDirection,
+	quantity float64,
+) (string, error) {
 	payload := map[string]interface{}{
 		"marketSymbol": market,
 		"direction":    "BUY",

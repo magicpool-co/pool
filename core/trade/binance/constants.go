@@ -11,9 +11,6 @@ var (
 	cfxBtcSell  = &types.Market{Market: "CFXBTC", Base: "CFX", Quote: "BTC", Direction: types.TradeSell}
 	cfxUsdtSell = &types.Market{Market: "CFXUSDT", Base: "CFX", Quote: "USDT", Direction: types.TradeSell}
 
-	ctxcBtcSell  = &types.Market{Market: "CTXCBTC", Base: "CTXC", Quote: "BTC", Direction: types.TradeSell}
-	ctxcUsdtSell = &types.Market{Market: "CTXCUSDT", Base: "CTXC", Quote: "USDT", Direction: types.TradeSell}
-
 	etcBtcSell  = &types.Market{Market: "ETCBTC", Base: "ETC", Quote: "BTC", Direction: types.TradeSell}
 	etcEthSell  = &types.Market{Market: "ETCETH", Base: "ETC", Quote: "ETH", Direction: types.TradeSell}
 	etcUsdtSell = &types.Market{Market: "ETCUSDT", Base: "ETC", Quote: "USDT", Direction: types.TradeSell}
@@ -41,17 +38,6 @@ var (
 			},
 			"USDC": []*types.Market{
 				cfxUsdtSell, usdcUsdtBuy,
-			},
-		},
-		"CTXC": map[string][]*types.Market{
-			"BTC": []*types.Market{
-				ctxcBtcSell,
-			},
-			"ETH": []*types.Market{
-				ctxcUsdtSell, ethUsdtBuy,
-			},
-			"USDC": []*types.Market{
-				ctxcUsdtSell, usdcUsdtBuy,
 			},
 		},
 		"ETC": map[string][]*types.Market{

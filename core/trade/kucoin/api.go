@@ -58,7 +58,11 @@ func (c *Client) GetRate(market string) (float64, error) {
 	return strconv.ParseFloat(obj.Price, 64)
 }
 
-func (c *Client) GetHistoricalRates(market string, startTime, endTime time.Time, invert bool) (map[time.Time]float64, error) {
+func (c *Client) GetHistoricalRates(
+	market string,
+	startTime, endTime time.Time,
+	invert bool,
+) (map[time.Time]float64, error) {
 	const maxResults = 1000
 
 	diff := endTime.Sub(startTime)
@@ -597,7 +601,8 @@ func (c *Client) checkWithdrawalQuota(chain string, quantity float64) error {
 	} else if remainingQuota, err := strconv.ParseFloat(obj.AvailableAmount, 64); err != nil {
 		return err
 	} else if remainingQuota < quantity {
-		return fmt.Errorf("%f is greater than the withdrawal limit %f for %s", quantity, remainingQuota, chain)
+		return fmt.Errorf("%f is greater than the withdrawal limit %f for %s",
+			quantity, remainingQuota, chain)
 	}
 
 	return nil

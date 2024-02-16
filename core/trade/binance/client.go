@@ -57,7 +57,12 @@ func (c *Client) doTimeoutRequest(req *http.Request) (*http.Response, error) {
 	return c.httpClient.Do(req.WithContext(ctx))
 }
 
-func (c *Client) do(method, path string, payload map[string]string, target interface{}, security securityType) error {
+func (c *Client) do(
+	method, path string,
+	payload map[string]string,
+	target interface{},
+	security securityType,
+) error {
 	var query, body url.Values
 	switch method {
 	case "GET":

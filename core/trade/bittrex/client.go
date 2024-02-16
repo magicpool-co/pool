@@ -44,7 +44,12 @@ func (c *Client) doTimeoutRequest(req *http.Request) (*http.Response, error) {
 	return c.httpClient.Do(req.WithContext(ctx))
 }
 
-func (c *Client) do(method, path string, payload map[string]interface{}, target interface{}, authNeeded bool) error {
+func (c *Client) do(
+	method, path string,
+	payload map[string]interface{},
+	target interface{},
+	authNeeded bool,
+) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return err

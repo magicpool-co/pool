@@ -125,6 +125,28 @@ func TestBalanceInputsToInputPaths(t *testing.T) {
 				},
 			},
 		},
+		{
+			balanceInputs: []*pooldb.BalanceInput{
+				&pooldb.BalanceInput{
+					ChainID:    "NEXA",
+					OutChainID: "BTC",
+					Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(15459190247)},
+				},
+				&pooldb.BalanceInput{
+					ChainID:    "KAS",
+					OutChainID: "BTC",
+					Value:      dbcl.NullBigInt{Valid: true, BigInt: new(big.Int).SetUint64(1512584062266)},
+				},
+			},
+			inputPaths: map[string]map[string]*big.Int{
+				"NEXA": map[string]*big.Int{
+					"BTC": new(big.Int).SetUint64(15459190247),
+				},
+				"KAS": map[string]*big.Int{
+					"BTC": new(big.Int).SetUint64(1512584062266),
+				},
+			},
+		},
 	}
 
 	for i, tt := range tests {

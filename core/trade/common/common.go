@@ -62,7 +62,12 @@ const (
 	PadWithZero
 )
 
-func decimalToPrecision(number *Precise, precision int, rounding RoundingMode, digits DigitsMode) (*Precise, error) {
+func decimalToPrecision(
+	number *Precise,
+	precision int,
+	rounding RoundingMode,
+	digits DigitsMode,
+) (*Precise, error) {
 	if precision < 0 {
 		exponent := &Precise{Value: powerOf10Big(-precision), Decimals: 0}
 		switch rounding {
@@ -131,7 +136,12 @@ func decimalToPrecision(number *Precise, precision int, rounding RoundingMode, d
 	return number, nil
 }
 
-func formatPrecise(number *Precise, precision int, rounding RoundingMode, digits DigitsMode) string {
+func formatPrecise(
+	number *Precise,
+	precision int,
+	rounding RoundingMode,
+	digits DigitsMode,
+) string {
 	precise := number.String()
 	switch rounding {
 	case Round:
@@ -247,7 +257,12 @@ func padPrecise(precise string, precision int, digits DigitsMode, padding Paddin
 	return precise
 }
 
-func DecimalToPrecision(strNumber, strPrecision string, rounding RoundingMode, digits DigitsMode, padding PaddingMode) (string, error) {
+func DecimalToPrecision(
+	strNumber, strPrecision string,
+	rounding RoundingMode,
+	digits DigitsMode,
+	padding PaddingMode,
+) (string, error) {
 	number, err := NewPrecise(strNumber)
 	if err != nil {
 		return "", err
